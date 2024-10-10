@@ -1,9 +1,14 @@
 {
   "compilerOptions": {
-    "module": "CommonJS",
-    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ESNext",
     "esModuleInterop": true,
-    "moduleResolution": "Node",
+    "isolatedModules": false,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "stripInternal": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
@@ -18,11 +23,15 @@
     "noEmit": true,
     "downlevelIteration": true,
     "declaration": true,
-    "lib": ["es6"]
+    "lib": ["es2022"],
   },
   "include": [
     "src/**/*.ts",
-    "test/**/*.ts"
+    "test/**/*.ts",
+    "./*.ts"
   ],
-  "exclude": ["node_modules", "build"]
+  "exclude": ["node_modules", "build"],
+  "ts-node": {
+    "require": ["tsconfig-paths/register"]
+  }
 }

@@ -1,0 +1,301 @@
+import {join} from 'path';
+import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
+import {ConsoleOutput, ExitCallback} from '@/infrastructure/application/cli/io/consoleOutput';
+import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
+import {NpmPackageManager} from '@/infrastructure/project/npmPackageManager';
+import {SdkResolver, SequentialSdkResolver} from '@/application/project/sdk/sdk';
+import {PlugJsSdk} from '@/application/project/sdk/plugJsSdk';
+import {PlugReactSdk} from '@/application/project/sdk/plugReactSdk';
+import {PlugNextSdk} from '@/application/project/sdk/plugNextSdk';
+import {InitCommand, InitInput, InitOutput} from '@/application/cli/command/init';
+import {LoginCommand, LoginOutput} from '@/application/cli/command/login';
+import {LogoutCommand, LogoutOutput} from '@/application/cli/command/logout';
+import {Input} from '@/application/cli/io/input';
+import {FileProjectManager} from '@/infrastructure/project/fileProjectManager';
+import {ProjectManager} from '@/application/project/projectManager';
+import {GraphqlClient} from '@/infrastructure/graphql';
+import {FetchGraphqlClient} from '@/infrastructure/graphql/fetchGraphqlClient';
+import {PackageManager} from '@/application/project/packageManager';
+import {UserApi} from '@/application/api/user';
+import {OrganizationApi} from '@/application/api/organization';
+import {WorkspaceApi} from '@/application/api/workspace';
+import {GraphqlUserApi} from '@/infrastructure/application/api/user';
+import {GraphqlOrganizationApi} from '@/infrastructure/application/api/organization';
+import {GraphqlWorkspaceApi} from '@/infrastructure/application/api/workspace';
+import {OrganizationForm} from '@/application/cli/form/organization/organizationForm';
+import {WorkspaceForm} from '@/application/cli/form/workspace/workspaceForm';
+import {ApplicationForm} from '@/application/cli/form/application/applicationForm';
+import {ApplicationApi} from '@/application/api/application';
+import {GraphqlApplicationApi} from '@/infrastructure/application/api/application';
+import {Authenticator} from '@/application/cli/authentication/authenticator';
+import {TokenFileAuthenticator} from '@/application/cli/authentication/authenticator/tokenFileAuthenticator';
+import {ExternalAuthenticator} from '@/application/cli/authentication/authenticator/externalAuthenticator';
+import {SignInForm} from '@/application/cli/form/auth/signInForm';
+import {AuthenticationListener} from '@/application/cli/authentication/authentication';
+import {SignUpForm} from '@/application/cli/form/auth/signUpForm';
+import {Command, CommandInput} from '@/application/cli/command/command';
+
+export type Configuration = {
+    io: {
+        input: NodeJS.ReadStream,
+        output: NodeJS.WriteStream,
+    },
+    directories: {
+        current: string,
+        config: string,
+    },
+    api: {
+        graphqlEndpoint: string,
+        tokenEndpoint: string,
+        tokenParameter: string,
+    },
+    exitCallback: ExitCallback,
+};
+
+export class Cli {
+    private readonly configuration: Configuration;
+
+    private authenticator?: Authenticator;
+
+    private input?: Input;
+
+    private output?: ConsoleOutput;
+
+    private sdkResolver?: SdkResolver;
+
+    private projectManager?: ProjectManager;
+
+    private packageManager?: PackageManager;
+
+    private graphqlClient?: GraphqlClient;
+
+    private userApi?: UserApi;
+
+    private organizationApi?: OrganizationApi;
+
+    private workspaceApi?: WorkspaceApi;
+
+    private applicationApi?: ApplicationApi;
+
+    private authenticationListener?: AuthenticationListener;
+
+    public constructor(configuration: Configuration) {
+        this.configuration = configuration;
+    }
+
+    public init(input: InitInput): Promise<InitOutput> {
+        return this.execute(
+            new InitCommand({
+                sdkResolver: this.getSdkResolver(),
+                projectManager: this.getProjectManager(),
+                workspaceApi: this.getWorkspaceApi(),
+                form: {
+                    organization: new OrganizationForm({
+                        input: this.getInput(),
+                        output: this.getOutput(),
+                        userApi: this.getUserApi(),
+                    }),
+                    workspace: new WorkspaceForm({
+                        input: this.getInput(),
+                        output: this.getOutput(),
+                        organizationApi: this.getOrganizationApi(),
+                    }),
+                    application: new ApplicationForm({
+                        input: this.getInput(),
+                        output: this.getOutput(),
+                        workspaceApi: this.getWorkspaceApi(),
+                    }),
+                },
+                io: {
+                    input: this.getInput(),
+                    output: this.getOutput(),
+                },
+            }),
+            input,
+        );
+    }
+
+    public login(): Promise<LoginOutput> {
+        return this.execute(new LoginCommand({authenticator: this.getAuthenticator()}), {});
+    }
+
+    public logout(): Promise<LogoutOutput> {
+        return this.execute(new LogoutCommand({authenticator: this.getAuthenticator()}), {});
+    }
+
+    private getInput(): Input {
+        if (this.input === undefined) {
+            const output = this.getOutput();
+
+            this.input = new ConsoleInput({
+                input: this.configuration.io.input,
+                output: this.configuration.io.output,
+                onExit: () => output.exit(),
+                onInteractionStart: () => output.suspendSpinner(),
+                onInteractionEnd: () => output.resumeSpinner(),
+            });
+        }
+
+        return this.input;
+    }
+
+    private getOutput(): ConsoleOutput {
+        if (this.output === undefined) {
+            this.output = new ConsoleOutput({
+                output: this.configuration.io.output,
+                onExit: this.configuration.exitCallback,
+            });
+        }
+
+        return this.output;
+    }
+
+    private getAuthenticator(): Authenticator {
+        if (this.authenticator === undefined) {
+            this.authenticator = new TokenFileAuthenticator({
+                filePath: join(this.configuration.directories.config, 'token'),
+                logger: this.getOutput(),
+                authenticator: new ExternalAuthenticator({
+                    input: this.getInput(),
+                    output: this.getOutput(),
+                    userApi: this.getUserApi(true),
+                    form: {
+                        signIn: new SignInForm({
+                            input: this.getInput(),
+                            output: this.getOutput(),
+                            userApi: this.getUserApi(true),
+                            listener: this.getAuthenticationListener(),
+                        }),
+                        signUp: new SignUpForm({
+                            input: this.getInput(),
+                            output: this.getOutput(),
+                            userApi: this.getUserApi(true),
+                            listener: this.getAuthenticationListener(),
+                        }),
+                    },
+                }),
+            });
+        }
+
+        return this.authenticator;
+    }
+
+    private getSdkResolver(): SdkResolver {
+        if (this.sdkResolver === undefined) {
+            this.sdkResolver = new SequentialSdkResolver([
+                new PlugNextSdk({
+                    packageManager: this.getPackageManager(),
+                    api: {
+                        user: this.getUserApi(),
+                        workspace: this.getWorkspaceApi(),
+                        application: this.getApplicationApi(),
+                    },
+                }),
+                new PlugReactSdk(this.getPackageManager()),
+                new PlugJsSdk(this.getPackageManager()),
+            ]);
+        }
+
+        return this.sdkResolver;
+    }
+
+    private getPackageManager(): PackageManager {
+        if (this.packageManager === undefined) {
+            this.packageManager = new NpmPackageManager({
+                directory: this.configuration.directories.current,
+            });
+        }
+
+        return this.packageManager;
+    }
+
+    private getProjectManager(): ProjectManager {
+        if (this.projectManager === undefined) {
+            this.projectManager = new FileProjectManager(this.configuration.directories.current);
+        }
+
+        return this.projectManager;
+    }
+
+    private getUserApi(optionalAuthentication = false): UserApi {
+        if (optionalAuthentication) {
+            return new GraphqlUserApi(this.getGraphqlClient(true));
+        }
+
+        if (this.userApi === undefined) {
+            this.userApi = new GraphqlUserApi(this.getGraphqlClient());
+        }
+
+        return this.userApi;
+    }
+
+    private getOrganizationApi(): OrganizationApi {
+        if (this.organizationApi === undefined) {
+            this.organizationApi = new GraphqlOrganizationApi(this.getGraphqlClient());
+        }
+
+        return this.organizationApi;
+    }
+
+    private getWorkspaceApi(): WorkspaceApi {
+        if (this.workspaceApi === undefined) {
+            this.workspaceApi = new GraphqlWorkspaceApi(this.getGraphqlClient());
+        }
+
+        return this.workspaceApi;
+    }
+
+    private getApplicationApi(): ApplicationApi {
+        if (this.applicationApi === undefined) {
+            this.applicationApi = new GraphqlApplicationApi(this.getGraphqlClient());
+        }
+
+        return this.applicationApi;
+    }
+
+    private getGraphqlClient(optionalAuthentication = false): GraphqlClient {
+        if (optionalAuthentication) {
+            return new FetchGraphqlClient({
+                endpoint: this.configuration.api.graphqlEndpoint,
+                tokenProvider: {
+                    getToken: () => this.getAuthenticator().getToken(),
+                },
+            });
+        }
+
+        if (this.graphqlClient === undefined) {
+            this.graphqlClient = new FetchGraphqlClient({
+                endpoint: this.configuration.api.graphqlEndpoint,
+                tokenProvider: {
+                    getToken: () => this.getAuthenticator().login(),
+                },
+            });
+        }
+
+        return this.graphqlClient;
+    }
+
+    private getAuthenticationListener(): AuthenticationListener {
+        if (this.authenticationListener === undefined) {
+            this.authenticationListener = new HttpPollingListener({
+                endpoint: this.configuration.api.tokenEndpoint,
+                parameter: this.configuration.api.tokenParameter,
+                pollingInterval: 1000,
+            });
+        }
+
+        return this.authenticationListener;
+    }
+
+    private async execute<I extends CommandInput, O>(command: Command<I, O>, input: I): Promise<O> {
+        try {
+            return await command.execute(input);
+        } catch (error) {
+            const output = this.getOutput();
+
+            output.reportError(error);
+
+            return output.exit();
+        }
+    }
+}

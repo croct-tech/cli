@@ -1,0 +1,9 @@
+{
+  "type": "module",
+  "name": "@croct-tech/fixture",
+  "dependencies": {
+    "@croct/plug": "^0.13.3",
+    "typescript": "^5.2.2",
+    "@croct/plug-react": "^0.8.1"
+  }
+}
