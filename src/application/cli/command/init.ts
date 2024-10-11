@@ -10,8 +10,7 @@ import {
     Workspace,
 } from '@/application/model/entities';
 import {Sdk, SdkResolver} from '@/application/project/sdk/sdk';
-import {ProjectManager} from '@/application/project/projectManager';
-import {ProjectConfiguration} from '@/application/model/project';
+import {ProjectConfiguration, ProjectConfigurationFile} from '@/application/project/configuration';
 import {OrganizationOptions} from '@/application/cli/form/organization/organizationForm';
 import {ApplicationOptions} from '@/application/cli/form/application/applicationForm';
 import {WorkspaceOptions} from '@/application/cli/form/workspace/workspaceForm';
@@ -28,7 +27,7 @@ export type InitOutput = ProjectConfiguration;
 export type InitConfig = {
     workspaceApi: WorkspaceApi,
     sdkResolver: SdkResolver,
-    projectManager: ProjectManager,
+    configurationFile: ProjectConfigurationFile,
     form: {
         organization: Form<Organization, OrganizationOptions>,
         workspace: Form<Workspace, WorkspaceOptions>,
@@ -57,9 +56,9 @@ export class InitCommand implements Command<InitInput, InitOutput> {
 
         output.info(`Using Croct SDK for ${ApplicationPlatform.getName(sdk.getPlatform())}`);
 
-        const {projectManager, form} = this.config;
+        const {configurationFile, form} = this.config;
 
-        const currentConfiguration = await projectManager.getConfiguration();
+        const currentConfiguration = await configurationFile.load();
 
         if (currentConfiguration !== null && input.override !== true) {
             output.info('Project already initialized, pass --override to reconfigure');
@@ -106,19 +105,19 @@ export class InitCommand implements Command<InitInput, InitOutput> {
             components: {},
         });
 
-        await projectManager.updateConfiguration(configuration);
+        await configurationFile.update(configuration);
 
         return configuration;
     }
 
     private async configure(sdk: Sdk, configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
-        const {projectManager} = this.config;
+        const {configurationFile} = this.config;
         const updatedConfiguration: ProjectConfiguration = {
             ...configuration,
             slots: await this.getSlots(configuration.organization, configuration.workspace),
         };
 
-        await projectManager.updateConfiguration(updatedConfiguration);
+        await configurationFile.update(updatedConfiguration);
 
         return sdk.install({
             input: this.config.io.input,
@@ -132,7 +131,10 @@ export class InitCommand implements Command<InitInput, InitOutput> {
 
         const spinner = output.createSpinner('Loading slots');
 
-        const slots = await workspaceApi.getSlots(organizationSlug, workspaceSlug);
+        const slots = await workspaceApi.getSlots({
+            organizationSlug: organizationSlug,
+            workspaceSlug: workspaceSlug,
+        });
 
         spinner.stop();
 

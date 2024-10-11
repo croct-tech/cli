@@ -1,5 +1,5 @@
 import {graphql} from '@/infrastructure/graphql';
-import {NewWorkspace, OrganizationApi} from '@/application/api/organization';
+import {NewWorkspace, OrganizationApi, OrganizationPath} from '@/application/api/organization';
 import {GraphqlClient} from '@/infrastructure/graphql/client';
 import {Workspace} from '@/application/model/entities';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
@@ -11,9 +11,9 @@ export class GraphqlOrganizationApi implements OrganizationApi {
         this.client = client;
     }
 
-    public async getWorkspaces(organizationSlug: string): Promise<Workspace[]> {
+    public async getWorkspaces(path: OrganizationPath): Promise<Workspace[]> {
         const {data} = await this.client.execute(workspacesQuery, {
-            organizationSlug: organizationSlug,
+            organizationSlug: path.organizationSlug,
         });
 
         const edges = data.organization?.workspaces.edges ?? [];

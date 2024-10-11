@@ -39,7 +39,10 @@ export class ApplicationForm implements Form<Application, ApplicationOptions> {
 
         const spinner = output.createSpinner('Loading applications');
 
-        const applications = await api.getApplications(organization.slug, workspace.slug);
+        const applications = await api.getApplications({
+            workspaceSlug: workspace.slug,
+            organizationSlug: organization.slug,
+        });
         const candidates = applications.filter(app => app.environment === environment);
 
         spinner.stop();

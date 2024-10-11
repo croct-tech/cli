@@ -95,6 +95,7 @@ export class GraphqlUserApi implements UserApi {
         });
 
         const cookie = headers.get('set-cookie') ?? '';
+
         const token = cookie.split(';')
             .find(part => part.startsWith('__croctApi='))
             ?.split('=')[1];
@@ -103,7 +104,7 @@ export class GraphqlUserApi implements UserApi {
             throw new Error('Token not found');
         }
 
-        return decodeURIComponent(token);
+        return token;
     }
 
     public async getOrganizations(): Promise<Organization[]> {
@@ -114,7 +115,7 @@ export class GraphqlUserApi implements UserApi {
         return edges.flatMap((edge): Organization[] => {
             const node = edge?.node ?? null;
 
-            if (node === null) {
+            if (node === null || node.slug === 'demo') {
                 return [];
             }
 

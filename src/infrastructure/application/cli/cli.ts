@@ -2,7 +2,7 @@ import {join} from 'path';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput, ExitCallback} from '@/infrastructure/application/cli/io/consoleOutput';
 import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
-import {NpmPackageManager} from '@/infrastructure/project/npmPackageManager';
+import {NodeProjectManager} from '@/infrastructure/project/nodeProjectManager';
 import {SdkResolver, SequentialSdkResolver} from '@/application/project/sdk/sdk';
 import {PlugJsSdk} from '@/application/project/sdk/plugJsSdk';
 import {PlugReactSdk} from '@/application/project/sdk/plugReactSdk';
@@ -11,11 +11,10 @@ import {InitCommand, InitInput, InitOutput} from '@/application/cli/command/init
 import {LoginCommand, LoginOutput} from '@/application/cli/command/login';
 import {LogoutCommand, LogoutOutput} from '@/application/cli/command/logout';
 import {Input} from '@/application/cli/io/input';
-import {FileProjectManager} from '@/infrastructure/project/fileProjectManager';
-import {ProjectManager} from '@/application/project/projectManager';
+import {JsonFileConfiguration} from '@/infrastructure/project/jsonFileConfiguration';
 import {GraphqlClient} from '@/infrastructure/graphql';
 import {FetchGraphqlClient} from '@/infrastructure/graphql/fetchGraphqlClient';
-import {PackageManager} from '@/application/project/packageManager';
+import {ProjectManager} from '@/application/project/projectManager';
 import {UserApi} from '@/application/api/user';
 import {OrganizationApi} from '@/application/api/organization';
 import {WorkspaceApi} from '@/application/api/workspace';
@@ -34,6 +33,8 @@ import {SignInForm} from '@/application/cli/form/auth/signInForm';
 import {AuthenticationListener} from '@/application/cli/authentication/authentication';
 import {SignUpForm} from '@/application/cli/form/auth/signUpForm';
 import {Command, CommandInput} from '@/application/cli/command/command';
+import {AdminCommand} from '@/application/cli/command/admin';
+import {ProjectConfigurationFile} from '@/application/project/configuration';
 
 export type Configuration = {
     io: {
@@ -48,6 +49,8 @@ export type Configuration = {
         graphqlEndpoint: string,
         tokenEndpoint: string,
         tokenParameter: string,
+        authenticationEndpoint: string,
+        authenticationParameter: string,
     },
     exitCallback: ExitCallback,
 };
@@ -65,8 +68,6 @@ export class Cli {
 
     private projectManager?: ProjectManager;
 
-    private packageManager?: PackageManager;
-
     private graphqlClient?: GraphqlClient;
 
     private userApi?: UserApi;
@@ -79,6 +80,8 @@ export class Cli {
 
     private authenticationListener?: AuthenticationListener;
 
+    private configurationFile?: ProjectConfigurationFile;
+
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
     }
@@ -87,7 +90,7 @@ export class Cli {
         return this.execute(
             new InitCommand({
                 sdkResolver: this.getSdkResolver(),
-                projectManager: this.getProjectManager(),
+                configurationFile: this.getConfigurationFile(),
                 workspaceApi: this.getWorkspaceApi(),
                 form: {
                     organization: new OrganizationForm({
@@ -123,6 +126,20 @@ export class Cli {
         return this.execute(new LogoutCommand({authenticator: this.getAuthenticator()}), {});
     }
 
+    public admin(): Promise<void> {
+        return this.execute(
+            new AdminCommand({
+                output: this.getOutput(),
+                userApi: this.getUserApi(),
+                endpoint: {
+                    url: this.configuration.api.authenticationEndpoint,
+                    parameter: this.configuration.api.authenticationParameter,
+                },
+            }),
+            {},
+        );
+    }
+
     private getInput(): Input {
         if (this.input === undefined) {
             const output = this.getOutput();
@@ -130,7 +147,7 @@ export class Cli {
             this.input = new ConsoleInput({
                 input: this.configuration.io.input,
                 output: this.configuration.io.output,
-                onExit: () => output.exit(),
+                onAbort: () => output.exit(),
                 onInteractionStart: () => output.suspendSpinner(),
                 onInteractionEnd: () => output.resumeSpinner(),
             });
@@ -184,37 +201,37 @@ export class Cli {
         if (this.sdkResolver === undefined) {
             this.sdkResolver = new SequentialSdkResolver([
                 new PlugNextSdk({
-                    packageManager: this.getPackageManager(),
+                    projectManager: this.getProjectManager(),
                     api: {
                         user: this.getUserApi(),
                         workspace: this.getWorkspaceApi(),
                         application: this.getApplicationApi(),
                     },
                 }),
-                new PlugReactSdk(this.getPackageManager()),
-                new PlugJsSdk(this.getPackageManager()),
+                new PlugReactSdk(this.getProjectManager()),
+                new PlugJsSdk(this.getProjectManager()),
             ]);
         }
 
         return this.sdkResolver;
     }
 
-    private getPackageManager(): PackageManager {
-        if (this.packageManager === undefined) {
-            this.packageManager = new NpmPackageManager({
+    private getProjectManager(): ProjectManager {
+        if (this.projectManager === undefined) {
+            this.projectManager = new NodeProjectManager({
                 directory: this.configuration.directories.current,
             });
         }
 
-        return this.packageManager;
+        return this.projectManager;
     }
 
-    private getProjectManager(): ProjectManager {
-        if (this.projectManager === undefined) {
-            this.projectManager = new FileProjectManager(this.configuration.directories.current);
+    private getConfigurationFile(): ProjectConfigurationFile {
+        if (this.configurationFile === undefined) {
+            this.configurationFile = new JsonFileConfiguration(this.configuration.directories.current);
         }
 
-        return this.projectManager;
+        return this.configurationFile;
     }
 
     private getUserApi(optionalAuthentication = false): UserApi {

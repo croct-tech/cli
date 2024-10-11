@@ -6,12 +6,12 @@ type PromptState = {
     aborted: boolean,
 };
 
-export type ExitCallback = () => never;
+export type AbortCallback = () => never;
 
 export type Configuration = {
     input: Readable,
     output: Writable,
-    onExit: ExitCallback,
+    onAbort: AbortCallback,
     onInteractionStart?: () => void,
     onInteractionEnd?: () => void,
 };
@@ -72,13 +72,13 @@ export class ConsoleInput implements Input {
             stdout: this.configuration.output,
             onState: (state: PromptState): void => {
                 if (state.aborted) {
-                    const {output, onExit} = this.configuration;
+                    const {output, onAbort} = this.configuration;
 
                     // If we don't re-enable the terminal cursor before exiting
                     // the program, the cursor will remain hidden
                     output.write('\x1B[?25h');
                     output.write('\n');
-                    onExit();
+                    onAbort();
                 }
             },
         };

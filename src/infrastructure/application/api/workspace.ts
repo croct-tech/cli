@@ -1,5 +1,13 @@
 import {graphql, GraphqlClient} from '@/infrastructure/graphql';
-import {NewApplication, WorkspaceApi} from '@/application/api/workspace';
+import {
+    ApplicationPath,
+    LocalizedContent,
+    NewApplication,
+    SlotPath,
+    TargetTyping,
+    WorkspaceApi,
+    WorkspacePath,
+} from '@/application/api/workspace';
 import {Application, ApplicationEnvironment, Slot} from '@/application/model/entities';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
 
@@ -10,15 +18,11 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         this.client = client;
     }
 
-    public async getApplication(
-        organizationSlug: string,
-        workspaceSlug: string,
-        applicationSlug: string,
-    ): Promise<Application|null> {
+    public async getApplication(path: ApplicationPath): Promise<Application|null> {
         const {data} = await this.client.execute(applicationQuery, {
-            organizationSlug: organizationSlug,
-            workspaceSlug: workspaceSlug,
-            applicationSlug: applicationSlug,
+            organizationSlug: path.organizationSlug,
+            workspaceSlug: path.workspaceSlug,
+            applicationSlug: path.applicationSlug,
         });
 
         const node = data.organization?.workspace?.application ?? null;
@@ -43,10 +47,10 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         };
     }
 
-    public async getApplications(organizationSlug: string, workspaceSlug: string): Promise<Application[]> {
+    public async getApplications(path: WorkspacePath): Promise<Application[]> {
         const {data} = await this.client.execute(applicationsQuery, {
-            organizationSlug: organizationSlug,
-            workspaceSlug: workspaceSlug,
+            organizationSlug: path.organizationSlug,
+            workspaceSlug: path.workspaceSlug,
         });
 
         const edges = data.organization?.workspace?.applications.edges ?? [];
@@ -110,10 +114,10 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         };
     }
 
-    public async getSlots(organizationSlug: string, workspaceSlug: string): Promise<Slot[]> {
+    public async getSlots(path: WorkspacePath): Promise<Slot[]> {
         const {data} = await this.client.execute(slotQuery, {
-            organizationSlug: organizationSlug,
-            workspaceSlug: workspaceSlug,
+            organizationSlug: path.organizationSlug,
+            workspaceSlug: path.workspaceSlug,
         });
 
         const edges = data.organization?.workspace?.slots.edges ?? [];
@@ -135,6 +139,37 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                 },
             }];
         });
+    }
+
+    public async getSlotStaticContent(path: SlotPath, majorVersion?: number): Promise<LocalizedContent[]> {
+        const {data} = await this.client.execute(slotStaticContentQuery, {
+            organizationSlug: path.organizationSlug,
+            workspaceSlug: path.workspaceSlug,
+            slotSlug: path.slotSlug,
+            majorVersion: majorVersion,
+        });
+
+        const contents = data.organization?.workspace?.slot?.staticContent ?? [];
+
+        return contents.map(
+            content => ({
+                locale: content.locale,
+                content: content.content,
+            }),
+        );
+    }
+
+    public async generateTyping(typing: TargetTyping): Promise<string> {
+        const {data} = await this.client.execute(generateTypingMutation, {
+            workspaceId: typing.workspaceId,
+            payload: {
+                target: typing.target as any,
+                components: typing.components,
+                slots: typing.slots,
+            },
+        });
+
+        return data.generateTyping;
     }
 
     private generateApplicationSlug(
@@ -237,6 +272,26 @@ const createApplicationMutation = graphql(`
     }
 `);
 
+const slotStaticContentQuery = graphql(`
+    query SlotStaticContent(
+        $organizationSlug: ReadableId!, 
+        $workspaceSlug: ReadableId!, 
+        $slotSlug: ReadableId!
+        $majorVersion: Int
+    ) {
+        organization(slug: $organizationSlug) {
+            workspace(slug: $workspaceSlug) {
+                slot(customId: $slotSlug) {
+                    staticContent(majorVersion: $majorVersion) {
+                        locale
+                        content
+                    }
+                }
+            }
+        }
+    }
+`);
+
 const slotQuery = graphql(`
     query Slots($organizationSlug: ReadableId!, $workspaceSlug: ReadableId!) {
         organization(slug: $organizationSlug) {
@@ -258,5 +313,11 @@ const slotQuery = graphql(`
                 }
             }
         }
+    }
+`);
+
+const generateTypingMutation = graphql(`
+    mutation GenerateTyping($workspaceId: WorkspaceId!, $payload: GenerateTypingPayload!) {
+        generateTyping(workspaceId: $workspaceId, payload: $payload)
     }
 `);

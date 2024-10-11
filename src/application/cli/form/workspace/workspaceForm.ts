@@ -31,7 +31,9 @@ export class WorkspaceForm implements Form<Workspace, WorkspaceOptions> {
         if (options.new === false) {
             const spinner = output.createSpinner('Loading workspaces');
 
-            const workspaces = await api.getWorkspaces(organization.slug);
+            const workspaces = await api.getWorkspaces({
+                organizationSlug: organization.slug,
+            });
 
             if (workspaces.length === 1) {
                 spinner.succeed(`Workspace: ${workspaces[0].name}`);

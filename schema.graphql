@@ -1277,6 +1277,12 @@ type FileMetadata {
   url: String!
 }
 
+input GenerateTypingPayload {
+  components: [VersionSpecifier!]!
+  slots: [VersionSpecifier!]!
+  target: TargetSdk!
+}
+
 type GeographicTableColumn implements TableColumn {
   city: String
   country: String!
@@ -1620,6 +1626,7 @@ type Mutation {
   discardExperienceDraft(experienceId: ExperienceId!, publishTime: LocalDateTime, revision: ExperienceRevisionId!, workspaceId: WorkspaceId!): DiscardExperienceDraftResult!
   discardExperimentDraft(experienceId: ExperienceId!, revision: Int!, workspaceId: WorkspaceId!): DiscardExperimentDraftResult!
   finishExperiment(experienceContent: VariantId, experienceId: ExperienceId!, experimentId: ExperimentId!, winnerVariant: VariantId, workspaceId: WorkspaceId!): Experiment!
+  generateTyping(payload: GenerateTypingPayload!, workspaceId: WorkspaceId!): String!
   inviteOrganizationMember(organizationId: OrganizationId!, payload: InviteOrganizationMemberPayload!): OrganizationMembership!
   inviteWorkspaceMember(payload: InviteWorkspaceMemberPayload!, workspaceId: WorkspaceId!): WorkspaceMembership!
   issueExperiencePreviewToken(audienceId: AudienceId, experienceId: ExperienceId!, locale: String, previewMode: ExperiencePreviewScope!, publishTime: LocalDateTime, variantId: VariantId, workspaceId: WorkspaceId!): IssueExperiencePreviewTokenResult!
@@ -1697,6 +1704,9 @@ type NonConsumableQuotas {
   nodesPerContent: Int!
   nodesPerDefinition: Int!
 }
+
+"""An arbitrary map of strings"""
+scalar NonNullStringMap
 
 interface Notification {
   id: ID!
@@ -2433,6 +2443,10 @@ type TableWidget implements DashboardFilterable & Node & Widget {
   title: String!
 }
 
+enum TargetSdk {
+  PLUG_JS
+}
+
 type TemporalTableColumn implements TableColumn {
   format: TimeFormat!
   hint: Tooltip
@@ -2772,6 +2786,11 @@ scalar VariantId
 type Version {
   major: Int!
   minor: Int!
+}
+
+input VersionSpecifier {
+  id: String!
+  version: String!
 }
 
 type VideoMetadata {

@@ -1,7 +1,7 @@
 import {ApplicationPlatform} from '@/application/model/entities';
 import {Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
-import {ProjectConfiguration} from '@/application/model/project';
+import {ProjectConfiguration} from '@/application/project/configuration';
 
 export type Installation = {
     input: Input,

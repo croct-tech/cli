@@ -1,9 +1,23 @@
-import {ProjectConfiguration} from '@/application/model/project';
+export type PackageInfo = {
+    name: string,
+    version: string | null,
+    path: string,
+};
+
+export type PackageInstallationOptions = {
+    dev?: boolean,
+};
 
 export interface ProjectManager {
-    isInitialized(): Promise<boolean>;
+    getDirectory(): string;
 
-    getConfiguration(): Promise<ProjectConfiguration|null>;
+    isPackageListed(packageName: string): Promise<boolean>;
 
-    updateConfiguration(configuration: ProjectConfiguration): Promise<void>;
+    getPackageInfo(packageName: string): Promise<PackageInfo|null>;
+
+    installPackage(packageName: string, options?: PackageInstallationOptions): Promise<void>;
+
+    getImportPath(filePath: string): Promise<string>;
+
+    resolveImportPath(importPath: string): Promise<string>;
 }

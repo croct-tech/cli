@@ -1,7 +1,7 @@
 import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import {ApplicationPlatform} from '@/application/model/entities';
-import {ProjectConfiguration} from '@/application/model/project';
+import {ProjectConfiguration} from '@/application/project/configuration';
 
 export class PlugJsSdk extends JavaScriptSdk implements SdkResolver {
     public getPackage(): string {

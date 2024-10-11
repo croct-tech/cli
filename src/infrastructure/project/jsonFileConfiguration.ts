@@ -1,16 +1,15 @@
 import {join} from 'path';
 import {access, readFile, writeFile} from 'fs/promises';
-import {ProjectConfiguration} from '@/application/model/project';
-import {ProjectManager} from '@/application/project/projectManager';
+import {ProjectConfiguration, ProjectConfigurationFile} from '@/application/project/configuration';
 
-export class FileProjectManager implements ProjectManager {
+export class JsonFileConfiguration implements ProjectConfigurationFile {
     private readonly projectDirectory: string;
 
     public constructor(projectDirectory: string) {
         this.projectDirectory = projectDirectory;
     }
 
-    public async isInitialized(): Promise<boolean> {
+    public async exists(): Promise<boolean> {
         try {
             await access(this.getConfigurationFilePath());
 
@@ -20,7 +19,7 @@ export class FileProjectManager implements ProjectManager {
         }
     }
 
-    public async getConfiguration(): Promise<ProjectConfiguration|null> {
+    public async load(): Promise<ProjectConfiguration|null> {
         const path = this.getConfigurationFilePath();
 
         try {
@@ -34,7 +33,7 @@ export class FileProjectManager implements ProjectManager {
         }
     }
 
-    public async updateConfiguration(configuration: ProjectConfiguration): Promise<void> {
+    public async update(configuration: ProjectConfiguration): Promise<void> {
         const path = this.getConfigurationFilePath();
         const json = JSON.stringify(configuration, null, 4);
 

@@ -1,13 +1,13 @@
 import {Installation, Sdk} from '@/application/project/sdk/sdk';
-import {PackageManager} from '@/application/project/packageManager';
+import {ProjectManager} from '@/application/project/projectManager';
 import {ApplicationPlatform} from '@/application/model/entities';
-import {ProjectConfiguration} from '@/application/model/project';
+import {ProjectConfiguration} from '@/application/project/configuration';
 
 export abstract class JavaScriptSdk implements Sdk {
-    protected packageManager: PackageManager;
+    protected projectManager: ProjectManager;
 
-    public constructor(packageManager: PackageManager) {
-        this.packageManager = packageManager;
+    public constructor(projectManager: ProjectManager) {
+        this.projectManager = projectManager;
     }
 
     public abstract getPackage(): string;
@@ -17,7 +17,7 @@ export abstract class JavaScriptSdk implements Sdk {
     public async install(installation: Installation): Promise<ProjectConfiguration> {
         const spinner = installation.output.createSpinner('Installing SDK');
 
-        await this.packageManager.installPackage(this.getPackage());
+        await this.projectManager.installPackage(this.getPackage());
 
         spinner.succeed(`${this.getPackage()} installed`);
 

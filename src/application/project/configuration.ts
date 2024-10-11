@@ -9,3 +9,11 @@ export type ProjectConfiguration = {
     slots: Record<string, string>,
     components: Record<string, string>,
 };
+
+export interface ProjectConfigurationFile {
+    exists(): Promise<boolean>;
+
+    load(): Promise<ProjectConfiguration | null>;
+
+    update(configuration: ProjectConfiguration): Promise<void>;
+}

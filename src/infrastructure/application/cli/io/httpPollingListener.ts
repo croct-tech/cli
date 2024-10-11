@@ -30,6 +30,8 @@ export class HttpPollingListener implements AuthenticationListener {
                 if (response.ok) {
                     const body = await response.json() as {token?: string};
 
+                    console.log(body);
+
                     if (body.token !== undefined) {
                         return body.token;
                     }

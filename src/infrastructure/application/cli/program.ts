@@ -32,10 +32,13 @@ const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a
                 graphqlEndpoint: `${apiEndpoint}/graphql`,
                 tokenEndpoint: `${apiEndpoint}/account/issue-token`,
                 tokenParameter: 'session',
+                authenticationEndpoint: `${apiEndpoint}/start/`,
+                authenticationParameter: 'session',
             },
             exitCallback: () => process.exit(1),
         });
     }
+
     program.command('init')
         .description('Configure the your project.')
         .option('-o, --override', 'override any existing configuration')
@@ -65,6 +68,12 @@ const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a
         .description('Logout the current user.')
         .action(async () => {
             await run().logout();
+        });
+
+    program.command('admin')
+        .description('Login and open admin in browser.')
+        .action(async () => {
+            await run().admin();
         });
 
     await program.parseAsync();
