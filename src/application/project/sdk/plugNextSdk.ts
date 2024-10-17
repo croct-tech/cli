@@ -11,7 +11,7 @@ import {EnvFile} from '@/application/project/envFile';
 import {UserApi} from '@/application/api/user';
 import {NextConfig, parseConfig} from '@/application/project/sdk/code/nextjs/parseConfig';
 import {transform} from '@/application/project/sdk/code/transformation';
-import {addMiddleware} from '@/application/project/sdk/code/nextjs/refactorMiddleware';
+import {RefactorMiddleware} from '@/application/project/sdk/code/nextjs/refactorMiddleware';
 
 export type Configuration = {
     projectManager: ProjectManager,
@@ -155,22 +155,33 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         }
     }
 
-    private async installMiddleware(installation: NextInstallation): Promise<void> {
+    private async installMiddleware(installation: NextInstallation): Promise<boolean> {
         if (installation.project.middlewarePath === null) {
-            return this.writeFile(
+            await this.writeFile(
                 `middleware.${installation.project.typescript ? 'ts' : 'js'}`,
                 'export {config, middleware} from \'@croct/plug-next/middleware\';',
             );
+
+            return true;
         }
 
         const {modified, code} = transform(
             await readFile(installation.project.middlewarePath, 'utf8'),
-            addMiddleware,
+            new RefactorMiddleware({
+                import: {
+                    module: '@croct/plug-next/middleware',
+                    functionName: 'withCroct',
+                    matcherName: 'matcher',
+                    matcherLocalName: 'croctMatcher',
+                },
+            }),
         );
 
         if (modified) {
             await this.writeFile('middleware.ts', code, true);
         }
+
+        return modified;
     }
 
     private async updateEnvFile(installation: NextInstallation): Promise<void> {

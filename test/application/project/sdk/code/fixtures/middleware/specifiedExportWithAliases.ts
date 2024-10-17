@@ -1,3 +1,6 @@
+function unrelated() {
+}
+
 const _middlewareFn = function() {
     console.log('middleware');
 }

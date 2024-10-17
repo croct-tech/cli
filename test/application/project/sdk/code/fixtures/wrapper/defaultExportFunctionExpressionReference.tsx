@@ -6,5 +6,4 @@ const Layout = function ({children}) {
     </>;
 }
 
-
 export default Layout;

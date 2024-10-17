@@ -1,4 +1,6 @@
 import { withCroct, matcher } from "@croct/plug-next/middleware";
+function unrelated() {
+}
 
 const _config = {
     matcher: ['.*', matcher]

@@ -5,12 +5,10 @@ export const config = {
     matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)', matcher],
 }
 
-const middleware = withCroct({
+export default withCroct({
     matcher: config.matcher,
 
-    next: function(request: NextRequest) {
+    next: function middleware(request: NextRequest) {
         console.log(request.url);
     }
 });
-
-export default middleware;

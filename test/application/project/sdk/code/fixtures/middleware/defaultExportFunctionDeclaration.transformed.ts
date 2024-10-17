@@ -1,7 +1,5 @@
 import { withCroct } from "@croct/plug-next/middleware";
 
-const anything = withCroct(function(request) {
+export default withCroct(function anything(request) {
     console.log(request.url);
 });
-
-export default anything;

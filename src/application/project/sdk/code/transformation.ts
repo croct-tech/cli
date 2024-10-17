@@ -1,4 +1,4 @@
-import {namedTypes as AST} from 'ast-types';
+import type {namedTypes as AST} from 'ast-types';
 import {parse, print} from 'recast';
 import {parse as babelParse} from '@babel/parser';
 

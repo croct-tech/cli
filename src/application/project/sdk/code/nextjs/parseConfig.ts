@@ -23,10 +23,9 @@ export function parseConfig(source: string): NextConfig {
         plugins: ['typescript'],
     });
 
-    const i18n = {
+    const i18n: NextConfig['i18n'] = {
         locales: Array<string>(),
-        defaultLocale: '',
-    } satisfies NextConfig['i18n'];
+    };
 
     visit(ast, {
         visitObjectProperty: function accept(path) {

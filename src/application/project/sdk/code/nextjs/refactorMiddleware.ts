@@ -1,11 +1,10 @@
-/* eslint-disable no-param-reassign -- ASTs are mutable */
+/* eslint-disable no-param-reassign -- False positives */
 import {visit} from 'recast';
 import {namedTypes as Ast, builders as builder} from 'ast-types';
 import {NodePath} from 'ast-types/node-path';
 import {TransformedAst, Transformer} from '@/application/project/sdk/code/transformation';
 
 type ExpressionKind = Parameters<typeof builder.callExpression>[0];
-type FunctionDeclaration = Ast.FunctionDeclaration;
 type ExportDeclaration = Ast.ExportNamedDeclaration | Ast.ExportDefaultDeclaration;
 
 type ConfigVariable = {
@@ -267,19 +266,27 @@ export class RefactorMiddleware implements Transformer {
                 const {node} = path;
                 const {declaration} = node;
 
-                // export default function middleware() {}
-                if (Ast.FunctionDeclaration.check(declaration)) {
-                    const name = Ast.Identifier.check(declaration.id)
-                        ? declaration.id.name
-                        : 'middleware';
-
-                    // Convert the function declaration to a variable declaration
-                    path.replace(RefactorMiddleware.wrapFunctionDeclaration(declaration, configName, name));
-
-                    // Then export the variable declaration to maintain the default export
-                    path.insertAfter(
+                // export default () => {}
+                if (Ast.ArrowFunctionExpression.check(declaration)) {
+                    path.replace(
                         builder.exportDefaultDeclaration(
-                            builder.identifier(name),
+                            RefactorMiddleware.wrapMiddleware(declaration, configName),
+                        ),
+                    );
+
+                    rootNode = RefactorMiddleware.getRootNode(path);
+
+                    return this.abort();
+                }
+
+                // export default function() {}
+                if (Ast.FunctionDeclaration.check(declaration)) {
+                    path.replace(
+                        builder.exportDefaultDeclaration(
+                            RefactorMiddleware.wrapMiddleware(
+                                RefactorMiddleware.createFunctionExpression(declaration, true),
+                                configName,
+                            ),
                         ),
                     );
 
@@ -461,6 +468,10 @@ export class RefactorMiddleware implements Transformer {
 
         visit(program, {
             visitVariableDeclarator: function accept(path): any {
+                if (!Ast.Program.check(path.parent.parent.node)) {
+                    return false;
+                }
+
                 const {node} = path;
 
                 if (
@@ -530,7 +541,7 @@ export class RefactorMiddleware implements Transformer {
      * @return A variable declaration that assigns the wrapped middleware to a constant.
      */
     private static wrapFunctionDeclaration(
-        functionDeclaration: FunctionDeclaration,
+        functionDeclaration: Ast.FunctionDeclaration,
         configName?: string,
         name = 'middleware',
     ): Ast.VariableDeclaration {
@@ -558,7 +569,7 @@ export class RefactorMiddleware implements Transformer {
      */
     private static wrapExportFunctionDeclaration(
         exportDeclaration: ExportDeclaration,
-        functionDeclaration: FunctionDeclaration,
+        functionDeclaration: Ast.FunctionDeclaration,
         configName?: string,
     ): ExportDeclaration {
         return RefactorMiddleware.restoreComments(
@@ -568,7 +579,9 @@ export class RefactorMiddleware implements Transformer {
                     builder.variableDeclarator(
                         builder.identifier('middleware'),
                         RefactorMiddleware.wrapMiddleware(
-                            RefactorMiddleware.createFunctionExpression(functionDeclaration),
+                            Ast.FunctionDeclaration.check(functionDeclaration)
+                                ? RefactorMiddleware.createFunctionExpression(functionDeclaration)
+                                : functionDeclaration,
                             configName,
                         ),
                     ),
@@ -608,6 +621,10 @@ export class RefactorMiddleware implements Transformer {
         // Visit the root node to collect variable, function, and class declarations that match the found names
         visit(root, {
             visitVariableDeclarator: function accept(path): any {
+                if (!Ast.Program.check(path.parent.parent.node)) {
+                    return false;
+                }
+
                 const {node} = path;
 
                 if (Ast.Identifier.check(node.id) && names.has(node.id.name)) {
@@ -617,6 +634,10 @@ export class RefactorMiddleware implements Transformer {
                 return false;
             },
             visitFunctionDeclaration: function accept(path): any {
+                if (!Ast.Program.check(path.parent.node)) {
+                    return this.traverse(path);
+                }
+
                 const {node} = path;
 
                 if (Ast.Identifier.check(node.id) && names.has(node.id.name)) {
@@ -626,6 +647,10 @@ export class RefactorMiddleware implements Transformer {
                 return false;
             },
             visitClassDeclaration: function accept(path): any {
+                if (!Ast.Program.check(path.parent.node)) {
+                    return this.traverse(path);
+                }
+
                 const {node} = path;
 
                 if (Ast.Identifier.check(node.id) && names.has(node.id.name)) {
@@ -684,10 +709,15 @@ export class RefactorMiddleware implements Transformer {
      * Creates an anonymous function expression from a function declaration.
      *
      * @param functionDeclaration The function declaration to convert.
+     * @param named Whether the function should preserve its name.
      * @return A function expression.
      */
-    private static createFunctionExpression(functionDeclaration: FunctionDeclaration): Ast.FunctionExpression {
+    private static createFunctionExpression(
+        functionDeclaration: Ast.FunctionDeclaration,
+        named = false,
+    ): Ast.FunctionExpression {
         return builder.functionExpression.from({
+            id: named ? functionDeclaration.id : null,
             params: functionDeclaration.params,
             body: functionDeclaration.body,
             generator: functionDeclaration.generator,

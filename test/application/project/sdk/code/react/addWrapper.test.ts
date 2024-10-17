@@ -40,6 +40,9 @@ describe('AddWrapper', () => {
             'namedSpecifiedExport.tsx': {
                 namedExportFallback: true,
             },
+            'namedExportUnrelated.tsx': {
+                namedExportFallback: true,
+            },
             'defaultExportFunctionReference.tsx': {
                 targets: {
                     variable: 'children',

@@ -1,4 +1,4 @@
-/* eslint-disable no-param-reassign -- Nodes are mutable */
+/* eslint-disable no-param-reassign -- False positives */
 import {visit} from 'recast';
 import {namedTypes as Ast, builders as builder} from 'ast-types';
 import {TransformedAst, Transformer} from '@/application/project/sdk/code/transformation';
@@ -59,7 +59,6 @@ export class AddWrapper implements Transformer {
 
     public constructor(options: WrapperOptions) {
         this.options = options;
-        this.findComponentDeclaration = this.findComponentDeclaration.bind(this);
         this.wrapDeclaration = this.wrapDeclaration.bind(this);
     }
 
@@ -180,7 +179,13 @@ export class AddWrapper implements Transformer {
                 return this.wrapBlockStatement(node.body);
             }
 
-            node.body = this.insertWrapper(node.body);
+            const result = this.insertWrapper(node.body);
+
+            if (result === null) {
+                return false;
+            }
+
+            node.body = result;
 
             return true;
         }
@@ -220,7 +225,13 @@ export class AddWrapper implements Transformer {
         const argument = returnStatement?.argument ?? null;
 
         if (returnStatement !== null && argument !== null) {
-            returnStatement.argument = this.insertWrapper(argument);
+            const result = this.insertWrapper(argument);
+
+            if (result === null) {
+                return false;
+            }
+
+            returnStatement.argument = result;
 
             return true;
         }
@@ -238,7 +249,7 @@ export class AddWrapper implements Transformer {
      * @param node The node containing the target element.
      * @return The modified node with the target element wrapped or the original node if no target is found.
      */
-    private insertWrapper(node: ExpressionKind): ExpressionKind {
+    private insertWrapper(node: ExpressionKind): ExpressionKind|null {
         const target = this.findTargetChildren(node);
 
         if (target !== null) {
@@ -270,7 +281,6 @@ export class AddWrapper implements Transformer {
             || Ast.JSXSpreadChild.check(node)
             || Ast.JSXElement.check(node)
             || Ast.JSXFragment.check(node)
-            || Ast.Literal.check(node)
         ) {
             // Parentheses are automatically added by when wrapping an expression,
             // so remove them to avoid double wrapping
@@ -282,7 +292,7 @@ export class AddWrapper implements Transformer {
             return this.wrapElement(node);
         }
 
-        return node;
+        return null;
     }
 
     /**
@@ -349,13 +359,13 @@ export class AddWrapper implements Transformer {
     private findComponentDeclaration(ast: Ast.Node, name: string): ComponentDeclaration|null {
         let componentDeclaration: ComponentDeclaration|null = null;
 
-        const {findComponentDeclaration} = this;
-
         visit(ast, {
             visitVariableDeclaration: function accept(path) {
-                const {declarations} = path.node;
+                if (!Ast.Program.check(path.parent.node)) {
+                    return false;
+                }
 
-                for (const declaration of declarations) {
+                for (const declaration of path.node.declarations) {
                     if (
                         Ast.VariableDeclarator.check(declaration)
                         && Ast.Identifier.check(declaration.id)
@@ -365,17 +375,15 @@ export class AddWrapper implements Transformer {
 
                         return this.abort();
                     }
-
-                    if (Ast.Identifier.check(declaration) && declaration.name === name) {
-                        componentDeclaration = findComponentDeclaration(ast, declaration.name);
-
-                        return this.abort();
-                    }
                 }
 
                 return false;
             },
             visitFunctionDeclaration: function accept(path) {
+                if (!Ast.Program.check(path.parent.node)) {
+                    return false;
+                }
+
                 const {id} = path.node;
 
                 if (Ast.Identifier.check(id) && id.name === name) {
@@ -436,18 +444,14 @@ export class AddWrapper implements Transformer {
                     && Ast.JSXIdentifier.check(openingElement.name)
                     && openingElement.name.name === options.targets.component
                 ) {
-                    if (path.parent === null) {
-                        return this.abort();
+                    if (path.parent !== null) {
+                        const parent = path.parent.node;
+
+                        insertionPoint = {
+                            parent: path.parent.node,
+                            index: parent.children.indexOf(path.node),
+                        };
                     }
-
-                    const parent = path.parent.node;
-
-                    insertionPoint = {
-                        parent: path.parent.node,
-                        index: parent.children.indexOf(path.node),
-                    };
-
-                    return this.abort();
                 }
 
                 return this.traverse(path);
