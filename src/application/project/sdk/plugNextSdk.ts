@@ -1,4 +1,4 @@
-import {access, readFile, writeFile, rename} from 'fs/promises';
+import {access, readFile, writeFile} from 'fs/promises';
 import {join} from 'path';
 import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
@@ -10,6 +10,8 @@ import {WorkspaceApi} from '@/application/api/workspace';
 import {EnvFile} from '@/application/project/envFile';
 import {UserApi} from '@/application/api/user';
 import {NextConfig, parseConfig} from '@/application/project/sdk/code/nextjs/parseConfig';
+import {transform} from '@/application/project/sdk/code/transformation';
+import {addMiddleware} from '@/application/project/sdk/code/nextjs/refactorMiddleware';
 
 export type Configuration = {
     projectManager: ProjectManager,
@@ -23,7 +25,8 @@ export type Configuration = {
 type NextInstallation = Installation & {
     project: {
         typescript: boolean,
-        middlewarePath: string|null,
+        middlewarePath: string | null,
+        router: 'app' | 'page',
     },
 };
 
@@ -38,6 +41,16 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
     private static readonly MIDDLEWARE_FILES = [
         'middleware.js',
         'middleware.ts',
+    ];
+
+    private static readonly APP_FILES = [
+        'pages/_app.jsx',
+        'pages/_app.tsx',
+    ];
+
+    private static readonly LAYOUT_FILES = [
+        'layouts/default.jsx',
+        'layouts/default.tsx',
     ];
 
     private readonly userApi: UserApi;
@@ -62,7 +75,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         return ApplicationPlatform.NEXT;
     }
 
-    public async resolve(hint?: string): Promise<Sdk|null> {
+    public async resolve(hint?: string): Promise<Sdk | null> {
         if (hint !== undefined) {
             return Promise.resolve(hint.toLowerCase() === this.getPlatform().toLowerCase() ? this : null);
         }
@@ -78,9 +91,11 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
     protected async configure(installation: Installation): Promise<ProjectConfiguration> {
         const {configuration} = installation;
         const {i18n} = await this.getConfig();
-        const [isTypescript, middlewarePath] = await Promise.all([
+        const [isTypescript, middlewarePath, router] = await Promise.all([
             this.projectManager.isPackageListed('typescript'),
             this.localeFile(PlugNextSdk.MIDDLEWARE_FILES),
+            access(join(this.projectManager.getDirectory(), 'pages')).then(() => 'page' as const)
+                .catch(() => 'app' as const),
         ]);
 
         const nextInstallation: NextInstallation = {
@@ -88,6 +103,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
             project: {
                 typescript: isTypescript,
                 middlewarePath: middlewarePath,
+                router: router,
             },
         };
 
@@ -100,32 +116,61 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         };
     }
 
-    private async installMiddleware(installation: NextInstallation): Promise<void> {
-        const fileName = `middleware.${installation.project.typescript ? 'ts' : 'js'}`;
+    private installProvider(installation: NextInstallation): Promise<void> {
+        switch (installation.project.router) {
+            case 'app':
+                return this.installAppRouterProvider(installation);
+            case 'page':
+                return this.installPageRouterProvider(installation);
+        }
+    }
 
+    private installAppRouterProvider(installation: NextInstallation): Promise<void> {
+    }
+
+    private installPageRouterProvider(installation: NextInstallation): Promise<void> {
+        const appFile = this.localeFile(PlugNextSdk.APP_FILES);
+
+        if (appFile === null) {
+            return this.writeFile(
+                'pages/_app.tsx',
+                [
+                    'import type {ReactElement} from \'react\';',
+                    installation.project.typescript
+                        ? 'import type {AppProps} from \'next/app\';'
+                        : null,
+                    'import {CroctProvider} from \'@croct/plug-next/CroctProvider\';',
+                    '',
+                    installation.project.typescript
+                        ? 'export default function App({Component, pageProps}: AppProps): ReactElement {'
+                        : 'export default function App({Component, pageProps}) {',
+                    '  return (',
+                    '    <CroctProvider>',
+                    '      <Component {...pageProps} />',
+                    '     </CroctProvider>',
+                    '  );',
+                    '}',
+                ].filter(line => line !== null).join('\n'),
+            );
+        }
+    }
+
+    private async installMiddleware(installation: NextInstallation): Promise<void> {
         if (installation.project.middlewarePath === null) {
             return this.writeFile(
-                fileName,
+                `middleware.${installation.project.typescript ? 'ts' : 'js'}`,
                 'export {config, middleware} from \'@croct/plug-next/middleware\';',
             );
         }
 
-        const newMiddlewareName = 'root-middleware';
-        const newMiddlewarePath = `${newMiddlewareName}.${installation.project.typescript ? 'ts' : 'js'}`;
-
-        await rename(
-            installation.project.middlewarePath,
-            join(this.projectManager.getDirectory(), newMiddlewarePath),
+        const {modified, code} = transform(
+            await readFile(installation.project.middlewarePath, 'utf8'),
+            addMiddleware,
         );
 
-        const middlewareImportPath = await this.projectManager.getImportPath(newMiddlewareName);
-
-        return this.writeFile(
-            fileName,
-            `import * as config from '${middlewareImportPath}';\n\n`
-            + 'export {withCroct} from \'@croct/plug-next/middleware\';\n\n'
-            + 'export default {...config, middleware: withCroct(config.middleware)};',
-        );
+        if (modified) {
+            await this.writeFile('middleware.ts', code, true);
+        }
     }
 
     private async updateEnvFile(installation: NextInstallation): Promise<void> {
@@ -187,7 +232,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         return parseConfig(config);
     }
 
-    private async readFile(fileNames: string[]): Promise<string|null> {
+    private async readFile(fileNames: string[]): Promise<string | null> {
         const filePath = await this.localeFile(fileNames);
 
         if (filePath === null) {
@@ -203,7 +248,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         return null;
     }
 
-    private async localeFile(fileNames: string[]): Promise<string|null> {
+    private async localeFile(fileNames: string[]): Promise<string | null> {
         const directory = this.projectManager.getDirectory();
 
         for (const filename of fileNames) {
@@ -225,11 +270,12 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         return null;
     }
 
-    private async writeFile(path: string, content: string): Promise<void> {
+    private async writeFile(path: string, content: string, overwrite = false): Promise<void> {
         const fullPath = join(this.projectManager.getDirectory(), path);
 
         try {
-            await writeFile(fullPath, content);
+            // create file if it does not exist
+            await writeFile(fullPath, content, {flag: overwrite ? 'w' : 'wx'});
         } catch (error) {
             throw new Error(`Failed to write file: ${error.message}`);
         }

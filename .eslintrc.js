@@ -8,5 +8,8 @@ module.exports = {
         project: ['**/tsconfig.json'],
     },
     // Ignore everything from the gql folder
-    ignorePatterns: ['src/infrastructure/graphql/schema'],
+    ignorePatterns: [
+        'src/infrastructure/graphql/schema',
+        'test/application/project/sdk/code/fixtures',
+    ],
 };

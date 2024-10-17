@@ -45,6 +45,7 @@
     "ora": "^8.1.0",
     "package-manager-detector": "^0.2.0",
     "prompts": "^2.4.2",
+    "recast": "^0.23.9",
     "terminal-link": "^3.0.0",
     "tsconfig-paths": "^4.2.0",
     "xdg-app-paths": "^8.3.0"
