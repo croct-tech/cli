@@ -1,6 +1,7 @@
 import {resolve} from 'path';
 import {AddWrapper, WrapperOptions} from '@/application/project/sdk/code/react/addWrapper';
 import {assertTransformed, loadFixtures} from '../fixtures';
+import {TransformParsedCode} from '@/application/project/sdk/code/transformParsedCode';
 
 describe('AddWrapper', () => {
     const defaultOptions: WrapperOptions = {
@@ -97,6 +98,6 @@ describe('AddWrapper', () => {
 
     // eslint-disable-next-line jest/expect-expect -- expect is called in the assertTransformed function
     it.each(scenarios)('should correctly transform $name', ({fixture, options}) => {
-        assertTransformed(fixture, new AddWrapper(options));
+        assertTransformed(fixture, new TransformParsedCode(new AddWrapper(options)));
     });
 });

@@ -1,10 +1,15 @@
 import {access, readFile, writeFile} from 'fs/promises';
+import {basename} from 'path';
 
 export class EnvFile {
     private readonly path: string;
 
     public constructor(path: string) {
         this.path = path;
+    }
+
+    public getName(): string {
+        return basename(this.path);
     }
 
     public async exists(): Promise<boolean> {

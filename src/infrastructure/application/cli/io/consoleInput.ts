@@ -58,7 +58,7 @@ export class ConsoleInput implements Input {
             message: confirmation.message,
             active: 'yes',
             inactive: 'no',
-            initial: confirmation.default,
+            initial: confirmation.default ?? true,
         });
     }
 

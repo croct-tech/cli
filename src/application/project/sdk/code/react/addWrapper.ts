@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign -- False positives */
 import {visit} from 'recast';
 import {namedTypes as Ast, builders as builder} from 'ast-types';
-import {TransformedAst, Transformer} from '@/application/project/sdk/code/transformation';
+import {TransformedCode, CodeTransformer} from '@/application/project/sdk/code/transformation';
 
 type ComponentDeclaration = Ast.VariableDeclarator|Ast.FunctionDeclaration;
 type DeclarationKind = NonNullable<Ast.ExportDeclaration['declaration']>;
@@ -54,7 +54,7 @@ export type WrapperOptions = {
  * It attempts to wrap the default export first, and if not found, it can optionally
  * wrap named exports that return JSX elements depending on the configuration.
  */
-export class AddWrapper implements Transformer {
+export class AddWrapper implements CodeTransformer<Ast.File> {
     private readonly options: WrapperOptions;
 
     public constructor(options: WrapperOptions) {
@@ -62,16 +62,16 @@ export class AddWrapper implements Transformer {
         this.wrapDeclaration = this.wrapDeclaration.bind(this);
     }
 
-    public transform(ast: Ast.File): TransformedAst {
+    public transform(input: Ast.File): TransformedCode<Ast.File> {
         let modified = false;
 
         const namedExports: Ast.ExportNamedDeclaration[] = [];
         const {wrapDeclaration} = this;
 
-        visit(ast, {
+        visit(input, {
             visitExportDefaultDeclaration: function accept(path) {
                 // Wrap the default export
-                modified = wrapDeclaration(path.node.declaration, ast);
+                modified = wrapDeclaration(path.node.declaration, input);
 
                 return this.abort();
             },
@@ -110,7 +110,7 @@ export class AddWrapper implements Transformer {
                                 || Ast.FunctionExpression.check(declaration.init)
                             )
                         ) {
-                            return wrapDeclaration(declaration.init, ast);
+                            return wrapDeclaration(declaration.init, input);
                         }
 
                         return false;
@@ -124,14 +124,14 @@ export class AddWrapper implements Transformer {
                 // export {Component as SomeComponent};
                 for (const specifier of namedExport.specifiers ?? []) {
                     if (Ast.ExportSpecifier.check(specifier) && Ast.Identifier.check(specifier.local)) {
-                        const declaration = this.findComponentDeclaration(ast, specifier.local.name);
+                        const declaration = this.findComponentDeclaration(input, specifier.local.name);
 
                         if (
                             declaration !== null
                             && Ast.VariableDeclarator.check(declaration)
                             && Ast.Expression.check(declaration.init)
                         ) {
-                            modified = wrapDeclaration(declaration.init, ast);
+                            modified = wrapDeclaration(declaration.init, input);
 
                             if (modified) {
                                 break;
@@ -147,7 +147,7 @@ export class AddWrapper implements Transformer {
         }
 
         if (modified) {
-            const {body} = ast.program;
+            const {body} = input.program;
 
             body.unshift(
                 builder.importDeclaration(
@@ -159,7 +159,7 @@ export class AddWrapper implements Transformer {
 
         return {
             modified: modified,
-            ast: ast,
+            result: input,
         };
     }
 

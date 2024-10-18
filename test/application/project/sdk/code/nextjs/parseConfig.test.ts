@@ -23,6 +23,11 @@ describe('parseConfig', () => {
                 locales: [],
             },
         },
+        'invalidCode.js': {
+            i18n: {
+                locales: [],
+            },
+        },
         'invalidConfig.js': {
             i18n: {
                 locales: [],

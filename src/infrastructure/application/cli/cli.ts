@@ -35,6 +35,9 @@ import {SignUpForm} from '@/application/cli/form/auth/signUpForm';
 import {Command, CommandInput} from '@/application/cli/command/command';
 import {AdminCommand} from '@/application/cli/command/admin';
 import {ProjectConfigurationFile} from '@/application/project/configuration';
+import {AddWrapper} from '@/application/project/sdk/code/react/addWrapper';
+import {TransformParsedCode} from '@/application/project/sdk/code/transformParsedCode';
+import {RefactorMiddleware} from '@/application/project/sdk/code/nextjs/refactorMiddleware';
 
 export type Configuration = {
     io: {
@@ -206,6 +209,42 @@ export class Cli {
                         user: this.getUserApi(),
                         workspace: this.getWorkspaceApi(),
                         application: this.getApplicationApi(),
+                    },
+                    codemod: {
+                        middleware: new TransformParsedCode(
+                            new RefactorMiddleware({
+                                import: {
+                                    module: '@croct/plug-next/middleware',
+                                    functionName: 'withCroct',
+                                    matcherName: 'matcher',
+                                    matcherLocalName: 'croctMatcher',
+                                },
+                            }),
+                        ),
+                        appRouterProvider: new TransformParsedCode(
+                            new AddWrapper({
+                                namedExportFallback: false,
+                                wrapper: {
+                                    module: '@croct/plug-next/CroctProvider',
+                                    component: 'CroctProvider',
+                                },
+                                targets: {
+                                    variable: 'children',
+                                },
+                            }),
+                        ),
+                        pageRouterProvider: new TransformParsedCode(
+                            new AddWrapper({
+                                namedExportFallback: false,
+                                wrapper: {
+                                    module: '@croct/plug-next/CroctProvider',
+                                    component: 'CroctProvider',
+                                },
+                                targets: {
+                                    component: 'Component',
+                                },
+                            }),
+                        ),
                     },
                 }),
                 new PlugReactSdk(this.getProjectManager()),

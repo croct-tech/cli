@@ -1,6 +1,6 @@
 import {readdirSync, readFileSync, writeFileSync} from 'fs';
 import {basename, join, dirname} from 'path';
-import {transform, Transformer} from '@/application/project/sdk/code/transformation';
+import {CodeTransformer} from '@/application/project/sdk/code/transformation';
 
 export type FixtureScenario<O> = {
     name: string,
@@ -39,7 +39,7 @@ export function loadFixtures<T>(
     return Object.values(scenarios);
 }
 
-export function assertTransformed(fixture: string, transformer: Transformer): void {
+export function assertTransformed(fixture: string, transformer: CodeTransformer<string>): void {
     const fixturePath = dirname(fixture);
     const input = readFileSync(fixture, 'utf-8');
     let output: string | null = null;
@@ -53,14 +53,14 @@ export function assertTransformed(fixture: string, transformer: Transformer): vo
         // ignore
     }
 
-    const result = transform(input, transformer);
+    const result = transformer.transform(input);
 
     if (output === null) {
-        writeFileSync(join(fixturePath, transformedFixture), result.code);
+        writeFileSync(join(fixturePath, transformedFixture), result.result);
     }
 
     expect(output).not.toBeNull();
 
     expect(result.modified).toEqual(input !== output);
-    expect(result.code).toEqual(output);
+    expect(result.result).toEqual(output);
 }

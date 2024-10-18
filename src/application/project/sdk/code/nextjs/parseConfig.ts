@@ -18,14 +18,22 @@ export type NextConfig = {
  * @param source The source code of the Next.js configuration.
  */
 export function parseConfig(source: string): NextConfig {
-    const ast = parse(source, {
-        sourceType: 'module',
-        plugins: ['typescript'],
-    });
-
     const i18n: NextConfig['i18n'] = {
         locales: Array<string>(),
     };
+
+    let ast: Ast.Node;
+
+    try {
+        ast = parse(source, {
+            sourceType: 'module',
+            plugins: ['jsx', 'typescript'],
+        });
+    } catch {
+        return {
+            i18n: i18n,
+        };
+    }
 
     visit(ast, {
         visitObjectProperty: function accept(path) {
