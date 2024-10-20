@@ -51,7 +51,7 @@ export class InitCommand implements Command<InitInput, InitOutput> {
 
         const sdk = await this.getSdk(input.sdk);
 
-        output.inform(`Platform: ${ApplicationPlatform.getName(sdk.getPlatform())}`);
+        output.inform(`Using ${ApplicationPlatform.getName(sdk.getPlatform())} SDK`);
 
         const {configurationFile, form} = this.config;
 

@@ -273,7 +273,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
             });
         }
 
-        return this.updateCode(this.codemod.pageRouterProvider.existing, provider.file);
+        return this.updateCode(this.codemod.appRouterProvider.existing, provider.file);
     }
 
     private installPageRouterProvider(installation: NextInstallation): Promise<boolean> {

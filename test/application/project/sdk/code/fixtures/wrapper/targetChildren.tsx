@@ -1,8 +1,10 @@
 export default function Layout({children}) {
     return (
-        <>
-            {/* This is a comment */}
-            <main>{children}</main>
-        </>
+        <html lang="en">
+            <body>
+                {/* This is a comment */}
+                {children}
+            </body>
+        </html>
     );
 }

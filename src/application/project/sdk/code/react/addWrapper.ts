@@ -272,6 +272,12 @@ export class AddWrapper implements Codemod<Ast.File> {
                     ...children.slice(index),
                 ];
 
+            // Parentheses are automatically added by when wrapping an expression,
+            // so remove them to avoid double wrapping
+            if (AddWrapper.isParenthesized(node)) {
+                node.extra.parenthesized = false;
+            }
+
             return node;
         }
 
