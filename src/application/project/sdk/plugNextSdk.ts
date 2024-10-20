@@ -1,16 +1,15 @@
 import {access, readFile} from 'fs/promises';
 import {join} from 'path';
 import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
-import {JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
+import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import {ApplicationPlatform} from '@/application/model/entities';
-import {ProjectConfiguration} from '@/application/project/configuration';
 import {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
 import {ProjectManager} from '@/application/project/projectManager';
 import {WorkspaceApi} from '@/application/api/workspace';
 import {EnvFile} from '@/application/project/envFile';
 import {UserApi} from '@/application/api/user';
 import {NextConfig, parseConfig} from '@/application/project/sdk/code/nextjs/parseConfig';
-import {Codemod} from '@/application/project/sdk/code/transformation';
+import {Codemod} from '@/application/project/sdk/code/codemod';
 import {hasImport} from '@/application/project/sdk/code/javascript/hasImport';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {formatMessage} from '@/application/error';
@@ -48,9 +47,6 @@ type NextProjectInfo = {
     typescript: boolean,
     router: 'app' | 'page',
     sourceDirectory: string,
-};
-
-type NextInstallationPlan = {
     sdk: {
         package: string,
         installed: boolean,
@@ -76,7 +72,6 @@ type NextInstallationPlan = {
 
 type NextInstallation = Installation & {
     project: NextProjectInfo,
-    plan: NextInstallationPlan,
     notifier: TaskNotifier,
 };
 
@@ -118,51 +113,27 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         return hints.some(Boolean) ? this : null;
     }
 
-    public async install(installation: Installation): Promise<ProjectConfiguration> {
+    protected async getInstallationPlan(installation: Installation): Promise<InstallationPlan> {
         const {configuration} = installation;
-        const [{i18n}, projectInfo] = await Promise.all([
-            this.getConfig(),
-            this.getProjectInfo(),
-        ]);
-
-        const {input, output} = installation;
-
-        const tasks = await this.getInstallationTasks({
-            ...installation,
-            project: projectInfo,
-            plan: await this.getInstallationPlan(projectInfo),
-        });
-
-        if (tasks.length > 0) {
-            output.break();
-            output.inform('**Installation plan**');
-
-            for (let index = 0; index < tasks.length; index++) {
-                output.log(` - ${tasks[index].title}`);
-            }
-
-            output.break();
-
-            if (!await input.confirm({message: 'Proceed?', default: true})) {
-                output.alert('Installation aborted');
-
-                return output.exit();
-            }
-
-            await output.monitor({tasks: tasks});
-        }
+        const [{i18n}, projectInfo] = await Promise.all([this.getConfig(), this.getProjectInfo()]);
 
         return {
-            ...configuration,
-            locales: i18n.locales ?? configuration.locales,
+            tasks: await this.getInstallationTasks({
+                ...installation,
+                project: projectInfo,
+            }),
+            configuration: {
+                ...configuration,
+                locales: i18n.locales ?? configuration.locales,
+            },
         };
     }
 
     private async getInstallationTasks(installation: Omit<NextInstallation, 'notifier'>): Promise<Task[]> {
-        const {plan} = installation;
+        const {project} = installation;
         const tasks: Task[] = [];
 
-        if (!plan.sdk.installed) {
+        if (!project.sdk.installed) {
             tasks.push({
                 title: `Install ${this.getPackage()}`,
                 task: async notifier => {
@@ -177,15 +148,15 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
             });
         }
 
-        const isMiddlewareInstalled = plan.middleware.installed;
+        const isMiddlewareInstalled = project.middleware.installed;
 
         if (!isMiddlewareInstalled) {
-            const isNew = plan.middleware.new;
+            const isNew = project.middleware.new;
 
             tasks.push({
                 title: isNew
-                    ? `Create ${installation.plan.middleware.file}`
-                    : `Configure ${installation.plan.middleware.file}`,
+                    ? `Create ${installation.project.middleware.file}`
+                    : `Configure ${installation.project.middleware.file}`,
                 task: async notifier => {
                     try {
                         await this.installMiddleware({
@@ -201,15 +172,15 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
             });
         }
 
-        const isProviderInstalled = plan.provider.installed;
+        const isProviderInstalled = project.provider.installed;
 
         if (!isProviderInstalled) {
-            const isNew = plan.provider.new;
+            const isNew = project.provider.new;
 
             tasks.push({
                 title: isNew
-                    ? `Create ${installation.plan.provider.file}`
-                    : `Configure ${installation.plan.provider.file}`,
+                    ? `Create ${installation.project.provider.file}`
+                    : `Configure ${installation.project.provider.file}`,
                 task: async notifier => {
                     try {
                         await this.installProvider({
@@ -225,10 +196,10 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
             });
         }
 
-        const isEnvInstalled = plan.env.installed.apiKey && plan.env.installed.appId;
+        const isEnvInstalled = project.env.installed.apiKey && project.env.installed.appId;
 
         if (!isEnvInstalled) {
-            const {file} = plan.env;
+            const {file} = project.env;
             const fileName = file.getName();
             const exists = await file.exists();
 
@@ -265,7 +236,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
     }
 
     private installAppRouterProvider(installation: NextInstallation): Promise<boolean> {
-        const {plan: {provider}, project: {typescript: isTypescript}} = installation;
+        const {project: {provider, typescript: isTypescript}} = installation;
 
         if (provider.new) {
             return this.updateCode(this.codemod.appRouterProvider.new, provider.file, {
@@ -277,7 +248,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
     }
 
     private installPageRouterProvider(installation: NextInstallation): Promise<boolean> {
-        const {plan: {provider}, project: {typescript: isTypescript}} = installation;
+        const {project: {provider, typescript: isTypescript}} = installation;
 
         if (provider.new) {
             return this.updateCode(this.codemod.pageRouterProvider.new, provider.file, {
@@ -289,7 +260,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
     }
 
     private installMiddleware(installation: NextInstallation): Promise<boolean> {
-        const {plan: {middleware}} = installation;
+        const {project: {middleware}} = installation;
 
         if (middleware.new) {
             return this.updateCode(this.codemod.middleware.new, middleware.file);
@@ -309,7 +280,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
     }
 
     private async updateEnvFile(installation: NextInstallation): Promise<void> {
-        const {plan: {env: plan}, configuration, notifier} = installation;
+        const {project: {env: plan}, configuration, notifier} = installation;
 
         notifier.update('Loading application information');
 
@@ -356,13 +327,25 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         }
     }
 
-    private async getInstallationPlan(project: NextProjectInfo): Promise<NextInstallationPlan> {
+    private async getProjectInfo(): Promise<NextProjectInfo> {
+        const [isTypescript, directory] = await Promise.all([
+            this.projectManager.isPackageListed('typescript'),
+            this.locateFile(['app', 'src/app', 'pages', 'src/pages'])
+                .then(path => path ?? 'app'),
+        ]);
+
+        const project: Pick<NextProjectInfo, 'typescript' | 'router' | 'sourceDirectory'> = {
+            typescript: isTypescript,
+            router: directory.endsWith('app') ? 'app' : 'page',
+            sourceDirectory: directory.startsWith('src') ? 'src' : './',
+        };
+
         const sdkPackage = this.getPackage();
         const [middlewareFile, providerComponentFile, isSdkInstalled] = await Promise.all([
-            this.localeFile(
+            this.locateFile(
                 ['middleware.js', 'middleware.ts'].map(file => join(project.sourceDirectory, file)),
             ),
-            this.localeFile(
+            this.locateFile(
                 (project.router === 'app' ? ['app/layout.jsx', 'app/layout.tsx'] : ['_app.jsx', '_app.tsx'])
                     .map(file => join(project.sourceDirectory, file)),
             ),
@@ -383,6 +366,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         const extension = project.typescript ? 'ts' : 'js';
 
         return {
+            ...project,
             sdk: {
                 package: sdkPackage,
                 installed: isSdkInstalled,
@@ -409,20 +393,6 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         };
     }
 
-    private async getProjectInfo(): Promise<NextProjectInfo> {
-        const [isTypescript, directory] = await Promise.all([
-            this.projectManager.isPackageListed('typescript'),
-            this.localeFile(['app', 'src/app', 'pages', 'src/pages'])
-                .then(path => path ?? 'app'),
-        ]);
-
-        return {
-            typescript: isTypescript,
-            router: directory.endsWith('app') ? 'app' : 'page',
-            sourceDirectory: directory.startsWith('src') ? 'src' : './',
-        };
-    }
-
     private async getConfig(): Promise<NextConfig> {
         const config = await this.readFile([
             'next.config.js',
@@ -444,7 +414,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
     }
 
     private async readFile(fileNames: string[]): Promise<string | null> {
-        const filePath = await this.localeFile(fileNames);
+        const filePath = await this.locateFile(fileNames);
 
         if (filePath === null) {
             return null;
@@ -461,7 +431,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         return null;
     }
 
-    private async localeFile(fileNames: string[]): Promise<string | null> {
+    private async locateFile(fileNames: string[]): Promise<string | null> {
         const directory = this.projectManager.getDirectory();
 
         for (const filename of fileNames) {

@@ -13,8 +13,8 @@ export interface Sdk {
     getPackage(): string;
     getPlatform(): ApplicationPlatform;
     install(installation: Installation): Promise<ProjectConfiguration>;
-    downloadTypes(): Promise<void>;
-    downloadContent(): Promise<void>;
+    updateTypes(): Promise<void>;
+    updateContent(): Promise<void>;
 }
 
 export interface SdkResolver {

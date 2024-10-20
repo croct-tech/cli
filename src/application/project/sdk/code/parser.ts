@@ -1,9 +1,9 @@
 import type {namedTypes as Ast} from 'ast-types/gen/namedTypes';
 import {parse as babelParse} from '@babel/parser';
 import {parse as recastParse} from 'recast';
-import {MalformedCodeError} from '@/application/project/sdk/code/transformation';
+import {MalformedCodeError} from '@/application/project/sdk/code/codemod';
 
-type Language = 'jsx' | 'typescript';
+export type Language = 'jsx' | 'typescript';
 
 export function parse(source: string, languages: Language[]): Ast.Node {
     try {

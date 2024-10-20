@@ -54,6 +54,11 @@ export class NodeLinter implements Linter {
 
     private async getCommand(files: string[]): Promise<LinterCommand|null> {
         for (const liter of this.tools) {
+            if (!await this.projectManager.isPackageListed(liter.package)) {
+                // Ensure the package is a direct dependency
+                continue;
+            }
+
             const info = await this.projectManager.getPackageInfo(liter.package);
 
             if (info === null) {

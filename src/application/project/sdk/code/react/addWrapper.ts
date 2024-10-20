@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign -- False positives */
 import {visit} from 'recast';
 import {namedTypes as Ast, builders as builder} from 'ast-types';
-import {ResultCode, Codemod} from '@/application/project/sdk/code/transformation';
+import {ResultCode, Codemod} from '@/application/project/sdk/code/codemod';
 
 type ComponentDeclaration = Ast.VariableDeclarator|Ast.FunctionDeclaration;
 type DeclarationKind = NonNullable<Ast.ExportDeclaration['declaration']>;
@@ -62,7 +62,7 @@ export class AddWrapper implements Codemod<Ast.File> {
         this.wrapDeclaration = this.wrapDeclaration.bind(this);
     }
 
-    public apply(input: Ast.File): ResultCode<Ast.File> {
+    public apply(input: Ast.File): Promise<ResultCode<Ast.File>> {
         let modified = false;
 
         const namedExports: Ast.ExportNamedDeclaration[] = [];
@@ -157,10 +157,10 @@ export class AddWrapper implements Codemod<Ast.File> {
             );
         }
 
-        return {
+        return Promise.resolve({
             modified: modified,
             result: input,
-        };
+        });
     }
 
     /**

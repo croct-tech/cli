@@ -1,7 +1,6 @@
 import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
-import {JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
+import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import {ApplicationPlatform} from '@/application/model/entities';
-import {ProjectConfiguration} from '@/application/project/configuration';
 
 export class PlugReactSdk extends JavaScriptSdk implements SdkResolver {
     public getPackage(): string {
@@ -25,7 +24,10 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver {
         return hints.some(Boolean) ? this : null;
     }
 
-    public install(installation: Installation): Promise<ProjectConfiguration> {
-        return Promise.resolve(installation.configuration);
+    protected getInstallationPlan(installation: Installation): Promise<InstallationPlan> {
+        return Promise.resolve({
+            tasks: [],
+            configuration: installation.configuration,
+        });
     }
 }

@@ -1,15 +1,15 @@
 import {readFile, writeFile} from 'fs/promises';
-import {Codemod, CodemodError, ResultCode} from '@/application/project/sdk/code/transformation';
+import {Codemod, CodemodError, CodemodOptions, ResultCode} from '@/application/project/sdk/code/codemod';
 import {formatCause} from '@/application/error';
 
-export class FileCodemod implements Codemod<string> {
-    private readonly codemod: Codemod<string>;
+export class TransformFile<O extends CodemodOptions> implements Codemod<string, O> {
+    private readonly codemod: Codemod<string, O>;
 
-    public constructor(codemod: Codemod<string>) {
+    public constructor(codemod: Codemod<string, O>) {
         this.codemod = codemod;
     }
 
-    public async apply(input: string): Promise<ResultCode<string>> {
+    public async apply(input: string, options?: O): Promise<ResultCode<string>> {
         let source = '';
 
         try {
@@ -20,7 +20,7 @@ export class FileCodemod implements Codemod<string> {
             }
         }
 
-        const result = await this.codemod.apply(source);
+        const result = await this.codemod.apply(source, options);
 
         if (result.modified) {
             try {

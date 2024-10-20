@@ -2,7 +2,7 @@
 import {visit} from 'recast';
 import {namedTypes as Ast, builders as builder} from 'ast-types';
 import {NodePath} from 'ast-types/node-path';
-import {ResultCode, Codemod} from '@/application/project/sdk/code/transformation';
+import {ResultCode, Codemod} from '@/application/project/sdk/code/codemod';
 
 type ExpressionKind = Parameters<typeof builder.callExpression>[0];
 type ExportDeclaration = Ast.ExportNamedDeclaration | Ast.ExportDefaultDeclaration;
@@ -47,7 +47,7 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
         this.options = options;
     }
 
-    public apply(input: Ast.File): ResultCode<Ast.File> {
+    public apply(input: Ast.File): Promise<ResultCode<Ast.File>> {
         const config = RefactorMiddleware.findConfig(input.program);
         const middlewareNode = RefactorMiddleware.refactorMiddleware(
             input,
@@ -55,10 +55,10 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
         );
 
         if (middlewareNode === null) {
-            return {
+            return Promise.resolve({
                 modified: false,
                 result: input,
-            };
+            });
         }
 
         const {program} = input;
@@ -112,10 +112,10 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
             ),
         );
 
-        return {
+        return Promise.resolve({
             modified: true,
             result: input,
-        };
+        });
     }
 
     /**

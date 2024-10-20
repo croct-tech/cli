@@ -1,7 +1,7 @@
 import {resolve} from 'path';
 import {MiddlewareOptions, RefactorMiddleware} from '@/application/project/sdk/code/nextjs/refactorMiddleware';
 import {loadFixtures} from '../fixtures';
-import {AstCodemod} from '@/application/project/sdk/code/astCodemod';
+import {ParseCode} from '@/application/project/sdk/code/parseCode';
 
 describe('RefactorMiddleware', () => {
     const defaultOptions: MiddlewareOptions = {
@@ -26,9 +26,13 @@ describe('RefactorMiddleware', () => {
         },
     );
 
-    it.each(scenarios)('should correctly transform $name', ({name, fixture, options}) => {
-        const transformer = new AstCodemod(new RefactorMiddleware(options));
-        const output = transformer.apply(fixture);
+    it.each(scenarios)('should correctly transform $name', async ({name, fixture, options}) => {
+        const transformer = new ParseCode({
+            languages: ['typescript'],
+            codemod: new RefactorMiddleware(options),
+        });
+
+        const output = await transformer.apply(fixture);
 
         expect(output.result).toMatchSnapshot(name);
     });

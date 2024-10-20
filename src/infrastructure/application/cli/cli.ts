@@ -36,11 +36,11 @@ import {Command, CommandInput} from '@/application/cli/command/command';
 import {AdminCommand} from '@/application/cli/command/admin';
 import {ProjectConfigurationFile} from '@/application/project/configuration';
 import {AddWrapper} from '@/application/project/sdk/code/react/addWrapper';
-import {AstCodemod} from '@/application/project/sdk/code/astCodemod';
+import {ParseCode} from '@/application/project/sdk/code/parseCode';
 import {RefactorMiddleware} from '@/application/project/sdk/code/nextjs/refactorMiddleware';
 import {Linter} from '@/application/project/linter';
-import {LintCodemod} from '@/application/project/sdk/code/lintCodemod';
-import {FileCodemod} from '@/application/project/sdk/code/fileCodemod';
+import {LintCode} from '@/application/project/sdk/code/lintCode';
+import {TransformFile} from '@/application/project/sdk/code/transformFile';
 import {CreateLayoutComponent} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
 import {CreateAppComponent} from '@/application/project/sdk/code/nextjs/createAppComponent';
 import {CreateMiddleware} from '@/application/project/sdk/code/nextjs/createMiddleware';
@@ -221,11 +221,20 @@ export class Cli {
                     },
                     codemod: {
                         middleware: {
-                            new: new LintCodemod(new FileCodemod(new CreateMiddleware()), this.getLinter()),
-                            existing: new LintCodemod(
-                                new FileCodemod(
-                                    new AstCodemod(
-                                        new RefactorMiddleware({
+                            new: new LintCode(
+                                new TransformFile(
+                                    new ParseCode({
+                                        languages: ['typescript'],
+                                        codemod: new CreateMiddleware(),
+                                    }),
+                                ),
+                                this.getLinter(),
+                            ),
+                            existing: new LintCode(
+                                new TransformFile(
+                                    new ParseCode({
+                                        languages: ['typescript', 'jsx'],
+                                        codemod: new RefactorMiddleware({
                                             import: {
                                                 module: '@croct/plug-next/middleware',
                                                 functionName: 'withCroct',
@@ -233,17 +242,26 @@ export class Cli {
                                                 matcherLocalName: 'croctMatcher',
                                             },
                                         }),
-                                    ),
+                                    }),
                                 ),
                                 this.getLinter(),
                             ),
                         },
                         appRouterProvider: {
-                            new: new LintCodemod(new FileCodemod(new CreateLayoutComponent()), this.getLinter()),
-                            existing: new LintCodemod(
-                                new FileCodemod(
-                                    new AstCodemod(
-                                        new AddWrapper({
+                            new: new LintCode(
+                                new TransformFile(
+                                    new ParseCode({
+                                        languages: ['typescript', 'jsx'],
+                                        codemod: new CreateLayoutComponent(),
+                                    }),
+                                ),
+                                this.getLinter(),
+                            ),
+                            existing: new LintCode(
+                                new TransformFile(
+                                    new ParseCode({
+                                        languages: ['typescript', 'jsx'],
+                                        codemod: new AddWrapper({
                                             namedExportFallback: false,
                                             wrapper: {
                                                 module: '@croct/plug-next/CroctProvider',
@@ -253,17 +271,26 @@ export class Cli {
                                                 variable: 'children',
                                             },
                                         }),
-                                    ),
+                                    }),
                                 ),
                                 this.getLinter(),
                             ),
                         },
                         pageRouterProvider: {
-                            new: new LintCodemod(new FileCodemod(new CreateAppComponent()), this.getLinter()),
-                            existing: new LintCodemod(
-                                new FileCodemod(
-                                    new AstCodemod(
-                                        new AddWrapper({
+                            new: new LintCode(
+                                new TransformFile(
+                                    new ParseCode({
+                                        languages: ['typescript', 'jsx'],
+                                        codemod: new CreateAppComponent(),
+                                    }),
+                                ),
+                                this.getLinter(),
+                            ),
+                            existing: new LintCode(
+                                new TransformFile(
+                                    new ParseCode({
+                                        languages: ['typescript', 'jsx'],
+                                        codemod: new AddWrapper({
                                             namedExportFallback: false,
                                             wrapper: {
                                                 module: '@croct/plug-next/CroctProvider',
@@ -273,7 +300,7 @@ export class Cli {
                                                 component: 'Component',
                                             },
                                         }),
-                                    ),
+                                    }),
                                 ),
                                 this.getLinter(),
                             ),
@@ -303,24 +330,19 @@ export class Cli {
             this.linter = new NodeLinter({
                 projectManager: this.getProjectManager(),
                 tools: [
-                    // The tools must be ordered from the least to the most popular
-                    // as the detection is based on the dependency tree, and some tools
-                    // may have indirect dependencies. For example, several tools may
-                    // depend on `eslint`, so even if the project uses only `prettier`,
-                    // the `eslint` tool would be detected.
                     {
-                        package: '@biomejs/biome',
-                        bin: 'biome',
-                        args: files => ['format', '--write', ...files],
+                        package: 'eslint',
+                        bin: 'eslint',
+                        args: files => ['--fix', ...files],
                     },
                     {
                         package: 'prettier',
                         args: files => ['--write', ...files],
                     },
                     {
-                        package: 'eslint',
-                        bin: 'eslint',
-                        args: files => ['--fix', ...files],
+                        package: '@biomejs/biome',
+                        bin: 'biome',
+                        args: files => ['format', '--write', ...files],
                     },
                 ],
             });

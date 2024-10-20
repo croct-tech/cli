@@ -1,7 +1,7 @@
 import {resolve} from 'path';
 import {AddWrapper, WrapperOptions} from '@/application/project/sdk/code/react/addWrapper';
 import {loadFixtures} from '../fixtures';
-import {AstCodemod} from '@/application/project/sdk/code/astCodemod';
+import {ParseCode} from '@/application/project/sdk/code/parseCode';
 
 describe('AddWrapper', () => {
     const defaultOptions: WrapperOptions = {
@@ -96,10 +96,13 @@ describe('AddWrapper', () => {
         },
     );
 
-    it.each(scenarios)('should correctly transform $name', ({name, fixture, options}) => {
-        const transformer = new AstCodemod(new AddWrapper(options));
+    it.each(scenarios)('should correctly transform $name', async ({name, fixture, options}) => {
+        const transformer = new ParseCode({
+            languages: ['typescript', 'jsx'],
+            codemod: new AddWrapper(options),
+        });
 
-        const output = transformer.apply(fixture);
+        const output = await transformer.apply(fixture);
 
         expect(output.result).toMatchSnapshot(name);
     });
