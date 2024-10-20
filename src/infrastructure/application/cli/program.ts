@@ -2,6 +2,7 @@
 import {Command, Option} from '@commander-js/extra-typings';
 import XDGAppPaths from 'xdg-app-paths';
 import * as process from 'node:process';
+import {resolve} from 'path';
 import {Cli} from '@/infrastructure/application/cli/cli';
 
 process.on('SIGINT', () => process.exit(0));
@@ -26,7 +27,9 @@ const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a
             },
             directories: {
                 config: XDGAppPaths('com.croct.cli').config(),
-                current: options.cwd ?? process.cwd(),
+                current: options.cwd !== undefined
+                    ? resolve(options.cwd)
+                    : process.cwd(),
             },
             api: {
                 graphqlEndpoint: `${apiEndpoint}/graphql`,
@@ -43,11 +46,11 @@ const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a
         .description('Configure the your project.')
         .option('-o, --override', 'override any existing configuration')
         .addOption(
-            new Option('--new <resource>', 'specify the resources to create')
+            new Option('-n, --new <resource>', 'specify the resources to create')
                 .choices(['organization', 'workspace', 'application'] as const),
         )
         .addOption(
-            new Option('--sdk <platform>', 'specify the SDK')
+            new Option('-s, --sdk <platform>', 'specify the SDK')
                 .choices(['javascript', 'react', 'next'] as const),
         )
         .action(async options => {

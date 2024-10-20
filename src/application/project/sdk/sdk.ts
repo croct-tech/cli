@@ -40,3 +40,19 @@ export class SequentialSdkResolver implements SdkResolver {
         return null;
     }
 }
+
+export class SdkError extends Error {
+    public constructor(message: string) {
+        super(message);
+
+        Object.setPrototypeOf(this, SdkError.prototype);
+    }
+}
+
+export class SdkInstallationError extends SdkError {
+    public constructor(message: string) {
+        super(message);
+
+        Object.setPrototypeOf(this, SdkInstallationError.prototype);
+    }
+}

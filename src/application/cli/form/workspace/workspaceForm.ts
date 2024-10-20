@@ -15,6 +15,7 @@ export type Configuration = {
 export type WorkspaceOptions = {
     organization: Organization,
     new?: boolean,
+    default?: string,
 };
 
 export class WorkspaceForm implements Form<Workspace, WorkspaceOptions> {
@@ -29,32 +30,32 @@ export class WorkspaceForm implements Form<Workspace, WorkspaceOptions> {
         const {organization} = options;
 
         if (options.new === false) {
-            const spinner = output.createSpinner('Loading workspaces');
+            const notifier = output.notify('Loading workspaces');
 
             const workspaces = await api.getWorkspaces({
                 organizationSlug: organization.slug,
             });
 
-            if (workspaces.length === 1) {
-                spinner.succeed(`Workspace: ${workspaces[0].name}`);
+            const defaultWorkspace = WorkspaceForm.getDefaultWorkspace(workspaces, options.default);
 
-                return workspaces[0];
+            if (defaultWorkspace !== null) {
+                notifier.confirm(`Workspace: ${defaultWorkspace.name}`);
+
+                return defaultWorkspace;
             }
 
-            spinner.stop();
+            notifier.stop();
 
             if (workspaces.length > 0) {
-                return workspaces.length === 1
-                    ? workspaces[0]
-                    : input.select({
-                        message: 'Select workspace',
-                        options: workspaces.map(
-                            option => ({
-                                value: option,
-                                label: option.name,
-                            }),
-                        ),
-                    });
+                return input.select({
+                    message: 'Select workspace',
+                    options: workspaces.map(
+                        option => ({
+                            value: option,
+                            label: option.name,
+                        }),
+                    ),
+                });
             }
         }
 
@@ -75,7 +76,7 @@ export class WorkspaceForm implements Form<Workspace, WorkspaceOptions> {
         const defaultLocale = System.getLocale();
         const timeZone = System.getTimeZone();
 
-        const spinner = output.createSpinner('Creating workspace');
+        const notifier = output.notify('Creating workspace');
 
         try {
             const workspace = await api.createWorkspace({
@@ -86,11 +87,23 @@ export class WorkspaceForm implements Form<Workspace, WorkspaceOptions> {
                 timeZone: timeZone,
             });
 
-            spinner.succeed(`Workspace: ${workspace.name}`);
+            notifier.confirm(`Workspace: ${workspace.name}`);
 
             return workspace;
         } finally {
-            spinner.stop();
+            notifier.stop();
         }
+    }
+
+    private static getDefaultWorkspace(workspaces: Workspace[], defaultSlug?: string): Workspace | null {
+        if (workspaces.length === 1) {
+            return workspaces[0];
+        }
+
+        if (defaultSlug !== undefined) {
+            return workspaces.find(({slug}) => slug === defaultSlug) ?? null;
+        }
+
+        return null;
     }
 }

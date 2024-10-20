@@ -14,17 +14,7 @@ export abstract class JavaScriptSdk implements Sdk {
 
     public abstract getPlatform(): ApplicationPlatform;
 
-    public async install(installation: Installation): Promise<ProjectConfiguration> {
-        const spinner = installation.output.createSpinner('Installing SDK');
-
-        await this.projectManager.installPackage(this.getPackage());
-
-        spinner.succeed(`${this.getPackage()} installed`);
-
-        return this.configure(installation);
-    }
-
-    protected abstract configure(installation: Installation): Promise<ProjectConfiguration>;
+    public abstract install(installation: Installation): Promise<ProjectConfiguration>;
 
     public downloadContent(): Promise<void> {
         return Promise.resolve(undefined);

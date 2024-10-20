@@ -2,7 +2,7 @@
 import {visit} from 'recast';
 import {namedTypes as Ast, builders as builder} from 'ast-types';
 import {NodePath} from 'ast-types/node-path';
-import {TransformedCode, CodeTransformer} from '@/application/project/sdk/code/transformation';
+import {ResultCode, Codemod} from '@/application/project/sdk/code/transformation';
 
 type ExpressionKind = Parameters<typeof builder.callExpression>[0];
 type ExportDeclaration = Ast.ExportNamedDeclaration | Ast.ExportDefaultDeclaration;
@@ -40,14 +40,14 @@ export type MiddlewareOptions = {
  * It refactors the middleware configuration to include a matcher for
  * the routes that the middleware should apply to.
  */
-export class RefactorMiddleware implements CodeTransformer<Ast.File> {
+export class RefactorMiddleware implements Codemod<Ast.File> {
     private readonly options: MiddlewareOptions;
 
     public constructor(options: MiddlewareOptions) {
         this.options = options;
     }
 
-    public transform(input: Ast.File): TransformedCode<Ast.File> {
+    public apply(input: Ast.File): ResultCode<Ast.File> {
         const config = RefactorMiddleware.findConfig(input.program);
         const middlewareNode = RefactorMiddleware.refactorMiddleware(
             input,

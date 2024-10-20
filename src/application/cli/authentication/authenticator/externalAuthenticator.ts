@@ -37,19 +37,19 @@ export class ExternalAuthenticator implements Authenticator {
             label: 'Enter your email',
         });
 
-        const spinner = output.createSpinner('Checking email');
+        const notifier = output.notify('Checking email');
 
         const isRegistered = await userApi.isEmailRegistered(email);
 
-        spinner.stop();
+        notifier.stop();
 
         if (isRegistered) {
-            output.info('Existing user, please sign in:');
+            output.inform('Existing user, please sign in:');
 
             return form.signIn.handle({email: email});
         }
 
-        output.info('New user, please sign up:');
+        output.inform('New user, please sign up:');
 
         return form.signUp.handle({email: email});
     }

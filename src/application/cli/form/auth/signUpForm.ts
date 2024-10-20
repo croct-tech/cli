@@ -74,27 +74,38 @@ export class SignUpForm implements Form<Token, SignUpOptions> {
             },
         });
 
-        let spinner = output.createSpinner('Creating account');
+        const sessionId = userApi.createSession();
 
-        const sessionId = await userApi.createSession();
+        return output.monitor(
+            resolve => ({
+                tasks: [
+                    {
+                        title: 'Creating account',
+                        task: async (notifier): Promise<void> => {
+                            await userApi.registerUser({
+                                sessionId: await sessionId,
+                                email: email,
+                                password: password,
+                                firstName: firstName,
+                                lastName: lastName,
+                                expertise: options.expertise ?? Expertise.ENGINEERING,
+                            });
 
-        await userApi.registerUser({
-            sessionId: sessionId,
-            email: email,
-            password: password,
-            firstName: firstName,
-            lastName: lastName,
-            expertise: options.expertise ?? Expertise.ENGINEERING,
-        });
+                            notifier.confirm('Account created, check your email for confirmation');
+                        },
+                    },
+                    {
+                        title: 'Waiting for confirmation',
+                        task: async (notifier): Promise<void> => {
+                            const token = await listener.wait(await sessionId);
 
-        spinner.succeed('Account created, check your email for confirmation');
+                            notifier.confirm('Account confirmed');
 
-        spinner = output.createSpinner('Waiting for confirmation');
-
-        const token = await listener.wait(sessionId);
-
-        spinner.succeed('Account confirmed');
-
-        return token;
+                            resolve(token);
+                        },
+                    },
+                ],
+            }),
+        );
     }
 }

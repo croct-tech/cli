@@ -1,7 +1,7 @@
 import {Organization} from '@/application/model/entities';
 import {System} from '@/infrastructure/system';
 import {Input} from '@/application/cli/io/input';
-import {Output} from '@/application/cli/io/output';
+import {Notifier, Output} from '@/application/cli/io/output';
 import {UserApi} from '@/application/api/user';
 import {Form} from '@/application/cli/form/form';
 import {UrlInput} from '@/application/cli/form/input/urlInput';
@@ -14,6 +14,7 @@ export type Configuration = {
 
 export type OrganizationOptions = {
     new?: boolean,
+    default?: string,
 };
 
 export class OrganizationForm implements Form<Organization, OrganizationOptions> {
@@ -27,28 +28,30 @@ export class OrganizationForm implements Form<Organization, OrganizationOptions>
         const {userApi: api, output, input} = this.config;
 
         if (options.new !== true) {
-            const spinner = output.createSpinner('Loading organizations');
+            const notifier = output.notify('Loading organizations');
 
             const organizations = await api.getOrganizations();
 
-            spinner.stop();
+            const defaultOrganization = OrganizationForm.getDefaultOrganization(organizations, options.default);
 
-            if (organizations.length === 1) {
-                return organizations[0];
+            if (defaultOrganization !== null) {
+                notifier.confirm(`Organization: ${defaultOrganization.name}`);
+
+                return defaultOrganization;
             }
 
+            notifier.stop();
+
             if (organizations.length > 0) {
-                return organizations.length === 1
-                    ? organizations[0]
-                    : input.select({
-                        message: 'Select organization',
-                        options: organizations.map(
-                            option => ({
-                                value: option,
-                                label: option.name,
-                            }),
-                        ),
-                    });
+                return input.select({
+                    message: 'Select organization',
+                    options: organizations.map(
+                        option => ({
+                            value: option,
+                            label: option.name,
+                        }),
+                    ),
+                });
             }
         }
 
@@ -59,14 +62,7 @@ export class OrganizationForm implements Form<Organization, OrganizationOptions>
             label: 'Organization website',
         });
 
-        const spinner = output.createSpinner('Setting up organization').flow([
-            'Visiting website',
-            'Detecting tech stack',
-            'Configuring organization',
-            'Creating workspace',
-            'Configuring applications',
-            'Setting up organization',
-        ]);
+        const notifier = this.notify('Setting up organization');
 
         try {
             const resources = await api.setupOrganization({
@@ -75,11 +71,61 @@ export class OrganizationForm implements Form<Organization, OrganizationOptions>
                 timeZone: timeZone,
             });
 
-            spinner.succeed(`Organization: ${resources.name}`);
+            notifier.confirm(`Organization: ${resources.name}`);
 
             return resources;
         } finally {
-            spinner.stop();
+            notifier.stop();
         }
+    }
+
+    private notify(initialStatus: string): Pick<Notifier, 'confirm' | 'stop'> {
+        const {output} = this.config;
+
+        const statuses = [
+            'Visiting website',
+            'Detecting tech stack',
+            'Configuring organization',
+            'Creating workspace',
+            'Configuring applications',
+            'Setting up organization',
+        ];
+
+        const notifier = output.notify(initialStatus);
+
+        let frame = 0;
+        const interval = setInterval(
+            () => {
+                if (frame >= statuses.length) {
+                    clearInterval(interval);
+                } else {
+                    notifier.update(statuses[frame++]);
+                }
+            },
+            3000,
+        );
+
+        return {
+            confirm: (status, details): void => {
+                clearInterval(interval);
+                notifier.confirm(status, details);
+            },
+            stop: (persist): void => {
+                clearInterval(interval);
+                notifier.stop(persist);
+            },
+        };
+    }
+
+    private static getDefaultOrganization(organizations: Organization[], defaultSlug?: string): Organization | null {
+        if (organizations.length === 1) {
+            return organizations[0];
+        }
+
+        if (defaultSlug !== undefined) {
+            return organizations.find(({slug}) => slug === defaultSlug) ?? null;
+        }
+
+        return null;
     }
 }

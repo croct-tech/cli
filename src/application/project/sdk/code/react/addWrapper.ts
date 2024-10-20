@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign -- False positives */
 import {visit} from 'recast';
 import {namedTypes as Ast, builders as builder} from 'ast-types';
-import {TransformedCode, CodeTransformer} from '@/application/project/sdk/code/transformation';
+import {ResultCode, Codemod} from '@/application/project/sdk/code/transformation';
 
 type ComponentDeclaration = Ast.VariableDeclarator|Ast.FunctionDeclaration;
 type DeclarationKind = NonNullable<Ast.ExportDeclaration['declaration']>;
@@ -54,7 +54,7 @@ export type WrapperOptions = {
  * It attempts to wrap the default export first, and if not found, it can optionally
  * wrap named exports that return JSX elements depending on the configuration.
  */
-export class AddWrapper implements CodeTransformer<Ast.File> {
+export class AddWrapper implements Codemod<Ast.File> {
     private readonly options: WrapperOptions;
 
     public constructor(options: WrapperOptions) {
@@ -62,7 +62,7 @@ export class AddWrapper implements CodeTransformer<Ast.File> {
         this.wrapDeclaration = this.wrapDeclaration.bind(this);
     }
 
-    public transform(input: Ast.File): TransformedCode<Ast.File> {
+    public apply(input: Ast.File): ResultCode<Ast.File> {
         let modified = false;
 
         const namedExports: Ast.ExportNamedDeclaration[] = [];

@@ -1,12 +1,12 @@
-import ora, {Ora} from 'ora';
 import open from 'open';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import terminalLink from 'terminal-link';
-import {render as renderMarkdown, unescape as unscapeMarkdown} from '@croct/md-lite';
 import {Writable} from 'stream';
-import {Output, Spinner, SpinnerFlowOptions} from '@/application/cli/io/output';
+import {Output, Notifier, TaskList, TaskResolver} from '@/application/cli/io/output';
 import {CliError, CliHelp} from '@/application/cli/error';
+import {TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
+import {format} from '@/infrastructure/application/cli/io/formatting';
 
 export type ExitCallback = () => never;
 
@@ -15,166 +15,84 @@ export type Configuration = {
     onExit: ExitCallback,
 };
 
-type SpinnerStack = {
-    instance: Ora,
-    previous?: SpinnerStack,
-};
-
 export class ConsoleOutput implements Output {
     private readonly output: Writable;
 
     private readonly onExit: ExitCallback;
 
-    private spinnerStack?: SpinnerStack;
+    private taskMonitor: TaskMonitor;
 
     public constructor({output, onExit}: Configuration) {
         this.output = output;
         this.onExit = onExit;
+        this.taskMonitor = new TaskMonitor(output);
+    }
+
+    public suspend(): void {
+        this.taskMonitor.suspend();
+    }
+
+    public resume(): void {
+        this.taskMonitor.resume();
     }
 
     public async open(target: string): Promise<void> {
         await open(target);
     }
 
+    public break(): void {
+        this.output.write('\n');
+    }
+
     public log(text: string): void {
-        this.output.write(`${text}\n`);
+        this.output.write(`${format(text)}\n`);
     }
 
-    public error(text: string): void {
-        this.output.write(chalk.red(`${text}\n`));
+    public confirm(text: string): void {
+        this.output.write(`${format(text, {icon: {semantic: 'success'}})}\n`);
     }
 
-    public info(text: string): void {
-        this.output.write(chalk.cyan(`${text}\n`));
+    public inform(text: string): void {
+        this.output.write(`${format(text, {icon: {semantic: 'info'}})}\n`);
     }
 
     public warn(text: string): void {
-        this.output.write(chalk.yellow(`${text}\n`));
+        this.output.write(`${format(text, {icon: {semantic: 'warning'}})}\n`);
     }
 
-    public success(text: string): void {
-        this.output.write(chalk.green(`${text}\n`));
+    public alert(text: string): void {
+        this.output.write(`${format(text, {icon: {semantic: 'error'}})}\n`);
     }
 
-    public suspendSpinner(): void {
-        this.spinnerStack
-            ?.instance
-            .stop();
+    public notify(initialStatus: string): Notifier {
+        return this.taskMonitor.notify(initialStatus);
     }
 
-    public resumeSpinner(): void {
-        this.spinnerStack
-            ?.instance
-            .start();
-    }
+    public monitor<T>(resolver: TaskResolver<T>): Promise<T>;
 
-    public createSpinner(initialStatus?: string): Spinner {
-        const instance = ora({
-            stream: this.output,
-        });
+    public monitor(tasks: TaskList): Promise<void>;
 
-        let interval: NodeJS.Timeout | null = null;
-
-        const clear = (start = false): void => {
-            if (interval !== null) {
-                clearInterval(interval);
-            }
-
-            if (start) {
-                this.suspendSpinner();
-
-                this.spinnerStack = {
-                    instance: instance,
-                    previous: this.spinnerStack,
-                };
-            } else {
-                this.spinnerStack = this.spinnerStack?.previous;
-
-                this.resumeSpinner();
-            }
-        };
-
-        const spinner: Spinner = {
-            start: (status: string) => {
-                clear(true);
-
-                instance.start(status);
-
-                return spinner;
-            },
-            stop: (persist: boolean = false) => {
-                clear();
-
-                if (persist) {
-                    instance.stopAndPersist();
-                } else {
-                    instance.stop();
-                }
-            },
-            update: (status: string) => {
-                clear();
-
-                instance.text = status;
-
-                return spinner;
-            },
-            flow: (statuses: string[], options?: SpinnerFlowOptions): Spinner => {
-                clear();
-
-                let index = 0;
-
-                interval = setInterval(
-                    () => {
-                        const nextIndex = options?.loop === true
-                            ? index++ % statuses.length
-                            : Math.min(index++, statuses.length - 1);
-
-                        instance.text = statuses[nextIndex];
-                    },
-                    options?.duration ?? 3000,
-                );
-
-                return spinner;
-            },
-            succeed: (status: string) => {
-                clear();
-
-                instance.succeed(status);
-
-                return spinner;
-            },
-            warn: (status: string) => {
-                clear();
-
-                instance.warn(status);
-
-                return spinner;
-            },
-            fail: (status: string) => {
-                clear();
-
-                instance.fail(status);
-
-                return spinner;
-            },
-        };
-
-        if (initialStatus !== undefined) {
-            spinner.start(initialStatus);
+    public monitor<T>(tasks: TaskResolver<T> | TaskList): Promise<T | void> {
+        if (typeof tasks === 'function') {
+            return new Promise((resolve, reject) => {
+                const execution = this.taskMonitor.monitor(tasks(resolve, (error: any) => {
+                    execution.stop();
+                    reject(error);
+                }));
+            });
         }
 
-        return spinner;
+        return this.taskMonitor
+            .monitor(tasks)
+            .wait();
     }
 
-    public reportError(error: any): void {
-        this.error(`\n${this.formatError(error)}`);
+    public report(error: any): void {
+        this.alert(`\n${this.formatError(error)}`);
     }
 
     public exit(): never {
-        this.suspendSpinner();
-
-        this.spinnerStack = undefined;
-
+        this.suspend();
         this.onExit();
     }
 
@@ -197,10 +115,10 @@ export class ConsoleOutput implements Output {
 
             if (suggestions !== undefined) {
                 if (suggestions.length === 1) {
-                    message += `\n\n💡 ${ConsoleOutput.formatMessage(suggestions[0])}`;
+                    message += `\n\n💡 ${format(suggestions[0])}`;
                 } else {
                     message += `\n\n💡 ${chalk.bold('Suggestions:')}\n`;
-                    message += suggestions.map(suggestion => `  • ${ConsoleOutput.formatMessage(suggestion)}`)
+                    message += suggestions.map(suggestion => `  • ${format(suggestion)}`)
                         .join('\n');
                 }
             }
@@ -234,20 +152,6 @@ export class ConsoleOutput implements Output {
             },
             borderColor: 'red',
             borderStyle: 'round',
-        });
-    }
-
-    private static formatMessage(message: string): string {
-        return renderMarkdown(message, {
-            fragment: node => node.children.join(''),
-            text: node => node.content,
-            bold: node => chalk.bold(node.children),
-            italic: node => chalk.italic(node.children),
-            strike: node => chalk.strikethrough(node.children),
-            code: node => chalk.cyan(node.content),
-            link: node => terminalLink(node.children, node.href),
-            image: node => unscapeMarkdown(node.source),
-            paragraph: node => node.children.join('\n'),
         });
     }
 }

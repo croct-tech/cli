@@ -2,6 +2,7 @@ export type PackageInfo = {
     name: string,
     version: string | null,
     path: string,
+    metadata: Record<string, any>,
 };
 
 export type PackageInstallationOptions = {

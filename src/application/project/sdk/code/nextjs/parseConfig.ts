@@ -1,6 +1,6 @@
-import {parse} from '@babel/parser';
 import {namedTypes as Ast} from 'ast-types';
 import {visit} from 'recast';
+import {parse} from '@/application/project/sdk/code/parser';
 
 export type NextConfig = {
     i18n: {
@@ -25,10 +25,7 @@ export function parseConfig(source: string): NextConfig {
     let ast: Ast.Node;
 
     try {
-        ast = parse(source, {
-            sourceType: 'module',
-            plugins: ['jsx', 'typescript'],
-        });
+        ast = parse(source, ['jsx', 'typescript']);
     } catch {
         return {
             i18n: i18n,

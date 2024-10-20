@@ -1,7 +1,7 @@
 import {resolve} from 'path';
 import {MiddlewareOptions, RefactorMiddleware} from '@/application/project/sdk/code/nextjs/refactorMiddleware';
-import {assertTransformed, loadFixtures} from '../fixtures';
-import {TransformParsedCode} from '@/application/project/sdk/code/transformParsedCode';
+import {loadFixtures} from '../fixtures';
+import {AstCodemod} from '@/application/project/sdk/code/astCodemod';
 
 describe('RefactorMiddleware', () => {
     const defaultOptions: MiddlewareOptions = {
@@ -26,8 +26,10 @@ describe('RefactorMiddleware', () => {
         },
     );
 
-    // eslint-disable-next-line jest/expect-expect -- expect is called in the assertTransformed function
-    it.each(scenarios)('should correctly transform $name', ({fixture, options}) => {
-        assertTransformed(fixture, new TransformParsedCode(new RefactorMiddleware(options)));
+    it.each(scenarios)('should correctly transform $name', ({name, fixture, options}) => {
+        const transformer = new AstCodemod(new RefactorMiddleware(options));
+        const output = transformer.apply(fixture);
+
+        expect(output.result).toMatchSnapshot(name);
     });
 });

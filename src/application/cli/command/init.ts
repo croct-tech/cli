@@ -48,31 +48,30 @@ export class InitCommand implements Command<InitInput, InitOutput> {
 
     public async execute(input: InitInput): Promise<InitOutput> {
         const {output} = this.config.io;
+
         const sdk = await this.getSdk(input.sdk);
 
-        if (sdk === null) {
-            throw new Error('No supported SDK found.');
-        }
-
-        output.info(`Using Croct SDK for ${ApplicationPlatform.getName(sdk.getPlatform())}`);
+        output.inform(`Platform: ${ApplicationPlatform.getName(sdk.getPlatform())}`);
 
         const {configurationFile, form} = this.config;
 
         const currentConfiguration = await configurationFile.load();
 
         if (currentConfiguration !== null && input.override !== true) {
-            output.info('Project already initialized, pass --override to reconfigure');
+            output.inform('Project already initialized, pass --override to reconfigure');
 
             return currentConfiguration;
         }
 
         const organization = await form.organization.handle({
             new: input.new === 'organization',
+            default: currentConfiguration?.organization,
         });
 
         const workspace = await form.workspace.handle({
             organization: organization,
             new: input.new === 'workspace',
+            default: currentConfiguration?.workspace,
         });
 
         const applicationOptions: Omit<ApplicationOptions, 'environment'> = {
@@ -86,10 +85,12 @@ export class InitCommand implements Command<InitInput, InitOutput> {
             development: await form.application.handle({
                 ...applicationOptions,
                 environment: ApplicationEnvironment.DEVELOPMENT,
+                default: currentConfiguration?.applications.development,
             }),
             production: await form.application.handle({
                 ...applicationOptions,
                 environment: ApplicationEnvironment.PRODUCTION,
+                default: currentConfiguration?.applications.production,
             }),
         };
 
@@ -105,7 +106,11 @@ export class InitCommand implements Command<InitInput, InitOutput> {
             components: {},
         });
 
+        const notifier = output.notify('Updating project configuration');
+
         await configurationFile.update(configuration);
+
+        notifier.confirm('Project configuration updated');
 
         return configuration;
     }
@@ -129,33 +134,33 @@ export class InitCommand implements Command<InitInput, InitOutput> {
     private async getSlots(organizationSlug: string, workspaceSlug: string): Promise<Record<string, string>> {
         const {workspaceApi, io: {output}} = this.config;
 
-        const spinner = output.createSpinner('Loading slots');
+        const notifier = output.notify('Loading slots');
 
         const slots = await workspaceApi.getSlots({
             organizationSlug: organizationSlug,
             workspaceSlug: workspaceSlug,
         });
 
-        spinner.stop();
+        notifier.stop();
 
         return Object.fromEntries(slots.map(slot => [slot.slug, `${slot.version.major}.${slot.version.minor}`]));
     }
 
-    private async getSdk(hint?: string): Promise<Sdk|null> {
+    private async getSdk(hint?: string): Promise<Sdk> {
         const {output} = this.config.io;
         const {sdkResolver} = this.config;
 
-        const spinner = output.createSpinner('Resolving SDK');
+        const notifier = output.notify('Resolving SDK');
 
         const sdk = await sdkResolver.resolve(hint);
 
         if (sdk === null) {
-            output.error('No supported SDK found.');
+            notifier.alert('No supported SDK found.');
 
-            return null;
+            return output.exit();
         }
 
-        spinner.stop();
+        notifier.stop();
 
         return sdk;
     }

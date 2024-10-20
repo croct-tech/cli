@@ -25,11 +25,11 @@ export class AdminCommand implements Command<AdminInput, AdminOutput> {
     public async execute(): Promise<AdminOutput> {
         const {output, userApi} = this.config;
 
-        const spinner = output.createSpinner('Starting session');
+        const notifier = output.notify('Starting session');
 
         const sessionId = await userApi.createSession();
 
-        spinner.stop();
+        notifier.stop();
 
         const url = new URL(this.config.endpoint.url);
 

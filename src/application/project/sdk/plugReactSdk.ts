@@ -25,7 +25,7 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver {
         return hints.some(Boolean) ? this : null;
     }
 
-    protected configure(installation: Installation): Promise<ProjectConfiguration> {
+    public install(installation: Installation): Promise<ProjectConfiguration> {
         return Promise.resolve(installation.configuration);
     }
 }

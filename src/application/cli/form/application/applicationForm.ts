@@ -24,6 +24,7 @@ export type ApplicationOptions = {
     platform: ApplicationPlatform,
     environment: ApplicationEnvironment,
     new?: boolean,
+    default?: string,
 };
 
 export class ApplicationForm implements Form<Application, ApplicationOptions> {
@@ -37,15 +38,18 @@ export class ApplicationForm implements Form<Application, ApplicationOptions> {
         const {workspaceApi: api, output, input} = this.config;
         const {organization, workspace, environment} = options;
 
-        const spinner = output.createSpinner('Loading applications');
+        const notifier = output.notify('Loading applications');
 
         const applications = await api.getApplications({
             workspaceSlug: workspace.slug,
             organizationSlug: organization.slug,
         });
-        const candidates = applications.filter(app => app.environment === environment);
 
-        spinner.stop();
+        const candidates = applications.filter(
+            app => (app.environment === environment && (options.default ?? app.slug) === app.slug),
+        );
+
+        notifier.stop();
 
         if (candidates.length === 0 || options.new === true) {
             return this.setupApplication(options, applications);
@@ -54,7 +58,7 @@ export class ApplicationForm implements Form<Application, ApplicationOptions> {
         if (candidates.length === 1) {
             const application = candidates[0];
 
-            spinner.succeed(ApplicationForm.formatSelection(application));
+            output.confirm(ApplicationForm.formatSelection(application));
 
             return application;
         }
@@ -98,7 +102,7 @@ export class ApplicationForm implements Form<Application, ApplicationOptions> {
             })
             : defaultWebsite;
 
-        const spinner = output.createSpinner('Configuring application');
+        const notifier = output.notify('Configuring application');
 
         try {
             const application = await api.createApplication({
@@ -111,11 +115,11 @@ export class ApplicationForm implements Form<Application, ApplicationOptions> {
                 timeZone: workspace.timeZone,
             });
 
-            spinner.succeed(ApplicationForm.formatSelection(application));
+            notifier.confirm(ApplicationForm.formatSelection(application));
 
             return application;
         } finally {
-            spinner.stop();
+            notifier.stop();
         }
     }
 

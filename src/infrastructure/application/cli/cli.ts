@@ -36,8 +36,15 @@ import {Command, CommandInput} from '@/application/cli/command/command';
 import {AdminCommand} from '@/application/cli/command/admin';
 import {ProjectConfigurationFile} from '@/application/project/configuration';
 import {AddWrapper} from '@/application/project/sdk/code/react/addWrapper';
-import {TransformParsedCode} from '@/application/project/sdk/code/transformParsedCode';
+import {AstCodemod} from '@/application/project/sdk/code/astCodemod';
 import {RefactorMiddleware} from '@/application/project/sdk/code/nextjs/refactorMiddleware';
+import {Linter} from '@/application/project/linter';
+import {LintCodemod} from '@/application/project/sdk/code/lintCodemod';
+import {FileCodemod} from '@/application/project/sdk/code/fileCodemod';
+import {CreateLayoutComponent} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
+import {CreateAppComponent} from '@/application/project/sdk/code/nextjs/createAppComponent';
+import {CreateMiddleware} from '@/application/project/sdk/code/nextjs/createMiddleware';
+import {NodeLinter} from '@/infrastructure/project/nodeLinter';
 
 export type Configuration = {
     io: {
@@ -70,6 +77,8 @@ export class Cli {
     private sdkResolver?: SdkResolver;
 
     private projectManager?: ProjectManager;
+
+    private linter?: Linter;
 
     private graphqlClient?: GraphqlClient;
 
@@ -151,8 +160,8 @@ export class Cli {
                 input: this.configuration.io.input,
                 output: this.configuration.io.output,
                 onAbort: () => output.exit(),
-                onInteractionStart: () => output.suspendSpinner(),
-                onInteractionEnd: () => output.resumeSpinner(),
+                onInteractionStart: () => output.suspend(),
+                onInteractionEnd: () => output.resume(),
             });
         }
 
@@ -211,40 +220,64 @@ export class Cli {
                         application: this.getApplicationApi(),
                     },
                     codemod: {
-                        middleware: new TransformParsedCode(
-                            new RefactorMiddleware({
-                                import: {
-                                    module: '@croct/plug-next/middleware',
-                                    functionName: 'withCroct',
-                                    matcherName: 'matcher',
-                                    matcherLocalName: 'croctMatcher',
-                                },
-                            }),
-                        ),
-                        appRouterProvider: new TransformParsedCode(
-                            new AddWrapper({
-                                namedExportFallback: false,
-                                wrapper: {
-                                    module: '@croct/plug-next/CroctProvider',
-                                    component: 'CroctProvider',
-                                },
-                                targets: {
-                                    variable: 'children',
-                                },
-                            }),
-                        ),
-                        pageRouterProvider: new TransformParsedCode(
-                            new AddWrapper({
-                                namedExportFallback: false,
-                                wrapper: {
-                                    module: '@croct/plug-next/CroctProvider',
-                                    component: 'CroctProvider',
-                                },
-                                targets: {
-                                    component: 'Component',
-                                },
-                            }),
-                        ),
+                        middleware: {
+                            new: new LintCodemod(new FileCodemod(new CreateMiddleware()), this.getLinter()),
+                            existing: new LintCodemod(
+                                new FileCodemod(
+                                    new AstCodemod(
+                                        new RefactorMiddleware({
+                                            import: {
+                                                module: '@croct/plug-next/middleware',
+                                                functionName: 'withCroct',
+                                                matcherName: 'matcher',
+                                                matcherLocalName: 'croctMatcher',
+                                            },
+                                        }),
+                                    ),
+                                ),
+                                this.getLinter(),
+                            ),
+                        },
+                        appRouterProvider: {
+                            new: new LintCodemod(new FileCodemod(new CreateLayoutComponent()), this.getLinter()),
+                            existing: new LintCodemod(
+                                new FileCodemod(
+                                    new AstCodemod(
+                                        new AddWrapper({
+                                            namedExportFallback: false,
+                                            wrapper: {
+                                                module: '@croct/plug-next/CroctProvider',
+                                                component: 'CroctProvider',
+                                            },
+                                            targets: {
+                                                variable: 'children',
+                                            },
+                                        }),
+                                    ),
+                                ),
+                                this.getLinter(),
+                            ),
+                        },
+                        pageRouterProvider: {
+                            new: new LintCodemod(new FileCodemod(new CreateAppComponent()), this.getLinter()),
+                            existing: new LintCodemod(
+                                new FileCodemod(
+                                    new AstCodemod(
+                                        new AddWrapper({
+                                            namedExportFallback: false,
+                                            wrapper: {
+                                                module: '@croct/plug-next/CroctProvider',
+                                                component: 'CroctProvider',
+                                            },
+                                            targets: {
+                                                component: 'Component',
+                                            },
+                                        }),
+                                    ),
+                                ),
+                                this.getLinter(),
+                            ),
+                        },
                     },
                 }),
                 new PlugReactSdk(this.getProjectManager()),
@@ -263,6 +296,37 @@ export class Cli {
         }
 
         return this.projectManager;
+    }
+
+    private getLinter(): Linter {
+        if (this.linter === undefined) {
+            this.linter = new NodeLinter({
+                projectManager: this.getProjectManager(),
+                tools: [
+                    // The tools must be ordered from the least to the most popular
+                    // as the detection is based on the dependency tree, and some tools
+                    // may have indirect dependencies. For example, several tools may
+                    // depend on `eslint`, so even if the project uses only `prettier`,
+                    // the `eslint` tool would be detected.
+                    {
+                        package: '@biomejs/biome',
+                        bin: 'biome',
+                        args: files => ['format', '--write', ...files],
+                    },
+                    {
+                        package: 'prettier',
+                        args: files => ['--write', ...files],
+                    },
+                    {
+                        package: 'eslint',
+                        bin: 'eslint',
+                        args: files => ['--fix', ...files],
+                    },
+                ],
+            });
+        }
+
+        return this.linter;
     }
 
     private getConfigurationFile(): ProjectConfigurationFile {
@@ -349,7 +413,7 @@ export class Cli {
         } catch (error) {
             const output = this.getOutput();
 
-            output.reportError(error);
+            output.report(error);
 
             return output.exit();
         }

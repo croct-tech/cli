@@ -41,7 +41,7 @@ describe('parseConfig', () => {
     };
 
     function loadScenarios(): Scenario[] {
-        const scenarios: Record<string, Scenario> = [];
+        const scenarios: Record<string, Scenario> = {};
 
         for (const scenario of readdirSync(fixturePath)) {
             const name = basename(scenario);

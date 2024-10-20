@@ -1,4 +1,4 @@
-import {hasImport, ImportMatcher} from '@/application/project/sdk/code/hasImport';
+import {hasImport, ImportMatcher} from '@/application/project/sdk/code/javascript/hasImport';
 
 describe('hasImport', () => {
     type Scenario = {
@@ -9,14 +9,6 @@ describe('hasImport', () => {
     };
 
     it.each<Scenario>([
-        {
-            description: 'not match invalid code',
-            code: 'import croct',
-            matcher: {
-                moduleName: 'croct',
-            },
-            expected: false,
-        },
         {
             description: 'match the module name exactly',
             code: 'import croct from \'croct\'; <foo/>', // tsx
@@ -80,6 +72,57 @@ describe('hasImport', () => {
         {
             description: 'not match the aliased import name',
             code: 'import {foo, sdk as croct} from \'croct\';',
+            matcher: {
+                moduleName: 'croct',
+                importName: 'croct-sdk',
+            },
+            expected: false,
+        },
+        {
+            description: 'match the re-exported module name exactly',
+            code: 'export {sdk} from \'croct\';',
+            matcher: {
+                moduleName: 'croct',
+            },
+            expected: true,
+        },
+        {
+            description: 'match the re-exported module name with a regular expression',
+            code: 'export {sdk} from \'croct\';',
+            matcher: {
+                moduleName: /croct/,
+            },
+            expected: true,
+        },
+        {
+            description: 'not match the re-exported module name',
+            code: 'export {sdk} from \'croct\';',
+            matcher: {
+                moduleName: 'croct-sdk',
+            },
+            expected: false,
+        },
+        {
+            description: 'not match the re-exported import name',
+            code: 'export {sdk} from \'croct\';',
+            matcher: {
+                moduleName: 'croct',
+                importName: 'croct-sdk',
+            },
+            expected: false,
+        },
+        {
+            description: 'match the re-exported aliased import name exactly',
+            code: 'export {sdk as croct} from \'croct\';',
+            matcher: {
+                moduleName: 'croct',
+                importName: 'sdk',
+            },
+            expected: true,
+        },
+        {
+            description: 'not match the re-exported aliased import name',
+            code: 'export {sdk as croct} from \'croct\';',
             matcher: {
                 moduleName: 'croct',
                 importName: 'croct-sdk',

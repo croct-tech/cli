@@ -20,14 +20,24 @@ export class NodeProjectManager implements ProjectManager {
         return this.configuration.directory;
     }
 
-    public isPackageListed(packageName: string): Promise<boolean> {
-        return isPackageListed(packageName, this.configuration.directory);
+    public async isPackageListed(packageName: string): Promise<boolean> {
+        try {
+            return await isPackageListed(packageName, this.configuration.directory);
+        } catch {
+            return Promise.resolve(false);
+        }
     }
 
     public async getPackageInfo(packageName: string): Promise<PackageInfo|null> {
-        const info = await getPackageInfo(packageName, {
-            paths: [this.configuration.directory],
-        });
+        let info: Awaited<ReturnType<typeof getPackageInfo>>;
+
+        try {
+            info = await getPackageInfo(packageName, {
+                paths: [this.configuration.directory],
+            });
+        } catch {
+            return null;
+        }
 
         if (info === undefined) {
             return null;
@@ -37,6 +47,7 @@ export class NodeProjectManager implements ProjectManager {
             name: info.name,
             version: info.version ?? null,
             path: info.rootPath,
+            metadata: info.packageJson,
         };
     }
 

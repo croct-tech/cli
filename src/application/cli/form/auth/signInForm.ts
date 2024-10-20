@@ -52,7 +52,7 @@ export class SignInForm implements Form<Token, SignInOptions> {
                 label: 'Password',
             });
 
-            const spinner = output.createSpinner('Checking credentials');
+            const notifier = output.notify('Checking credentials');
 
             try {
                 const token = await userApi.issueToken({
@@ -60,13 +60,13 @@ export class SignInForm implements Form<Token, SignInOptions> {
                     password: password,
                 });
 
-                spinner.succeed('Logged in');
+                notifier.confirm('Logged in');
 
                 return token;
             } catch (error) {
                 if (error instanceof ApiError) {
                     if (error.isAccessDenied(AccessDeniedReason.UNVERIFIED_USER)) {
-                        spinner.fail('Email not verified');
+                        notifier.alert('Email not verified');
 
                         const retry = await input.confirm({
                             message: 'Resend activation link?',
@@ -79,7 +79,7 @@ export class SignInForm implements Form<Token, SignInOptions> {
                     }
 
                     if (error.isAccessDenied(AccessDeniedReason.BAD_CREDENTIALS)) {
-                        spinner.fail('Wrong password');
+                        notifier.alert('Wrong password');
 
                         action = await input.select<Action>({
                             message: 'What would you like to do?',
@@ -104,7 +104,7 @@ export class SignInForm implements Form<Token, SignInOptions> {
                     }
                 }
 
-                spinner.stop();
+                notifier.stop();
 
                 throw error;
             }
@@ -126,7 +126,7 @@ export class SignInForm implements Form<Token, SignInOptions> {
     private async retryActivation(email: string): Promise<string> {
         const {output, userApi} = this.config;
 
-        const spinner = output.createSpinner('Sending email');
+        const notifier = output.notify('Sending email');
 
         const sessionId = await userApi.createSession();
 
@@ -135,7 +135,7 @@ export class SignInForm implements Form<Token, SignInOptions> {
             sessionId: sessionId,
         });
 
-        spinner.succeed(`Link sent to ${email}`);
+        notifier.confirm(`Link sent to ${email}`);
 
         return this.waitToken(sessionId);
     }
@@ -143,7 +143,7 @@ export class SignInForm implements Form<Token, SignInOptions> {
     private async resetPassword(email: string): Promise<string> {
         const {output, userApi} = this.config;
 
-        const spinner = output.createSpinner('Sending link to reset password');
+        const notifier = output.notify('Sending link to reset password');
 
         const sessionId = await userApi.createSession();
 
@@ -152,7 +152,7 @@ export class SignInForm implements Form<Token, SignInOptions> {
             sessionId: sessionId,
         });
 
-        spinner.succeed(`Link sent to ${email}`);
+        notifier.confirm(`Link sent to ${email}`);
 
         return this.waitToken(sessionId);
     }
@@ -160,11 +160,11 @@ export class SignInForm implements Form<Token, SignInOptions> {
     private async waitToken(sessionId: string): Promise<string> {
         const {output, listener} = this.config;
 
-        const spinner = output.createSpinner('Waiting for confirmation');
+        const notifier = output.notify('Waiting for confirmation');
 
         const token = await listener.wait(sessionId);
 
-        spinner.succeed('Login completed');
+        notifier.confirm('Login completed');
 
         return token;
     }

@@ -1,4 +1,4 @@
-import {access, readFile, writeFile} from 'fs/promises';
+import {access, readFile} from 'fs/promises';
 import {join} from 'path';
 import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
@@ -10,8 +10,12 @@ import {WorkspaceApi} from '@/application/api/workspace';
 import {EnvFile} from '@/application/project/envFile';
 import {UserApi} from '@/application/api/user';
 import {NextConfig, parseConfig} from '@/application/project/sdk/code/nextjs/parseConfig';
-import {CodeTransformer} from '@/application/project/sdk/code/transformation';
-import {hasImport} from '@/application/project/sdk/code/hasImport';
+import {Codemod} from '@/application/project/sdk/code/transformation';
+import {hasImport} from '@/application/project/sdk/code/javascript/hasImport';
+import {Task, TaskNotifier} from '@/application/cli/io/output';
+import {formatMessage} from '@/application/error';
+import type {LayoutComponentOptions} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
+import type {AppComponentOptions} from '@/application/project/sdk/code/nextjs/createAppComponent';
 
 type ApiConfiguration = {
     user: UserApi,
@@ -20,9 +24,18 @@ type ApiConfiguration = {
 };
 
 type CodemodConfiguration = {
-    middleware: CodeTransformer<string>,
-    appRouterProvider: CodeTransformer<string>,
-    pageRouterProvider: CodeTransformer<string>,
+    middleware: {
+        new: Codemod<string>,
+        existing: Codemod<string>,
+    },
+    appRouterProvider: {
+        new: Codemod<string, LayoutComponentOptions>,
+        existing: Codemod<string>,
+    },
+    pageRouterProvider: {
+        new: Codemod<string, AppComponentOptions>,
+        existing: Codemod<string>,
+    },
 };
 
 export type Configuration = {
@@ -38,6 +51,10 @@ type NextProjectInfo = {
 };
 
 type NextInstallationPlan = {
+    sdk: {
+        package: string,
+        installed: boolean,
+    },
     middleware: {
         file: string,
         new: boolean,
@@ -60,6 +77,7 @@ type NextInstallationPlan = {
 type NextInstallation = Installation & {
     project: NextProjectInfo,
     plan: NextInstallationPlan,
+    notifier: TaskNotifier,
 };
 
 enum NextEnvVar {
@@ -100,85 +118,140 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         return hints.some(Boolean) ? this : null;
     }
 
-    protected async configure(installation: Installation): Promise<ProjectConfiguration> {
+    public async install(installation: Installation): Promise<ProjectConfiguration> {
         const {configuration} = installation;
         const [{i18n}, projectInfo] = await Promise.all([
             this.getConfig(),
             this.getProjectInfo(),
         ]);
-        const plan = await this.getInstallationPlan(projectInfo);
-
-        const nextInstallation: NextInstallation = {
-            ...installation,
-            project: projectInfo,
-            plan: plan,
-        };
 
         const {input, output} = installation;
 
-        output.info('Project information:');
-        output.info(`  - TypeScript: ${projectInfo.typescript ? 'yes' : 'no'}`);
-        output.info(`  - Router: ${projectInfo.router}`);
-        output.info(`  - Source directory: ${projectInfo.sourceDirectory}`);
+        const tasks = await this.getInstallationTasks({
+            ...installation,
+            project: projectInfo,
+            plan: await this.getInstallationPlan(projectInfo),
+        });
 
-        if (i18n.locales.length > 0) {
-            output.info(`  - Locales: ${i18n.locales.join(', ')}`);
-        }
+        if (tasks.length > 0) {
+            output.break();
+            output.inform('**Installation plan**');
 
-        output.info('Installation plan:');
+            for (let index = 0; index < tasks.length; index++) {
+                output.log(` - ${tasks[index].title}`);
+            }
 
-        const isMiddlewareInstalled = plan.middleware.installed;
-        const isProviderInstalled = plan.provider.installed;
-        const isEnvInstalled = plan.env.installed.apiKey && plan.env.installed.appId;
+            output.break();
 
-        if (!isMiddlewareInstalled) {
-            output.info(
-                nextInstallation.plan.middleware.new
-                    ? ` Create ${nextInstallation.plan.middleware.file}`
-                    : ` Configure ${nextInstallation.plan.middleware.file}`,
-            );
-        }
+            if (!await input.confirm({message: 'Proceed?', default: true})) {
+                output.alert('Installation aborted');
 
-        if (!isProviderInstalled) {
-            output.info(
-                nextInstallation.plan.provider.new
-                    ? ` Create ${nextInstallation.plan.provider.file}`
-                    : ` Add provider to ${nextInstallation.plan.provider.file}`,
-            );
-        }
+                return output.exit();
+            }
 
-        if (!isEnvInstalled) {
-            const {file} = plan.env;
-
-            output.info(
-                await file.exists()
-                    ? ` Update ${file.getName()}`
-                    : ` Create ${file.getName()}`,
-            );
-        }
-
-        if (!await input.confirm({message: 'Proceed?'})) {
-            output.log('Installation aborted');
-
-            return output.exit();
-        }
-
-        if (!isMiddlewareInstalled) {
-            await this.installMiddleware(nextInstallation);
-        }
-
-        if (!isProviderInstalled) {
-            await this.installProvider(nextInstallation);
-        }
-
-        if (!isEnvInstalled) {
-            await this.updateEnvFile(nextInstallation);
+            await output.monitor({tasks: tasks});
         }
 
         return {
             ...configuration,
             locales: i18n.locales ?? configuration.locales,
         };
+    }
+
+    private async getInstallationTasks(installation: Omit<NextInstallation, 'notifier'>): Promise<Task[]> {
+        const {plan} = installation;
+        const tasks: Task[] = [];
+
+        if (!plan.sdk.installed) {
+            tasks.push({
+                title: `Install ${this.getPackage()}`,
+                task: async notifier => {
+                    try {
+                        await this.projectManager.installPackage(this.getPackage());
+
+                        notifier.confirm('SDK installed');
+                    } catch (error) {
+                        notifier.alert('Failed to install SDK', formatMessage(error));
+                    }
+                },
+            });
+        }
+
+        const isMiddlewareInstalled = plan.middleware.installed;
+
+        if (!isMiddlewareInstalled) {
+            const isNew = plan.middleware.new;
+
+            tasks.push({
+                title: isNew
+                    ? `Create ${installation.plan.middleware.file}`
+                    : `Configure ${installation.plan.middleware.file}`,
+                task: async notifier => {
+                    try {
+                        await this.installMiddleware({
+                            ...installation,
+                            notifier: notifier,
+                        });
+
+                        notifier.confirm(`Middleware ${isNew ? 'created' : 'configured'}`);
+                    } catch (error) {
+                        notifier.alert('Failed to install middleware', formatMessage(error));
+                    }
+                },
+            });
+        }
+
+        const isProviderInstalled = plan.provider.installed;
+
+        if (!isProviderInstalled) {
+            const isNew = plan.provider.new;
+
+            tasks.push({
+                title: isNew
+                    ? `Create ${installation.plan.provider.file}`
+                    : `Configure ${installation.plan.provider.file}`,
+                task: async notifier => {
+                    try {
+                        await this.installProvider({
+                            ...installation,
+                            notifier: notifier,
+                        });
+
+                        notifier.confirm(`Provider ${isNew ? 'created' : 'configured'}`);
+                    } catch (error) {
+                        notifier.alert('Failed to install provider', formatMessage(error));
+                    }
+                },
+            });
+        }
+
+        const isEnvInstalled = plan.env.installed.apiKey && plan.env.installed.appId;
+
+        if (!isEnvInstalled) {
+            const {file} = plan.env;
+            const fileName = file.getName();
+            const exists = await file.exists();
+
+            tasks.push({
+                title: exists
+                    ? `Update ${fileName}`
+                    : `Create ${fileName}`,
+                task: async notifier => {
+                    try {
+                        await this.updateEnvFile({
+                            ...installation,
+                            notifier: notifier,
+                        });
+
+                        notifier.confirm(`Env file ${exists ? 'updated' : 'created'}`);
+                    } catch (error) {
+                        notifier.alert('Failed to update .env.local', formatMessage(error));
+                    }
+                },
+            });
+        }
+
+        return tasks;
     }
 
     private installProvider(installation: NextInstallation): Promise<boolean> {
@@ -191,102 +264,54 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         }
     }
 
-    private async installAppRouterProvider(installation: NextInstallation): Promise<boolean> {
+    private installAppRouterProvider(installation: NextInstallation): Promise<boolean> {
         const {plan: {provider}, project: {typescript: isTypescript}} = installation;
 
-        if (!provider.new) {
-            return this.updateCode(this.codemod.pageRouterProvider, provider.file);
+        if (provider.new) {
+            return this.updateCode(this.codemod.appRouterProvider.new, provider.file, {
+                typescript: isTypescript,
+            });
         }
 
-        await this.writeFile(provider.file, [
-            ...(isTypescript ? ['import type {ReactNode} from \'react\';'] : []),
-            'import {CroctProvider} from \'@croct/plug-next/CroctProvider\';',
-            '',
-            installation.project.typescript
-                ? 'export default function RootLayout({children}: {children: ReactNode}): ReactNode {'
-                : 'export default function RootLayout({children}) {',
-            '  return (',
-            '    <html lang="en">',
-            '      <body>',
-            '        <CroctProvider>',
-            '          {children}',
-            '        </CroctProvider>',
-            '      </body>',
-            '    </html>',
-            '  );',
-            '}',
-        ].join('\n'));
-
-        return true;
+        return this.updateCode(this.codemod.pageRouterProvider.existing, provider.file);
     }
 
-    private async installPageRouterProvider(installation: NextInstallation): Promise<boolean> {
+    private installPageRouterProvider(installation: NextInstallation): Promise<boolean> {
         const {plan: {provider}, project: {typescript: isTypescript}} = installation;
 
-        if (!provider.new) {
-            return this.updateCode(this.codemod.pageRouterProvider, provider.file);
+        if (provider.new) {
+            return this.updateCode(this.codemod.pageRouterProvider.new, provider.file, {
+                typescript: isTypescript,
+            });
         }
 
-        await this.writeFile(provider.file, [
-            ...(
-                isTypescript
-                    ? [
-                        'import type {ReactElement} from \'react\';',
-                        'import type {AppProps} from \'next/app\';',
-                    ]
-                    : []
-            ),
-            'import {CroctProvider} from \'@croct/plug-next/CroctProvider\';',
-            '',
-            isTypescript
-                ? 'export default function App({Component, pageProps}: AppProps): ReactElement {'
-                : 'export default function App({Component, pageProps}) {',
-            '  return (',
-            '    <CroctProvider>',
-            '      <Component {...pageProps} />',
-            '     </CroctProvider>',
-            '  );',
-            '}',
-        ].join('\n'));
-
-        return true;
+        return this.updateCode(this.codemod.pageRouterProvider.existing, provider.file);
     }
 
-    private async installMiddleware(installation: NextInstallation): Promise<boolean> {
+    private installMiddleware(installation: NextInstallation): Promise<boolean> {
         const {plan: {middleware}} = installation;
 
-        if (!middleware.new) {
-            return this.updateCode(this.codemod.middleware, middleware.file);
+        if (middleware.new) {
+            return this.updateCode(this.codemod.middleware.new, middleware.file);
         }
 
-        await this.writeFile(
-            middleware.file,
-            'export {config, middleware} from \'@croct/plug-next/middleware\';',
-        );
-
-        return true;
+        return this.updateCode(this.codemod.middleware.existing, middleware.file);
     }
 
-    private async updateCode(codemod: CodeTransformer<string>, path: string): Promise<boolean> {
-        const source = await this.readFile([path]);
-
-        if (source === null) {
-            return false;
-        }
-
-        const {modified, result} = codemod.transform(source);
-
-        if (modified) {
-            await this.writeFile(path, result, true);
-        }
+    private async updateCode<O extends Record<string, any>>(
+        codemod: Codemod<string, O>,
+        path: string,
+        options?: O,
+    ): Promise<boolean> {
+        const {modified} = await codemod.apply(join(this.projectManager.getDirectory(), path), options);
 
         return modified;
     }
 
     private async updateEnvFile(installation: NextInstallation): Promise<void> {
-        const {plan: {env: plan}, configuration, output} = installation;
+        const {plan: {env: plan}, configuration, notifier} = installation;
 
-        const spinner = output.createSpinner('Loading application information');
+        notifier.update('Loading application information');
 
         const {api} = this;
 
@@ -301,7 +326,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
             ]);
 
             if (application === null) {
-                output.error('Application not found');
+                notifier.alert('Application not found');
 
                 return;
             }
@@ -309,7 +334,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
             let apiKey: GeneratedApiKey|null = null;
 
             if (!plan.installed.apiKey) {
-                spinner.update('Creating API key');
+                notifier.update('Creating API key');
 
                 apiKey = await api.application.createApiKey({
                     name: `${user.username} CLI`,
@@ -325,18 +350,15 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
                 ...(apiKey !== null ? {[NextEnvVar.API_KEY]: apiKey.secret} : {}),
             });
 
-            spinner.succeed('.env.local updated');
+            notifier.confirm('.env.local updated');
         } catch (error) {
-            spinner.fail(`Failed to update ${plan.file.getName()}`);
-
-            throw error;
-        } finally {
-            spinner.stop();
+            notifier.alert(`Failed to update ${plan.file.getName()}`);
         }
     }
 
     private async getInstallationPlan(project: NextProjectInfo): Promise<NextInstallationPlan> {
-        const [middlewareFile, providerComponentFile] = await Promise.all([
+        const sdkPackage = this.getPackage();
+        const [middlewareFile, providerComponentFile, isSdkInstalled] = await Promise.all([
             this.localeFile(
                 ['middleware.js', 'middleware.ts'].map(file => join(project.sourceDirectory, file)),
             ),
@@ -344,6 +366,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
                 (project.router === 'app' ? ['app/layout.jsx', 'app/layout.tsx'] : ['_app.jsx', '_app.tsx'])
                     .map(file => join(project.sourceDirectory, file)),
             ),
+            this.projectManager.isPackageListed(sdkPackage),
         ]);
 
         const [middlewareSource, providerSource] = await Promise.all([
@@ -360,6 +383,10 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         const extension = project.typescript ? 'ts' : 'js';
 
         return {
+            sdk: {
+                package: sdkPackage,
+                installed: isSdkInstalled,
+            },
             env: {
                 file: envFile,
                 installed: {
@@ -370,16 +397,14 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
             middleware: {
                 file: middlewareFile ?? join(project.sourceDirectory, `middleware.${extension}`),
                 new: middlewareFile === null,
-                installed: middlewareSource !== null
-                    && hasImport(middlewareSource, {moduleName: '@croct/plug-next/middleware'}),
+                installed: PlugNextSdk.hasImport(middlewareSource, '@croct/plug-next/middleware'),
             },
             provider: {
                 file: providerComponentFile ?? (
                     `${project.router === 'app' ? 'app/layout' : '_app'}.${extension}x`
                 ),
                 new: providerComponentFile === null,
-                installed: providerSource !== null
-                    && hasImport(providerSource, {moduleName: '@croct/plug-next/CroctProvider'}),
+                installed: PlugNextSdk.hasImport(providerSource, '@croct/plug-next/CroctProvider'),
             },
         };
     }
@@ -458,14 +483,15 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         return null;
     }
 
-    private async writeFile(path: string, content: string, overwrite = false): Promise<void> {
-        const fullPath = join(this.projectManager.getDirectory(), path);
+    private static hasImport(source: string|null, moduleName: string): boolean {
+        if (source === null) {
+            return false;
+        }
 
         try {
-            // create file if it does not exist
-            await writeFile(fullPath, content, {flag: overwrite ? 'w' : 'wx'});
-        } catch (error) {
-            throw new Error(`Failed to write file: ${error.message}`);
+            return hasImport(source, {moduleName: moduleName});
+        } catch {
+            return false;
         }
     }
 }

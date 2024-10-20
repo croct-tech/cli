@@ -54,10 +54,8 @@ export class ConsoleInput implements Input {
 
     public confirm(confirmation: Confirmation): Promise<boolean> {
         return this.interact({
-            type: 'toggle',
+            type: 'confirm',
             message: confirmation.message,
-            active: 'yes',
-            inactive: 'no',
             initial: confirmation.default ?? true,
         });
     }

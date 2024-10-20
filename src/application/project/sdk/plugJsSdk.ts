@@ -20,7 +20,7 @@ export class PlugJsSdk extends JavaScriptSdk implements SdkResolver {
         return Promise.resolve(this);
     }
 
-    protected configure(installation: Installation): Promise<ProjectConfiguration> {
+    public install(installation: Installation): Promise<ProjectConfiguration> {
         return Promise.resolve(installation.configuration);
     }
 }

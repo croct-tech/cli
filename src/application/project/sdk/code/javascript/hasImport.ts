@@ -1,6 +1,6 @@
-import {parse} from '@babel/parser';
 import {visit} from 'recast';
 import {namedTypes as Ast} from 'ast-types/gen/namedTypes';
+import {parse} from '@/application/project/sdk/code/parser';
 
 export type ImportMatcher = {
     moduleName: string|RegExp,
@@ -8,20 +8,42 @@ export type ImportMatcher = {
 };
 
 export function hasImport(source: string, matcher: ImportMatcher): boolean {
-    let ast: Ast.Node;
-
-    try {
-        ast = parse(source, {
-            sourceType: 'module',
-            plugins: ['jsx', 'typescript'],
-        });
-    } catch {
-        return false;
-    }
+    const ast = parse(source, ['jsx', 'typescript']);
 
     let found = false;
 
     visit(ast, {
+        // export {something} from 'something'
+        // export {something as somethingElse} from 'something'
+        visitExportNamedDeclaration: function accept(path) {
+            const {node} = path;
+
+            if (!Ast.StringLiteral.check(node.source) || !matches(node.source.value, matcher.moduleName)) {
+                return false;
+            }
+
+            if (matcher.importName === undefined) {
+                found = true;
+
+                return false;
+            }
+
+            for (const specifier of node.specifiers ?? []) {
+                if (
+                    Ast.ExportSpecifier.check(specifier)
+                    && Ast.Identifier.check(specifier.local)
+                    && matches(specifier.local.name, matcher.importName)
+                ) {
+                    found = true;
+
+                    return false;
+                }
+            }
+
+            return false;
+        },
+        // import {something} from 'something'
+        // import {something as somethingElse} from 'something'
         visitImportDeclaration: function accept(path) {
             const {node} = path;
 
