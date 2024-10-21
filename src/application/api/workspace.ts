@@ -45,7 +45,7 @@ export interface WorkspaceApi {
 
     getSlotStaticContent(path: SlotPath, majorVersion?: number): Promise<LocalizedContent[]>;
 
-    generateTyping(typing: TargetTyping): Promise<string>;
+    generateTypes(typing: TargetTyping): Promise<string>;
 
     getApplications(path: WorkspacePath): Promise<Application[]>;
 

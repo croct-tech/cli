@@ -159,7 +159,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         );
     }
 
-    public async generateTyping(typing: TargetTyping): Promise<string> {
+    public async generateTypes(typing: TargetTyping): Promise<string> {
         const {data} = await this.client.execute(generateTypingMutation, {
             workspaceId: typing.workspaceId,
             payload: {

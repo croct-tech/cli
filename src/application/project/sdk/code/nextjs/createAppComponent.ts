@@ -1,5 +1,6 @@
 import {namedTypes as Ast, builders as builder} from 'ast-types';
 import {Codemod, ResultCode} from '@/application/project/sdk/code/codemod';
+import {hasImport} from '@/application/project/sdk/code/javascript/hasImport';
 
 export type AppComponentOptions = {
     typescript?: boolean,
@@ -10,16 +11,19 @@ export class CreateAppComponent implements Codemod<Ast.File, AppComponentOptions
         const isTypescript = options.typescript ?? false;
         const {body} = input.program;
 
-        body.splice(0, body.length);
-
-        if (isTypescript) {
-            body.push(
-                CreateAppComponent.import('type', 'ReactElement', 'react'),
-                CreateAppComponent.import('type', 'AppProps', 'next/app'),
-            );
+        if (!CreateAppComponent.hasImport(input, '@croct/plug-next/CroctProvider', 'CroctProvider')) {
+            body.unshift(CreateAppComponent.import('value', 'CroctProvider', '@croct/plug-next/CroctProvider'));
         }
 
-        body.push(CreateAppComponent.import('value', 'CroctProvider', '@croct/plug-next/CroctProvider'));
+        if (isTypescript) {
+            if (!CreateAppComponent.hasImport(input, 'next/app', 'AppProps')) {
+                body.unshift(CreateAppComponent.import('type', 'AppProps', 'next/app'));
+            }
+
+            if (!CreateAppComponent.hasImport(input, 'react', 'ReactNode')) {
+                body.unshift(CreateAppComponent.import('type', 'ReactNode', 'react'));
+            }
+        }
 
         body.push(
             builder.exportDefaultDeclaration.from({
@@ -51,7 +55,7 @@ export class CreateAppComponent implements Codemod<Ast.File, AppComponentOptions
                     returnType: isTypescript
                         ? builder.tsTypeAnnotation.from({
                             typeAnnotation: builder.tsTypeReference.from({
-                                typeName: builder.identifier('ReactElement'),
+                                typeName: builder.identifier('ReactNode'),
                             }),
                         })
                         : null,
@@ -93,6 +97,14 @@ export class CreateAppComponent implements Codemod<Ast.File, AppComponentOptions
         return Promise.resolve({
             modified: true,
             result: input,
+        });
+    }
+
+    private static hasImport(input: Ast.File, moduleName: string, importName: string): boolean {
+        return hasImport(input, {
+            moduleName: moduleName,
+            importName: importName,
+            localName: importName,
         });
     }
 

@@ -5,8 +5,8 @@ export type ResultCode<T> = {
 
 export type CodemodOptions = Record<string, any>;
 
-export interface Codemod<I, O extends CodemodOptions = CodemodOptions> {
-    apply(input: I, options?: O): Promise<ResultCode<I>>;
+export interface Codemod<T, O extends CodemodOptions = CodemodOptions> {
+    apply(input: T, options?: O): Promise<ResultCode<T>>;
 }
 
 export class CodemodError extends Error {

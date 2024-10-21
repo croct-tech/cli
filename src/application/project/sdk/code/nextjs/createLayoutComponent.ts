@@ -1,6 +1,7 @@
 import {namedTypes as Ast} from 'ast-types/gen/namedTypes';
 import {builders as builder} from 'ast-types';
 import {Codemod, ResultCode} from '@/application/project/sdk/code/codemod';
+import {hasImport} from '@/application/project/sdk/code/javascript/hasImport';
 
 export type LayoutComponentOptions = {
     typescript?: boolean,
@@ -11,36 +12,49 @@ export class CreateLayoutComponent implements Codemod<Ast.File, LayoutComponentO
         const isTypescript = options.typescript ?? false;
         const {body} = input.program;
 
-        body.splice(0, body.length);
-
-        if (isTypescript) {
-            body.push(
+        if (!CreateLayoutComponent.hasImport(input, '@croct/plug-next/CroctProvider', 'CroctProvider')) {
+            body.unshift(
                 builder.importDeclaration.from({
-                    importKind: 'type',
+                    importKind: 'value',
                     specifiers: [
                         builder.importSpecifier.from({
-                            imported: builder.identifier('ReactNode'),
-                        }),
-                        builder.importSpecifier.from({
-                            imported: builder.identifier('PropsWithChildren'),
+                            imported: builder.identifier('CroctProvider'),
                         }),
                     ],
-                    source: builder.literal('react'),
+                    source: builder.literal('@croct/plug-next/CroctProvider'),
                 }),
             );
         }
 
-        body.push(
-            builder.importDeclaration.from({
-                importKind: 'value',
-                specifiers: [
+        if (isTypescript) {
+            const specifiers: Ast.ImportSpecifier[] = [];
+
+            if (!CreateLayoutComponent.hasImport(input, 'react', 'PropsWithChildren')) {
+                specifiers.unshift(
                     builder.importSpecifier.from({
-                        imported: builder.identifier('CroctProvider'),
+                        imported: builder.identifier('PropsWithChildren'),
                     }),
-                ],
-                source: builder.literal('@croct/plug-next/CroctProvider'),
-            }),
-        );
+                );
+            }
+
+            if (!CreateLayoutComponent.hasImport(input, 'react', 'ReactNode')) {
+                specifiers.unshift(
+                    builder.importSpecifier.from({
+                        imported: builder.identifier('ReactNode'),
+                    }),
+                );
+            }
+
+            if (specifiers.length > 0) {
+                body.push(
+                    builder.importDeclaration.from({
+                        importKind: 'type',
+                        specifiers: specifiers,
+                        source: builder.literal('react'),
+                    }),
+                );
+            }
+        }
 
         body.push(
             builder.exportDefaultDeclaration.from({
@@ -127,6 +141,14 @@ export class CreateLayoutComponent implements Codemod<Ast.File, LayoutComponentO
         return Promise.resolve({
             modified: true,
             result: input,
+        });
+    }
+
+    private static hasImport(input: Ast.File, moduleName: string, importName: string): boolean {
+        return hasImport(input, {
+            moduleName: moduleName,
+            importName: importName,
+            localName: importName,
         });
     }
 }

@@ -23,18 +23,9 @@ type ApiConfiguration = {
 };
 
 type CodemodConfiguration = {
-    middleware: {
-        new: Codemod<string>,
-        existing: Codemod<string>,
-    },
-    appRouterProvider: {
-        new: Codemod<string, LayoutComponentOptions>,
-        existing: Codemod<string>,
-    },
-    pageRouterProvider: {
-        new: Codemod<string, AppComponentOptions>,
-        existing: Codemod<string>,
-    },
+    middleware: Codemod<string>,
+    appRouterProvider: Codemod<string, LayoutComponentOptions>,
+    pageRouterProvider: Codemod<string, AppComponentOptions>,
 };
 
 export type Configuration = {
@@ -125,6 +116,72 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
             configuration: {
                 ...configuration,
                 locales: i18n.locales ?? configuration.locales,
+            },
+        };
+    }
+
+    private async getProjectInfo(): Promise<NextProjectInfo> {
+        const [isTypescript, directory] = await Promise.all([
+            this.projectManager.isPackageListed('typescript'),
+            this.locateFile(['app', 'src/app', 'pages', 'src/pages'])
+                .then(path => path ?? 'app'),
+        ]);
+
+        const project: Pick<NextProjectInfo, 'typescript' | 'router' | 'sourceDirectory'> = {
+            typescript: isTypescript,
+            router: directory.endsWith('app') ? 'app' : 'page',
+            sourceDirectory: directory.startsWith('src') ? 'src' : './',
+        };
+
+        const sdkPackage = this.getPackage();
+        const [middlewareFile, providerComponentFile, isSdkInstalled] = await Promise.all([
+            this.locateFile(
+                ['middleware.js', 'middleware.ts'].map(file => join(project.sourceDirectory, file)),
+            ),
+            this.locateFile(
+                (project.router === 'app' ? ['app/layout.jsx', 'app/layout.tsx'] : ['_app.jsx', '_app.tsx'])
+                    .map(file => join(project.sourceDirectory, file)),
+            ),
+            this.projectManager.isPackageListed(sdkPackage),
+        ]);
+
+        const [middlewareSource, providerSource] = await Promise.all([
+            middlewareFile === null ? null : this.readFile([middlewareFile]),
+            providerComponentFile === null ? null : this.readFile([providerComponentFile]),
+        ]);
+
+        const envFile = new EnvFile(join(this.projectManager.getDirectory(), '.env.local'));
+        const [apiKeyVar, appIdVar] = await Promise.all([
+            envFile.hasVariable(NextEnvVar.API_KEY),
+            envFile.hasVariable(NextEnvVar.APP_ID),
+        ]);
+
+        const extension = project.typescript ? 'ts' : 'js';
+
+        return {
+            ...project,
+            sdk: {
+                package: sdkPackage,
+                installed: isSdkInstalled,
+            },
+            env: {
+                file: envFile,
+                installed: {
+                    apiKey: apiKeyVar,
+                    appId: appIdVar,
+                },
+            },
+            middleware: {
+                file: middlewareFile ?? join(project.sourceDirectory, `middleware.${extension}`),
+                new: middlewareFile === null,
+                installed: PlugNextSdk.hasImport(middlewareSource, '@croct/plug-next/middleware'),
+            },
+            provider: {
+                file: providerComponentFile ?? (
+                    `${project.router === 'app' ? 'app/layout' : '_app'}.${extension}x`
+                ),
+                new: providerComponentFile === null,
+                installed: PlugNextSdk.hasImport(providerSource, '@croct/plug-next/CroctProvider'),
             },
         };
     }
@@ -226,47 +283,17 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
     }
 
     private installProvider(installation: NextInstallation): Promise<boolean> {
-        switch (installation.project.router) {
-            case 'app':
-                return this.installAppRouterProvider(installation);
-
-            case 'page':
-                return this.installPageRouterProvider(installation);
-        }
-    }
-
-    private installAppRouterProvider(installation: NextInstallation): Promise<boolean> {
-        const {project: {provider, typescript: isTypescript}} = installation;
-
-        if (provider.new) {
-            return this.updateCode(this.codemod.appRouterProvider.new, provider.file, {
-                typescript: isTypescript,
-            });
-        }
-
-        return this.updateCode(this.codemod.appRouterProvider.existing, provider.file);
-    }
-
-    private installPageRouterProvider(installation: NextInstallation): Promise<boolean> {
-        const {project: {provider, typescript: isTypescript}} = installation;
-
-        if (provider.new) {
-            return this.updateCode(this.codemod.pageRouterProvider.new, provider.file, {
-                typescript: isTypescript,
-            });
-        }
-
-        return this.updateCode(this.codemod.pageRouterProvider.existing, provider.file);
+        return this.updateCode(
+            installation.project.router === 'app'
+                ? this.codemod.appRouterProvider
+                : this.codemod.pageRouterProvider,
+            installation.project.provider.file,
+            {typescript: installation.project.typescript},
+        );
     }
 
     private installMiddleware(installation: NextInstallation): Promise<boolean> {
-        const {project: {middleware}} = installation;
-
-        if (middleware.new) {
-            return this.updateCode(this.codemod.middleware.new, middleware.file);
-        }
-
-        return this.updateCode(this.codemod.middleware.existing, middleware.file);
+        return this.updateCode(this.codemod.middleware, installation.project.middleware.file);
     }
 
     private async updateCode<O extends Record<string, any>>(
@@ -274,9 +301,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         path: string,
         options?: O,
     ): Promise<boolean> {
-        const {modified} = await codemod.apply(join(this.projectManager.getDirectory(), path), options);
-
-        return modified;
+        return (await codemod.apply(join(this.projectManager.getDirectory(), path), options)).modified;
     }
 
     private async updateEnvFile(installation: NextInstallation): Promise<void> {
@@ -325,72 +350,6 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         } catch (error) {
             notifier.alert(`Failed to update ${plan.file.getName()}`);
         }
-    }
-
-    private async getProjectInfo(): Promise<NextProjectInfo> {
-        const [isTypescript, directory] = await Promise.all([
-            this.projectManager.isPackageListed('typescript'),
-            this.locateFile(['app', 'src/app', 'pages', 'src/pages'])
-                .then(path => path ?? 'app'),
-        ]);
-
-        const project: Pick<NextProjectInfo, 'typescript' | 'router' | 'sourceDirectory'> = {
-            typescript: isTypescript,
-            router: directory.endsWith('app') ? 'app' : 'page',
-            sourceDirectory: directory.startsWith('src') ? 'src' : './',
-        };
-
-        const sdkPackage = this.getPackage();
-        const [middlewareFile, providerComponentFile, isSdkInstalled] = await Promise.all([
-            this.locateFile(
-                ['middleware.js', 'middleware.ts'].map(file => join(project.sourceDirectory, file)),
-            ),
-            this.locateFile(
-                (project.router === 'app' ? ['app/layout.jsx', 'app/layout.tsx'] : ['_app.jsx', '_app.tsx'])
-                    .map(file => join(project.sourceDirectory, file)),
-            ),
-            this.projectManager.isPackageListed(sdkPackage),
-        ]);
-
-        const [middlewareSource, providerSource] = await Promise.all([
-            middlewareFile === null ? null : this.readFile([middlewareFile]),
-            providerComponentFile === null ? null : this.readFile([providerComponentFile]),
-        ]);
-
-        const envFile = new EnvFile(join(this.projectManager.getDirectory(), '.env.local'));
-        const [apiKeyVar, appIdVar] = await Promise.all([
-            envFile.hasVariable(NextEnvVar.API_KEY),
-            envFile.hasVariable(NextEnvVar.APP_ID),
-        ]);
-
-        const extension = project.typescript ? 'ts' : 'js';
-
-        return {
-            ...project,
-            sdk: {
-                package: sdkPackage,
-                installed: isSdkInstalled,
-            },
-            env: {
-                file: envFile,
-                installed: {
-                    apiKey: apiKeyVar,
-                    appId: appIdVar,
-                },
-            },
-            middleware: {
-                file: middlewareFile ?? join(project.sourceDirectory, `middleware.${extension}`),
-                new: middlewareFile === null,
-                installed: PlugNextSdk.hasImport(middlewareSource, '@croct/plug-next/middleware'),
-            },
-            provider: {
-                file: providerComponentFile ?? (
-                    `${project.router === 'app' ? 'app/layout' : '_app'}.${extension}x`
-                ),
-                new: providerComponentFile === null,
-                installed: PlugNextSdk.hasImport(providerSource, '@croct/plug-next/CroctProvider'),
-            },
-        };
     }
 
     private async getConfig(): Promise<NextConfig> {

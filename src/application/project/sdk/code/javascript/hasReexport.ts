@@ -2,13 +2,12 @@ import {visit} from 'recast';
 import {namedTypes as Ast} from 'ast-types/gen/namedTypes';
 import {parse} from '@/application/project/sdk/code/parser';
 
-export type ImportMatcher = {
+export type ExportMatcher = {
     moduleName: string | RegExp,
     importName?: string | RegExp,
-    localName?: string | RegExp,
 };
 
-export function hasImport(source: string | Ast.Node, matcher: ImportMatcher): boolean {
+export function hasReexport(source: string | Ast.Node, matcher: ExportMatcher): boolean {
     const ast = typeof source === 'string'
         ? parse(source, ['jsx', 'typescript'])
         : source;
@@ -16,16 +15,16 @@ export function hasImport(source: string | Ast.Node, matcher: ImportMatcher): bo
     let found = false;
 
     visit(ast, {
-        // import {something} from 'something'
-        // import {something as somethingElse} from 'something'
-        visitImportDeclaration: function accept(path) {
+        // export {something} from 'something'
+        // export {something as somethingElse} from 'something'
+        visitExportNamedDeclaration: function accept(path) {
             const {node} = path;
 
             if (!Ast.StringLiteral.check(node.source) || !matches(node.source.value, matcher.moduleName)) {
                 return false;
             }
 
-            if (matcher.importName === undefined && matcher.localName === undefined) {
+            if (matcher.importName === undefined) {
                 found = true;
 
                 return false;
@@ -33,15 +32,9 @@ export function hasImport(source: string | Ast.Node, matcher: ImportMatcher): bo
 
             for (const specifier of node.specifiers ?? []) {
                 if (
-                    Ast.ImportSpecifier.check(specifier)
-                    && (matcher.importName === undefined || (
-                        Ast.Identifier.check(specifier.imported)
-                        && matches(specifier.imported.name, matcher.importName)
-                    ))
-                    && (matcher.localName === undefined || (
-                        Ast.Identifier.check(specifier.local)
-                        && matches(specifier.local.name, matcher.localName)
-                    ))
+                    Ast.ExportSpecifier.check(specifier)
+                    && Ast.Identifier.check(specifier.local)
+                    && matches(specifier.local.name, matcher.importName)
                 ) {
                     found = true;
 

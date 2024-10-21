@@ -14,7 +14,7 @@ describe('RefactorMiddleware', () => {
     };
 
     const scenarios = loadFixtures<MiddlewareOptions>(
-        resolve(__dirname, '../fixtures/middleware'),
+        resolve(__dirname, '../fixtures/nextjs-middleware-refactoring'),
         defaultOptions,
         {
             'matcherAlias.ts': {

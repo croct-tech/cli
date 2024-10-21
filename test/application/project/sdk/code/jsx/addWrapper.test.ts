@@ -1,5 +1,5 @@
 import {resolve} from 'path';
-import {AddWrapper, WrapperOptions} from '@/application/project/sdk/code/react/addWrapper';
+import {AddWrapper, WrapperOptions} from '@/application/project/sdk/code/jsx/addWrapper';
 import {loadFixtures} from '../fixtures';
 import {ParseCode} from '@/application/project/sdk/code/parseCode';
 
@@ -12,7 +12,7 @@ describe('AddWrapper', () => {
     };
 
     const scenarios = loadFixtures<WrapperOptions>(
-        resolve(__dirname, '../fixtures/wrapper'),
+        resolve(__dirname, '../fixtures/jsx-wrapper'),
         defaultOptions,
         // Custom options
         {

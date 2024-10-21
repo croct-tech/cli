@@ -35,7 +35,7 @@ import {SignUpForm} from '@/application/cli/form/auth/signUpForm';
 import {Command, CommandInput} from '@/application/cli/command/command';
 import {AdminCommand} from '@/application/cli/command/admin';
 import {ProjectConfigurationFile} from '@/application/project/configuration';
-import {AddWrapper} from '@/application/project/sdk/code/react/addWrapper';
+import {AddWrapper} from '@/application/project/sdk/code/jsx/addWrapper';
 import {ParseCode} from '@/application/project/sdk/code/parseCode';
 import {RefactorMiddleware} from '@/application/project/sdk/code/nextjs/refactorMiddleware';
 import {Linter} from '@/application/project/linter';
@@ -45,6 +45,7 @@ import {CreateLayoutComponent} from '@/application/project/sdk/code/nextjs/creat
 import {CreateAppComponent} from '@/application/project/sdk/code/nextjs/createAppComponent';
 import {CreateMiddleware} from '@/application/project/sdk/code/nextjs/createMiddleware';
 import {NodeLinter} from '@/infrastructure/project/nodeLinter';
+import {AlternativelyApply} from '@/application/project/sdk/code/alternativelyApply';
 
 export type Configuration = {
     io: {
@@ -220,21 +221,12 @@ export class Cli {
                         application: this.getApplicationApi(),
                     },
                     codemod: {
-                        middleware: {
-                            new: new LintCode(
-                                new TransformFile(
-                                    new ParseCode({
-                                        languages: ['typescript'],
-                                        codemod: new CreateMiddleware(),
-                                    }),
-                                ),
-                                this.getLinter(),
-                            ),
-                            existing: new LintCode(
-                                new TransformFile(
-                                    new ParseCode({
-                                        languages: ['typescript', 'jsx'],
-                                        codemod: new RefactorMiddleware({
+                        middleware: new LintCode(
+                            new TransformFile(
+                                new ParseCode({
+                                    languages: ['typescript', 'jsx'],
+                                    codemod: new AlternativelyApply(
+                                        new RefactorMiddleware({
                                             import: {
                                                 module: '@croct/plug-next/middleware',
                                                 functionName: 'withCroct',
@@ -242,26 +234,18 @@ export class Cli {
                                                 matcherLocalName: 'croctMatcher',
                                             },
                                         }),
-                                    }),
-                                ),
-                                this.getLinter(),
+                                        new CreateMiddleware(),
+                                    ),
+                                }),
                             ),
-                        },
-                        appRouterProvider: {
-                            new: new LintCode(
-                                new TransformFile(
-                                    new ParseCode({
-                                        languages: ['typescript', 'jsx'],
-                                        codemod: new CreateLayoutComponent(),
-                                    }),
-                                ),
-                                this.getLinter(),
-                            ),
-                            existing: new LintCode(
-                                new TransformFile(
-                                    new ParseCode({
-                                        languages: ['typescript', 'jsx'],
-                                        codemod: new AddWrapper({
+                            this.getLinter(),
+                        ),
+                        appRouterProvider: new LintCode(
+                            new TransformFile(
+                                new ParseCode({
+                                    languages: ['typescript', 'jsx'],
+                                    codemod: new AlternativelyApply(
+                                        new AddWrapper({
                                             namedExportFallback: false,
                                             wrapper: {
                                                 module: '@croct/plug-next/CroctProvider',
@@ -271,26 +255,18 @@ export class Cli {
                                                 variable: 'children',
                                             },
                                         }),
-                                    }),
-                                ),
-                                this.getLinter(),
+                                        new CreateLayoutComponent(),
+                                    ),
+                                }),
                             ),
-                        },
-                        pageRouterProvider: {
-                            new: new LintCode(
-                                new TransformFile(
-                                    new ParseCode({
-                                        languages: ['typescript', 'jsx'],
-                                        codemod: new CreateAppComponent(),
-                                    }),
-                                ),
-                                this.getLinter(),
-                            ),
-                            existing: new LintCode(
-                                new TransformFile(
-                                    new ParseCode({
-                                        languages: ['typescript', 'jsx'],
-                                        codemod: new AddWrapper({
+                            this.getLinter(),
+                        ),
+                        pageRouterProvider: new LintCode(
+                            new TransformFile(
+                                new ParseCode({
+                                    languages: ['typescript', 'jsx'],
+                                    codemod: new AlternativelyApply(
+                                        new AddWrapper({
                                             namedExportFallback: false,
                                             wrapper: {
                                                 module: '@croct/plug-next/CroctProvider',
@@ -300,11 +276,12 @@ export class Cli {
                                                 component: 'Component',
                                             },
                                         }),
-                                    }),
-                                ),
-                                this.getLinter(),
+                                        new CreateAppComponent(),
+                                    ),
+                                }),
                             ),
-                        },
+                            this.getLinter(),
+                        ),
                     },
                 }),
                 new PlugReactSdk(this.getProjectManager()),
