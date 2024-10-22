@@ -37,13 +37,12 @@ import {AdminCommand} from '@/application/cli/command/admin';
 import {ProjectConfigurationFile} from '@/application/project/configuration';
 import {AddWrapper} from '@/application/project/sdk/code/jsx/addWrapper';
 import {ParseCode} from '@/application/project/sdk/code/parseCode';
-import {RefactorMiddleware} from '@/application/project/sdk/code/nextjs/refactorMiddleware';
+import {ConfigureMiddleware} from '@/application/project/sdk/code/nextjs/configureMiddleware';
 import {Linter} from '@/application/project/linter';
 import {LintCode} from '@/application/project/sdk/code/lintCode';
 import {TransformFile} from '@/application/project/sdk/code/transformFile';
 import {CreateLayoutComponent} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
 import {CreateAppComponent} from '@/application/project/sdk/code/nextjs/createAppComponent';
-import {CreateMiddleware} from '@/application/project/sdk/code/nextjs/createMiddleware';
 import {NodeLinter} from '@/infrastructure/project/nodeLinter';
 import {AlternativelyApply} from '@/application/project/sdk/code/alternativelyApply';
 
@@ -225,17 +224,16 @@ export class Cli {
                             new TransformFile(
                                 new ParseCode({
                                     languages: ['typescript', 'jsx'],
-                                    codemod: new AlternativelyApply(
-                                        new RefactorMiddleware({
-                                            import: {
-                                                module: '@croct/plug-next/middleware',
-                                                functionName: 'withCroct',
-                                                matcherName: 'matcher',
-                                                matcherLocalName: 'croctMatcher',
-                                            },
-                                        }),
-                                        new CreateMiddleware(),
-                                    ),
+                                    codemod: new ConfigureMiddleware({
+                                        import: {
+                                            module: '@croct/plug-next/middleware',
+                                            middlewareFunctionName: 'middleware',
+                                            highOrderFunctionName: 'withCroct',
+                                            configName: 'config',
+                                            matcherName: 'matcher',
+                                            matcherLocalName: 'croctMatcher',
+                                        },
+                                    }),
                                 }),
                             ),
                             this.getLinter(),

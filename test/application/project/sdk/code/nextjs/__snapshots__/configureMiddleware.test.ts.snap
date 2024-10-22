@@ -1,0 +1,562 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ConfigureMiddleware should correctly transform configAfterDefaultExport.ts: configAfterDefaultExport.ts 1`] = `
+"import { withCroct, matcher } from "@croct/plug-next/middleware";
+import type { NextRequest } from 'next/server'
+
+export const config = {
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)', matcher],
+}
+
+export const middleware = withCroct({
+    matcher: config.matcher,
+
+    next: function(request: NextRequest) {
+        console.log(request.url);
+    }
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform configAfterMiddlewareWithReference.ts: configAfterMiddlewareWithReference.ts 1`] = `
+"import { withCroct, matcher } from "@croct/plug-next/middleware";
+import type { NextRequest } from 'next/server'
+
+// pattern
+const PATTERN = '/((?!api|_next/static|_next/image|favicon.ico).*)';
+
+// matcher
+class Matcher {
+    static readonly PATTERN = PATTERN;
+}
+
+// getMatcher
+function getMatcher() {
+    return Matcher.PATTERN;
+}
+
+// currentMatcher
+const currentMatcher = getMatcher();
+
+// currentConfig
+const currentConfig = {
+    matcher: [
+        ...(Array.isArray(currentMatcher) ? currentMatcher : [currentMatcher]),
+        matcher
+    ],
+}
+
+// middleware
+export const middleware = withCroct({
+    matcher: currentConfig.matcher,
+
+    next: function(request: NextRequest) {
+        console.log(request.url);
+    }
+});
+
+function unrelated() {
+}
+
+// Non-global scope
+{
+    // Different scope, should not be considered
+    const PATTERN = null;
+
+    function getMatcher() {
+    }
+
+    class Matcher {
+    }
+}
+
+// config
+export const config = currentConfig;
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform configAfterNamedExport.ts: configAfterNamedExport.ts 1`] = `
+"import { withCroct, matcher } from "@croct/plug-next/middleware";
+import type { NextRequest } from 'next/server'
+
+export const config = {
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)', matcher],
+}
+
+export default withCroct({
+    matcher: config.matcher,
+
+    next: function middleware(request: NextRequest) {
+        console.log(request.url);
+    }
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform configInvalidReference.ts: configInvalidReference.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+import type { NextRequest } from 'next/server'
+
+export default withCroct(function middleware(request: NextRequest) {
+    console.log(request.url);
+});
+
+export const config = bar;
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform configWithArrayMatcher.ts: configWithArrayMatcher.ts 1`] = `
+"import { withCroct, matcher } from "@croct/plug-next/middleware";
+import type { NextRequest } from 'next/server'
+
+export const config = {
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)', matcher],
+}
+
+export const middleware = withCroct({
+    matcher: config.matcher,
+
+    next: function(request: NextRequest) {
+        console.log(request.url);
+    }
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform configWithIndirectVariableReference.ts: configWithIndirectVariableReference.ts 1`] = `
+"import { withCroct, matcher } from "@croct/plug-next/middleware";
+const regex = '/((?!api|_next/static|_next/image|favicon.ico).*)';
+
+const configValue = {
+    matcher: [...(Array.isArray(regex) ? regex : [regex]), matcher],
+}
+
+const indirectReference = configValue;
+
+export const config = indirectReference;
+
+export const middleware = withCroct({
+    matcher: configValue.matcher,
+
+    next: function(request) {
+        console.log(request.url);
+    }
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform configWithStringMatcher.ts: configWithStringMatcher.ts 1`] = `
+"import { withCroct, matcher } from "@croct/plug-next/middleware";
+export const config = {
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)', matcher],
+}
+
+export const middleware = withCroct({
+    matcher: config.matcher,
+
+    next: function(request) {
+        console.log(request.url);
+    }
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform configWithVariableMatcher.ts: configWithVariableMatcher.ts 1`] = `
+"import { withCroct, matcher } from "@croct/plug-next/middleware";
+const regex = '/((?!api|_next/static|_next/image|favicon.ico).*)';
+
+export const config = {
+    matcher: [...(Array.isArray(regex) ? regex : [regex]), matcher],
+}
+
+export const middleware = withCroct({
+    matcher: config.matcher,
+
+    next: function(request) {
+        console.log(request.url);
+    }
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform configWithVariableReference.ts: configWithVariableReference.ts 1`] = `
+"import { withCroct, matcher } from "@croct/plug-next/middleware";
+const regex = '/((?!api|_next/static|_next/image|favicon.ico).*)';
+
+const configValue = {
+    matcher: [...(Array.isArray(regex) ? regex : [regex]), matcher],
+}
+
+export const config = configValue;
+
+export const middleware = withCroct({
+    matcher: configValue.matcher,
+
+    next: function(request) {
+        console.log(request.url);
+    }
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform configWithoutMatcher.ts: configWithoutMatcher.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+export const config = {
+}
+
+export const middleware = withCroct(function(request) {
+    console.log(request.url);
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform defaultExportAnonymousFunction.ts: defaultExportAnonymousFunction.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+
+export default withCroct(function() {
+    console.log('middleware');
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform defaultExportArrowFunction.ts: defaultExportArrowFunction.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+
+export default withCroct(() => {
+    console.log('middleware');
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform defaultExportArrowFunctionReference.ts: defaultExportArrowFunctionReference.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+const anything = withCroct((request) => console.log(request.url));
+
+export default anything;
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform defaultExportArrowFunctionWithBodyReference.ts: defaultExportArrowFunctionWithBodyReference.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+const anything = withCroct((request) => {
+    console.log(request.url);
+})
+
+export default anything;
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform defaultExportClass.ts: defaultExportClass.ts 1`] = `
+"export default class Middleware {
+    // invalid
+}
+export { middleware, config } from "@croct/plug-next/middleware";
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform defaultExportFunctionDeclaration.ts: defaultExportFunctionDeclaration.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+
+export default withCroct(function anything(request) {
+    console.log(request.url);
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform defaultExportFunctionDeclarationReference.ts: defaultExportFunctionDeclarationReference.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+
+const anything = withCroct(function(request) {
+    console.log(request.url);
+});
+
+export default anything;
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform defaultExportFunctionExpressionReference.ts: defaultExportFunctionExpressionReference.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+const anything = withCroct(function (request) {
+    console.log(request.url);
+})
+
+export default anything;
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform defaultExportIndirectReference.ts: defaultExportIndirectReference.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+const anything = function (request) {
+    console.log(request.url);
+}
+
+const something = withCroct(anything);
+
+export default something;
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform empty.ts: empty.ts 1`] = `"export { middleware, config } from "@croct/plug-next/middleware";"`;
+
+exports[`ConfigureMiddleware should correctly transform existingAliasedHofCall.ts: existingAliasedHofCall.ts 1`] = `
+"import { withCroct as croctMiddleware } from "@croct/plug-next/middleware";
+
+export default croctMiddleware(function () {
+    console.log('middleware');
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform existingAliasedMiddlewareCall.ts: existingAliasedMiddlewareCall.ts 1`] = `
+"import { middleware } from "@croct/plug-next/middleware";
+
+export default middleware(function () {
+    console.log('middleware');
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform existingConfig.ts: existingConfig.ts 1`] = `
+"import { withCroct, matcher } from "@croct/plug-next/middleware";
+export const config = {
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)', matcher],
+}
+
+export default withCroct({
+    matcher: config.matcher
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform existingConfigMatcher.ts: existingConfigMatcher.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+import { matcher } from "@croct/plug-next/middleware";
+
+export const config = {
+    matcher: matcher,
+}
+
+export default withCroct({
+    matcher: config.matcher
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform existingConfigReexport.ts: existingConfigReexport.ts 1`] = `
+"export { config } from "@croct/plug-next/middleware";
+export { middleware } from "@croct/plug-next/middleware";
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform existingHofCall.ts: existingHofCall.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+
+export default withCroct(function () {
+    console.log('middleware');
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform existingImport.ts: existingImport.ts 1`] = `
+"import { withCroct, matcher } from "@croct/plug-next/middleware";
+
+export const config = {
+    matcher: ['.*', matcher]
+};
+
+export const middleware = withCroct({
+    matcher: config.matcher,
+
+    next: function() {
+        console.log('middleware');
+    }
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform existingImportAliased.ts: existingImportAliased.ts 1`] = `
+"import { withCroct as croctMiddleware, matcher as croctMatcher } from "@croct/plug-next/middleware";
+
+export const config = {
+    matcher: ['.*', croctMatcher]
+};
+
+export const middleware = croctMiddleware({
+    matcher: config.matcher,
+
+    next: function() {
+        console.log('middleware');
+    }
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform existingLocalConfigAndMiddlewareReexport.ts: existingLocalConfigAndMiddlewareReexport.ts 1`] = `
+"export { middleware } from "@croct/plug-next/middleware";
+
+export const config = {
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+}
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform existingMiddlewareAndAliasedConfigMatcher.ts: existingMiddlewareAndAliasedConfigMatcher.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+import { matcher as croctMatcher } from "@croct/plug-next/middleware";
+
+export const config = {
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)', croctMatcher],
+}
+
+export default withCroct({
+    matcher: config.matcher,
+
+    next: function() {
+        console.log('middleware');
+    }
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform existingMiddlewareAndConfigArrayMatcher.ts: existingMiddlewareAndConfigArrayMatcher.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+import { matcher } from "@croct/plug-next/middleware";
+
+export const config = {
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)', matcher],
+}
+
+export default withCroct({
+    matcher: config.matcher,
+
+    next: function() {
+        console.log('middleware');
+    }
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform existingMiddlewareAndConfigReexport.ts: existingMiddlewareAndConfigReexport.ts 1`] = `
+"export { middleware, config } from "@croct/plug-next/middleware";
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform existingMiddlewareCall.ts: existingMiddlewareCall.ts 1`] = `
+"import { middleware as croctMiddleware } from "@croct/plug-next/middleware";
+
+export default croctMiddleware(function () {
+    console.log('middleware');
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform existingMiddlewareReexport.ts: existingMiddlewareReexport.ts 1`] = `
+"export { middleware } from "@croct/plug-next/middleware";
+export { config } from "@croct/plug-next/middleware";
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform matcherAlias.ts: matcherAlias.ts 1`] = `
+"import { withCroct, matcher as croctMatcher } from "@croct/plug-next/middleware";
+
+export const config = {
+    matcher: ['.*', croctMatcher]
+};
+
+export const middleware = withCroct({
+    matcher: config.matcher,
+
+    next: function() {
+        console.log('middleware');
+    }
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform namedExportArrowFunction.ts: namedExportArrowFunction.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+export const middleware = withCroct(() => console.log('middleware'));
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform namedExportArrowFunctionWithBody.ts: namedExportArrowFunctionWithBody.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+export const middleware = withCroct(() => {
+    console.log('middleware');
+})
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform namedExportFunctionDeclaration.ts: namedExportFunctionDeclaration.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+
+export const middleware = withCroct(function() {
+    console.log('middleware');
+});
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform namedExportFunctionExpression.ts: namedExportFunctionExpression.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+export const middleware = withCroct(function() {
+    console.log('middleware');
+})
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform namedSpecifiedExport.ts: namedSpecifiedExport.ts 1`] = `
+"import { withCroct, matcher } from "@croct/plug-next/middleware";
+
+const config = {
+    matcher: ['.*', matcher]
+};
+
+const middleware = withCroct({
+    matcher: config.matcher,
+
+    next: function() {
+        console.log('middleware');
+    }
+})
+
+export { middleware, config };
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform specifiedExportWithAliases.ts: specifiedExportWithAliases.ts 1`] = `
+"import { withCroct, matcher } from "@croct/plug-next/middleware";
+function unrelated() {
+}
+
+const _config = {
+    matcher: ['.*', matcher]
+};
+
+const _middlewareFn = withCroct({
+    matcher: _config.matcher,
+
+    next: function() {
+        console.log('middleware');
+    }
+})
+
+export {
+    _middlewareFn as default,
+    _config as config
+};
+"
+`;
+
+exports[`ConfigureMiddleware should correctly transform unrelatedExports.ts: unrelatedExports.ts 1`] = `
+"import { withCroct } from "@croct/plug-next/middleware";
+export function foo() {
+}
+
+export default withCroct(() => {
+
+});
+
+export function middleware() {
+}
+"
+`;

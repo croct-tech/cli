@@ -1,5 +1,20 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`AddWrapper should correctly transform aliasedImport.tsx: aliasedImport.tsx 1`] = `
+"import type {AppProps} from "next/app";
+import {ReactElement} from "react";
+import {CroctProvider as Provider} from "@croct/plug-react";
+
+export default function App({Component, pageProps}: AppProps): ReactElement {
+    return (
+        <Provider>
+            <Component {...pageProps} />
+        </Provider>
+    );
+}
+"
+`;
+
 exports[`AddWrapper should correctly transform defaultExport.tsx: defaultExport.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 import type {AppProps} from "next/app";
@@ -114,6 +129,36 @@ exports[`AddWrapper should correctly transform defaultExportUnrelated.tsx: defau
 "
 `;
 
+exports[`AddWrapper should correctly transform defaultExportWrapped.tsx: defaultExportWrapped.tsx 1`] = `
+"import type {AppProps} from "next/app";
+import {ReactElement} from "react";
+import {CroctProvider} from "@croct/plug-react";
+
+export default function App({Component, pageProps}: AppProps): ReactElement {
+    return (
+        <CroctProvider>
+            <Component {...pageProps} />;
+        </CroctProvider>
+    );
+}
+"
+`;
+
+exports[`AddWrapper should correctly transform defaultExportWrappedAlias.tsx: defaultExportWrappedAlias.tsx 1`] = `
+"import type {AppProps} from "next/app";
+import {ReactElement} from "react";
+import {CroctProvider as Provider} from "@croct/plug-react";
+
+export default function App({Component, pageProps}: AppProps): ReactElement {
+    return (
+        <Provider>
+            <Component {...pageProps} />;
+        </Provider>
+    );
+}
+"
+`;
+
 exports[`AddWrapper should correctly transform namedExportArrowFunction.tsx: namedExportArrowFunction.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 const UnrelatedComponent = ({Component, pageProps}) => {
@@ -141,6 +186,21 @@ export const App = ({Component, pageProps}) => {
         </CroctProvider>
     );
 }
+"
+`;
+
+exports[`AddWrapper should correctly transform namedExportArrowFunctionWrapped.tsx: namedExportArrowFunctionWrapped.tsx 1`] = `
+"import {CroctProvider} from "@croct/plug-react";
+
+const UnrelatedComponent = ({Component, pageProps}) => {
+    return <Component {...pageProps} />;
+}
+
+export const App = ({Component, pageProps}) => (
+    <CroctProvider>
+        <Component {...pageProps} />
+    </CroctProvider>
+);
 "
 `;
 
@@ -269,6 +329,42 @@ export default function Layout({children}) {
                 </CroctProvider>
             </body>
         </html>
+    );
+}
+"
+`;
+
+exports[`AddWrapper should correctly transform targetChildrenAliasedImport.tsx: targetChildrenAliasedImport.tsx 1`] = `
+"import {CroctProvider as Provider} from "@croct/plug-react";
+
+export default function Layout({children}) {
+    return (
+        <html lang="en">
+            <body>
+                {/* This is a comment */}
+                <Provider>
+                    {children}
+                </Provider>
+            </body>
+        </html>
+    );
+}
+"
+`;
+
+exports[`AddWrapper should correctly transform targetChildrenAlisedImport.tsx: targetChildrenAlisedImport.tsx 1`] = `
+"import {CroctProvider as Provider} from "@croct/plug-react";
+
+export default function Layout({children}) {
+    return (
+        <Provider>
+            <html lang="en">
+                <body>
+                    {/* This is a comment */}
+                    {children}
+                </body>
+            </html>
+        </Provider>
     );
 }
 "

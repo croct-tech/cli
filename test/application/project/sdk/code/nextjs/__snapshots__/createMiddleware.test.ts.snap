@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CreateMiddleware should correctly transform configExport.ts: configExport.ts 1`] = `
+"export { config } from "@croct/plug-next/middleware";
+export { middleware } from "@croct/plug-next/middleware";
+"
+`;
+
+exports[`CreateMiddleware should correctly transform empty.ts: empty.ts 1`] = `"export { config, middleware } from "@croct/plug-next/middleware";"`;
+
+exports[`CreateMiddleware should correctly transform fullExports.ts: fullExports.ts 1`] = `
+"export { config, middleware } from "@croct/plug-next/middleware";
+"
+`;
+
+exports[`CreateMiddleware should correctly transform middlewareExport.ts: middlewareExport.ts 1`] = `
+"export { middleware } from "@croct/plug-next/middleware";
+export { config } from "@croct/plug-next/middleware";
+"
+`;

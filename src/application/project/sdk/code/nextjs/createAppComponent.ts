@@ -12,16 +12,16 @@ export class CreateAppComponent implements Codemod<Ast.File, AppComponentOptions
         const {body} = input.program;
 
         if (!CreateAppComponent.hasImport(input, '@croct/plug-next/CroctProvider', 'CroctProvider')) {
-            body.unshift(CreateAppComponent.import('value', 'CroctProvider', '@croct/plug-next/CroctProvider'));
+            body.unshift(CreateAppComponent.createImport('value', 'CroctProvider', '@croct/plug-next/CroctProvider'));
         }
 
         if (isTypescript) {
             if (!CreateAppComponent.hasImport(input, 'next/app', 'AppProps')) {
-                body.unshift(CreateAppComponent.import('type', 'AppProps', 'next/app'));
+                body.unshift(CreateAppComponent.createImport('type', 'AppProps', 'next/app'));
             }
 
             if (!CreateAppComponent.hasImport(input, 'react', 'ReactNode')) {
-                body.unshift(CreateAppComponent.import('type', 'ReactNode', 'react'));
+                body.unshift(CreateAppComponent.createImport('type', 'ReactNode', 'react'));
             }
         }
 
@@ -100,15 +100,7 @@ export class CreateAppComponent implements Codemod<Ast.File, AppComponentOptions
         });
     }
 
-    private static hasImport(input: Ast.File, moduleName: string, importName: string): boolean {
-        return hasImport(input, {
-            moduleName: moduleName,
-            importName: importName,
-            localName: importName,
-        });
-    }
-
-    private static import(type: 'value' | 'type', name: string, from: string): Ast.ImportDeclaration {
+    private static createImport(type: 'value' | 'type', name: string, from: string): Ast.ImportDeclaration {
         return builder.importDeclaration.from({
             importKind: type,
             specifiers: [
@@ -117,6 +109,14 @@ export class CreateAppComponent implements Codemod<Ast.File, AppComponentOptions
                 }),
             ],
             source: builder.literal(from),
+        });
+    }
+
+    private static hasImport(input: Ast.File, moduleName: string, importName: string): boolean {
+        return hasImport(input, {
+            moduleName: moduleName,
+            importName: importName,
+            localName: importName,
         });
     }
 }

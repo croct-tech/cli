@@ -2,6 +2,8 @@
 import {visit} from 'recast';
 import {namedTypes as Ast, builders as builder} from 'ast-types';
 import {ResultCode, Codemod} from '@/application/project/sdk/code/codemod';
+import {hasImport, ImportMatcher} from '@/application/project/sdk/code/javascript/hasImport';
+import {getImportLocalName} from '@/application/project/sdk/code/javascript/getImportLocalName';
 
 type ComponentDeclaration = Ast.VariableDeclarator|Ast.FunctionDeclaration;
 type DeclarationKind = NonNullable<Ast.ExportDeclaration['declaration']>;
@@ -88,7 +90,7 @@ export class AddWrapper implements Codemod<Ast.File> {
             for (const namedExport of namedExports) {
                 if (Ast.FunctionDeclaration.check(namedExport.declaration)) {
                     // export function Component() { ... }
-                    modified = this.wrapBlockStatement(namedExport.declaration.body);
+                    modified = this.wrapBlockStatement(namedExport.declaration.body, input);
 
                     if (modified) {
                         break;
@@ -149,12 +151,19 @@ export class AddWrapper implements Codemod<Ast.File> {
         if (modified) {
             const {body} = input.program;
 
-            body.unshift(
-                builder.importDeclaration(
-                    [builder.importSpecifier(builder.identifier(this.options.wrapper.component))],
-                    builder.literal(this.options.wrapper.module),
-                ),
-            );
+            const matcher: ImportMatcher = {
+                moduleName: this.options.wrapper.module,
+                importName: this.options.wrapper.component,
+            };
+
+            if (!hasImport(input, matcher)) {
+                body.unshift(
+                    builder.importDeclaration(
+                        [builder.importSpecifier(builder.identifier(this.options.wrapper.component))],
+                        builder.literal(this.options.wrapper.module),
+                    ),
+                );
+            }
         }
 
         return Promise.resolve({
@@ -176,10 +185,10 @@ export class AddWrapper implements Codemod<Ast.File> {
     private wrapDeclaration(node: DeclarationKind, ast: Ast.File): boolean {
         if (Ast.ArrowFunctionExpression.check(node)) {
             if (Ast.BlockStatement.check(node.body)) {
-                return this.wrapBlockStatement(node.body);
+                return this.wrapBlockStatement(node.body, ast);
             }
 
-            const result = this.insertWrapper(node.body);
+            const result = this.insertWrapper(node.body, ast);
 
             if (result === null) {
                 return false;
@@ -191,7 +200,7 @@ export class AddWrapper implements Codemod<Ast.File> {
         }
 
         if (Ast.FunctionExpression.check(node) || Ast.FunctionDeclaration.check(node)) {
-            return this.wrapBlockStatement(node.body);
+            return this.wrapBlockStatement(node.body, ast);
         }
 
         if (Ast.Identifier.check(node)) {
@@ -206,7 +215,7 @@ export class AddWrapper implements Codemod<Ast.File> {
                         return this.wrapDeclaration(initializer, ast);
                     }
                 } else {
-                    return this.wrapBlockStatement(declaration.body);
+                    return this.wrapBlockStatement(declaration.body, ast);
                 }
             }
         }
@@ -218,14 +227,15 @@ export class AddWrapper implements Codemod<Ast.File> {
      * Wraps the block statement with the wrapper component.
      *
      * @param node The block statement to wrap
+     * @param ast The AST representing the source code.
      * @return true if the block statement was wrapped, false otherwise
      */
-    private wrapBlockStatement(node: Ast.BlockStatement): boolean {
+    private wrapBlockStatement(node: Ast.BlockStatement, ast: Ast.File): boolean {
         const returnStatement = AddWrapper.findReturnStatement(node);
         const argument = returnStatement?.argument ?? null;
 
         if (returnStatement !== null && argument !== null) {
-            const result = this.insertWrapper(argument);
+            const result = this.insertWrapper(argument, ast);
 
             if (result === null) {
                 return false;
@@ -247,9 +257,19 @@ export class AddWrapper implements Codemod<Ast.File> {
      * may be a `{children}` expression inside a JSX element.
      *
      * @param node The node containing the target element.
+     * @param ast The AST representing the source code.
      * @return The modified node with the target element wrapped or the original node if no target is found.
      */
-    private insertWrapper(node: ExpressionKind): ExpressionKind|null {
+    private insertWrapper(node: ExpressionKind, ast: Ast.File): ExpressionKind|null {
+        const localImportName = getImportLocalName(ast, {
+            moduleName: this.options.wrapper.module,
+            importName: this.options.wrapper.component,
+        }) ?? undefined;
+
+        if (localImportName !== undefined && this.containsElement(node, localImportName)) {
+            return null;
+        }
+
         const target = this.findTargetChildren(node);
 
         if (target !== null) {
@@ -262,13 +282,13 @@ export class AddWrapper implements Codemod<Ast.File> {
                 // If there is only one child, replace it with the wrapper
                 ? [
                     builder.jsxText('\n'),
-                    this.wrapElement(child),
+                    this.wrapElement(child, localImportName),
                     builder.jsxText('\n'),
                 ]
                 // Otherwise, insert the wrapper at the target index
                 : [
                     ...children.slice(0, index),
-                    this.wrapElement(child),
+                    this.wrapElement(child, localImportName),
                     ...children.slice(index),
                 ];
 
@@ -295,7 +315,7 @@ export class AddWrapper implements Codemod<Ast.File> {
             }
 
             // Wrap the whole element if the target is not found
-            return this.wrapElement(node);
+            return this.wrapElement(node, localImportName);
         }
 
         return null;
@@ -305,16 +325,17 @@ export class AddWrapper implements Codemod<Ast.File> {
      * Wraps the given JSX element with the wrapper component.
      *
      * @param node The JSX element to wrap.
+     * @param name The name of the component to use as the wrapper.
      * @return The wrapped JSX element.
      */
-    private wrapElement(node: JsxKind): Ast.JSXElement {
+    private wrapElement(node: JsxKind, name?: string): Ast.JSXElement {
         return builder.jsxElement.from({
             openingElement: builder.jsxOpeningElement(
-                builder.jsxIdentifier(this.options.wrapper.component),
+                builder.jsxIdentifier(name ?? this.options.wrapper.component),
                 this.getProviderProps(),
             ),
             closingElement: builder.jsxClosingElement(
-                builder.jsxIdentifier(this.options.wrapper.component),
+                builder.jsxIdentifier(name ?? this.options.wrapper.component),
             ),
             children: [
                 builder.jsxText('\n'),
@@ -353,6 +374,33 @@ export class AddWrapper implements Codemod<Ast.File> {
         }
 
         return attributes;
+    }
+
+    /**
+     * Determines if the element contains the specified component.
+     *
+     * @param node The node to search for the component.
+     * @param name The name of the component to find.
+     * @return true if the element contains the component, false otherwise.
+     */
+    private containsElement(node: Ast.Node, name: string): boolean {
+        let contains = false;
+
+        visit(node, {
+            visitJSXOpeningElement: function accept(path): any {
+                const nameNode = path.node.name;
+
+                if (Ast.JSXIdentifier.check(nameNode) && nameNode.name === name) {
+                    contains = true;
+
+                    return this.abort();
+                }
+
+                return this.traverse(path);
+            },
+        });
+
+        return contains;
     }
 
     /**

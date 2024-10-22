@@ -3,6 +3,8 @@ import {visit} from 'recast';
 import {namedTypes as Ast, builders as builder} from 'ast-types';
 import {NodePath} from 'ast-types/node-path';
 import {ResultCode, Codemod} from '@/application/project/sdk/code/codemod';
+import {ExportMatcher, hasReexport} from '@/application/project/sdk/code/javascript/hasReexport';
+import {getImportLocalName} from '@/application/project/sdk/code/javascript/getImportLocalName';
 
 type ExpressionKind = Parameters<typeof builder.callExpression>[0];
 type ExportDeclaration = Ast.ExportNamedDeclaration | Ast.ExportDefaultDeclaration;
@@ -25,7 +27,9 @@ type StatementKind = Ast.Program['body'][number];
 export type MiddlewareOptions = {
     import: {
         module: string,
-        functionName: string,
+        highOrderFunctionName: string,
+        middlewareFunctionName: string,
+        configName: string,
         matcherName: string,
         matcherLocalName: string,
     },
@@ -34,13 +38,12 @@ export type MiddlewareOptions = {
 /**
  * Refactors the middleware wrapping it with necessary configuration.
  *
- * This transformer wraps the middleware function with a higher-order function that
- * provides the necessary configuration for the middleware to work correctly.
- *
- * It refactors the middleware configuration to include a matcher for
- * the routes that the middleware should apply to.
+ * This transformer wraps the existing middleware function with a higher-order
+ * function that provides the necessary configuration for the middleware to
+ * work correctly. It can also detect if the middleware is already configured
+ * or missing configuration and apply the necessary changes.
  */
-export class RefactorMiddleware implements Codemod<Ast.File> {
+export class ConfigureMiddleware implements Codemod<Ast.File> {
     private readonly options: MiddlewareOptions;
 
     public constructor(options: MiddlewareOptions) {
@@ -48,26 +51,144 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
     }
 
     public apply(input: Ast.File): Promise<ResultCode<Ast.File>> {
-        const config = RefactorMiddleware.findConfig(input.program);
-        const middlewareNode = RefactorMiddleware.refactorMiddleware(
-            input,
-            config !== null && config.matcher ? config.name : undefined,
-        );
+        const {body} = input.program;
 
-        if (middlewareNode === null) {
+        const middlewareReexportMatcher = {
+            moduleName: this.options.import.module,
+            importName: this.options.import.middlewareFunctionName,
+        } satisfies ExportMatcher;
+
+        const configReexportMatcher: ExportMatcher = {
+            moduleName: this.options.import.module,
+            importName: this.options.import.configName,
+        };
+
+        const reexportedConfig = hasReexport(input, configReexportMatcher);
+
+        const localConfig = reexportedConfig
+            ? null
+            : ConfigureMiddleware.findConfig(input.program);
+
+        if (hasReexport(input, middlewareReexportMatcher)) {
+            if (localConfig !== null || reexportedConfig) {
+                // Middleware is already re-exported, consider it refactored
+                return Promise.resolve({
+                    modified: false,
+                    result: input,
+                });
+            }
+
+            body.push(
+                builder.exportNamedDeclaration.from({
+                    declaration: null,
+                    source: builder.literal(this.options.import.module),
+                    specifiers: [
+                        builder.exportSpecifier.from({
+                            exported: builder.identifier(this.options.import.configName),
+                            local: builder.identifier(this.options.import.configName),
+                        }),
+                    ],
+                }),
+            );
+
+            return Promise.resolve({
+                modified: true,
+                result: input,
+            });
+        }
+
+        const hofLocalName = getImportLocalName(input, {
+            moduleName: this.options.import.module,
+            importName: this.options.import.highOrderFunctionName,
+        });
+
+        const middlewareLocalName = getImportLocalName(input, middlewareReexportMatcher);
+
+        const imports: string[] = [];
+
+        if (hofLocalName !== null) {
+            imports.push(hofLocalName);
+        }
+
+        if (middlewareLocalName !== null) {
+            imports.push(middlewareLocalName);
+        }
+
+        if (imports.length > 0 && ConfigureMiddleware.isCalled(input, imports)) {
+            // The middleware is already called in the source code, consider it refactored
             return Promise.resolve({
                 modified: false,
                 result: input,
             });
         }
 
-        const {program} = input;
+        const matcherLocalName = localConfig !== null
+            ? getImportLocalName(input, {
+                moduleName: this.options.import.module,
+                importName: this.options.import.matcherName,
+            })
+            : null;
 
-        if (config !== null) {
-            this.configureMatcher(config.object);
+        let middlewareNode = ConfigureMiddleware.refactorMiddleware(
+            input,
+            hofLocalName ?? this.options.import.highOrderFunctionName,
+            localConfig !== null && localConfig.matcher ? localConfig.name : undefined,
+        );
 
-            const configPosition = program.body.indexOf(config.root as StatementKind);
-            const middlewarePosition = program.body.indexOf(middlewareNode as StatementKind);
+        if (middlewareNode === null) {
+            if (localConfig === null) {
+                body.push(
+                    builder.exportNamedDeclaration.from({
+                        declaration: null,
+                        source: builder.literal(this.options.import.module),
+                        specifiers: [
+                            builder.exportSpecifier.from({
+                                exported: builder.identifier(this.options.import.middlewareFunctionName),
+                                local: builder.identifier(this.options.import.middlewareFunctionName),
+                            }),
+                            ...(reexportedConfig
+                                ? []
+                                : [builder.exportSpecifier.from({
+                                    exported: builder.identifier(this.options.import.configName),
+                                    local: builder.identifier(this.options.import.configName),
+                                })]
+                            ),
+                        ],
+                    }),
+                );
+
+                return Promise.resolve({
+                    modified: true,
+                    result: input,
+                });
+            }
+
+            middlewareNode = builder.exportDefaultDeclaration.from({
+                declaration: builder.callExpression.from({
+                    callee: builder.identifier(hofLocalName ?? this.options.import.highOrderFunctionName),
+                    arguments: [
+                        builder.objectExpression([
+                            builder.property(
+                                'init',
+                                builder.identifier('matcher'),
+                                builder.memberExpression(
+                                    builder.identifier(localConfig.name),
+                                    builder.identifier(matcherLocalName ?? this.options.import.matcherName),
+                                ),
+                            ),
+                        ]),
+                    ],
+                }),
+            });
+
+            body.push(middlewareNode as StatementKind);
+        }
+
+        if (localConfig !== null) {
+            this.configureMatcher(localConfig.object, matcherLocalName ?? this.options.import.matcherLocalName);
+
+            const configPosition = body.indexOf(localConfig.root as StatementKind);
+            const middlewarePosition = body.indexOf(middlewareNode as StatementKind);
 
             if (configPosition > middlewarePosition) {
                 /*
@@ -79,38 +200,44 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                    and unlikely to occur as Next.js requires the config to be static for analysis at build time.
                  */
 
-                program.body.splice(middlewarePosition, 0, ...program.body.splice(configPosition, 1));
+                body.splice(middlewarePosition, 0, ...body.splice(configPosition, 1));
 
                 // Move any references of the config object alongside it
-                for (const reference of RefactorMiddleware.findReferencesFrom(config.root, program)) {
-                    const referencePosition = program.body.indexOf(reference as StatementKind);
+                for (const reference of ConfigureMiddleware.findReferencesFrom(localConfig.root, input.program)) {
+                    const referencePosition = body.indexOf(reference as StatementKind);
 
                     if (referencePosition > middlewarePosition) {
-                        program.body.splice(middlewarePosition, 0, ...program.body.splice(referencePosition, 1));
+                        body.splice(middlewarePosition, 0, ...body.splice(referencePosition, 1));
                     }
                 }
             }
         }
 
-        // Add import statement at the beginning of the file
-        program.body.unshift(
-            builder.importDeclaration(
-                [
-                    builder.importSpecifier(builder.identifier(this.options.import.functionName)),
-                    ...(config?.matcher === true
-                        ? [
-                            builder.importSpecifier(
-                                builder.identifier(this.options.import.matcherName),
-                                this.options.import.matcherLocalName === this.options.import.matcherName
-                                    ? null
-                                    : builder.identifier(this.options.import.matcherLocalName),
-                            ),
-                        ]
-                        : []),
-                ],
-                builder.literal(this.options.import.module),
-            ),
-        );
+        const specifiers: Ast.ImportSpecifier[] = [];
+
+        if (hofLocalName === null) {
+            specifiers.push(builder.importSpecifier(builder.identifier(this.options.import.highOrderFunctionName)));
+        }
+
+        if (localConfig?.matcher === true && matcherLocalName === null) {
+            specifiers.push(
+                builder.importSpecifier(
+                    builder.identifier(this.options.import.matcherName),
+                    this.options.import.matcherLocalName === this.options.import.matcherName
+                        ? null
+                        : builder.identifier(this.options.import.matcherLocalName),
+                ),
+            );
+        }
+
+        if (specifiers.length > 0) {
+            body.unshift(
+                builder.importDeclaration(
+                    specifiers,
+                    builder.literal(this.options.import.module),
+                ),
+            );
+        }
 
         return Promise.resolve({
             modified: true,
@@ -122,9 +249,10 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
      * Adds the middleware matcher to the config object.
      *
      * @param configObject The object expression representing the configuration.
+     * @param matcherName The name of the matcher identifier.
      * @return true if the config object was modified, false otherwise.
      */
-    private configureMatcher(configObject: Ast.ObjectExpression): boolean {
+    private configureMatcher(configObject: Ast.ObjectExpression, matcherName: string): boolean {
         let modified = false;
 
         // Loop through the config properties to locate the 'matcher' property
@@ -138,7 +266,7 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                     // Wrap single matcher string in an array and add 'matcher' identifier
                     property.value = builder.arrayExpression([
                         property.value,
-                        builder.identifier(this.options.import.matcherLocalName),
+                        builder.identifier(matcherName),
                     ]);
 
                     modified = true;
@@ -147,17 +275,22 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                 }
 
                 if (Ast.ArrayExpression.check(property.value)) {
-                    // Append 'matcher' identifier to the existing array
-                    property.value
-                        .elements
-                        .push(builder.identifier(this.options.import.matcherLocalName));
+                    const {elements} = property.value;
 
-                    modified = true;
+                    if (!elements.some(element => Ast.Identifier.check(element) && element.name === matcherName)) {
+                        elements.push(builder.identifier(matcherName));
+
+                        modified = true;
+                    }
 
                     break;
                 }
 
                 if (Ast.Identifier.check(property.value)) {
+                    if (property.value.name === matcherName) {
+                        break;
+                    }
+
                     // Convert matcher identifier into an array, if necessary, and append 'matcher'
                     property.value = builder.arrayExpression([
                         builder.spreadElement(
@@ -173,7 +306,7 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                                 builder.arrayExpression([property.value]),
                             ),
                         ),
-                        builder.identifier(this.options.import.matcherLocalName),
+                        builder.identifier(matcherName),
                     ]);
 
                     modified = true;
@@ -188,10 +321,11 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
      * Refactors the middleware wrapping it with necessary configuration.
      *
      * @param ast The AST representing the source code.
+     * @param functionName The name of the middleware function.
      * @param configName Optional name of the configuration object variable.
      * @return The root node of the refactored middleware or null if not found.
      */
-    private static refactorMiddleware(ast: Ast.File, configName?: string): Ast.Node | null {
+    private static refactorMiddleware(ast: Ast.File, functionName: string, configName?: string): Ast.Node | null {
         let rootNode: Ast.Node | null = null;
 
         visit(ast, {
@@ -207,14 +341,15 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                         && node.declaration.id.name === 'middleware'
                     ) {
                         path.replace(
-                            RefactorMiddleware.wrapExportFunctionDeclaration(
+                            ConfigureMiddleware.wrapExportFunctionDeclaration(
                                 node,
                                 node.declaration,
+                                functionName,
                                 configName,
                             ),
                         );
 
-                        rootNode = RefactorMiddleware.getRootNode(path);
+                        rootNode = ConfigureMiddleware.getRootNode(path);
 
                         return this.abort();
                     }
@@ -233,8 +368,12 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                             const initializer = declarator.init ?? null;
 
                             if (initializer !== null) {
-                                declarator.init = RefactorMiddleware.wrapMiddleware(initializer, configName);
-                                rootNode = RefactorMiddleware.getRootNode(path);
+                                declarator.init = ConfigureMiddleware.wrapMiddleware(
+                                    initializer,
+                                    functionName,
+                                    configName,
+                                );
+                                rootNode = ConfigureMiddleware.getRootNode(path);
 
                                 return this.abort();
                             }
@@ -250,9 +389,10 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                         && Ast.Identifier.check(specifier.local)
                         && (['middleware', 'default']).includes(specifier.exported.name)
                     ) {
-                        rootNode = RefactorMiddleware.replaceMiddlewareDeclaration(
+                        rootNode = ConfigureMiddleware.replaceMiddlewareDeclaration(
                             ast,
                             specifier.local.name,
+                            functionName,
                             configName,
                         );
 
@@ -270,11 +410,15 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                 if (Ast.ArrowFunctionExpression.check(declaration)) {
                     path.replace(
                         builder.exportDefaultDeclaration(
-                            RefactorMiddleware.wrapMiddleware(declaration, configName),
+                            ConfigureMiddleware.wrapMiddleware(
+                                declaration,
+                                functionName,
+                                configName,
+                            ),
                         ),
                     );
 
-                    rootNode = RefactorMiddleware.getRootNode(path);
+                    rootNode = ConfigureMiddleware.getRootNode(path);
 
                     return this.abort();
                 }
@@ -283,21 +427,27 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                 if (Ast.FunctionDeclaration.check(declaration)) {
                     path.replace(
                         builder.exportDefaultDeclaration(
-                            RefactorMiddleware.wrapMiddleware(
-                                RefactorMiddleware.createFunctionExpression(declaration, true),
+                            ConfigureMiddleware.wrapMiddleware(
+                                ConfigureMiddleware.createFunctionExpression(declaration, true),
+                                functionName,
                                 configName,
                             ),
                         ),
                     );
 
-                    rootNode = RefactorMiddleware.getRootNode(path);
+                    rootNode = ConfigureMiddleware.getRootNode(path);
 
                     return this.abort();
                 }
 
                 // export default middleware
                 if (Ast.Identifier.check(declaration)) {
-                    rootNode = RefactorMiddleware.replaceMiddlewareDeclaration(ast, declaration.name, configName);
+                    rootNode = ConfigureMiddleware.replaceMiddlewareDeclaration(
+                        ast,
+                        declaration.name,
+                        functionName,
+                        configName,
+                    );
 
                     return this.abort();
                 }
@@ -309,7 +459,12 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
         return rootNode;
     }
 
-    private static replaceMiddlewareDeclaration(file: Ast.File, name: string, configName?: string): Ast.Node | null {
+    private static replaceMiddlewareDeclaration(
+        file: Ast.File,
+        name: string,
+        functionName: string,
+        configName?: string,
+    ): Ast.Node | null {
         let rootNode: Ast.Node | null = null;
 
         visit(file, {
@@ -320,8 +475,8 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                     const initializer = node.init ?? null;
 
                     if (initializer !== null) {
-                        node.init = RefactorMiddleware.wrapMiddleware(initializer, configName);
-                        rootNode = RefactorMiddleware.getRootNode(path);
+                        node.init = ConfigureMiddleware.wrapMiddleware(initializer, functionName, configName);
+                        rootNode = ConfigureMiddleware.getRootNode(path);
                     }
 
                     return this.abort();
@@ -334,8 +489,9 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
 
                 if (Ast.Identifier.check(node.id) && node.id.name === name) {
                     path.replace(
-                        RefactorMiddleware.wrapFunctionDeclaration(
+                        ConfigureMiddleware.wrapFunctionDeclaration(
                             node,
+                            functionName,
                             configName,
                             Ast.Identifier.check(node.id)
                                 ? node.id.name
@@ -343,7 +499,7 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                         ),
                     );
 
-                    rootNode = RefactorMiddleware.getRootNode(path);
+                    rootNode = ConfigureMiddleware.getRootNode(path);
 
                     return this.abort();
                 }
@@ -353,6 +509,36 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
         });
 
         return rootNode;
+    }
+
+    /**
+     * Checks if any of the given functions are called in the source code.
+     *
+     * @param file The AST representing the source code.
+     * @param functionNames The names of the functions to search for.
+     * @return true if the middleware is called, false otherwise.
+     */
+    private static isCalled(file: Ast.File, functionNames: string[]): boolean {
+        let wrapped = false;
+
+        visit(file, {
+            visitCallExpression: function accept(path): any {
+                const {node} = path;
+
+                if (
+                    Ast.Identifier.check(node.callee)
+                    && functionNames.includes(node.callee.name)
+                ) {
+                    wrapped = true;
+
+                    return this.abort();
+                }
+
+                return false;
+            },
+        });
+
+        return wrapped;
     }
 
     /**
@@ -378,10 +564,10 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                         ) {
                             const match = Ast.Identifier.check(declarator.init)
                                 // export const config = variable
-                                ? RefactorMiddleware.findVariableDeclarator(ast, declarator.init.name)
+                                ? ConfigureMiddleware.findVariableDeclarator(ast, declarator.init.name)
                                 : {
                                     name: 'config',
-                                    root: RefactorMiddleware.getRootNode(path),
+                                    root: ConfigureMiddleware.getRootNode(path),
                                     declaration: declarator,
                                 };
 
@@ -394,7 +580,7 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                                     name: match.name,
                                     root: match.root,
                                     object: match.declaration.init,
-                                    matcher: RefactorMiddleware.hasMatcherProperty(match.declaration.init),
+                                    matcher: ConfigureMiddleware.hasMatcherProperty(match.declaration.init),
                                 };
 
                                 return this.abort();
@@ -411,14 +597,14 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                         && Ast.Identifier.check(specifier.local)
                         && specifier.exported.name === 'config'
                     ) {
-                        const match = RefactorMiddleware.findVariableDeclarator(ast, specifier.local.name);
+                        const match = ConfigureMiddleware.findVariableDeclarator(ast, specifier.local.name);
 
                         if (match !== null && Ast.ObjectExpression.check(match.declaration.init)) {
                             config = {
                                 name: match.name,
                                 root: match.root,
                                 object: match.declaration.init,
-                                matcher: RefactorMiddleware.hasMatcherProperty(match.declaration.init),
+                                matcher: ConfigureMiddleware.hasMatcherProperty(match.declaration.init),
                             };
                         }
 
@@ -481,11 +667,11 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                 ) {
                     if (Ast.Identifier.check(node.init)) {
                         // If the initializer is an identifier, recursively search for the declaration
-                        declarator = RefactorMiddleware.findVariableDeclarator(program, node.init.name);
+                        declarator = ConfigureMiddleware.findVariableDeclarator(program, node.init.name);
                     } else {
                         declarator = {
                             name: name,
-                            root: RefactorMiddleware.getRootNode(path),
+                            root: ConfigureMiddleware.getRootNode(path),
                             declaration: node,
                         };
                     }
@@ -504,12 +690,13 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
      * Wraps the given node with the HOC middleware.
      *
      * @param node The node to wrap with the middleware.
+     * @param functionName The name of the middleware function.
      * @param configName Optional name of the configuration object variable.
      * @return The transformed middleware node.
      */
-    private static wrapMiddleware(node: ExpressionKind, configName?: string): Ast.CallExpression {
+    private static wrapMiddleware(node: ExpressionKind, functionName: string, configName?: string): Ast.CallExpression {
         return builder.callExpression.from({
-            callee: builder.identifier('withCroct'),
+            callee: builder.identifier(functionName),
             arguments: [
                 configName !== undefined
                     ? builder.objectExpression([
@@ -536,12 +723,14 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
      * Wraps a function declaration in a middleware expression as a variable declaration.
      *
      * @param functionDeclaration The function declaration to wrap.
+     * @param functionName The name of the middleware function.
      * @param configName Optional name of the configuration object variable.
      * @param name The name of the constant variable to assign the middleware to.
      * @return A variable declaration that assigns the wrapped middleware to a constant.
      */
     private static wrapFunctionDeclaration(
         functionDeclaration: Ast.FunctionDeclaration,
+        functionName: string,
         configName?: string,
         name = 'middleware',
     ): Ast.VariableDeclaration {
@@ -550,8 +739,9 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
             [
                 builder.variableDeclarator(
                     builder.identifier(name),
-                    RefactorMiddleware.wrapMiddleware(
-                        RefactorMiddleware.createFunctionExpression(functionDeclaration),
+                    ConfigureMiddleware.wrapMiddleware(
+                        ConfigureMiddleware.createFunctionExpression(functionDeclaration),
+                        functionName,
                         configName,
                     ),
                 ),
@@ -564,24 +754,27 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
      *
      * @param exportDeclaration The export declaration to wrap.
      * @param functionDeclaration The function declaration to wrap in middleware.
+     * @param functionName The name of the middleware function.
      * @param configName Optional name of the configuration object variable.
      * @return The updated export declaration with wrapped middleware.
      */
     private static wrapExportFunctionDeclaration(
         exportDeclaration: ExportDeclaration,
         functionDeclaration: Ast.FunctionDeclaration,
+        functionName: string,
         configName?: string,
     ): ExportDeclaration {
-        return RefactorMiddleware.restoreComments(
+        return ConfigureMiddleware.restoreComments(
             exportDeclaration,
             builder.exportNamedDeclaration(
                 builder.variableDeclaration('const', [
                     builder.variableDeclarator(
                         builder.identifier('middleware'),
-                        RefactorMiddleware.wrapMiddleware(
+                        ConfigureMiddleware.wrapMiddleware(
                             Ast.FunctionDeclaration.check(functionDeclaration)
-                                ? RefactorMiddleware.createFunctionExpression(functionDeclaration)
+                                ? ConfigureMiddleware.createFunctionExpression(functionDeclaration)
                                 : functionDeclaration,
+                            functionName,
                             configName,
                         ),
                     ),
@@ -608,7 +801,7 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                 const {node} = path;
                 const parent = path.parent.node;
 
-                if (RefactorMiddleware.isVariableReference(parent, node)) {
+                if (ConfigureMiddleware.isVariableReference(parent, node)) {
                     names.add(node.name);
                 }
 
@@ -628,7 +821,7 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                 const {node} = path;
 
                 if (Ast.Identifier.check(node.id) && names.has(node.id.name)) {
-                    references.push(RefactorMiddleware.getRootNode(path));
+                    references.push(ConfigureMiddleware.getRootNode(path));
                 }
 
                 return false;
@@ -641,7 +834,7 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                 const {node} = path;
 
                 if (Ast.Identifier.check(node.id) && names.has(node.id.name)) {
-                    references.push(RefactorMiddleware.getRootNode(path));
+                    references.push(ConfigureMiddleware.getRootNode(path));
                 }
 
                 return false;
@@ -654,7 +847,7 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
                 const {node} = path;
 
                 if (Ast.Identifier.check(node.id) && names.has(node.id.name)) {
-                    references.push(RefactorMiddleware.getRootNode(path));
+                    references.push(ConfigureMiddleware.getRootNode(path));
                 }
 
                 return false;
@@ -664,7 +857,7 @@ export class RefactorMiddleware implements Codemod<Ast.File> {
         return [
             ...new Set(references.flatMap(
                 // Recursively find references from the found references
-                reference => [reference, ...RefactorMiddleware.findReferencesFrom(reference, root)],
+                reference => [reference, ...ConfigureMiddleware.findReferencesFrom(reference, root)],
             )),
         ];
     }

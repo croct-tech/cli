@@ -1,20 +1,22 @@
 import {resolve} from 'path';
-import {MiddlewareOptions, RefactorMiddleware} from '@/application/project/sdk/code/nextjs/refactorMiddleware';
+import {MiddlewareOptions, ConfigureMiddleware} from '@/application/project/sdk/code/nextjs/configureMiddleware';
 import {loadFixtures} from '../fixtures';
 import {ParseCode} from '@/application/project/sdk/code/parseCode';
 
-describe('RefactorMiddleware', () => {
+describe('ConfigureMiddleware', () => {
     const defaultOptions: MiddlewareOptions = {
         import: {
             module: '@croct/plug-next/middleware',
-            functionName: 'withCroct',
+            highOrderFunctionName: 'withCroct',
+            middlewareFunctionName: 'middleware',
             matcherName: 'matcher',
             matcherLocalName: 'matcher',
+            configName: 'config',
         },
     };
 
     const scenarios = loadFixtures<MiddlewareOptions>(
-        resolve(__dirname, '../fixtures/nextjs-middleware-refactoring'),
+        resolve(__dirname, '../fixtures/nextjs-middleware'),
         defaultOptions,
         {
             'matcherAlias.ts': {
@@ -29,7 +31,7 @@ describe('RefactorMiddleware', () => {
     it.each(scenarios)('should correctly transform $name', async ({name, fixture, options}) => {
         const transformer = new ParseCode({
             languages: ['typescript'],
-            codemod: new RefactorMiddleware(options),
+            codemod: new ConfigureMiddleware(options),
         });
 
         const output = await transformer.apply(fixture);

@@ -26,6 +26,11 @@ describe('AddWrapper', () => {
                     variable: 'children',
                 },
             },
+            'targetChildrenAliasedImport.tsx': {
+                targets: {
+                    variable: 'children',
+                },
+            },
             'namedExportArrowFunctionWithBody.tsx': {
                 namedExportFallback: true,
             },
