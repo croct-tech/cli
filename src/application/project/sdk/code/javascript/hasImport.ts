@@ -18,7 +18,7 @@ export function hasImport(source: string | t.File, matcher: ImportMatcher): bool
     traverse(ast, {
         // import {something} from 'something'
         // import {something as somethingElse} from 'something'
-        ImportDeclaration: function accept(path) {
+        ImportDeclaration: path => {
             const {node} = path;
 
             if (!matches(node.source, matcher.moduleName)) {

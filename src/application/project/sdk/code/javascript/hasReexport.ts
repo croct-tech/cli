@@ -16,42 +16,42 @@ export function hasReexport(source: string | t.File, matcher: ExportMatcher): bo
 
     traverse(ast, {
         // export * from 'something'
-        ExportAllDeclaration: function accept(path) {
+        ExportAllDeclaration: path => {
             const {node} = path;
 
             if (!t.isStringLiteral(node.source) || !matches(node.source, matcher.moduleName)) {
-                return false;
+                return path.skip();
             }
 
             found = true;
 
-            return false;
+            return path.skip();
         },
 
         // export {something} from 'something'
         // export {something as somethingElse} from 'something'
-        ExportNamedDeclaration: function accept(path) {
+        ExportNamedDeclaration: path => {
             const {node} = path;
 
             if (!t.isStringLiteral(node.source) || !matches(node.source, matcher.moduleName)) {
-                return false;
+                return path.skip();
             }
 
             if (matcher.importName === undefined) {
                 found = true;
 
-                return false;
+                return path.skip();
             }
 
             for (const specifier of node.specifiers) {
                 if (t.isExportSpecifier(specifier) && matches(specifier.local, matcher.importName)) {
                     found = true;
 
-                    return false;
+                    return path.skip();
                 }
             }
 
-            return false;
+            return path.skip();
         },
     });
 

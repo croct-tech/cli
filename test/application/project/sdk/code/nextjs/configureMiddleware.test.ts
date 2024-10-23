@@ -7,8 +7,8 @@ describe('ConfigureMiddleware', () => {
     const defaultOptions: MiddlewareOptions = {
         import: {
             module: '@croct/plug-next/middleware',
-            highOrderFunctionName: 'withCroct',
-            middlewareFunctionName: 'middleware',
+            middlewareFactoryName: 'withCroct',
+            middlewareName: 'middleware',
             matcherName: 'matcher',
             matcherLocalName: 'matcher',
             configName: 'config',

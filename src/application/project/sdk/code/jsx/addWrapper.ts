@@ -25,9 +25,7 @@ type PropertyTypes = {
 };
 
 type PropertyType = {
-    [K in keyof PropertyTypes]: PropertyTypes[K] & {
-    type: K,
-}
+    [K in keyof PropertyTypes]: PropertyTypes[K] & {type: K}
 }[keyof PropertyTypes];
 
 export type WrapperOptions = {
@@ -40,7 +38,19 @@ export type WrapperOptions = {
         variable?: string,
         component?: string,
     },
-    namedExportFallback?: boolean,
+    fallbackToNamedExports?: boolean,
+    fallbackCodemod?: Codemod<t.File>,
+};
+
+enum Transformation {
+    APPLIED,
+    NOT_APPLIED,
+    ALREADY_APPLIED,
+}
+
+type WrapperInsertion = {
+    result: Transformation,
+    node: t.Expression,
 };
 
 /**
@@ -56,15 +66,9 @@ export class AddWrapper implements Codemod<t.File> {
 
     public constructor(options: WrapperOptions) {
         this.options = options;
-        this.wrapDeclaration = this.wrapDeclaration.bind(this);
     }
 
     public apply(input: t.File): Promise<ResultCode<t.File>> {
-        let modified = false;
-
-        const namedExports: t.ExportNamedDeclaration[] = [];
-        const {wrapDeclaration} = this;
-
         const ast = t.cloneNode(input, true);
 
         const componentImport = addImport(ast, {
@@ -74,15 +78,18 @@ export class AddWrapper implements Codemod<t.File> {
         });
 
         const component = componentImport.localName ?? this.options.wrapper.component;
+        const namedExports: t.ExportNamedDeclaration[] = [];
+
+        let result = Transformation.NOT_APPLIED;
 
         traverse(ast, {
-            ExportDefaultDeclaration: function accept(path) {
+            ExportDefaultDeclaration: path => {
                 // Wrap the default export
-                modified = wrapDeclaration(path.node.declaration, component, ast);
+                result = this.wrapDeclaration(path.node.declaration, component, ast);
 
                 return path.stop();
             },
-            ExportNamedDeclaration: function accept(path) {
+            ExportNamedDeclaration: path => {
                 // Collect named exports for fallback wrapping
                 namedExports.push(path.node);
 
@@ -90,14 +97,14 @@ export class AddWrapper implements Codemod<t.File> {
             },
         });
 
-        if (!modified && this.options?.namedExportFallback === true) {
+        if (result === Transformation.NOT_APPLIED && this.options?.fallbackToNamedExports === true) {
             // If the default export was not found, attempt to wrap named exports
             for (const namedExport of namedExports) {
                 if (t.isFunctionDeclaration(namedExport.declaration)) {
                     // export function Component() { ... }
-                    modified = this.wrapBlockStatement(namedExport.declaration.body, component, ast);
+                    result = this.wrapBlockStatement(namedExport.declaration.body, component, ast);
 
-                    if (modified) {
+                    if (result === Transformation.APPLIED) {
                         break;
                     }
                 }
@@ -108,19 +115,21 @@ export class AddWrapper implements Codemod<t.File> {
 
                     // Find the first variable declaration that is a variable,
                     // arrow function, or function expression
-                    modified = declarations.some(declaration => {
+                    const modified = declarations.some(declaration => {
                         if (
                             t.isIdentifier(declaration.init)
                             || t.isArrowFunctionExpression(declaration.init)
                             || t.isFunctionExpression(declaration.init)
                         ) {
-                            return wrapDeclaration(declaration.init, component, ast);
+                            return this.wrapDeclaration(declaration.init, component, ast) === Transformation.APPLIED;
                         }
 
                         return false;
                     });
 
                     if (modified) {
+                        result = Transformation.APPLIED;
+
                         break;
                     }
                 }
@@ -135,24 +144,30 @@ export class AddWrapper implements Codemod<t.File> {
                             && t.isVariableDeclarator(declaration)
                             && t.isExpression(declaration.init)
                         ) {
-                            modified = wrapDeclaration(declaration.init, component, ast);
+                            result = this.wrapDeclaration(declaration.init, component, ast);
 
-                            if (modified) {
+                            if (result === Transformation.APPLIED) {
                                 break;
                             }
                         }
                     }
                 }
 
-                if (modified) {
+                if (result === Transformation.APPLIED) {
                     break;
                 }
             }
         }
 
+        const fallbackCodemod = this.options?.fallbackCodemod;
+
+        if (result === Transformation.NOT_APPLIED && fallbackCodemod !== undefined) {
+            return fallbackCodemod.apply(input);
+        }
+
         return Promise.resolve({
-            modified: modified,
-            result: modified ? ast : input,
+            modified: result === Transformation.APPLIED,
+            result: result === Transformation.APPLIED ? ast : input,
         });
     }
 
@@ -165,23 +180,23 @@ export class AddWrapper implements Codemod<t.File> {
      * @param node The declaration to wrap.
      * @param component The name of the component to use as the wrapper.
      * @param ast The AST representing the source code.
-     * @return true if the declaration was wrapped, false otherwise.
+     * @return the result of the transformation.
      */
-    private wrapDeclaration(node: DeclarationKind, component: string, ast: t.File): boolean {
+    private wrapDeclaration(node: DeclarationKind, component: string, ast: t.File): Transformation {
         if (t.isArrowFunctionExpression(node)) {
             if (t.isBlockStatement(node.body)) {
                 return this.wrapBlockStatement(node.body, component, ast);
             }
 
-            const result = this.insertWrapper(node.body, component, ast);
+            const insertion = this.insertWrapper(node.body, component, ast);
 
-            if (result === null) {
-                return false;
+            if (insertion.result !== Transformation.APPLIED) {
+                return insertion.result;
             }
 
-            node.body = result;
+            node.body = insertion.node;
 
-            return true;
+            return Transformation.APPLIED;
         }
 
         if (t.isFunctionExpression(node) || t.isFunctionDeclaration(node)) {
@@ -205,7 +220,7 @@ export class AddWrapper implements Codemod<t.File> {
             }
         }
 
-        return false;
+        return Transformation.NOT_APPLIED;
     }
 
     /**
@@ -214,25 +229,25 @@ export class AddWrapper implements Codemod<t.File> {
      * @param node The block statement to wrap
      * @param component The name of the component to use as the wrapper.
      * @param ast The AST representing the source code.
-     * @return true if the block statement was wrapped, false otherwise
+     * @return the result of the transformation.
      */
-    private wrapBlockStatement(node: t.BlockStatement, component: string, ast: t.File): boolean {
+    private wrapBlockStatement(node: t.BlockStatement, component: string, ast: t.File): Transformation {
         const returnStatement = AddWrapper.findReturnStatement(node);
         const argument = returnStatement?.argument ?? null;
 
         if (returnStatement !== null && argument !== null) {
-            const result = this.insertWrapper(argument, component, ast);
+            const insertion = this.insertWrapper(argument, component, ast);
 
-            if (result === null) {
-                return false;
+            if (insertion.result !== Transformation.APPLIED) {
+                return insertion.result;
             }
 
-            returnStatement.argument = t.parenthesizedExpression(result);
+            returnStatement.argument = t.parenthesizedExpression(insertion.node);
 
-            return true;
+            return Transformation.APPLIED;
         }
 
-        return false;
+        return Transformation.NOT_APPLIED;
     }
 
     /**
@@ -245,11 +260,14 @@ export class AddWrapper implements Codemod<t.File> {
      * @param node The node containing the target element.
      * @param component The name of the component to use as the wrapper.
      * @param ast The AST representing the source code.
-     * @return The modified node with the target element wrapped or the original node if no target is found.
+     * @return The result of the transformation.
      */
-    private insertWrapper(node: ExpressionKind, component: string, ast: t.File): ExpressionKind | null {
+    private insertWrapper(node: ExpressionKind, component: string, ast: t.File): WrapperInsertion {
         if (this.containsElement(node, component)) {
-            return null;
+            return {
+                result: Transformation.ALREADY_APPLIED,
+                node: node,
+            };
         }
 
         const target = this.findTargetChildren(ast, node);
@@ -274,7 +292,10 @@ export class AddWrapper implements Codemod<t.File> {
                     ...children.slice(index),
                 ];
 
-            return node;
+            return {
+                result: Transformation.APPLIED,
+                node: node,
+            };
         }
 
         if (
@@ -285,10 +306,16 @@ export class AddWrapper implements Codemod<t.File> {
             || t.isJSXFragment(node)
         ) {
             // Wrap the whole element if the target is not found
-            return this.wrapElement(node, component);
+            return {
+                result: Transformation.APPLIED,
+                node: this.wrapElement(node, component),
+            };
         }
 
-        return null;
+        return {
+            result: Transformation.NOT_APPLIED,
+            node: node,
+        };
     }
 
     /**
@@ -405,9 +432,9 @@ export class AddWrapper implements Codemod<t.File> {
         let componentDeclaration: ComponentDeclaration | null = null;
 
         traverse(ast, {
-            VariableDeclaration: function accept(path) {
+            VariableDeclaration: path => {
                 if (!t.isProgram(path.parent)) {
-                    return false;
+                    return path.skip();
                 }
 
                 for (const declaration of path.node.declarations) {
@@ -422,11 +449,11 @@ export class AddWrapper implements Codemod<t.File> {
                     }
                 }
 
-                return false;
+                return path.skip();
             },
-            FunctionDeclaration: function accept(path) {
+            FunctionDeclaration: path => {
                 if (!t.isProgram(path.parent)) {
-                    return false;
+                    return path.skip();
                 }
 
                 const {id} = path.node;
@@ -437,7 +464,7 @@ export class AddWrapper implements Codemod<t.File> {
                     return path.stop();
                 }
 
-                return false;
+                return path.skip();
             },
         });
 
@@ -469,7 +496,7 @@ export class AddWrapper implements Codemod<t.File> {
                 }
 
                 path.traverse({
-                    JSXExpressionContainer: function accept(nestedPath) {
+                    JSXExpressionContainer: nestedPath => {
                         const {expression} = nestedPath.node;
 
                         if (
@@ -487,7 +514,7 @@ export class AddWrapper implements Codemod<t.File> {
                             return nestedPath.stop();
                         }
                     },
-                    JSXElement: function accept(nestedPath) {
+                    JSXElement: nestedPath => {
                         const {openingElement} = nestedPath.node;
 
                         if (

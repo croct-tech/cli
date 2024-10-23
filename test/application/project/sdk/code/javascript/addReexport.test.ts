@@ -1,5 +1,5 @@
 import generate from '@babel/generator';
-import {cloneNode, File} from '@babel/types';
+import {cloneNode, File, isNodesEquivalent} from '@babel/types';
 import traverse from '@babel/traverse';
 import {parse} from '@/application/project/sdk/code/parser';
 import {addReexport, ExportDeclaration} from '@/application/project/sdk/code/javascript/addReexport';
@@ -374,7 +374,7 @@ describe('addReexport', () => {
             result: 'export { sdk, other } from "croct";',
         },
         {
-            description: 'add a named tyoe export to an existing named export',
+            description: 'add a named type export to an existing named export',
             code: 'export type { sdk } from "croct";',
             declaration: {
                 type: 'type',
@@ -533,8 +533,20 @@ describe('addReexport', () => {
             modified: true,
             result: 'export * from "croct";\nexport * from "other";',
         },
+        {
+            description: 'modify the most specific export',
+            code: 'export { somethingElse } from "croct";\nexport type { something } from "croct";',
+            declaration: {
+                type: 'value',
+                moduleName: 'croct',
+                importName: 'something',
+            },
+            modified: true,
+            result: 'export { somethingElse } from "croct";\nexport { something } from "croct";',
+        },
     ])('should $description', ({code, declaration, modified, result}) => {
-        const parsedAst = parse(code, ['typescript']);
+        const ast = parse(code, ['typescript']);
+        const parsedAst = cloneNode(ast, true);
         const modifiedAst = cloneNode(parsedAst, true);
 
         resetExportKind(modifiedAst);
@@ -548,6 +560,8 @@ describe('addReexport', () => {
 
         expect(generate(modifiedAst).code).toEqual(result);
         expect(modifiedResult).toEqual(modified);
+
+        expect(isNodesEquivalent(ast, parsedAst)).toBe(!modified);
     });
 
     function resetExportKind(file: File): void {

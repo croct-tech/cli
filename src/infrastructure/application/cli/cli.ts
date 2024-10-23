@@ -44,7 +44,6 @@ import {TransformFile} from '@/application/project/sdk/code/transformFile';
 import {CreateLayoutComponent} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
 import {CreateAppComponent} from '@/application/project/sdk/code/nextjs/createAppComponent';
 import {NodeLinter} from '@/infrastructure/project/nodeLinter';
-import {AlternativelyApply} from '@/application/project/sdk/code/alternativelyApply';
 
 export type Configuration = {
     io: {
@@ -227,8 +226,8 @@ export class Cli {
                                     codemod: new ConfigureMiddleware({
                                         import: {
                                             module: '@croct/plug-next/middleware',
-                                            middlewareFunctionName: 'middleware',
-                                            highOrderFunctionName: 'withCroct',
+                                            middlewareName: 'middleware',
+                                            middlewareFactoryName: 'withCroct',
                                             configName: 'config',
                                             matcherName: 'matcher',
                                             matcherLocalName: 'croctMatcher',
@@ -242,19 +241,22 @@ export class Cli {
                             new TransformFile(
                                 new ParseCode({
                                     languages: ['typescript', 'jsx'],
-                                    codemod: new AlternativelyApply(
-                                        new AddWrapper({
-                                            namedExportFallback: false,
-                                            wrapper: {
-                                                module: '@croct/plug-next/CroctProvider',
+                                    codemod: new AddWrapper({
+                                        fallbackToNamedExports: false,
+                                        fallbackCodemod: new CreateLayoutComponent({
+                                            provider: {
                                                 component: 'CroctProvider',
-                                            },
-                                            targets: {
-                                                variable: 'children',
+                                                module: '@croct/plug-next/CroctProvider',
                                             },
                                         }),
-                                        new CreateLayoutComponent(),
-                                    ),
+                                        wrapper: {
+                                            module: '@croct/plug-next/CroctProvider',
+                                            component: 'CroctProvider',
+                                        },
+                                        targets: {
+                                            variable: 'children',
+                                        },
+                                    }),
                                 }),
                             ),
                             this.getLinter(),
@@ -263,19 +265,22 @@ export class Cli {
                             new TransformFile(
                                 new ParseCode({
                                     languages: ['typescript', 'jsx'],
-                                    codemod: new AlternativelyApply(
-                                        new AddWrapper({
-                                            namedExportFallback: false,
-                                            wrapper: {
-                                                module: '@croct/plug-next/CroctProvider',
+                                    codemod: new AddWrapper({
+                                        fallbackToNamedExports: false,
+                                        fallbackCodemod: new CreateAppComponent({
+                                            provider: {
                                                 component: 'CroctProvider',
-                                            },
-                                            targets: {
-                                                component: 'Component',
+                                                module: '@croct/plug-next/CroctProvider',
                                             },
                                         }),
-                                        new CreateAppComponent(),
-                                    ),
+                                        wrapper: {
+                                            module: '@croct/plug-next/CroctProvider',
+                                            component: 'CroctProvider',
+                                        },
+                                        targets: {
+                                            component: 'Component',
+                                        },
+                                    }),
                                 }),
                             ),
                             this.getLinter(),

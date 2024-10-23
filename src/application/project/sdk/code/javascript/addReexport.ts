@@ -22,11 +22,11 @@ export function addReexport(ast: t.File, target: ExportDeclaration): boolean {
     traverse(ast, {
         // export * from 'something'
         // export type * from 'something'
-        ExportAllDeclaration: function accept(path) {
+        ExportAllDeclaration: path => {
             const {node} = path;
 
             if (node.source.value !== target.moduleName) {
-                return false;
+                return path.skip();
             }
 
             const exportKind = node.exportKind ?? 'value';
@@ -60,7 +60,7 @@ export function addReexport(ast: t.File, target: ExportDeclaration): boolean {
         },
         // import {something} from 'something'
         // import {something as somethingElse} from 'something'
-        ExportNamedDeclaration: function accept(path) {
+        ExportNamedDeclaration: path => {
             const {node} = path;
             const source = node.source ?? null;
 

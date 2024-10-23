@@ -32,7 +32,7 @@ export function addImport(ast: t.File, target: ImportDeclaration): ImportResult 
     traverse(ast, {
         // import {something} from 'something'
         // import {something as somethingElse} from 'something'
-        ImportDeclaration: function accept(path) {
+        ImportDeclaration: path => {
             const {node} = path;
 
             if (node.source.value !== target.moduleName) {

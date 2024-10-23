@@ -33,9 +33,9 @@ export function parseConfig(source: string): NextConfig {
     }
 
     traverse(ast, {
-        ObjectProperty: function accept(path) {
+        ObjectProperty: path => {
             if (getIdentifier(path.node.key) !== 'i18n') {
-                return false;
+                return path.skip();
             }
 
             const object = path.node.value;

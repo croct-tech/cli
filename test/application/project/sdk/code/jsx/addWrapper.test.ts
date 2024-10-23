@@ -1,7 +1,9 @@
 import {resolve} from 'path';
+import {addComment, File} from '@babel/types';
 import {AddWrapper, WrapperOptions} from '@/application/project/sdk/code/jsx/addWrapper';
 import {loadFixtures} from '../fixtures';
 import {ParseCode} from '@/application/project/sdk/code/parseCode';
+import {Codemod} from '@/application/project/sdk/code/codemod';
 
 describe('AddWrapper', () => {
     const defaultOptions: WrapperOptions = {
@@ -32,22 +34,22 @@ describe('AddWrapper', () => {
                 },
             },
             'namedExportArrowFunctionWithBody.tsx': {
-                namedExportFallback: true,
+                fallbackToNamedExports: true,
             },
             'namedExportArrowFunction.tsx': {
-                namedExportFallback: true,
+                fallbackToNamedExports: true,
             },
             'namedExportFunctionDeclaration.tsx': {
-                namedExportFallback: true,
+                fallbackToNamedExports: true,
             },
             'namedExportFunctionExpression.tsx': {
-                namedExportFallback: true,
+                fallbackToNamedExports: true,
             },
             'namedSpecifiedExport.tsx': {
-                namedExportFallback: true,
+                fallbackToNamedExports: true,
             },
             'namedExportUnrelated.tsx': {
-                namedExportFallback: true,
+                fallbackToNamedExports: true,
             },
             'defaultExportFunctionReference.tsx': {
                 targets: {
@@ -110,5 +112,64 @@ describe('AddWrapper', () => {
         const output = await transformer.apply(fixture);
 
         expect(output.result).toMatchSnapshot(name);
+    });
+
+    it('should call the fallback codemod when the component is not found', async () => {
+        const codemod: Codemod<File> = {
+            apply: jest.fn((input: File) => {
+                const {body} = input.program;
+
+                addComment(body[0], 'leading', ' This is a comment');
+
+                return Promise.resolve({
+                    modified: true,
+                    result: input,
+                });
+            }),
+        };
+
+        const transformer = new ParseCode({
+            languages: ['typescript', 'jsx'],
+            codemod: new AddWrapper({
+                ...defaultOptions,
+                fallbackCodemod: codemod,
+            }),
+        });
+
+        const {result} = await transformer.apply(`
+            export {Component} from './component';
+        `);
+
+        expect(result).toEqual(
+            '/* This is a comment*/\n'
+            + 'export { Component } from \'./component\';',
+        );
+    });
+
+    it('should not call the fallback codemod when the wrapper is already present', async () => {
+        const codemod: Codemod<File> = {
+            apply: jest.fn(),
+        };
+
+        const transformer = new ParseCode({
+            languages: ['typescript', 'jsx'],
+            codemod: new AddWrapper({
+                ...defaultOptions,
+                fallbackCodemod: codemod,
+            }),
+        });
+
+        const input = [
+            "import {CroctProvider} from '@croct/plug-react';",
+            'export default function Component() {',
+            '  return <CroctProvider/>',
+            '}',
+        ].join('\n');
+
+        const {result} = await transformer.apply(input);
+
+        expect(codemod.apply).not.toHaveBeenCalled();
+
+        expect(result).toEqual(input);
     });
 });

@@ -1,7 +1,7 @@
 import * as t from '@babel/types';
 import traverse, {NodePath} from '@babel/traverse';
 import {ResultCode, Codemod} from '@/application/project/sdk/code/codemod';
-import {ExportMatcher, hasReexport} from '@/application/project/sdk/code/javascript/hasReexport';
+import {hasReexport} from '@/application/project/sdk/code/javascript/hasReexport';
 import {getImportLocalName} from '@/application/project/sdk/code/javascript/getImportLocalName';
 import {addReexport} from '@/application/project/sdk/code/javascript/addReexport';
 import {addImport} from '@/application/project/sdk/code/javascript/addImport';
@@ -22,8 +22,8 @@ type VariableMatch = {
 export type MiddlewareOptions = {
     import: {
         module: string,
-        highOrderFunctionName: string,
-        middlewareFunctionName: string,
+        middlewareFactoryName: string,
+        middlewareName: string,
         configName: string,
         matcherName: string,
         matcherLocalName: string,
@@ -48,31 +48,29 @@ export class ConfigureMiddleware implements Codemod<t.File> {
     public apply(input: t.File): Promise<ResultCode<t.File>> {
         const {body} = input.program;
 
-        const middlewareReexportMatcher = {
-            moduleName: this.options.import.module,
-            importName: this.options.import.middlewareFunctionName,
-        } satisfies ExportMatcher;
-
-        const configReexportMatcher: ExportMatcher = {
+        const isConfigReexported = hasReexport(input, {
             moduleName: this.options.import.module,
             importName: this.options.import.configName,
-        };
+        });
 
-        const reexportedConfig = hasReexport(input, configReexportMatcher);
+        const isMiddlewareReexported = hasReexport(input, {
+            moduleName: this.options.import.module,
+            importName: this.options.import.middlewareName,
+        });
 
-        const localConfig = reexportedConfig
-            ? null
-            : ConfigureMiddleware.findConfig(input);
+        const localConfig = isConfigReexported ? null : ConfigureMiddleware.findConfig(input);
 
-        if (hasReexport(input, middlewareReexportMatcher)) {
-            if (localConfig !== null || reexportedConfig) {
-                // Middleware is already re-exported, consider it refactored
+        if (isMiddlewareReexported) {
+            if (isConfigReexported || localConfig !== null) {
+                // Middleware is re-exported and config is re-exported or found in the source code,
+                // consider the middleware configured
                 return Promise.resolve({
                     modified: false,
                     result: input,
                 });
             }
 
+            // No config found in the source code, add a re-export
             const modified = addReexport(input, {
                 type: 'value',
                 moduleName: this.options.import.module,
@@ -85,24 +83,27 @@ export class ConfigureMiddleware implements Codemod<t.File> {
             });
         }
 
-        const hofLocalName = getImportLocalName(input, {
+        const middlewareFactoryName = getImportLocalName(input, {
             moduleName: this.options.import.module,
-            importName: this.options.import.highOrderFunctionName,
+            importName: this.options.import.middlewareFactoryName,
         });
 
-        const middlewareLocalName = getImportLocalName(input, middlewareReexportMatcher);
+        const middlewareName = getImportLocalName(input, {
+            moduleName: this.options.import.module,
+            importName: this.options.import.middlewareName,
+        });
 
-        const middlewareImports: string[] = [];
+        const existingImports: string[] = [];
 
-        if (hofLocalName !== null) {
-            middlewareImports.push(hofLocalName);
+        if (middlewareFactoryName !== null) {
+            existingImports.push(middlewareFactoryName);
         }
 
-        if (middlewareLocalName !== null) {
-            middlewareImports.push(middlewareLocalName);
+        if (middlewareName !== null) {
+            existingImports.push(middlewareName);
         }
 
-        if (middlewareImports.length > 0 && ConfigureMiddleware.isCalled(input, middlewareImports)) {
+        if (existingImports.length > 0 && ConfigureMiddleware.isCalled(input, existingImports)) {
             // The middleware is already called in the source code, consider it refactored
             return Promise.resolve({
                 modified: false,
@@ -110,25 +111,27 @@ export class ConfigureMiddleware implements Codemod<t.File> {
             });
         }
 
-        const matcherLocalName = localConfig !== null
-            ? getImportLocalName(input, {
+        const matcherName = localConfig === null
+            ? null
+            : getImportLocalName(input, {
                 moduleName: this.options.import.module,
                 importName: this.options.import.matcherName,
-            })
-            : null;
+            });
 
         let middlewareNode = ConfigureMiddleware.refactorMiddleware(
             input,
-            hofLocalName ?? this.options.import.highOrderFunctionName,
+            middlewareFactoryName ?? this.options.import.middlewareFactoryName,
             localConfig !== null && localConfig.matcher ? localConfig.name : undefined,
         );
 
         if (middlewareNode === null) {
             if (localConfig === null) {
+                // No middleware found or configuration object,
+                // just add re-exports
                 const middlewareReexport = addReexport(input, {
                     type: 'value',
                     moduleName: this.options.import.module,
-                    importName: this.options.import.middlewareFunctionName,
+                    importName: this.options.import.middlewareName,
                 });
 
                 const configReexport = addReexport(input, {
@@ -143,16 +146,17 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                 });
             }
 
+            // Configurations found but no middleware, add the middleware
             middlewareNode = t.exportDefaultDeclaration(
                 t.callExpression(
-                    t.identifier(hofLocalName ?? this.options.import.highOrderFunctionName),
+                    t.identifier(middlewareFactoryName ?? this.options.import.middlewareFactoryName),
                     [
                         t.objectExpression([
                             t.objectProperty(
                                 t.identifier('matcher'),
                                 t.memberExpression(
                                     t.identifier(localConfig.name),
-                                    t.identifier(matcherLocalName ?? this.options.import.matcherName),
+                                    t.identifier(matcherName ?? this.options.import.matcherName),
                                 ),
                             ),
                         ]),
@@ -164,7 +168,8 @@ export class ConfigureMiddleware implements Codemod<t.File> {
         }
 
         if (localConfig !== null) {
-            this.configureMatcher(localConfig.object, matcherLocalName ?? this.options.import.matcherLocalName);
+            // Refactor the configuration object to include the matcher property
+            this.configureMatcher(localConfig.object, matcherName ?? this.options.import.matcherLocalName);
 
             const configPosition = body.indexOf(localConfig.root as t.Statement);
             const middlewarePosition = body.indexOf(middlewareNode as t.Statement);
@@ -192,15 +197,17 @@ export class ConfigureMiddleware implements Codemod<t.File> {
             }
         }
 
-        if (hofLocalName === null) {
+        if (middlewareFactoryName === null) {
+            // If no import for the middleware factory was found, add it
             addImport(input, {
                 type: 'value',
                 moduleName: this.options.import.module,
-                importName: this.options.import.highOrderFunctionName,
+                importName: this.options.import.middlewareFactoryName,
             });
         }
 
-        if (localConfig?.matcher === true && matcherLocalName === null) {
+        if (localConfig?.matcher === true && matcherName === null) {
+            // If no import for the matcher was found and a matcher is used in the config, add it
             addImport(input, {
                 type: 'value',
                 moduleName: this.options.import.module,
@@ -299,7 +306,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
         let rootNode: t.Node | null = null;
 
         traverse(ast, {
-            ExportNamedDeclaration: function accept(path) {
+            ExportNamedDeclaration: path => {
                 const {node} = path;
                 const {declaration, specifiers = []} = node;
 
@@ -381,7 +388,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
 
                 return path.skip();
             },
-            ExportDefaultDeclaration: function accept(path) {
+            ExportDefaultDeclaration: path => {
                 const {node} = path;
                 const {declaration} = node;
 
@@ -447,7 +454,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
         let rootNode: t.Node | null = null;
 
         traverse(file, {
-            VariableDeclarator: function accept(path): any {
+            VariableDeclarator: path => {
                 const {node} = path;
 
                 if (t.isIdentifier(node.id) && node.id.name === name) {
@@ -463,7 +470,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
 
                 return path.skip();
             },
-            FunctionDeclaration: function accept(path) {
+            FunctionDeclaration: path => {
                 const {node} = path;
 
                 if (t.isIdentifier(node.id) && node.id.name === name) {
@@ -501,7 +508,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
         let wrapped = false;
 
         traverse(file, {
-            CallExpression: function accept(path): any {
+            CallExpression: path => {
                 const {node} = path;
 
                 if (
@@ -530,7 +537,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
         let config: ConfigVariable | null = null;
 
         traverse(ast, {
-            ExportNamedDeclaration: function accept(path): any {
+            ExportNamedDeclaration: path => {
                 const {declaration, specifiers = []} = path.node;
 
                 // export const config = {}
@@ -632,7 +639,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
         let declarator: VariableMatch | null = null;
 
         traverse(ast, {
-            VariableDeclarator: function accept(path): any {
+            VariableDeclarator: path => {
                 if (!t.isProgram(path.parentPath.parent)) {
                     return path.skip();
                 }
@@ -739,7 +746,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
 
         // Visit the origin node to find identifier references
         traverse(root, {
-            enter: function accept(path): any {
+            enter: path => {
                 const {node} = path;
 
                 if (node !== origin) {
@@ -747,7 +754,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                 }
 
                 path.traverse({
-                    Identifier: function acceptNested(nestedPath): any {
+                    Identifier: function acceptNested(nestedPath) {
                         const identifier = nestedPath.node;
 
                         if (ConfigureMiddleware.isVariableReference(nestedPath.parent, identifier)) {
@@ -766,7 +773,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
 
         // Visit the root node to collect variable, function, and class declarations that match the found names
         traverse(root, {
-            VariableDeclarator: function accept(path): any {
+            VariableDeclarator: path => {
                 if (!t.isProgram(path.parentPath.parent)) {
                     return path.skip();
                 }
@@ -779,7 +786,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
 
                 return path.skip();
             },
-            FunctionDeclaration: function accept(path): any {
+            FunctionDeclaration: path => {
                 if (!t.isProgram(path.parent)) {
                     return;
                 }
@@ -792,7 +799,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
 
                 return path.skip();
             },
-            ClassDeclaration: function accept(path): any {
+            ClassDeclaration: path => {
                 if (!t.isProgram(path.parent)) {
                     return;
                 }

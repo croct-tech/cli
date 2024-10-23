@@ -1,5 +1,5 @@
 import generate from '@babel/generator';
-import {cloneNode, File} from '@babel/types';
+import {cloneNode, File, isNodesEquivalent} from '@babel/types';
 import traverse from '@babel/traverse';
 import {addImport, ImportDeclaration, ImportResult} from '@/application/project/sdk/code/javascript/addImport';
 import {parse} from '@/application/project/sdk/code/parser';
@@ -270,8 +270,23 @@ describe('addImport', () => {
                 code: 'import { type sdk as alias } from "croct";',
             },
         },
+        {
+            description: 'modify the most specific import',
+            code: 'import { somethingElse } from "croct";\nimport type { something } from "croct";',
+            declaration: {
+                type: 'value',
+                moduleName: 'croct',
+                importName: 'something',
+            },
+            expected: {
+                modified: true,
+                localName: 'something',
+                code: 'import { somethingElse } from "croct";\nimport { something } from "croct";',
+            },
+        },
     ])('should $description', ({code, declaration, expected}) => {
-        const parsedAst = parse(code, ['typescript']);
+        const ast = parse(code, ['typescript']);
+        const parsedAst = cloneNode(ast, true);
         const modifiedAst = cloneNode(parsedAst, true);
 
         clearImportKind(modifiedAst);
@@ -290,6 +305,7 @@ describe('addImport', () => {
 
         expect(parsedResult).toEqual(expected);
         expect(modifiedResult).toEqual(expected);
+        expect(isNodesEquivalent(ast, parsedAst)).toBe(!expected.modified);
     });
 
     function clearImportKind(file: File): void {
