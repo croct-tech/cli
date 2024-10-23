@@ -1,5 +1,5 @@
-import {namedTypes as Ast} from 'ast-types';
-import {visit} from 'recast';
+import * as t from '@babel/types';
+import traverse from '@babel/traverse';
 import {parse} from '@/application/project/sdk/code/parser';
 
 export type NextConfig = {
@@ -22,7 +22,7 @@ export function parseConfig(source: string): NextConfig {
         locales: Array<string>(),
     };
 
-    let ast: Ast.Node;
+    let ast: t.File;
 
     try {
         ast = parse(source, ['jsx', 'typescript']);
@@ -32,51 +32,55 @@ export function parseConfig(source: string): NextConfig {
         };
     }
 
-    visit(ast, {
-        visitObjectProperty: function accept(path) {
-            if (!Ast.Identifier.check(path.node.key) || path.node.key.name !== 'i18n') {
+    traverse(ast, {
+        ObjectProperty: function accept(path) {
+            if (getIdentifier(path.node.key) !== 'i18n') {
                 return false;
             }
 
             const object = path.node.value;
 
-            if (!Ast.ObjectExpression.check(object)) {
-                return this.abort();
+            if (!t.isObjectExpression(object)) {
+                return path.stop();
             }
 
             for (const property of object.properties) {
-                if (
-                    Ast.ObjectProperty.check(property)
-                    && Ast.Identifier.check(property.key)
-                    && property.key.name === 'locales'
-                ) {
+                if (t.isObjectProperty(property) && getIdentifier(property.key) === 'locales') {
                     const localesNode = property.value;
 
-                    if (Ast.ArrayExpression.check(localesNode)) {
+                    if (t.isArrayExpression(localesNode)) {
                         for (const element of localesNode.elements) {
-                            if (element !== null && Ast.StringLiteral.check(element)) {
+                            if (element !== null && t.isStringLiteral(element)) {
                                 i18n.locales.push(element.value);
                             }
                         }
                     }
-                } else if (
-                    Ast.ObjectProperty.check(property)
-                    && Ast.Identifier.check(property.key)
-                    && property.key.name === 'defaultLocale'
-                ) {
+                } else if (t.isObjectProperty(property) && getIdentifier(property.key) === 'defaultLocale') {
                     const defaultLocaleNode = property.value;
 
-                    if (defaultLocaleNode !== null && Ast.StringLiteral.check(defaultLocaleNode)) {
+                    if (defaultLocaleNode !== null && t.isStringLiteral(defaultLocaleNode)) {
                         i18n.defaultLocale = defaultLocaleNode.value;
                     }
                 }
             }
 
-            return this.abort();
+            return path.stop();
         },
     });
 
     return {
         i18n: i18n,
     };
+}
+
+function getIdentifier(node: t.Node): string|null {
+    if (t.isIdentifier(node)) {
+        return node.name;
+    }
+
+    if (t.isStringLiteral(node)) {
+        return node.value;
+    }
+
+    return null;
 }

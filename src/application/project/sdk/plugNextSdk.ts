@@ -13,8 +13,8 @@ import {Codemod} from '@/application/project/sdk/code/codemod';
 import {hasImport} from '@/application/project/sdk/code/javascript/hasImport';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {formatMessage} from '@/application/error';
-import type {LayoutComponentOptions} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
-import type {AppComponentOptions} from '@/application/project/sdk/code/nextjs/createAppComponent';
+import type {ComponentOptions} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
+import type {ComponentOptions} from '@/application/project/sdk/code/nextjs/createAppComponent';
 
 type ApiConfiguration = {
     user: UserApi,
@@ -24,8 +24,8 @@ type ApiConfiguration = {
 
 type CodemodConfiguration = {
     middleware: Codemod<string>,
-    appRouterProvider: Codemod<string, LayoutComponentOptions>,
-    pageRouterProvider: Codemod<string, AppComponentOptions>,
+    appRouterProvider: Codemod<string, ComponentOptions>,
+    pageRouterProvider: Codemod<string, ComponentOptions>,
 };
 
 export type Configuration = {

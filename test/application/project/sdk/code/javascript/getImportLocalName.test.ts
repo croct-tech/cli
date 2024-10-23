@@ -64,6 +64,15 @@ describe('getImportLocalName', () => {
             expected: 'sdk',
         },
         {
+            description: 'return the local name of a literal named import',
+            code: 'import {"sdk" as alias} from \'croct\';',
+            matcher: {
+                moduleName: 'croct',
+                importName: 'sdk',
+            },
+            expected: 'alias',
+        },
+        {
             description: 'return the local name of the named import when it is aliased',
             code: 'import {sdk as alias} from \'croct\';',
             matcher: {

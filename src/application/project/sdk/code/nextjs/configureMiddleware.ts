@@ -1,28 +1,23 @@
-/* eslint-disable no-param-reassign -- False positives */
-import {visit} from 'recast';
-import {namedTypes as Ast, builders as builder} from 'ast-types';
-import {NodePath} from 'ast-types/node-path';
+import * as t from '@babel/types';
+import traverse, {NodePath} from '@babel/traverse';
 import {ResultCode, Codemod} from '@/application/project/sdk/code/codemod';
 import {ExportMatcher, hasReexport} from '@/application/project/sdk/code/javascript/hasReexport';
 import {getImportLocalName} from '@/application/project/sdk/code/javascript/getImportLocalName';
-
-type ExpressionKind = Parameters<typeof builder.callExpression>[0];
-type ExportDeclaration = Ast.ExportNamedDeclaration | Ast.ExportDefaultDeclaration;
+import {addReexport} from '@/application/project/sdk/code/javascript/addReexport';
+import {addImport} from '@/application/project/sdk/code/javascript/addImport';
 
 type ConfigVariable = {
     name: string,
-    root: Ast.Node,
-    object: Ast.ObjectExpression,
+    root: t.Node,
+    object: t.ObjectExpression,
     matcher: boolean,
 };
 
 type VariableMatch = {
     name: string,
-    root: Ast.Node,
-    declaration: Ast.VariableDeclarator,
+    root: t.Node,
+    declaration: t.VariableDeclarator,
 };
-
-type StatementKind = Ast.Program['body'][number];
 
 export type MiddlewareOptions = {
     import: {
@@ -43,14 +38,14 @@ export type MiddlewareOptions = {
  * work correctly. It can also detect if the middleware is already configured
  * or missing configuration and apply the necessary changes.
  */
-export class ConfigureMiddleware implements Codemod<Ast.File> {
+export class ConfigureMiddleware implements Codemod<t.File> {
     private readonly options: MiddlewareOptions;
 
     public constructor(options: MiddlewareOptions) {
         this.options = options;
     }
 
-    public apply(input: Ast.File): Promise<ResultCode<Ast.File>> {
+    public apply(input: t.File): Promise<ResultCode<t.File>> {
         const {body} = input.program;
 
         const middlewareReexportMatcher = {
@@ -67,7 +62,7 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
 
         const localConfig = reexportedConfig
             ? null
-            : ConfigureMiddleware.findConfig(input.program);
+            : ConfigureMiddleware.findConfig(input);
 
         if (hasReexport(input, middlewareReexportMatcher)) {
             if (localConfig !== null || reexportedConfig) {
@@ -78,21 +73,14 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
                 });
             }
 
-            body.push(
-                builder.exportNamedDeclaration.from({
-                    declaration: null,
-                    source: builder.literal(this.options.import.module),
-                    specifiers: [
-                        builder.exportSpecifier.from({
-                            exported: builder.identifier(this.options.import.configName),
-                            local: builder.identifier(this.options.import.configName),
-                        }),
-                    ],
-                }),
-            );
+            const modified = addReexport(input, {
+                type: 'value',
+                moduleName: this.options.import.module,
+                importName: this.options.import.configName,
+            });
 
             return Promise.resolve({
-                modified: true,
+                modified: modified,
                 result: input,
             });
         }
@@ -137,58 +125,49 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
 
         if (middlewareNode === null) {
             if (localConfig === null) {
-                body.push(
-                    builder.exportNamedDeclaration.from({
-                        declaration: null,
-                        source: builder.literal(this.options.import.module),
-                        specifiers: [
-                            builder.exportSpecifier.from({
-                                exported: builder.identifier(this.options.import.middlewareFunctionName),
-                                local: builder.identifier(this.options.import.middlewareFunctionName),
-                            }),
-                            ...(reexportedConfig
-                                ? []
-                                : [builder.exportSpecifier.from({
-                                    exported: builder.identifier(this.options.import.configName),
-                                    local: builder.identifier(this.options.import.configName),
-                                })]
-                            ),
-                        ],
-                    }),
-                );
+                const middlewareReexport = addReexport(input, {
+                    type: 'value',
+                    moduleName: this.options.import.module,
+                    importName: this.options.import.middlewareFunctionName,
+                });
+
+                const configReexport = addReexport(input, {
+                    type: 'value',
+                    moduleName: this.options.import.module,
+                    importName: this.options.import.configName,
+                });
 
                 return Promise.resolve({
-                    modified: true,
+                    modified: middlewareReexport || configReexport,
                     result: input,
                 });
             }
 
-            middlewareNode = builder.exportDefaultDeclaration.from({
-                declaration: builder.callExpression.from({
-                    callee: builder.identifier(hofLocalName ?? this.options.import.highOrderFunctionName),
-                    arguments: [
-                        builder.objectExpression([
-                            builder.property(
-                                'init',
-                                builder.identifier('matcher'),
-                                builder.memberExpression(
-                                    builder.identifier(localConfig.name),
-                                    builder.identifier(matcherLocalName ?? this.options.import.matcherName),
+            middlewareNode = t.exportDefaultDeclaration(
+                t.callExpression(
+                    t.identifier(hofLocalName ?? this.options.import.highOrderFunctionName),
+                    [
+                        t.objectExpression([
+                            t.objectProperty(
+                                t.identifier('matcher'),
+                                t.memberExpression(
+                                    t.identifier(localConfig.name),
+                                    t.identifier(matcherLocalName ?? this.options.import.matcherName),
                                 ),
                             ),
                         ]),
                     ],
-                }),
-            });
+                ),
+            );
 
-            body.push(middlewareNode as StatementKind);
+            body.push(middlewareNode);
         }
 
         if (localConfig !== null) {
             this.configureMatcher(localConfig.object, matcherLocalName ?? this.options.import.matcherLocalName);
 
-            const configPosition = body.indexOf(localConfig.root as StatementKind);
-            const middlewarePosition = body.indexOf(middlewareNode as StatementKind);
+            const configPosition = body.indexOf(localConfig.root as t.Statement);
+            const middlewarePosition = body.indexOf(middlewareNode as t.Statement);
 
             if (configPosition > middlewarePosition) {
                 /*
@@ -204,7 +183,7 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
 
                 // Move any references of the config object alongside it
                 for (const reference of ConfigureMiddleware.findReferencesFrom(localConfig.root, input.program)) {
-                    const referencePosition = body.indexOf(reference as StatementKind);
+                    const referencePosition = body.indexOf(reference as t.Statement);
 
                     if (referencePosition > middlewarePosition) {
                         body.splice(middlewarePosition, 0, ...body.splice(referencePosition, 1));
@@ -213,30 +192,22 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
             }
         }
 
-        const specifiers: Ast.ImportSpecifier[] = [];
-
         if (hofLocalName === null) {
-            specifiers.push(builder.importSpecifier(builder.identifier(this.options.import.highOrderFunctionName)));
+            addImport(input, {
+                type: 'value',
+                moduleName: this.options.import.module,
+                importName: this.options.import.highOrderFunctionName,
+                localName: this.options.import.highOrderFunctionName,
+            });
         }
 
         if (localConfig?.matcher === true && matcherLocalName === null) {
-            specifiers.push(
-                builder.importSpecifier(
-                    builder.identifier(this.options.import.matcherName),
-                    this.options.import.matcherLocalName === this.options.import.matcherName
-                        ? null
-                        : builder.identifier(this.options.import.matcherLocalName),
-                ),
-            );
-        }
-
-        if (specifiers.length > 0) {
-            body.unshift(
-                builder.importDeclaration(
-                    specifiers,
-                    builder.literal(this.options.import.module),
-                ),
-            );
+            addImport(input, {
+                type: 'value',
+                moduleName: this.options.import.module,
+                importName: this.options.import.matcherName,
+                localName: this.options.import.matcherLocalName,
+            });
         }
 
         return Promise.resolve({
@@ -252,21 +223,21 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
      * @param matcherName The name of the matcher identifier.
      * @return true if the config object was modified, false otherwise.
      */
-    private configureMatcher(configObject: Ast.ObjectExpression, matcherName: string): boolean {
+    private configureMatcher(configObject: t.ObjectExpression, matcherName: string): boolean {
         let modified = false;
 
         // Loop through the config properties to locate the 'matcher' property
         for (const property of configObject.properties) {
             if (
-                Ast.ObjectProperty.check(property)
-                && Ast.Identifier.check(property.key)
+                t.isObjectProperty(property)
+                && t.isIdentifier(property.key)
                 && property.key.name === 'matcher'
             ) {
-                if (Ast.StringLiteral.check(property.value)) {
+                if (t.isStringLiteral(property.value)) {
                     // Wrap single matcher string in an array and add 'matcher' identifier
-                    property.value = builder.arrayExpression([
+                    property.value = t.arrayExpression([
                         property.value,
-                        builder.identifier(matcherName),
+                        t.identifier(matcherName),
                     ]);
 
                     modified = true;
@@ -274,11 +245,11 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
                     break;
                 }
 
-                if (Ast.ArrayExpression.check(property.value)) {
+                if (t.isArrayExpression(property.value)) {
                     const {elements} = property.value;
 
-                    if (!elements.some(element => Ast.Identifier.check(element) && element.name === matcherName)) {
-                        elements.push(builder.identifier(matcherName));
+                    if (!elements.some(element => t.isIdentifier(element) && element.name === matcherName)) {
+                        elements.push(t.identifier(matcherName));
 
                         modified = true;
                     }
@@ -286,27 +257,27 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
                     break;
                 }
 
-                if (Ast.Identifier.check(property.value)) {
+                if (t.isIdentifier(property.value)) {
                     if (property.value.name === matcherName) {
                         break;
                     }
 
                     // Convert matcher identifier into an array, if necessary, and append 'matcher'
-                    property.value = builder.arrayExpression([
-                        builder.spreadElement(
-                            builder.conditionalExpression(
-                                builder.callExpression(
-                                    builder.memberExpression(
-                                        builder.identifier('Array'),
-                                        builder.identifier('isArray'),
+                    property.value = t.arrayExpression([
+                        t.spreadElement(
+                            t.conditionalExpression(
+                                t.callExpression(
+                                    t.memberExpression(
+                                        t.identifier('Array'),
+                                        t.identifier('isArray'),
                                     ),
                                     [property.value],
                                 ),
                                 property.value,
-                                builder.arrayExpression([property.value]),
+                                t.arrayExpression([property.value]),
                             ),
                         ),
-                        builder.identifier(matcherName),
+                        t.identifier(matcherName),
                     ]);
 
                     modified = true;
@@ -325,44 +296,53 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
      * @param configName Optional name of the configuration object variable.
      * @return The root node of the refactored middleware or null if not found.
      */
-    private static refactorMiddleware(ast: Ast.File, functionName: string, configName?: string): Ast.Node | null {
-        let rootNode: Ast.Node | null = null;
+    private static refactorMiddleware(ast: t.File, functionName: string, configName?: string): t.Node | null {
+        let rootNode: t.Node | null = null;
 
-        visit(ast, {
-            visitExportNamedDeclaration: function accept(path) {
+        traverse(ast, {
+            ExportNamedDeclaration: function accept(path) {
                 const {node} = path;
                 const {declaration, specifiers = []} = node;
 
                 // export function middleware() {}
-                if (Ast.FunctionDeclaration.check(declaration)) {
+                if (t.isFunctionDeclaration(declaration)) {
                     if (
-                        Ast.FunctionDeclaration.check(node.declaration)
-                        && Ast.Identifier.check(node.declaration.id)
+                        t.isFunctionDeclaration(node.declaration)
+                        && t.isIdentifier(node.declaration.id)
                         && node.declaration.id.name === 'middleware'
                     ) {
-                        path.replace(
-                            ConfigureMiddleware.wrapExportFunctionDeclaration(
-                                node,
-                                node.declaration,
-                                functionName,
-                                configName,
+                        path.replaceWith(
+                            t.exportNamedDeclaration(
+                                t.variableDeclaration('const', [
+                                    t.variableDeclarator(
+                                        t.identifier('middleware'),
+                                        ConfigureMiddleware.wrapMiddleware(
+                                            t.isFunctionDeclaration(node.declaration)
+                                                ? ConfigureMiddleware.createFunctionExpression(node.declaration)
+                                                : node.declaration,
+                                            functionName,
+                                            configName,
+                                        ),
+                                    ),
+                                ]),
+                                [],
                             ),
                         );
 
                         rootNode = ConfigureMiddleware.getRootNode(path);
 
-                        return this.abort();
+                        return path.stop();
                     }
 
-                    return false;
+                    return path.skip();
                 }
 
                 // export const middleware = function() {}
-                if (Ast.VariableDeclaration.check(declaration)) {
+                if (t.isVariableDeclaration(declaration)) {
                     for (const declarator of declaration.declarations) {
                         if (
-                            Ast.VariableDeclarator.check(declarator)
-                            && Ast.Identifier.check(declarator.id)
+                            t.isVariableDeclarator(declarator)
+                            && t.isIdentifier(declarator.id)
                             && declarator.id.name === 'middleware'
                         ) {
                             const initializer = declarator.init ?? null;
@@ -375,7 +355,7 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
                                 );
                                 rootNode = ConfigureMiddleware.getRootNode(path);
 
-                                return this.abort();
+                                return path.stop();
                             }
                         }
                     }
@@ -384,9 +364,9 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
                 // export {middleware}
                 for (const specifier of specifiers) {
                     if (
-                        Ast.ExportSpecifier.check(specifier)
-                        && Ast.Identifier.check(specifier.exported)
-                        && Ast.Identifier.check(specifier.local)
+                        t.isExportSpecifier(specifier)
+                        && t.isIdentifier(specifier.exported)
+                        && t.isIdentifier(specifier.local)
                         && (['middleware', 'default']).includes(specifier.exported.name)
                     ) {
                         rootNode = ConfigureMiddleware.replaceMiddlewareDeclaration(
@@ -396,20 +376,20 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
                             configName,
                         );
 
-                        return this.abort();
+                        return path.stop();
                     }
                 }
 
-                return false;
+                return path.skip();
             },
-            visitExportDefaultDeclaration: function accept(path) {
+            ExportDefaultDeclaration: function accept(path) {
                 const {node} = path;
                 const {declaration} = node;
 
                 // export default () => {}
-                if (Ast.ArrowFunctionExpression.check(declaration)) {
-                    path.replace(
-                        builder.exportDefaultDeclaration(
+                if (t.isArrowFunctionExpression(declaration)) {
+                    path.replaceWith(
+                        t.exportDefaultDeclaration(
                             ConfigureMiddleware.wrapMiddleware(
                                 declaration,
                                 functionName,
@@ -420,13 +400,13 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
 
                     rootNode = ConfigureMiddleware.getRootNode(path);
 
-                    return this.abort();
+                    return path.stop();
                 }
 
                 // export default function() {}
-                if (Ast.FunctionDeclaration.check(declaration)) {
-                    path.replace(
-                        builder.exportDefaultDeclaration(
+                if (t.isFunctionDeclaration(declaration)) {
+                    path.replaceWith(
+                        t.exportDefaultDeclaration(
                             ConfigureMiddleware.wrapMiddleware(
                                 ConfigureMiddleware.createFunctionExpression(declaration, true),
                                 functionName,
@@ -437,11 +417,11 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
 
                     rootNode = ConfigureMiddleware.getRootNode(path);
 
-                    return this.abort();
+                    return path.stop();
                 }
 
                 // export default middleware
-                if (Ast.Identifier.check(declaration)) {
+                if (t.isIdentifier(declaration)) {
                     rootNode = ConfigureMiddleware.replaceMiddlewareDeclaration(
                         ast,
                         declaration.name,
@@ -449,10 +429,10 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
                         configName,
                     );
 
-                    return this.abort();
+                    return path.stop();
                 }
 
-                return false;
+                return path.skip();
             },
         });
 
@@ -460,18 +440,18 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
     }
 
     private static replaceMiddlewareDeclaration(
-        file: Ast.File,
+        file: t.File,
         name: string,
         functionName: string,
         configName?: string,
-    ): Ast.Node | null {
-        let rootNode: Ast.Node | null = null;
+    ): t.Node | null {
+        let rootNode: t.Node | null = null;
 
-        visit(file, {
-            visitVariableDeclarator: function accept(path): any {
+        traverse(file, {
+            VariableDeclarator: function accept(path): any {
                 const {node} = path;
 
-                if (Ast.Identifier.check(node.id) && node.id.name === name) {
+                if (t.isIdentifier(node.id) && node.id.name === name) {
                     const initializer = node.init ?? null;
 
                     if (initializer !== null) {
@@ -479,21 +459,21 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
                         rootNode = ConfigureMiddleware.getRootNode(path);
                     }
 
-                    return this.abort();
+                    return path.stop();
                 }
 
-                return false;
+                return path.skip();
             },
-            visitFunctionDeclaration: function accept(path) {
+            FunctionDeclaration: function accept(path) {
                 const {node} = path;
 
-                if (Ast.Identifier.check(node.id) && node.id.name === name) {
-                    path.replace(
+                if (t.isIdentifier(node.id) && node.id.name === name) {
+                    path.replaceWith(
                         ConfigureMiddleware.wrapFunctionDeclaration(
                             node,
                             functionName,
                             configName,
-                            Ast.Identifier.check(node.id)
+                            t.isIdentifier(node.id)
                                 ? node.id.name
                                 : undefined,
                         ),
@@ -501,10 +481,10 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
 
                     rootNode = ConfigureMiddleware.getRootNode(path);
 
-                    return this.abort();
+                    return path.stop();
                 }
 
-                return false;
+                return path.skip();
             },
         });
 
@@ -518,23 +498,23 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
      * @param functionNames The names of the functions to search for.
      * @return true if the middleware is called, false otherwise.
      */
-    private static isCalled(file: Ast.File, functionNames: string[]): boolean {
+    private static isCalled(file: t.File, functionNames: string[]): boolean {
         let wrapped = false;
 
-        visit(file, {
-            visitCallExpression: function accept(path): any {
+        traverse(file, {
+            CallExpression: function accept(path): any {
                 const {node} = path;
 
                 if (
-                    Ast.Identifier.check(node.callee)
+                    t.isIdentifier(node.callee)
                     && functionNames.includes(node.callee.name)
                 ) {
                     wrapped = true;
 
-                    return this.abort();
+                    return path.stop();
                 }
 
-                return false;
+                return path.skip();
             },
         });
 
@@ -542,27 +522,27 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
     }
 
     /**
-     * Finds the middleware configuration object in the AST.
+     * Finds the middleware configuration object in the t.
      *
      * @param ast The AST representing the source code.
      * @return The information about the config object or null if not found.
      */
-    private static findConfig(ast: Ast.Program): ConfigVariable | null {
+    private static findConfig(ast: t.File): ConfigVariable | null {
         let config: ConfigVariable | null = null;
 
-        visit(ast, {
-            visitExportNamedDeclaration: function accept(path): any {
+        traverse(ast, {
+            ExportNamedDeclaration: function accept(path): any {
                 const {declaration, specifiers = []} = path.node;
 
                 // export const config = {}
-                if (Ast.VariableDeclaration.check(declaration)) {
+                if (t.isVariableDeclaration(declaration)) {
                     for (const declarator of declaration.declarations) {
                         if (
-                            Ast.VariableDeclarator.check(declarator)
-                            && Ast.Identifier.check(declarator.id)
+                            t.isVariableDeclarator(declarator)
+                            && t.isIdentifier(declarator.id)
                             && declarator.id.name === 'config'
                         ) {
-                            const match = Ast.Identifier.check(declarator.init)
+                            const match = t.isIdentifier(declarator.init)
                                 // export const config = variable
                                 ? ConfigureMiddleware.findVariableDeclarator(ast, declarator.init.name)
                                 : {
@@ -572,10 +552,10 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
                                 };
 
                             if (match === null || match.declaration.init === null) {
-                                return this.abort();
+                                return path.stop();
                             }
 
-                            if (Ast.ObjectExpression.check(match.declaration.init)) {
+                            if (t.isObjectExpression(match.declaration.init)) {
                                 config = {
                                     name: match.name,
                                     root: match.root,
@@ -583,7 +563,7 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
                                     matcher: ConfigureMiddleware.hasMatcherProperty(match.declaration.init),
                                 };
 
-                                return this.abort();
+                                return path.stop();
                             }
                         }
                     }
@@ -592,14 +572,14 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
                 // export {config}
                 for (const specifier of specifiers) {
                     if (
-                        Ast.ExportSpecifier.check(specifier)
-                        && Ast.Identifier.check(specifier.exported)
-                        && Ast.Identifier.check(specifier.local)
+                        t.isExportSpecifier(specifier)
+                        && t.isIdentifier(specifier.exported)
+                        && t.isIdentifier(specifier.local)
                         && specifier.exported.name === 'config'
                     ) {
                         const match = ConfigureMiddleware.findVariableDeclarator(ast, specifier.local.name);
 
-                        if (match !== null && Ast.ObjectExpression.check(match.declaration.init)) {
+                        if (match !== null && t.isObjectExpression(match.declaration.init)) {
                             config = {
                                 name: match.name,
                                 root: match.root,
@@ -608,11 +588,11 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
                             };
                         }
 
-                        return this.abort();
+                        return path.stop();
                     }
                 }
 
-                return false;
+                return path.skip();
             },
         });
 
@@ -625,11 +605,11 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
      * @param configObject The object expression representing the configuration.
      * @return true if the config object contains a 'matcher' property, false otherwise.
      */
-    private static hasMatcherProperty(configObject: Ast.ObjectExpression): boolean {
+    private static hasMatcherProperty(configObject: t.ObjectExpression): boolean {
         for (const property of configObject.properties) {
             if (
-                Ast.ObjectProperty.check(property)
-                && Ast.Identifier.check(property.key)
+                t.isObjectProperty(property)
+                && t.isIdentifier(property.key)
                 && property.key.name === 'matcher'
             ) {
                 return true;
@@ -642,32 +622,32 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
     /**
      * Finds the variable declarator node with the given name.
      *
-     * @param program The AST representing the source code.
+     * @param ast The AST representing the source code.
      * @param name The name of the variable to search for.
      * @return The information about the variable declarator or null if not found.
      */
     private static findVariableDeclarator(
-        program: Ast.Program,
+        ast: t.File,
         name: string,
     ): VariableMatch | null {
         let declarator: VariableMatch | null = null;
 
-        visit(program, {
-            visitVariableDeclarator: function accept(path): any {
-                if (!Ast.Program.check(path.parent.parent.node)) {
-                    return false;
+        traverse(ast, {
+            VariableDeclarator: function accept(path): any {
+                if (!t.isProgram(path.parentPath.parent)) {
+                    return path.skip();
                 }
 
                 const {node} = path;
 
                 if (
-                    Ast.VariableDeclarator.check(node)
-                    && Ast.Identifier.check(node.id)
+                    t.isVariableDeclarator(node)
+                    && t.isIdentifier(node.id)
                     && node.id.name === name
                 ) {
-                    if (Ast.Identifier.check(node.init)) {
+                    if (t.isIdentifier(node.init)) {
                         // If the initializer is an identifier, recursively search for the declaration
-                        declarator = ConfigureMiddleware.findVariableDeclarator(program, node.init.name);
+                        declarator = ConfigureMiddleware.findVariableDeclarator(ast, node.init.name);
                     } else {
                         declarator = {
                             name: name,
@@ -676,10 +656,10 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
                         };
                     }
 
-                    return this.abort();
+                    return path.stop();
                 }
 
-                return false;
+                return path.skip();
             },
         });
 
@@ -694,29 +674,27 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
      * @param configName Optional name of the configuration object variable.
      * @return The transformed middleware node.
      */
-    private static wrapMiddleware(node: ExpressionKind, functionName: string, configName?: string): Ast.CallExpression {
-        return builder.callExpression.from({
-            callee: builder.identifier(functionName),
-            arguments: [
+    private static wrapMiddleware(node: t.Expression, functionName: string, configName?: string): t.CallExpression {
+        return t.callExpression(
+            t.identifier(functionName),
+            [
                 configName !== undefined
-                    ? builder.objectExpression([
-                        builder.property(
-                            'init',
-                            builder.identifier('matcher'),
-                            builder.memberExpression(
-                                builder.identifier(configName),
-                                builder.identifier('matcher'),
+                    ? t.objectExpression([
+                        t.objectProperty(
+                            t.identifier('matcher'),
+                            t.memberExpression(
+                                t.identifier(configName),
+                                t.identifier('matcher'),
                             ),
                         ),
-                        builder.property(
-                            'init',
-                            builder.identifier('next'),
+                        t.objectProperty(
+                            t.identifier('next'),
                             node,
                         ),
                     ])
                     : node,
             ],
-        });
+        );
     }
 
     /**
@@ -729,16 +707,16 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
      * @return A variable declaration that assigns the wrapped middleware to a constant.
      */
     private static wrapFunctionDeclaration(
-        functionDeclaration: Ast.FunctionDeclaration,
+        functionDeclaration: t.FunctionDeclaration,
         functionName: string,
         configName?: string,
         name = 'middleware',
-    ): Ast.VariableDeclaration {
-        return builder.variableDeclaration(
+    ): t.VariableDeclaration {
+        return t.variableDeclaration(
             'const',
             [
-                builder.variableDeclarator(
-                    builder.identifier(name),
+                t.variableDeclarator(
+                    t.identifier(name),
                     ConfigureMiddleware.wrapMiddleware(
                         ConfigureMiddleware.createFunctionExpression(functionDeclaration),
                         functionName,
@@ -750,41 +728,6 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
     }
 
     /**
-     * Wraps an export function declaration with middleware logic.
-     *
-     * @param exportDeclaration The export declaration to wrap.
-     * @param functionDeclaration The function declaration to wrap in middleware.
-     * @param functionName The name of the middleware function.
-     * @param configName Optional name of the configuration object variable.
-     * @return The updated export declaration with wrapped middleware.
-     */
-    private static wrapExportFunctionDeclaration(
-        exportDeclaration: ExportDeclaration,
-        functionDeclaration: Ast.FunctionDeclaration,
-        functionName: string,
-        configName?: string,
-    ): ExportDeclaration {
-        return ConfigureMiddleware.restoreComments(
-            exportDeclaration,
-            builder.exportNamedDeclaration(
-                builder.variableDeclaration('const', [
-                    builder.variableDeclarator(
-                        builder.identifier('middleware'),
-                        ConfigureMiddleware.wrapMiddleware(
-                            Ast.FunctionDeclaration.check(functionDeclaration)
-                                ? ConfigureMiddleware.createFunctionExpression(functionDeclaration)
-                                : functionDeclaration,
-                            functionName,
-                            configName,
-                        ),
-                    ),
-                ]),
-                [],
-            ),
-        );
-    }
-
-    /**
      * Find all references from the origin node.
      *
      * @param origin The node to find references from.
@@ -792,65 +735,76 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
      *
      * @return The list of nodes that reference the origin node without duplicates.
      */
-    private static findReferencesFrom(origin: Ast.Node, root: Ast.Program): Ast.Node[] {
+    private static findReferencesFrom(origin: t.Node, root: t.Program): t.Node[] {
         const names = new Set<string>();
 
         // Visit the origin node to find identifier references
-        visit(origin, {
-            visitIdentifier: function accept(path): any {
+        traverse(root, {
+            enter: function accept(path): any {
                 const {node} = path;
-                const parent = path.parent.node;
 
-                if (ConfigureMiddleware.isVariableReference(parent, node)) {
-                    names.add(node.name);
+                if (node !== origin) {
+                    return;
                 }
 
-                return false;
+                path.traverse({
+                    Identifier: function acceptNested(nestedPath): any {
+                        const identifier = nestedPath.node;
+
+                        if (ConfigureMiddleware.isVariableReference(nestedPath.parent, identifier)) {
+                            names.add(identifier.name);
+                        }
+
+                        return nestedPath.skip();
+                    },
+                });
+
+                return path.stop();
             },
         });
 
-        const references: Ast.Node[] = [];
+        const references: t.Node[] = [];
 
         // Visit the root node to collect variable, function, and class declarations that match the found names
-        visit(root, {
-            visitVariableDeclarator: function accept(path): any {
-                if (!Ast.Program.check(path.parent.parent.node)) {
-                    return false;
+        traverse(root, {
+            VariableDeclarator: function accept(path): any {
+                if (!t.isProgram(path.parentPath.parent)) {
+                    return path.skip();
                 }
 
                 const {node} = path;
 
-                if (Ast.Identifier.check(node.id) && names.has(node.id.name)) {
+                if (t.isIdentifier(node.id) && names.has(node.id.name)) {
                     references.push(ConfigureMiddleware.getRootNode(path));
                 }
 
-                return false;
+                return path.skip();
             },
-            visitFunctionDeclaration: function accept(path): any {
-                if (!Ast.Program.check(path.parent.node)) {
-                    return this.traverse(path);
+            FunctionDeclaration: function accept(path): any {
+                if (!t.isProgram(path.parent)) {
+                    return;
                 }
 
                 const {node} = path;
 
-                if (Ast.Identifier.check(node.id) && names.has(node.id.name)) {
+                if (t.isIdentifier(node.id) && names.has(node.id.name)) {
                     references.push(ConfigureMiddleware.getRootNode(path));
                 }
 
-                return false;
+                return path.skip();
             },
-            visitClassDeclaration: function accept(path): any {
-                if (!Ast.Program.check(path.parent.node)) {
-                    return this.traverse(path);
+            ClassDeclaration: function accept(path): any {
+                if (!t.isProgram(path.parent)) {
+                    return;
                 }
 
                 const {node} = path;
 
-                if (Ast.Identifier.check(node.id) && names.has(node.id.name)) {
+                if (t.isIdentifier(node.id) && names.has(node.id.name)) {
                     references.push(ConfigureMiddleware.getRootNode(path));
                 }
 
-                return false;
+                return path.skip();
             },
         });
 
@@ -874,28 +828,28 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
      *
      * @return true if the identifier is a variable reference, false otherwise.
      */
-    private static isVariableReference(parent: Ast.Node, node: Ast.Identifier): boolean {
-        if (Ast.VariableDeclarator.check(parent)) {
+    private static isVariableReference(parent: t.Node, node: t.Identifier): boolean {
+        if (t.isVariableDeclarator(parent)) {
             return parent.init === node;
         }
 
         if (
-            Ast.ClassProperty.check(parent)
-            || Ast.ObjectProperty.check(parent)
-            || Ast.Property.check(parent)
+            t.isClassProperty(parent)
+            || t.isObjectProperty(parent)
+            || t.isProperty(parent)
         ) {
             return parent.value === node;
         }
 
-        if (Ast.MemberExpression.check(parent)) {
+        if (t.isMemberExpression(parent)) {
             return parent.object === node;
         }
 
-        if (Ast.CallExpression.check(parent) || Ast.NewExpression.check(parent)) {
+        if (t.isCallExpression(parent) || t.isNewExpression(parent)) {
             return parent.callee === node;
         }
 
-        return Ast.Expression.check(parent);
+        return t.isExpression(parent);
     }
 
     /**
@@ -906,16 +860,16 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
      * @return A function expression.
      */
     private static createFunctionExpression(
-        functionDeclaration: Ast.FunctionDeclaration,
+        functionDeclaration: t.FunctionDeclaration,
         named = false,
-    ): Ast.FunctionExpression {
-        return builder.functionExpression.from({
-            id: named ? functionDeclaration.id : null,
-            params: functionDeclaration.params,
-            body: functionDeclaration.body,
-            generator: functionDeclaration.generator,
-            async: functionDeclaration.async,
-        });
+    ): t.FunctionExpression {
+        return t.functionExpression(
+            named ? functionDeclaration.id : null,
+            functionDeclaration.params,
+            functionDeclaration.body,
+            functionDeclaration.generator,
+            functionDeclaration.async,
+        );
     }
 
     /**
@@ -926,30 +880,13 @@ export class ConfigureMiddleware implements Codemod<Ast.File> {
      * @param path The path to find the root node from.
      * @return The root node of the path.
      */
-    private static getRootNode(path: NodePath): Ast.Node {
-        let current = path;
+    private static getRootNode(path: NodePath): t.Node {
+        let current: NodePath = path;
 
-        while (current.parent !== null && !Ast.Program.check(current.parent.node)) {
-            current = current.parent;
+        while (current.parentPath !== null && !t.isProgram(current.parent)) {
+            current = current.parentPath;
         }
 
         return current.node;
-    }
-
-    /**
-     * Restores comments from the source node to the target node.
-     *
-     * @param source The source node containing comments.
-     * @param target The target node to which comments should be copied.
-     * @return The target node with restored comments.
-     */
-    private static restoreComments<T extends Ast.Node>(source: Ast.Node, target: T): T {
-        const comments = source.comments ?? [];
-
-        if (comments.length > 0) {
-            target.comments = comments;
-        }
-
-        return target;
     }
 }

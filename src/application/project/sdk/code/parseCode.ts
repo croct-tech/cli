@@ -1,15 +1,15 @@
-import type {namedTypes as Ast} from 'ast-types';
-import {print} from 'recast';
+import {Node} from '@babel/types';
+import generate from '@babel/generator';
 import {Codemod, CodemodOptions, ResultCode} from '@/application/project/sdk/code/codemod';
 import {Language, parse} from '@/application/project/sdk/code/parser';
 
 export type Configuration<O extends CodemodOptions> = {
-    codemod: Codemod<Ast.Node, O>,
+    codemod: Codemod<Node, O>,
     languages: Language[],
 };
 
 export class ParseCode<O extends CodemodOptions> implements Codemod<string, O> {
-    private readonly codemod: Codemod<Ast.Node, O>;
+    private readonly codemod: Codemod<Node, O>;
 
     private readonly languages: Language[];
 
@@ -30,7 +30,14 @@ export class ParseCode<O extends CodemodOptions> implements Codemod<string, O> {
 
         return {
             modified: true,
-            result: print(result.result).code,
+            result: generate(
+                result.result,
+                {
+                    compact: false,
+                    // retainLines: true,
+                    retainFunctionParens: true,
+                },
+            ).code,
         };
     }
 }

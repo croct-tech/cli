@@ -44,6 +44,52 @@ describe('hasImport', () => {
             expected: true,
         },
         {
+            description: 'match the aliased import name exactly',
+            code: 'import {foo, sdk as croct} from \'croct\';',
+            matcher: {
+                moduleName: 'croct',
+                importName: 'sdk',
+            },
+            expected: true,
+        },
+        {
+            description: 'match the import name and local name exactly',
+            code: 'import {sdk as croct} from \'croct\';',
+            matcher: {
+                moduleName: 'croct',
+                importName: 'sdk',
+                localName: 'croct',
+            },
+            expected: true,
+        },
+        {
+            description: 'match a string local name',
+            code: 'import {"sdk" as croct} from \'croct\';',
+            matcher: {
+                moduleName: 'croct',
+                localName: 'croct',
+            },
+            expected: true,
+        },
+        {
+            description: 'match the local name only',
+            code: 'import {sdk as croct} from \'croct\';',
+            matcher: {
+                moduleName: 'croct',
+                localName: 'croct',
+            },
+            expected: true,
+        },
+        {
+            description: 'match the local name with a regular expression',
+            code: 'import {sdk as croct} from \'croct\';',
+            matcher: {
+                moduleName: 'croct',
+                localName: /croct/,
+            },
+            expected: true,
+        },
+        {
             description: 'not match the module name',
             code: 'import croct from \'croct\';',
             matcher: {
@@ -61,15 +107,6 @@ describe('hasImport', () => {
             expected: false,
         },
         {
-            description: 'match the aliased import name exactly',
-            code: 'import {foo, sdk as croct} from \'croct\';',
-            matcher: {
-                moduleName: 'croct',
-                importName: 'sdk',
-            },
-            expected: true,
-        },
-        {
             description: 'not match the aliased import name',
             code: 'import {foo, sdk as croct} from \'croct\';',
             matcher: {
@@ -77,25 +114,6 @@ describe('hasImport', () => {
                 importName: 'croct-sdk',
             },
             expected: false,
-        },
-        {
-            description: 'match the import name and local name exactly',
-            code: 'import {sdk as croct} from \'croct\';',
-            matcher: {
-                moduleName: 'croct',
-                importName: 'sdk',
-                localName: 'croct',
-            },
-            expected: true,
-        },
-        {
-            description: 'match the local name only',
-            code: 'import {sdk as croct} from \'croct\';',
-            matcher: {
-                moduleName: 'croct',
-                localName: 'croct',
-            },
-            expected: true,
         },
         {
             description: 'not match the local name',
@@ -115,15 +133,6 @@ describe('hasImport', () => {
                 localName: 'wrong',
             },
             expected: false,
-        },
-        {
-            description: 'match the local name with a regular expression',
-            code: 'import {sdk as croct} from \'croct\';',
-            matcher: {
-                moduleName: 'croct',
-                localName: /croct/,
-            },
-            expected: true,
         },
     ])('should $description', ({code, matcher, expected}) => {
         expect(hasImport(code, matcher)).toBe(expected);

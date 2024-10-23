@@ -1,154 +1,117 @@
-import {namedTypes as Ast} from 'ast-types/gen/namedTypes';
-import {builders as builder} from 'ast-types';
+import * as t from '@babel/types';
 import {Codemod, ResultCode} from '@/application/project/sdk/code/codemod';
-import {hasImport} from '@/application/project/sdk/code/javascript/hasImport';
+import {addImport} from '@/application/project/sdk/code/javascript/addImport';
 
-export type LayoutComponentOptions = {
+export type ComponentOptions = {
     typescript?: boolean,
 };
 
-export class CreateLayoutComponent implements Codemod<Ast.File, LayoutComponentOptions> {
-    public apply(input: Ast.File, options: LayoutComponentOptions = {}): Promise<ResultCode<Ast.File>> {
+export type ComponentConfiguration = {
+    provider: {
+        component: string,
+        module: string,
+    },
+};
+
+export class CreateLayoutComponent implements Codemod<t.File, ComponentOptions> {
+    private configuration: ComponentConfiguration;
+
+    public constructor(configuration: ComponentConfiguration) {
+        this.configuration = configuration;
+    }
+
+    public apply(input: t.File, options: ComponentOptions = {}): Promise<ResultCode<t.File>> {
         const isTypescript = options.typescript ?? false;
         const {body} = input.program;
 
-        if (!CreateLayoutComponent.hasImport(input, '@croct/plug-next/CroctProvider', 'CroctProvider')) {
-            body.unshift(
-                builder.importDeclaration.from({
-                    importKind: 'value',
-                    specifiers: [
-                        builder.importSpecifier.from({
-                            imported: builder.identifier('CroctProvider'),
-                        }),
-                    ],
-                    source: builder.literal('@croct/plug-next/CroctProvider'),
-                }),
+        const providerImport = addImport(input, {
+            type: 'value',
+            moduleName: this.configuration.provider.module,
+            importName: this.configuration.provider.component,
+            localName: this.configuration.provider.component,
+        });
+
+        const propsImport = isTypescript
+            ? addImport(input, {
+                type: 'type',
+                moduleName: 'react',
+                importName: 'PropsWithChildren',
+                localName: 'PropsWithChildren',
+            })
+            : null;
+
+        const reactNodeImport = isTypescript
+            ? addImport(input, {
+                type: 'type',
+                moduleName: 'react',
+                importName: 'ReactNode',
+                localName: 'ReactNode',
+            })
+            : null;
+
+        const props = t.objectPattern([
+            t.objectProperty(
+                t.identifier('children'),
+                t.identifier('children'),
+            ),
+        ]);
+
+        if (propsImport !== null) {
+            props.typeAnnotation = t.tsTypeAnnotation(
+                t.tsTypeReference(t.identifier(propsImport.localName)),
             );
         }
 
-        if (isTypescript) {
-            const specifiers: Ast.ImportSpecifier[] = [];
+        const functionDeclaration = t.functionDeclaration(
+            t.identifier('RootLayout'),
+            [props],
+            t.blockStatement([
+                t.returnStatement(
+                    t.parenthesizedExpression(
+                        t.jsxElement(
+                            t.jsxOpeningElement(
+                                t.jsxIdentifier('html'),
+                                [t.jsxAttribute(t.jsxIdentifier('lang'), t.stringLiteral('en'))],
+                            ),
+                            t.jsxClosingElement(t.jsxIdentifier('html')),
+                            [
+                                t.jsxText('\n'),
+                                t.jsxElement(
+                                    t.jsxOpeningElement(t.jsxIdentifier('body'), []),
+                                    t.jsxClosingElement(t.jsxIdentifier('body')),
+                                    [
+                                        t.jsxText('\n'),
+                                        t.jsxElement(
+                                            t.jsxOpeningElement(t.jsxIdentifier(providerImport.localName), []),
+                                            t.jsxClosingElement(t.jsxIdentifier(providerImport.localName)),
+                                            [
+                                                t.jsxText('\n'),
+                                                t.jsxExpressionContainer(t.identifier('children')),
+                                                t.jsxText('\n'),
+                                            ],
+                                        ),
+                                        t.jsxText('\n'),
+                                    ],
+                                ),
+                                t.jsxText('\n'),
+                            ],
+                        ),
+                    ),
+                ),
+            ]),
+        );
 
-            if (!CreateLayoutComponent.hasImport(input, 'react', 'PropsWithChildren')) {
-                specifiers.unshift(
-                    builder.importSpecifier.from({
-                        imported: builder.identifier('PropsWithChildren'),
-                    }),
-                );
-            }
-
-            if (!CreateLayoutComponent.hasImport(input, 'react', 'ReactNode')) {
-                specifiers.unshift(
-                    builder.importSpecifier.from({
-                        imported: builder.identifier('ReactNode'),
-                    }),
-                );
-            }
-
-            if (specifiers.length > 0) {
-                body.push(
-                    builder.importDeclaration.from({
-                        importKind: 'type',
-                        specifiers: specifiers,
-                        source: builder.literal('react'),
-                    }),
-                );
-            }
+        if (reactNodeImport !== null) {
+            functionDeclaration.returnType = t.tsTypeAnnotation(
+                t.tsTypeReference(t.identifier(reactNodeImport.localName)),
+            );
         }
 
-        body.push(
-            builder.exportDefaultDeclaration.from({
-                declaration: builder.functionDeclaration.from({
-                    id: builder.identifier('RootLayout'),
-                    params: [
-                        builder.objectPattern.from({
-                            properties: [
-                                builder.property.from({
-                                    kind: 'init',
-                                    key: builder.identifier('children'),
-                                    value: builder.identifier('children'),
-                                }),
-                            ],
-                            typeAnnotation: isTypescript
-                                ? builder.tsTypeAnnotation.from({
-                                    typeAnnotation: builder.tsTypeReference.from({
-                                        typeName: builder.identifier('PropsWithChildren'),
-                                    }),
-                                })
-                                : null,
-                        }),
-                    ],
-                    returnType: isTypescript
-                        ? builder.tsTypeAnnotation.from({
-                            typeAnnotation: builder.tsTypeReference.from({
-                                typeName: builder.identifier('ReactNode'),
-                            }),
-                        })
-                        : null,
-                    body: builder.blockStatement([
-                        builder.returnStatement(
-                            builder.jsxElement.from({
-                                openingElement: builder.jsxOpeningElement.from({
-                                    name: builder.jsxIdentifier('html'),
-                                    attributes: [
-                                        builder.jsxAttribute.from({
-                                            name: builder.jsxIdentifier('lang'),
-                                            value: builder.literal('en'),
-                                        }),
-                                    ],
-                                }),
-                                closingElement: builder.jsxClosingElement.from({
-                                    name: builder.jsxIdentifier('html'),
-                                }),
-                                children: [
-                                    builder.jsxText('\n'),
-                                    builder.jsxElement.from({
-                                        openingElement: builder.jsxOpeningElement.from({
-                                            name: builder.jsxIdentifier('body'),
-                                        }),
-                                        closingElement: builder.jsxClosingElement.from({
-                                            name: builder.jsxIdentifier('body'),
-                                        }),
-                                        children: [
-                                            builder.jsxText('\n'),
-                                            builder.jsxElement.from({
-                                                openingElement: builder.jsxOpeningElement.from({
-                                                    name: builder.jsxIdentifier('CroctProvider'),
-                                                }),
-                                                closingElement: builder.jsxClosingElement.from({
-                                                    name: builder.jsxIdentifier('CroctProvider'),
-                                                }),
-                                                children: [
-                                                    builder.jsxText('\n'),
-                                                    builder.jsxExpressionContainer.from({
-                                                        expression: builder.identifier('children'),
-                                                    }),
-                                                    builder.jsxText('\n'),
-                                                ],
-                                            }),
-                                            builder.jsxText('\n'),
-                                        ],
-                                    }),
-                                    builder.jsxText('\n'),
-                                ],
-                            }),
-                        ),
-                    ]),
-                }),
-            }),
-        );
+        body.push(t.exportDefaultDeclaration(functionDeclaration));
 
         return Promise.resolve({
             modified: true,
             result: input,
-        });
-    }
-
-    private static hasImport(input: Ast.File, moduleName: string, importName: string): boolean {
-        return hasImport(input, {
-            moduleName: moduleName,
-            importName: importName,
-            localName: importName,
         });
     }
 }

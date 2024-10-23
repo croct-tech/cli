@@ -1,5 +1,5 @@
-import {visit} from 'recast';
-import {namedTypes as Ast} from 'ast-types/gen/namedTypes';
+import * as t from '@babel/types';
+import traverse from '@babel/traverse';
 import {parse} from '@/application/project/sdk/code/parser';
 
 export type ImportMatcher = {
@@ -8,58 +8,54 @@ export type ImportMatcher = {
     localName?: string | RegExp,
 };
 
-export function hasImport(source: string | Ast.Node, matcher: ImportMatcher): boolean {
+export function hasImport(source: string | t.File, matcher: ImportMatcher): boolean {
     const ast = typeof source === 'string'
         ? parse(source, ['jsx', 'typescript'])
         : source;
 
     let found = false;
 
-    visit(ast, {
+    traverse(ast, {
         // import {something} from 'something'
         // import {something as somethingElse} from 'something'
-        visitImportDeclaration: function accept(path) {
+        ImportDeclaration: function accept(path) {
             const {node} = path;
 
-            if (!Ast.StringLiteral.check(node.source) || !matches(node.source.value, matcher.moduleName)) {
-                return false;
+            if (!matches(node.source, matcher.moduleName)) {
+                return path.skip();
             }
 
             if (matcher.importName === undefined && matcher.localName === undefined) {
                 found = true;
 
-                return false;
+                return path.stop();
             }
 
             for (const specifier of node.specifiers ?? []) {
                 if (
-                    Ast.ImportSpecifier.check(specifier)
-                    && (matcher.importName === undefined || (
-                        Ast.Identifier.check(specifier.imported)
-                        && matches(specifier.imported.name, matcher.importName)
-                    ))
-                    && (matcher.localName === undefined || (
-                        Ast.Identifier.check(specifier.local)
-                        && matches(specifier.local.name, matcher.localName)
-                    ))
+                    t.isImportSpecifier(specifier)
+                    && (matcher.importName === undefined || matches(specifier.imported, matcher.importName))
+                    && (matcher.localName === undefined || matches(specifier.local, matcher.localName))
                 ) {
                     found = true;
 
-                    return false;
+                    return path.stop();
                 }
             }
 
-            return false;
+            return path.skip();
         },
     });
 
     return found;
 }
 
-function matches(value: string, matcher: string | RegExp): boolean {
+function matches(value: t.Identifier|t.StringLiteral, matcher: string | RegExp): boolean {
+    const name = t.isIdentifier(value) ? value.name : value.value;
+
     if (typeof matcher === 'string') {
-        return value === matcher;
+        return name === matcher;
     }
 
-    return matcher.test(value);
+    return matcher.test(name);
 }
