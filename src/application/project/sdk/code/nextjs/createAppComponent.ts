@@ -28,7 +28,6 @@ export class CreateAppComponent implements Codemod<t.File, ComponentOptions> {
             type: 'value',
             moduleName: this.configuration.provider.module,
             importName: this.configuration.provider.component,
-            localName: this.configuration.provider.component,
         });
 
         const appPropsImport = isTypescript
@@ -36,7 +35,6 @@ export class CreateAppComponent implements Codemod<t.File, ComponentOptions> {
                 type: 'type',
                 moduleName: 'next/app',
                 importName: 'AppProps',
-                localName: 'AppProps',
             })
             : null;
 
@@ -45,7 +43,6 @@ export class CreateAppComponent implements Codemod<t.File, ComponentOptions> {
                 type: 'type',
                 moduleName: 'react',
                 importName: 'ReactNode',
-                localName: 'ReactNode',
             })
             : null;
 

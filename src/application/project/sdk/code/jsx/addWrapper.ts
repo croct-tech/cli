@@ -71,7 +71,6 @@ export class AddWrapper implements Codemod<t.File> {
             type: 'value',
             moduleName: this.options.wrapper.module,
             importName: this.options.wrapper.component,
-            localName: this.options.wrapper.component,
         });
 
         const component = componentImport.localName ?? this.options.wrapper.component;

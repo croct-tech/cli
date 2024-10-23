@@ -19,10 +19,9 @@ describe('addImport', () => {
             description: 'add a new value import',
             code: '',
             declaration: {
+                type: 'value',
                 moduleName: 'croct',
                 importName: 'sdk',
-                localName: 'sdk',
-                type: 'value',
             },
             expected: {
                 modified: true,
@@ -34,10 +33,10 @@ describe('addImport', () => {
             description: 'add a new aliased value import',
             code: '',
             declaration: {
+                type: 'value',
                 moduleName: 'croct',
                 importName: 'sdk',
                 localName: 'alias',
-                type: 'value',
             },
             expected: {
                 modified: true,
@@ -49,10 +48,9 @@ describe('addImport', () => {
             description: 'add a new type import',
             code: '',
             declaration: {
+                type: 'type',
                 moduleName: 'croct',
                 importName: 'sdk',
-                localName: 'sdk',
-                type: 'type',
             },
             expected: {
                 modified: true,
@@ -64,10 +62,10 @@ describe('addImport', () => {
             description: 'add a new aliased type import',
             code: '',
             declaration: {
+                type: 'type',
                 moduleName: 'croct',
                 importName: 'sdk',
                 localName: 'alias',
-                type: 'type',
             },
             expected: {
                 modified: true,
@@ -79,10 +77,9 @@ describe('addImport', () => {
             description: 'add a new value import to an existing value import',
             code: 'import { other } from "croct";',
             declaration: {
+                importName: 'sdk',
                 type: 'value',
                 moduleName: 'croct',
-                importName: 'sdk',
-                localName: 'sdk',
             },
             expected: {
                 modified: true,
@@ -94,10 +91,9 @@ describe('addImport', () => {
             description: 'add a new value import to an existing type import',
             code: 'import type { other } from "croct";',
             declaration: {
+                type: 'value',
                 moduleName: 'croct',
                 importName: 'sdk',
-                localName: 'sdk',
-                type: 'value',
             },
             expected: {
                 modified: true,
@@ -109,10 +105,9 @@ describe('addImport', () => {
             description: 'add a new type import to an existing type import',
             code: 'import type { other } from "croct";',
             declaration: {
+                type: 'type',
                 moduleName: 'croct',
                 importName: 'sdk',
-                localName: 'sdk',
-                type: 'type',
             },
             expected: {
                 modified: true,
@@ -124,10 +119,9 @@ describe('addImport', () => {
             description: 'add a new type import to an existing value import',
             code: 'import { other } from "croct";',
             declaration: {
+                type: 'type',
                 moduleName: 'croct',
                 importName: 'sdk',
-                localName: 'sdk',
-                type: 'type',
             },
             expected: {
                 modified: true,
@@ -139,10 +133,9 @@ describe('addImport', () => {
             description: 'add a new value import to an existing default import',
             code: 'import croct from "croct";',
             declaration: {
+                type: 'value',
                 moduleName: 'croct',
                 importName: 'sdk',
-                localName: 'sdk',
-                type: 'value',
             },
             expected: {
                 modified: true,
@@ -154,10 +147,9 @@ describe('addImport', () => {
             description: 'add a new type import to an existing default import',
             code: 'import croct from "croct";',
             declaration: {
+                type: 'type',
                 moduleName: 'croct',
                 importName: 'sdk',
-                localName: 'sdk',
-                type: 'type',
             },
             expected: {
                 modified: true,
@@ -169,10 +161,9 @@ describe('addImport', () => {
             description: 'transform a type import into a value import',
             code: 'import type { sdk, something } from "croct";',
             declaration: {
+                type: 'value',
                 moduleName: 'croct',
                 importName: 'sdk',
-                localName: 'sdk',
-                type: 'value',
             },
             expected: {
                 modified: true,
@@ -184,10 +175,9 @@ describe('addImport', () => {
             description: 'transform a type specifier import into a value import',
             code: 'import { type sdk } from "croct";',
             declaration: {
+                type: 'value',
                 moduleName: 'croct',
                 importName: 'sdk',
-                localName: 'sdk',
-                type: 'value',
             },
             expected: {
                 modified: true,
@@ -200,10 +190,9 @@ describe('addImport', () => {
             description: 'reuse an existing value import',
             code: 'import { sdk } from "croct";',
             declaration: {
+                type: 'value',
                 moduleName: 'croct',
                 importName: 'sdk',
-                localName: 'sdk',
-                type: 'value',
             },
             expected: {
                 modified: false,
@@ -215,10 +204,9 @@ describe('addImport', () => {
             description: 'reuse an existing aliased value import',
             code: 'import { sdk as alias } from "croct";',
             declaration: {
+                type: 'value',
                 moduleName: 'croct',
                 importName: 'sdk',
-                localName: 'sdk',
-                type: 'value',
             },
             expected: {
                 modified: false,
@@ -230,10 +218,9 @@ describe('addImport', () => {
             description: 'reuse an existing type import',
             code: 'import type { sdk } from "croct";',
             declaration: {
+                type: 'type',
                 moduleName: 'croct',
                 importName: 'sdk',
-                localName: 'sdk',
-                type: 'type',
             },
             expected: {
                 modified: false,
@@ -245,10 +232,9 @@ describe('addImport', () => {
             description: 'reuse an existing aliased type import',
             code: 'import type { sdk as alias } from "croct";',
             declaration: {
+                type: 'type',
                 moduleName: 'croct',
                 importName: 'sdk',
-                localName: 'sdk',
-                type: 'type',
             },
             expected: {
                 modified: false,
@@ -260,10 +246,9 @@ describe('addImport', () => {
             description: 'reuse an existing type specifier import',
             code: 'import { type sdk } from "croct";',
             declaration: {
+                type: 'type',
                 moduleName: 'croct',
                 importName: 'sdk',
-                localName: 'sdk',
-                type: 'type',
             },
             expected: {
                 modified: false,
@@ -275,10 +260,9 @@ describe('addImport', () => {
             description: 'reuse an existing aliased type specifier import',
             code: 'import { type sdk as alias } from "croct";',
             declaration: {
+                type: 'type',
                 moduleName: 'croct',
                 importName: 'sdk',
-                localName: 'sdk',
-                type: 'type',
             },
             expected: {
                 modified: false,

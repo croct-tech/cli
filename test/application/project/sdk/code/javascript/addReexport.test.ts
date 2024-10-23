@@ -18,8 +18,8 @@ describe('addReexport', () => {
             description: 'add a new value wildcard export',
             code: '',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
             },
             modified: true,
             result: 'export * from "croct";',
@@ -28,8 +28,8 @@ describe('addReexport', () => {
             description: 'add a new type wildcard export',
             code: '',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
             },
             modified: true,
             result: 'export type * from "croct";',
@@ -38,8 +38,8 @@ describe('addReexport', () => {
             description: 'add a new value namespace export',
             code: '',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
                 exportName: 'all',
             },
             modified: true,
@@ -49,8 +49,8 @@ describe('addReexport', () => {
             description: 'add a new type namespace export',
             code: '',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
                 exportName: 'all',
             },
             modified: true,
@@ -60,8 +60,8 @@ describe('addReexport', () => {
             description: 'add a new named value export',
             code: '',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
                 importName: 'sdk',
                 exportName: 'sdk',
             },
@@ -72,8 +72,8 @@ describe('addReexport', () => {
             description: 'add a new named type export',
             code: '',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
                 importName: 'sdk',
                 exportName: 'sdk',
             },
@@ -84,8 +84,8 @@ describe('addReexport', () => {
             description: 'add a new aliased value export',
             code: '',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
                 importName: 'sdk',
                 exportName: 'alias',
             },
@@ -96,8 +96,8 @@ describe('addReexport', () => {
             description: 'add a new aliased type export',
             code: '',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
                 importName: 'sdk',
                 exportName: 'alias',
             },
@@ -152,8 +152,8 @@ describe('addReexport', () => {
             description: 'reuse an existing value wildcard export',
             code: 'export * from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
             },
             modified: false,
             result: 'export * from "croct";',
@@ -162,8 +162,8 @@ describe('addReexport', () => {
             description: 'reuse an existing value wildcard export to export all types',
             code: 'export * from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
             },
             modified: false,
             result: 'export * from "croct";',
@@ -172,8 +172,8 @@ describe('addReexport', () => {
             description: 'reuse an existing type wildcard export',
             code: 'export type * from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
             },
             modified: false,
             result: 'export type * from "croct";',
@@ -182,8 +182,8 @@ describe('addReexport', () => {
             description: 'reuse an existing type wildcard export to export all values',
             code: 'export type * from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
             },
             modified: true,
             result: 'export * from "croct";',
@@ -192,8 +192,8 @@ describe('addReexport', () => {
             description: 'reuse an existing value wildcard export to export a named value',
             code: 'export * from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
                 importName: 'sdk',
             },
             modified: false,
@@ -203,8 +203,8 @@ describe('addReexport', () => {
             description: 'reuse an existing type wildcard export to export a named type',
             code: 'export type * from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
                 importName: 'sdk',
             },
             modified: false,
@@ -214,8 +214,8 @@ describe('addReexport', () => {
             description: 'ignore an existing value wildcard export to export an aliased value',
             code: 'export * from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
                 importName: 'sdk',
                 exportName: 'alias',
             },
@@ -226,8 +226,8 @@ describe('addReexport', () => {
             description: 'ignore an existing type wildcard export to export an aliased type',
             code: 'export type * from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
                 importName: 'sdk',
                 exportName: 'alias',
             },
@@ -238,8 +238,8 @@ describe('addReexport', () => {
             description: 'ignore an existing wildcard type export to export a value',
             code: 'export type * from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
                 importName: 'sdk',
             },
             modified: true,
@@ -249,8 +249,8 @@ describe('addReexport', () => {
             description: 'ignore an existing wildcard type export to export an aliased value',
             code: 'export type * from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
                 importName: 'sdk',
                 exportName: 'alias',
             },
@@ -261,8 +261,8 @@ describe('addReexport', () => {
             description: 'reuse an existing value wildcard export to export a named type',
             code: 'export * from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
                 importName: 'sdk',
             },
             modified: false,
@@ -272,8 +272,8 @@ describe('addReexport', () => {
             description: 'ignore an existing value wildcard export to export an aliased type',
             code: 'export * from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
                 importName: 'sdk',
                 exportName: 'alias',
             },
@@ -296,8 +296,8 @@ describe('addReexport', () => {
             description: 'reuse an existing named value export',
             code: 'export { sdk } from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
                 importName: 'sdk',
                 exportName: 'sdk',
             },
@@ -330,8 +330,8 @@ describe('addReexport', () => {
             description: 'reuse an existing named type export',
             code: 'export type { sdk } from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
                 importName: 'sdk',
                 exportName: 'sdk',
             },
@@ -342,8 +342,8 @@ describe('addReexport', () => {
             description: 'reuse an existing aliased value export',
             code: 'export { sdk as alias } from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
                 importName: 'sdk',
                 exportName: 'alias',
             },
@@ -354,8 +354,8 @@ describe('addReexport', () => {
             description: 'reuse an existing aliased type export',
             code: 'export type { sdk as alias } from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
                 importName: 'sdk',
                 exportName: 'alias',
             },
@@ -366,8 +366,8 @@ describe('addReexport', () => {
             description: 'add a named value export to an existing named export',
             code: 'export { sdk } from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
                 importName: 'other',
             },
             modified: true,
@@ -377,8 +377,8 @@ describe('addReexport', () => {
             description: 'add a named tyoe export to an existing named export',
             code: 'export type { sdk } from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
                 importName: 'other',
             },
             modified: true,
@@ -388,8 +388,8 @@ describe('addReexport', () => {
             description: 'add an aliased value export to an existing named export',
             code: 'export { sdk } from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
                 importName: 'other',
                 exportName: 'alias',
             },
@@ -400,8 +400,8 @@ describe('addReexport', () => {
             description: 'add an aliased type export to an existing named export',
             code: 'export type { sdk } from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
                 importName: 'other',
                 exportName: 'alias',
             },
@@ -412,8 +412,8 @@ describe('addReexport', () => {
             description: 'add a named value export to an existing type export',
             code: 'export type { sdk } from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
                 importName: 'other',
             },
             modified: true,
@@ -423,8 +423,8 @@ describe('addReexport', () => {
             description: 'add a named type export to an existing value export',
             code: 'export { sdk } from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
                 importName: 'other',
             },
             modified: true,
@@ -434,8 +434,8 @@ describe('addReexport', () => {
             description: 'replace all named exports with a wildcard export',
             code: 'export { sdk } from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
             },
             modified: true,
             result: 'export * from "croct";',
@@ -444,8 +444,8 @@ describe('addReexport', () => {
             description: 'keep aliased exports adding a wildcard export',
             code: 'export { sdk as alias } from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
             },
             modified: true,
             result: 'export { sdk as alias } from "croct";\nexport * from "croct";',
@@ -454,8 +454,8 @@ describe('addReexport', () => {
             description: 'keep namespaced exports adding a wildcard export',
             code: 'export * as sdk from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
             },
             modified: true,
             result: 'export * as sdk from "croct";\nexport * from "croct";',
@@ -464,8 +464,8 @@ describe('addReexport', () => {
             description: 'replace type exports with a wildcard export',
             code: 'export {type sdk} from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
             },
             modified: true,
             result: 'export * from "croct";',
@@ -474,8 +474,8 @@ describe('addReexport', () => {
             description: 'replace type and value exports with a wildcard export',
             code: 'export {content, type sdk} from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'value',
+                moduleName: 'croct',
             },
             modified: true,
             result: 'export * from "croct";',
@@ -484,8 +484,8 @@ describe('addReexport', () => {
             description: 'remove type exports adding a type wildcard export',
             code: 'export {content, type sdk} from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
             },
             modified: true,
             result: 'export { content } from "croct";\nexport type * from "croct";',
@@ -494,8 +494,8 @@ describe('addReexport', () => {
             description: 'keep aliased exports adding a type wildcard export',
             code: 'export {content as contentAlias, type sdk as sdkType} from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
             },
             modified: true,
             result: 'export { content as contentAlias, type sdk as sdkType } from "croct";\n'
@@ -505,8 +505,8 @@ describe('addReexport', () => {
             description: 'keep aliased exports adding a value wildcard export',
             code: 'export {content as contentAlias, type sdk as sdkType} from "croct";',
             declaration: {
-                moduleName: 'croct',
                 type: 'type',
+                moduleName: 'croct',
             },
             modified: true,
             result: 'export { content as contentAlias, type sdk as sdkType } from "croct";\n'

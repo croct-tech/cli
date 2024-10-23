@@ -5,7 +5,7 @@ export type ImportDeclaration = {
     type: 'value' | 'type',
     moduleName: string,
     importName: string,
-    localName: string,
+    localName?: string,
 };
 
 export type ImportResult = {
@@ -92,7 +92,7 @@ export function addImport(ast: t.File, target: ImportDeclaration): ImportResult 
 
                 if (match.localName === undefined) {
                     const specifier = t.importSpecifier(
-                        t.identifier(target.localName),
+                        t.identifier(target.localName ?? target.importName),
                         t.identifier(target.importName),
                     );
 
@@ -103,7 +103,7 @@ export function addImport(ast: t.File, target: ImportDeclaration): ImportResult 
 
                 return {
                     modified: true,
-                    localName: match.localName ?? target.localName,
+                    localName: match.localName ?? target.importName,
                 };
             }
 
@@ -125,7 +125,7 @@ export function addImport(ast: t.File, target: ImportDeclaration): ImportResult 
 
             if (importKind === 'value' || importKind === target.type) {
                 const specifier = t.importSpecifier(
-                    t.identifier(target.localName),
+                    t.identifier(target.localName ?? target.importName),
                     t.identifier(target.importName),
                 );
 
@@ -137,7 +137,7 @@ export function addImport(ast: t.File, target: ImportDeclaration): ImportResult 
 
                 return {
                     modified: true,
-                    localName: target.localName,
+                    localName: target.localName ?? target.importName,
                 };
             }
         }
@@ -146,7 +146,7 @@ export function addImport(ast: t.File, target: ImportDeclaration): ImportResult 
     const declaration = t.importDeclaration(
         [
             t.importSpecifier(
-                t.identifier(target.localName),
+                t.identifier(target.localName ?? target.importName),
                 t.identifier(target.importName),
             ),
         ],
@@ -163,7 +163,7 @@ export function addImport(ast: t.File, target: ImportDeclaration): ImportResult 
 
     return {
         modified: true,
-        localName: target.localName,
+        localName: target.localName ?? target.importName,
     };
 }
 

@@ -28,7 +28,6 @@ export class CreateLayoutComponent implements Codemod<t.File, ComponentOptions> 
             type: 'value',
             moduleName: this.configuration.provider.module,
             importName: this.configuration.provider.component,
-            localName: this.configuration.provider.component,
         });
 
         const propsImport = isTypescript
@@ -36,7 +35,6 @@ export class CreateLayoutComponent implements Codemod<t.File, ComponentOptions> 
                 type: 'type',
                 moduleName: 'react',
                 importName: 'PropsWithChildren',
-                localName: 'PropsWithChildren',
             })
             : null;
 
@@ -45,7 +43,6 @@ export class CreateLayoutComponent implements Codemod<t.File, ComponentOptions> 
                 type: 'type',
                 moduleName: 'react',
                 importName: 'ReactNode',
-                localName: 'ReactNode',
             })
             : null;
 

@@ -92,17 +92,17 @@ export class ConfigureMiddleware implements Codemod<t.File> {
 
         const middlewareLocalName = getImportLocalName(input, middlewareReexportMatcher);
 
-        const imports: string[] = [];
+        const middlewareImports: string[] = [];
 
         if (hofLocalName !== null) {
-            imports.push(hofLocalName);
+            middlewareImports.push(hofLocalName);
         }
 
         if (middlewareLocalName !== null) {
-            imports.push(middlewareLocalName);
+            middlewareImports.push(middlewareLocalName);
         }
 
-        if (imports.length > 0 && ConfigureMiddleware.isCalled(input, imports)) {
+        if (middlewareImports.length > 0 && ConfigureMiddleware.isCalled(input, middlewareImports)) {
             // The middleware is already called in the source code, consider it refactored
             return Promise.resolve({
                 modified: false,
@@ -197,7 +197,6 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                 type: 'value',
                 moduleName: this.options.import.module,
                 importName: this.options.import.highOrderFunctionName,
-                localName: this.options.import.highOrderFunctionName,
             });
         }
 
