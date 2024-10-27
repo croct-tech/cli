@@ -5,7 +5,6 @@ import {JsonPropertyNode} from './propertyNode';
 import {JsonBooleanNode, JsonNullNode, JsonNumberNode, JsonPrimitiveNode, JsonStringNode} from './primitiveNode';
 import {JsonPrimitiveTokenType, JsonTokenType} from '../token';
 import {JsonTokenNode} from './tokenNode';
-import {SourceLocation} from '../location';
 import {JsonValueNode} from './valueNode';
 
 export namespace JsonValueFactory {
@@ -53,17 +52,12 @@ export namespace JsonValueFactory {
             });
         }
 
-        const token = new JsonTokenNode({
-            type: tokenTypes[typeof value],
-            value: JSON.stringify(value),
-            location: SourceLocation.unknown(),
-        });
-
         return new JsonPrimitiveNode({
-            token: token,
+            token: new JsonTokenNode({
+                type: tokenTypes[typeof value],
+                value: JSON.stringify(value),
+            }),
             value: value,
-            location: SourceLocation.unknown(),
-            children: [token],
         });
     }
 }
