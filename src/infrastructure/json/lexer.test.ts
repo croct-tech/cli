@@ -92,6 +92,22 @@ describe('Lexer', () => {
                         },
                     },
                 },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 13,
+                            line: 2,
+                            column: 5,
+                        },
+                        end: {
+                            index: 13,
+                            line: 2,
+                            column: 5,
+                        },
+                    },
+                },
             ],
         },
         {
@@ -105,6 +121,22 @@ describe('Lexer', () => {
                             index: 0,
                             line: 1,
                             column: 1,
+                        },
+                        end: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
                         },
                         end: {
                             index: 4,
@@ -134,6 +166,22 @@ describe('Lexer', () => {
                         },
                     },
                 },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
             ],
         },
         {
@@ -147,6 +195,22 @@ describe('Lexer', () => {
                             index: 0,
                             line: 1,
                             column: 1,
+                        },
+                        end: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
                         },
                         end: {
                             index: 4,
@@ -176,6 +240,22 @@ describe('Lexer', () => {
                         },
                     },
                 },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 2,
+                            line: 1,
+                            column: 3,
+                        },
+                        end: {
+                            index: 2,
+                            line: 1,
+                            column: 3,
+                        },
+                    },
+                },
             ],
         },
         {
@@ -189,6 +269,22 @@ describe('Lexer', () => {
                             index: 0,
                             line: 1,
                             column: 1,
+                        },
+                        end: {
+                            index: 3,
+                            line: 1,
+                            column: 4,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 3,
+                            line: 1,
+                            column: 4,
                         },
                         end: {
                             index: 3,
@@ -218,6 +314,22 @@ describe('Lexer', () => {
                         },
                     },
                 },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                        end: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                    },
+                },
             ],
         },
         {
@@ -231,6 +343,22 @@ describe('Lexer', () => {
                             index: 0,
                             line: 1,
                             column: 1,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
                         },
                         end: {
                             index: 5,
@@ -260,6 +388,22 @@ describe('Lexer', () => {
                         },
                     },
                 },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                        end: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                    },
+                },
             ],
         },
         {
@@ -273,6 +417,22 @@ describe('Lexer', () => {
                             index: 0,
                             line: 1,
                             column: 1,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
                         },
                         end: {
                             index: 5,
@@ -302,6 +462,22 @@ describe('Lexer', () => {
                         },
                     },
                 },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
             ],
         },
         {
@@ -315,6 +491,22 @@ describe('Lexer', () => {
                             index: 0,
                             line: 1,
                             column: 1,
+                        },
+                        end: {
+                            index: 6,
+                            line: 1,
+                            column: 7,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 6,
+                            line: 1,
+                            column: 7,
                         },
                         end: {
                             index: 6,
@@ -344,6 +536,22 @@ describe('Lexer', () => {
                         },
                     },
                 },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 7,
+                            line: 1,
+                            column: 8,
+                        },
+                        end: {
+                            index: 7,
+                            line: 1,
+                            column: 8,
+                        },
+                    },
+                },
             ],
         },
         {
@@ -357,6 +565,22 @@ describe('Lexer', () => {
                             index: 0,
                             line: 1,
                             column: 1,
+                        },
+                        end: {
+                            index: 7,
+                            line: 1,
+                            column: 8,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 7,
+                            line: 1,
+                            column: 8,
                         },
                         end: {
                             index: 7,
@@ -386,6 +610,22 @@ describe('Lexer', () => {
                         },
                     },
                 },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
             ],
         },
         {
@@ -399,6 +639,22 @@ describe('Lexer', () => {
                             index: 0,
                             line: 1,
                             column: 1,
+                        },
+                        end: {
+                            index: 6,
+                            line: 1,
+                            column: 7,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 6,
+                            line: 1,
+                            column: 7,
                         },
                         end: {
                             index: 6,
@@ -428,6 +684,22 @@ describe('Lexer', () => {
                         },
                     },
                 },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 6,
+                            line: 1,
+                            column: 7,
+                        },
+                        end: {
+                            index: 6,
+                            line: 1,
+                            column: 7,
+                        },
+                    },
+                },
             ],
         },
         {
@@ -441,6 +713,22 @@ describe('Lexer', () => {
                             index: 0,
                             line: 1,
                             column: 1,
+                        },
+                        end: {
+                            index: 7,
+                            line: 1,
+                            column: 8,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 7,
+                            line: 1,
+                            column: 8,
                         },
                         end: {
                             index: 7,
@@ -470,6 +758,22 @@ describe('Lexer', () => {
                         },
                     },
                 },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 8,
+                            line: 1,
+                            column: 9,
+                        },
+                        end: {
+                            index: 8,
+                            line: 1,
+                            column: 9,
+                        },
+                    },
+                },
             ],
         },
         {
@@ -483,6 +787,22 @@ describe('Lexer', () => {
                             index: 0,
                             line: 1,
                             column: 1,
+                        },
+                        end: {
+                            index: 7,
+                            line: 1,
+                            column: 8,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 7,
+                            line: 1,
+                            column: 8,
                         },
                         end: {
                             index: 7,
@@ -512,6 +832,22 @@ describe('Lexer', () => {
                         },
                     },
                 },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 7,
+                            line: 1,
+                            column: 8,
+                        },
+                        end: {
+                            index: 7,
+                            line: 1,
+                            column: 8,
+                        },
+                    },
+                },
             ],
         },
         {
@@ -525,6 +861,22 @@ describe('Lexer', () => {
                             index: 0,
                             line: 1,
                             column: 1,
+                        },
+                        end: {
+                            index: 11,
+                            line: 1,
+                            column: 12,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 11,
+                            line: 1,
+                            column: 12,
                         },
                         end: {
                             index: 11,
@@ -562,6 +914,22 @@ describe('Lexer', () => {
                             index: 1,
                             line: 1,
                             column: 2,
+                        },
+                        end: {
+                            index: 2,
+                            line: 1,
+                            column: 3,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 2,
+                            line: 1,
+                            column: 3,
                         },
                         end: {
                             index: 2,
@@ -671,6 +1039,22 @@ describe('Lexer', () => {
                         },
                     },
                 },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 16,
+                            line: 1,
+                            column: 17,
+                        },
+                        end: {
+                            index: 16,
+                            line: 1,
+                            column: 17,
+                        },
+                    },
+                },
             ],
         },
         {
@@ -772,6 +1156,22 @@ describe('Lexer', () => {
                         },
                     },
                 },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 18,
+                            line: 1,
+                            column: 19,
+                        },
+                        end: {
+                            index: 18,
+                            line: 1,
+                            column: 19,
+                        },
+                    },
+                },
             ],
         },
         {
@@ -817,6 +1217,22 @@ describe('Lexer', () => {
                             index: 2,
                             line: 2,
                             column: 1,
+                        },
+                        end: {
+                            index: 3,
+                            line: 2,
+                            column: 2,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 3,
+                            line: 2,
+                            column: 2,
                         },
                         end: {
                             index: 3,
@@ -878,6 +1294,22 @@ describe('Lexer', () => {
                         },
                     },
                 },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 4,
+                            line: 2,
+                            column: 2,
+                        },
+                        end: {
+                            index: 4,
+                            line: 2,
+                            column: 2,
+                        },
+                    },
+                },
             ],
         },
         {
@@ -915,9 +1347,24 @@ describe('Lexer', () => {
                         },
                     },
                 },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 2,
+                            line: 1,
+                            column: 3,
+                        },
+                        end: {
+                            index: 2,
+                            line: 1,
+                            column: 3,
+                        },
+                    },
+                },
             ],
         },
-        // All together
         {
             input: JSON.stringify(
                 {
@@ -1872,6 +2319,22 @@ describe('Lexer', () => {
                             index: 141,
                             line: 12,
                             column: 1,
+                        },
+                        end: {
+                            index: 142,
+                            line: 12,
+                            column: 2,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 142,
+                            line: 12,
+                            column: 2,
                         },
                         end: {
                             index: 142,
