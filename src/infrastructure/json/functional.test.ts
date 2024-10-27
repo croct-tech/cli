@@ -4,15 +4,6 @@ import {JsonArrayNode, JsonObjectNode, JsonValueNode} from '@/infrastructure/jso
 import {Formatting} from '@/infrastructure/json/node/treeNode';
 
 describe('Functional test', () => {
-    function derive(scenarios: JsonValue[]): string[] {
-        return scenarios.flatMap(
-            value => [
-                JSON.stringify(value),
-                JSON.stringify(value, null, 2),
-            ],
-        );
-    }
-
     it.each(derive([
         1,
         null,
@@ -94,12 +85,12 @@ describe('Functional test', () => {
         {
             description: 'use tab only if the input is indented with tabs',
             // language=JSON
-            input: json`
+            input: multiline`
             {
               \t\r"foo": 1
             }`,
             // language=JSON
-            output: json`
+            output: multiline`
             {
               \t\r"foo": 1,
             \t"bar": 2
@@ -112,12 +103,12 @@ describe('Functional test', () => {
         {
             description: 'use tabs for indentation if detected',
             // language=JSON
-            input: json`
+            input: multiline`
             {
             \t"foo": 1
             }`,
             // language=JSON
-            output: json`
+            output: multiline`
             {
             \t"foo": 1,
             \t"bar": 2
@@ -130,12 +121,12 @@ describe('Functional test', () => {
         {
             description: 'use the same indentation character as the the parent',
             // language=JSON
-            input: json`
+            input: multiline`
             {
             \t"foo": []
             }`,
             // language=JSON
-            output: json`
+            output: multiline`
             {
             \t"foo": [
             \t\t1
@@ -149,13 +140,13 @@ describe('Functional test', () => {
         {
             description: 'use the same character for indentation as the last property',
             // language=JSON
-            input: json`
+            input: multiline`
             {
               "foo": 1,
             \t"bar": 2
             }`,
             // language=JSON
-            output: json`
+            output: multiline`
             {
               "foo": 1,
             \t"bar": 2,
@@ -169,13 +160,13 @@ describe('Functional test', () => {
         {
             description: 'use the same character for indentation as the las element',
             // language=JSON
-            input: json`
+            input: multiline`
             [
              1,
             \t2
             ]`,
             // language=JSON
-            output: json`
+            output: multiline`
             [
              1,
             \t2,
@@ -189,9 +180,9 @@ describe('Functional test', () => {
         {
             description: 'add a property to an empty object with no indentation or spacing',
             // language=JSON
-            input: json`{}`,
+            input: '{}',
             // language=JSON
-            output: json`{"foo":1}`,
+            output: '{"foo":1}',
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
                 node.set('foo', 1);
@@ -200,9 +191,9 @@ describe('Functional test', () => {
         {
             description: 'add an element to an empty array with no indentation or spacing',
             // language=JSON
-            input: json`[]`,
+            input: '[]',
             // language=JSON
-            output: json`[1,2]`,
+            output: '[1,2]',
             type: JsonArrayNode,
             mutation: (node: JsonArrayNode): void => {
                 node.push(1, 2);
@@ -211,9 +202,9 @@ describe('Functional test', () => {
         {
             description: 'add a property to an empty object with spacing but no indentation',
             // language=JSON
-            input: json`{}`,
+            input: '{}',
             // language=JSON
-            output: json`{"foo": 1}`,
+            output: '{"foo": 1}',
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
                 node.set('foo', 1);
@@ -225,9 +216,9 @@ describe('Functional test', () => {
         {
             description: 'add an element to an empty array with spacing but no indentation',
             // language=JSON
-            input: json`[]`,
+            input: '[]',
             // language=JSON
-            output: json`[1, 2]`,
+            output: '[1, 2]',
             type: JsonArrayNode,
             mutation: (node: JsonArrayNode): void => {
                 node.push(1, 2);
@@ -239,9 +230,9 @@ describe('Functional test', () => {
         {
             description: 'add a property to an empty object with indentation but no spacing',
             // language=JSON
-            input: json`{}`,
+            input: '{}',
             // language=JSON
-            output: json`
+            output: multiline`
             {
               "foo":1
             }`,
@@ -256,9 +247,9 @@ describe('Functional test', () => {
         {
             description: 'add an element to an empty array with indentation but no spacing',
             // language=JSON
-            input: json`[]`,
+            input: '[]',
             // language=JSON
-            output: json`
+            output: multiline`
             [
               1,
               2
@@ -274,9 +265,9 @@ describe('Functional test', () => {
         {
             description: 'add a property to an empty object with indentation and spacing',
             // language=JSON
-            input: json`{}`,
+            input: '{}',
             // language=JSON
-            output: json`
+            output: multiline`
             {
               "foo": 1
             }`,
@@ -292,9 +283,9 @@ describe('Functional test', () => {
         {
             description: 'add an element to an empty array with indentation and spacing',
             // language=JSON
-            input: json`[]`,
+            input: '[]',
             // language=JSON
-            output: json`
+            output: multiline`
             [
               1,
               {
@@ -313,12 +304,12 @@ describe('Functional test', () => {
         {
             description: 'set a nested property with the same indentation and spacing as the parent',
             // language=JSON
-            input: json`
+            input: multiline`
             {
               "foo": {}
             }`,
             // language=JSON
-            output: json`
+            output: multiline`
             {
               "foo": {
                 "bar": 1,
@@ -338,12 +329,12 @@ describe('Functional test', () => {
         {
             description: 'add a nested element with the same indentation and spacing as the parent',
             // language=JSON
-            input: json`
+            input: multiline`
             [
               []
             ]`,
             // language=JSON
-            output: json`
+            output: multiline`
             [
               [
                 1,
@@ -362,14 +353,14 @@ describe('Functional test', () => {
         {
             description: 'should replace a property preserving the formatting of the following properties',
             // language=JSON
-            input: json`
+            input: multiline`
             {
               "foo": 1,
                "bar":2,
                 "baz": 3
             }`,
             // language=JSON
-            output: json`
+            output: multiline`
             {
               "foo": null,
                "bar":2,
@@ -383,14 +374,14 @@ describe('Functional test', () => {
         {
             description: 'should replace an element preserving the formatting of the following elements',
             // language=JSON
-            input: json`
+            input: multiline`
             [
              1,
               2,
                3
             ]`,
             // language=JSON
-            output: json`
+            output: multiline`
             [
              null,
               2,
@@ -404,14 +395,14 @@ describe('Functional test', () => {
         {
             description: 'delete a property preserving the formatting of the following properties',
             // language=JSON
-            input: json`
+            input: multiline`
             {
               "foo": 1,
                "bar":2,
                 "baz": 3
             }`,
             // language=JSON
-            output: json`
+            output: multiline`
             {
                "bar":2,
                 "baz": 3
@@ -424,14 +415,14 @@ describe('Functional test', () => {
         {
             description: 'delete an element preserving the formatting of the following elements',
             // language=JSON
-            input: json`
+            input: multiline`
             [
              1,
               2,
                3
             ]`,
             // language=JSON
-            output: json`
+            output: multiline`
             [
               2,
                3
@@ -444,13 +435,13 @@ describe('Functional test', () => {
         {
             description: 'insert an element preserving the formatting of the following elements',
             // language=JSON
-            input: json`
+            input: multiline`
             [
              1,
               3
             ]`,
             // language=JSON
-            output: json`
+            output: multiline`
             [
              1,
               2,
@@ -464,14 +455,14 @@ describe('Functional test', () => {
         {
             description: 'replace multiple properties preserving the formatting of the following properties',
             // language=JSON
-            input: json`
+            input: multiline`
             {
               "foo": 1,
                "bar":2,
                 "baz": 3
             }`,
             // language=JSON
-            output: json`
+            output: multiline`
             {
               "foo": null,
                "bar":null,
@@ -487,14 +478,14 @@ describe('Functional test', () => {
         {
             description: 'replace multiple elements preserving the formatting of the following elements',
             // language=JSON
-            input: json`
+            input: multiline`
             [
              1,
               2,
                3
             ]`,
             // language=JSON
-            output: json`
+            output: multiline`
             [
              null,
               null,
@@ -510,14 +501,14 @@ describe('Functional test', () => {
         {
             description: 'delete multiple leading properties preserving the formatting of the following properties',
             // language=JSON
-            input: json`
+            input: multiline`
             {
               "foo": 1,
                "bar":2,
                 "baz": 3
             }`,
             // language=JSON
-            output: json`
+            output: multiline`
             {
                 "baz": 3
             }`,
@@ -530,14 +521,14 @@ describe('Functional test', () => {
         {
             description: 'delete multiple leading elements preserving the formatting of the following elements',
             // language=JSON
-            input: json`
+            input: multiline`
             [
              1,
               2,
                3
             ]`,
             // language=JSON
-            output: json`
+            output: multiline`
             [
                3
             ]`,
@@ -549,14 +540,14 @@ describe('Functional test', () => {
         {
             description: 'delete multiple trailing properties preserving the formatting of the preceding properties',
             // language=JSON
-            input: json`
+            input: multiline`
             {
               "foo": 1,
                "bar":2,
                 "baz": 3
             }`,
             // language=JSON
-            output: json`
+            output: multiline`
             {
               "foo": 1
             }`,
@@ -569,14 +560,14 @@ describe('Functional test', () => {
         {
             description: 'delete multiple trailing elements preserving the formatting of the preceding elements',
             // language=JSON
-            input: json`
+            input: multiline`
             [
              1,
               2,
                3
             ]`,
             // language=JSON
-            output: json`
+            output: multiline`
             [
              1
             ]`,
@@ -588,7 +579,7 @@ describe('Functional test', () => {
         {
             description: 'delete multiple properties preserving the formatting of the surrounding properties',
             // language=JSON
-            input: json`
+            input: multiline`
             {
               "foo": 1,
                  "bar":2,
@@ -597,7 +588,7 @@ describe('Functional test', () => {
               "quux": 5
             }`,
             // language=JSON
-            output: json`
+            output: multiline`
             {
                  "bar":2,
               "quux": 5
@@ -612,7 +603,7 @@ describe('Functional test', () => {
         {
             description: 'delete multiple elements preserving the formatting of the surrounding elements',
             // language=JSON
-            input: json`
+            input: multiline`
             [
               1,
                  2,
@@ -621,7 +612,7 @@ describe('Functional test', () => {
               5
             ]`,
             // language=JSON
-            output: json`
+            output: multiline`
             [
                  2,
               5
@@ -636,14 +627,14 @@ describe('Functional test', () => {
         {
             description: 'keep the same indentation as the last property when adding a new property',
             // language=JSON
-            input: json`
+            input: multiline`
             {
              "foo": 1,
               "bar": 2,
                "baz": 3
             }`,
             // language=JSON
-            output: json`
+            output: multiline`
             {
              "foo": 1,
               "bar": 2,
@@ -658,14 +649,14 @@ describe('Functional test', () => {
         {
             description: 'keep the same indentation as the last element when adding a new element',
             // language=JSON
-            input: json`
+            input: multiline`
             [
              1,
               2,
                3
             ]`,
             // language=JSON
-            output: json`
+            output: multiline`
             [
              1,
               2,
@@ -680,11 +671,11 @@ describe('Functional test', () => {
         {
             description: 'preserve the leading and trailing indentation when adding a new property',
             // language=JSON
-            input: json`
+            input: multiline`
             {"foo": 1,
              "bar": 2}`,
             // language=JSON
-            output: json`
+            output: multiline`
             {"foo": 1,
              "bar": 2,
              "baz": 3}`,
@@ -696,11 +687,11 @@ describe('Functional test', () => {
         {
             description: 'preserve the leading and trailing indentation when adding a new element',
             // language=JSON
-            input: json`
+            input: multiline`
             [1,
              2]`,
             // language=JSON
-            output: json`
+            output: multiline`
             [1,
              2,
              3]`,
@@ -712,9 +703,9 @@ describe('Functional test', () => {
         {
             description: 'add a property to an empty object with leading but no trailing indentation',
             // language=JSON
-            input: json`{}`,
+            input: '{}',
             // language=JSON
-            output: json`
+            output: multiline`
             {
               "foo":1}`,
             type: JsonObjectNode,
@@ -730,9 +721,9 @@ describe('Functional test', () => {
         {
             description: 'add an element to an empty array with leading but no trailing indentation',
             // language=JSON
-            input: json`[]`,
+            input: '[]',
             // language=JSON
-            output: json`
+            output: multiline`
             [
               1]`,
             type: JsonArrayNode,
@@ -748,9 +739,9 @@ describe('Functional test', () => {
         {
             description: 'add a property to an empty object with no leading but trailing indentation',
             // language=JSON
-            input: json`{}`,
+            input: '{}',
             // language=JSON
-            output: json`
+            output: multiline`
             {"foo":1
             }`,
             type: JsonObjectNode,
@@ -766,9 +757,9 @@ describe('Functional test', () => {
         {
             description: 'add an element to an empty array with no leading but trailing indentation',
             // language=JSON
-            input: json`[]`,
+            input: '[]',
             // language=JSON
-            output: json`
+            output: multiline`
             [1
             ]`,
             type: JsonArrayNode,
@@ -784,12 +775,12 @@ describe('Functional test', () => {
         {
             description: 'preserve the innermost leading and trailing indentation when adding a new property',
             // language=JSON
-            input: json`
+            input: multiline`
             {
               "foo": {"bar": 1}
             }`,
             // language=JSON
-            output: json`
+            output: multiline`
             {
               "foo": {"bar": 1, "baz": 2}
             }`,
@@ -801,12 +792,12 @@ describe('Functional test', () => {
         {
             description: 'preserve the innermost leading and trailing indentation when adding a new element',
             // language=JSON
-            input: json`
+            input: multiline`
             [
               [1]
             ]`,
             // language=JSON
-            output: json`
+            output: multiline`
             [
               [1, 2]
             ]`,
@@ -818,13 +809,13 @@ describe('Functional test', () => {
         {
             description: 'preserve mixed formatting when adding a new property',
             // language=JSON
-            input: json`
+            input: multiline`
               {"foo": 1, "bar":2,
                 "baz": [
                   3, 4
                 ]}`,
             // language=JSON
-            output: json`
+            output: multiline`
               {"foo": 1, "bar":2,
                 "baz": [
                   3, 4
@@ -838,13 +829,13 @@ describe('Functional test', () => {
         {
             description: 'preserve mixed formatting when adding a new element',
             // language=JSON
-            input: json`
+            input: multiline`
             {"foo": 1, "bar":2,
               "baz": [
                 3, 4
                 ]}`,
             // language=JSON
-            output: json`
+            output: multiline`
             {"foo": 1, "bar":2,
               "baz": [
                 3, 4,
@@ -860,13 +851,13 @@ describe('Functional test', () => {
         {
             description: 'preserve mixed formatting when deleting a property from the end of the line',
             // language=JSON
-            input: json`
+            input: multiline`
               {"foo": 1, "bar":2,
                 "baz": {
                   "qux": 3, "quux": 4, "quuz": 5
                 }}`,
             // language=JSON
-            output: json`
+            output: multiline`
               {"foo": 1,
                 "baz": {
                   "qux": 3, "quux": 4, "quuz": 5
@@ -879,13 +870,13 @@ describe('Functional test', () => {
         {
             description: 'preserve mixed formatting when deleting an element from the end of the line',
             // language=JSON
-            input: json`
+            input: multiline`
               {"foo": 1, "bar":2,
                 "baz": [
                   3, 4, 5
                 ]}`,
             // language=JSON
-            output: json`
+            output: multiline`
               {"foo": 1, "bar":2,
                 "baz": [
                   3, 4
@@ -900,13 +891,13 @@ describe('Functional test', () => {
         {
             description: 'preserve mixed formatting when deleting a property from the middle',
             // language=JSON
-            input: json`
+            input: multiline`
               {"foo": 1, "bar":2,
                 "baz": {
                   "qux": 3, "quux": 4, "quuz": 5
                 }}`,
             // language=JSON
-            output: json`
+            output: multiline`
               {"foo": 1, "bar":2,
                 "baz": {
                   "qux": 3, "quuz": 5
@@ -921,13 +912,13 @@ describe('Functional test', () => {
         {
             description: 'preserve mixed formatting when deleting an element from the middle',
             // language=JSON
-            input: json`
+            input: multiline`
               {"foo": 1, "bar":2,
                 "baz": [
                   3, 4, 5
                 ]}`,
             // language=JSON
-            output: json`
+            output: multiline`
               {"foo": 1, "bar":2,
                 "baz": [
                   3, 5
@@ -942,13 +933,13 @@ describe('Functional test', () => {
         {
             description: 'preserve mixed formatting when deleting a property from the beginning',
             // language=JSON
-            input: json`
+            input: multiline`
               {"foo": 1, "bar":2,
                 "baz": {
                   "qux": 3, "quux": 4, "quuz": 5
                 }}`,
             // language=JSON
-            output: json`
+            output: multiline`
               {"foo": 1, "bar":2,
                 "baz": {
                   "quux": 4, "quuz": 5
@@ -963,13 +954,13 @@ describe('Functional test', () => {
         {
             description: 'preserve mixed formatting when deleting an element from the beginning',
             // language=JSON
-            input: json`
+            input: multiline`
             {"foo": 1, "bar":2,
               "baz": [
                 3, 4
                 ]}`,
             // language=JSON
-            output: json`
+            output: multiline`
             {"foo": 1, "bar":2,
               "baz": [
                 4
@@ -982,15 +973,57 @@ describe('Functional test', () => {
             },
         },
         {
+            description: 'preserve mixed formatting when deleting a property from the end',
+            // language=JSON
+            input: multiline`
+              {"foo": 1, "bar":2,
+                "baz": {
+                  "qux": 3, "quux": 4, "quuz": 5
+                }}`,
+            // language=JSON
+            output: multiline`
+              {"foo": 1, "bar":2,
+                "baz": {
+                  "qux": 3, "quux": 4
+                }}`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                const baz = node.get('baz', JsonObjectNode);
+
+                baz.delete('quuz');
+            },
+        },
+        {
+            description: 'preserve mixed formatting when deleting an element from the end',
+            // language=JSON
+            input: multiline`
+            {"foo": 1, "bar":2,
+              "baz": [
+                3, 4, 5
+               ]}`,
+            // language=JSON
+            output: multiline`
+            {"foo": 1, "bar":2,
+              "baz": [
+                3, 4
+              ]}`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                const baz = node.get('baz', JsonArrayNode);
+
+                baz.delete(2);
+            },
+        },
+        {
             description: 'preserve mixed formatting when deleting the last property',
             // language=JSON
-            input: json`
+            input: multiline`
             {"foo": 1, "bar":2,
               "baz": {
                 "qux": 3, "quux": 4, "quuz": 5
                 }}`,
             // language=JSON
-            output: json`
+            output: multiline`
             {"foo": 1, "bar":2}`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
@@ -1000,11 +1033,11 @@ describe('Functional test', () => {
         {
             description: 'preserve mixed formatting when deleting the last element',
             // language=JSON
-            input: json`
+            input: multiline`
             [1, 2,
               [3, 4, 5]]`,
             // language=JSON
-            output: json`
+            output: multiline`
             [1, 2]`,
             type: JsonArrayNode,
             mutation: (node: JsonArrayNode): void => {
@@ -1014,13 +1047,13 @@ describe('Functional test', () => {
         {
             description: 'preserve mixed formatting when deleting all properties',
             // language=JSON
-            input: json`
+            input: multiline`
             {"foo": 1, "bar":2,
               "baz": {
                 "qux": 3, "quux": 4, "quuz": 5
                 }}`,
             // language=JSON
-            output: json`
+            output: multiline`
             {"foo": 1, "bar":2,
               "baz": {}}`,
             type: JsonObjectNode,
@@ -1035,13 +1068,13 @@ describe('Functional test', () => {
         {
             description: 'preserve mixed formatting when deleting and adding properties',
             // language=JSON
-            input: json`
+            input: multiline`
             {"foo": 1, "bar":2,
               "baz": {
                 "qux": 3, "quux": 4, "quuz": 5
                 }}`,
             // language=JSON
-            output: json`
+            output: multiline`
             {"foo": 1, "bar":2,
               "qux": 3}`,
             type: JsonObjectNode,
@@ -1053,11 +1086,11 @@ describe('Functional test', () => {
         {
             description: 'preserve mixed formatting when adding and deleting elements',
             // language=JSON
-            input: json`
+            input: multiline`
             [1, 2,
               [3, 4, 5]]`,
             // language=JSON
-            output: json`
+            output: multiline`
             [1, 2,
               3]`,
             type: JsonArrayNode,
@@ -1069,13 +1102,13 @@ describe('Functional test', () => {
         {
             description: 'preserve mixed formatting when deleting all elements',
             // language=JSON
-            input: json`
+            input: multiline`
             {"foo": 1, "bar":2,
               "baz": [
                 3, 4, 5
                 ]}`,
             // language=JSON
-            output: json`
+            output: multiline`
             {"foo": 1, "bar":2,
               "baz": []}`,
             type: JsonObjectNode,
@@ -1088,10 +1121,10 @@ describe('Functional test', () => {
         {
             description: 'preserve absence of formatting when adding a new property',
             // language=JSON
-            input: json`
+            input: multiline`
             {"foo":1}`,
             // language=JSON
-            output: json`
+            output: multiline`
             {"foo":1,"bar":{"baz":2},"qux":[3,4]}`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
@@ -1102,14 +1135,25 @@ describe('Functional test', () => {
         {
             description: 'preserve absence of formatting when adding a new element',
             // language=JSON
-            input: json`
+            input: multiline`
             [1]`,
             // language=JSON
-            output: json`
+            output: multiline`
             [1,[{"foo":2}],[3,4]]`,
             type: JsonArrayNode,
             mutation: (node: JsonArrayNode): void => {
                 node.push([{foo: 2}], [3, 4]);
+            },
+        },
+        {
+            description: 'preserve leading and trailing spaces',
+            // language=JSON
+            input: '    {"foo": 1}     ',
+            // language=JSON
+            output: '    {"foo": 1}     ',
+            type: JsonObjectNode,
+            mutation: (): void => {
+                // Do nothing
             },
         },
     ])('should $description', ({input, output, type, mutation, format}) => {
@@ -1123,19 +1167,28 @@ describe('Functional test', () => {
 
         expect(node.toString()).toBe(output);
     });
-});
 
-function json(strings: TemplateStringsArray): string {
-    const lines = strings.join('').split('\n');
-
-    if (lines.length < 2) {
-        return strings.join('');
+    function derive(scenarios: JsonValue[]): string[] {
+        return scenarios.flatMap(
+            value => [
+                JSON.stringify(value),
+                JSON.stringify(value, null, 2),
+            ],
+        );
     }
 
-    const indent = lines[1].search(/\S/);
+    function multiline(strings: TemplateStringsArray): string {
+        const lines = strings.join('').split('\n');
 
-    return lines
-        .map(line => line.slice(indent))
-        .join('\n')
-        .trim();
-}
+        if (lines.length < 2) {
+            return strings.join('');
+        }
+
+        const indent = lines[1].search(/\S/);
+
+        return lines
+            .map(line => line.slice(indent))
+            .join('\n')
+            .trim();
+    }
+});

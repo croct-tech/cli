@@ -15,21 +15,32 @@ export class JsonParser {
     public parse(): JsonValueNode;
 
     public parse<T extends JsonValueNode>(type?: {new(definition: any): T}): JsonValueNode {
+        const node = this.parseJson();
+
+        if (type !== undefined && !(node instanceof type)) {
+            throw new Error(`Expected ${type.name} but got ${node.constructor.name}`);
+        }
+
+        return node;
+    }
+
+    private parseJson(): JsonValueNode {
         this.lexer.next();
+
+        const leadingSpaces = this.lexer.skipSpace();
 
         const node = this.parseValue();
 
-        node.children.push(...JsonParser.createChildren(this.lexer.skipSpace()));
+        const trailingSpaces = this.lexer.skipSpace();
+
+        node.children.unshift(...JsonParser.createChildren(leadingSpaces));
+        node.children.push(...JsonParser.createChildren(trailingSpaces));
 
         if (!this.lexer.isEof()) {
             const token = this.lexer.peek();
             const position = token.location.start;
 
             throw new Error(`Unexpected token '${token.type}' at ${position.line}:${position.column}`);
-        }
-
-        if (type !== undefined && !(node instanceof type)) {
-            throw new Error(`Expected ${type.name} but got ${node.constructor.name}`);
         }
 
         return node;

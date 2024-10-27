@@ -68,7 +68,7 @@ export class JsonLexer implements Iterable<JsonToken> {
     }
 
     public isEof(): boolean {
-        return this.remaining.length === 0;
+        return this.current?.type === JsonTokenType.EOF;
     }
 
     public [Symbol.iterator](): Iterator<JsonToken> {
@@ -140,9 +140,12 @@ export class JsonLexer implements Iterable<JsonToken> {
     }
 
     public next(): JsonToken {
-        this.current = this.match();
-
-        this.remaining = this.remaining.slice(this.current.value.length);
+        if (this.remaining === '') {
+            this.current = this.createToken(JsonTokenType.EOF, '');
+        } else {
+            this.current = this.match();
+            this.remaining = this.remaining.slice(this.current.value.length);
+        }
 
         return this.current;
     }

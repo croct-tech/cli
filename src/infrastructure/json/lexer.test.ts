@@ -72,7 +72,7 @@ describe('Lexer', () => {
                         end: {
                             index: 9,
                             line: 2,
-                            column: 5,
+                            column: 1,
                         },
                     },
                 },
@@ -83,12 +83,12 @@ describe('Lexer', () => {
                         start: {
                             index: 9,
                             line: 2,
-                            column: 5,
+                            column: 1,
                         },
                         end: {
                             index: 13,
                             line: 2,
-                            column: 9,
+                            column: 5,
                         },
                     },
                 },

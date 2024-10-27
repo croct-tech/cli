@@ -13,6 +13,7 @@ export enum JsonTokenType {
     COMMA = 'COMMA',
     WHITESPACE = 'WHITESPACE',
     NEW_LINE = 'NEW_LINE',
+    EOF = 'EOF',
 }
 
 export type JsonPrimitiveTokenType =
