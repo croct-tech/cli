@@ -3,7 +3,7 @@ export type ResultCode<T> = {
     result: T,
 };
 
-export type CodemodOptions = Record<string, any>;
+export type CodemodOptions = Record<never, never>;
 
 export interface Codemod<T, O extends CodemodOptions = CodemodOptions> {
     apply(input: T, options?: O): Promise<ResultCode<T>>;

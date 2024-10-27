@@ -1,10 +1,10 @@
 import {resolve} from 'path';
 import {loadFixtures} from '../fixtures';
 import {ParseCode} from '@/application/project/sdk/code/parseCode';
-import {ComponentOptions, CreateAppComponent} from '@/application/project/sdk/code/nextjs/createAppComponent';
+import {AppComponentOptions, CreateAppComponent} from '@/application/project/sdk/code/nextjs/createAppComponent';
 
 describe('CreateAppComponent', () => {
-    const scenarios = loadFixtures<ComponentOptions>(
+    const scenarios = loadFixtures<AppComponentOptions>(
         resolve(__dirname, '../fixtures/nextjs-app-component'),
         {},
         {},

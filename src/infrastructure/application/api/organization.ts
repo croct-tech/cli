@@ -25,7 +25,7 @@ export class GraphqlOrganizationApi implements OrganizationApi {
                 return [];
             }
 
-            const {logo = null, website = null} = node;
+            const {logo = null, website = null, locales: {edges: locales = []}} = node;
 
             const workspace: Workspace = {
                 id: node.id,
@@ -33,6 +33,15 @@ export class GraphqlOrganizationApi implements OrganizationApi {
                 slug: node.slug,
                 timeZone: node.timeZone,
                 defaultLocale: node.defaultLocale,
+                locales: locales?.flatMap(locale => {
+                    const code = locale?.node?.code ?? null;
+
+                    if (code === null) {
+                        return [];
+                    }
+
+                    return [code];
+                }) ?? [],
                 ...(logo !== null ? {logo: logo} : {}),
                 ...(website !== null ? {website: website} : {}),
             };
@@ -54,7 +63,7 @@ export class GraphqlOrganizationApi implements OrganizationApi {
         });
 
         const newWorkspace = data.createWorkspace;
-        const {logo = null, website = null} = newWorkspace;
+        const {logo = null, website = null, locales: {edges: locales = []}} = newWorkspace;
 
         return {
             id: newWorkspace.id,
@@ -62,6 +71,15 @@ export class GraphqlOrganizationApi implements OrganizationApi {
             slug: newWorkspace.slug,
             timeZone: newWorkspace.timeZone,
             defaultLocale: newWorkspace.defaultLocale,
+            locales: locales?.flatMap(locale => {
+                const code = locale?.node?.code ?? null;
+
+                if (code === null) {
+                    return [];
+                }
+
+                return [code];
+            }) ?? [],
             ...(logo !== null ? {logo: logo} : {}),
             ...(website !== null ? {website: website} : {}),
         };
@@ -92,6 +110,13 @@ const workspacesQuery = graphql(`
                         website
                         timeZone
                         defaultLocale
+                        locales {
+                            edges {
+                                node {
+                                    code
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -109,6 +134,13 @@ const createWorkspaceMutation = graphql(`
             website
             timeZone
             defaultLocale
+            locales {
+                edges {
+                    node {
+                        code
+                    }
+                }
+            }
         }
     }
 `);

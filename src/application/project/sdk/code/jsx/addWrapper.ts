@@ -2,7 +2,7 @@
 import * as t from '@babel/types';
 import traverse from '@babel/traverse';
 import {traverseFast} from '@babel/types';
-import {ResultCode, Codemod} from '@/application/project/sdk/code/codemod';
+import {ResultCode, Codemod, CodemodOptions} from '@/application/project/sdk/code/codemod';
 import {addImport} from '@/application/project/sdk/code/javascript/addImport';
 
 type ComponentDeclaration = t.VariableDeclarator | t.FunctionDeclaration;
@@ -28,7 +28,7 @@ type PropertyType = {
     [K in keyof PropertyTypes]: PropertyTypes[K] & {type: K}
 }[keyof PropertyTypes];
 
-export type WrapperOptions = {
+export type WrapperOptions<O extends CodemodOptions = CodemodOptions> = {
     wrapper: {
         component: string,
         module: string,
@@ -39,7 +39,7 @@ export type WrapperOptions = {
         component?: string,
     },
     fallbackToNamedExports?: boolean,
-    fallbackCodemod?: Codemod<t.File>,
+    fallbackCodemod?: Codemod<t.File, O>,
 };
 
 enum Transformation {
@@ -61,14 +61,14 @@ type WrapperInsertion = {
  * It attempts to wrap the default export first, and if not found, it can optionally
  * wrap named exports that return JSX elements depending on the configuration.
  */
-export class AddWrapper implements Codemod<t.File> {
-    private readonly options: WrapperOptions;
+export class AddWrapper<O extends CodemodOptions = CodemodOptions> implements Codemod<t.File> {
+    private readonly options: WrapperOptions<O>;
 
-    public constructor(options: WrapperOptions) {
+    public constructor(options: WrapperOptions<O>) {
         this.options = options;
     }
 
-    public apply(input: t.File): Promise<ResultCode<t.File>> {
+    public apply(input: t.File, options: O): Promise<ResultCode<t.File>> {
         const ast = t.cloneNode(input, true);
 
         const componentImport = addImport(ast, {
@@ -162,7 +162,7 @@ export class AddWrapper implements Codemod<t.File> {
         const fallbackCodemod = this.options?.fallbackCodemod;
 
         if (result === Transformation.NOT_APPLIED && fallbackCodemod !== undefined) {
-            return fallbackCodemod.apply(input);
+            return fallbackCodemod.apply(input, options);
         }
 
         return Promise.resolve({

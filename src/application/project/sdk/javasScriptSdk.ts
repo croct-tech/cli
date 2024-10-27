@@ -1,11 +1,13 @@
-import {resolve} from 'path';
-import {writeFile} from 'fs/promises';
+import {dirname, join, relative} from 'path';
+import {mkdir, readFile, writeFile} from 'fs/promises';
+import {parse as parseJson, stringify as stringifyJson} from 'polite-json';
 import {Installation, Sdk} from '@/application/project/sdk/sdk';
-import {ProjectManager} from '@/application/project/projectManager';
+import {JavaScriptProject} from '@/application/project/project';
 import {ApplicationPlatform} from '@/application/model/entities';
 import {ProjectConfiguration} from '@/application/project/configuration';
-import {Task} from '@/application/cli/io/output';
-import {WorkspaceApi} from '@/application/api/workspace';
+import {Task, TaskNotifier} from '@/application/cli/io/output';
+import {TargetSdk, WorkspaceApi} from '@/application/api/workspace';
+import {formatMessage} from '@/application/error';
 
 export type InstallationPlan = {
     tasks: Task[],
@@ -13,17 +15,20 @@ export type InstallationPlan = {
 };
 
 export type Configuration = {
-    projectManager: ProjectManager,
-
+    project: JavaScriptProject,
+    workspaceApi: WorkspaceApi,
 };
 
 export abstract class JavaScriptSdk implements Sdk {
-    protected projectManager: ProjectManager;
+    protected static readonly CONTENT_PACKAGE = '@croct/content';
 
-    private workspaceApi: WorkspaceApi;
+    protected readonly project: JavaScriptProject;
 
-    public constructor(projectManager: ProjectManager) {
-        this.projectManager = projectManager;
+    protected readonly workspaceApi: WorkspaceApi;
+
+    public constructor({project, workspaceApi}: Configuration) {
+        this.project = project;
+        this.workspaceApi = workspaceApi;
     }
 
     public abstract getPackage(): string;
@@ -31,16 +36,52 @@ export abstract class JavaScriptSdk implements Sdk {
     public abstract getPlatform(): ApplicationPlatform;
 
     public async install(installation: Installation): Promise<ProjectConfiguration> {
-        const {input, output} = installation;
+        const {input, output, configuration} = installation;
 
         const plan = await this.getInstallationPlan(installation);
+        const tasks = [...plan.tasks];
 
-        if (plan.tasks.length > 0) {
+        if (Object.keys(configuration.slots).length > 0) {
+            tasks.push({
+                title: 'Update content',
+                task: async notifier => {
+                    try {
+                        await this.updateContent(installation, notifier);
+                    } catch (error) {
+                        notifier.alert('Failed to update content', formatMessage(error));
+                    }
+                },
+            });
+
+            tasks.push({
+                title: 'Update types',
+                task: async notifier => {
+                    try {
+                        await this.updateTypes(installation, notifier);
+                    } catch (error) {
+                        notifier.alert('Failed to update types', formatMessage(error));
+                    }
+                },
+            });
+
+            tasks.push({
+                title: 'Register type file',
+                task: async notifier => {
+                    try {
+                        await this.registerTypeFile(notifier);
+                    } catch (error) {
+                        notifier.alert('Failed to register type file', formatMessage(error));
+                    }
+                },
+            });
+        }
+
+        if (tasks.length > 0) {
             output.break();
             output.inform('**Installation plan**');
 
-            for (let index = 0; index < plan.tasks.length; index++) {
-                output.log(` - ${plan.tasks[index].title}`);
+            for (const {title} of tasks) {
+                output.log(` - ${title}`);
             }
 
             output.break();
@@ -51,7 +92,7 @@ export abstract class JavaScriptSdk implements Sdk {
                 return output.exit();
             }
 
-            await output.monitor({tasks: plan.tasks});
+            await output.monitor({tasks: tasks});
         }
 
         return plan.configuration;
@@ -59,7 +100,7 @@ export abstract class JavaScriptSdk implements Sdk {
 
     protected abstract getInstallationPlan(installation: Installation): Promise<InstallationPlan>;
 
-    public async updateContent(installation: Installation): Promise<void> {
+    public async updateContent(installation: Installation, notifier?: TaskNotifier): Promise<void> {
         const {configuration, output} = installation;
         const slots = Object.entries(configuration.slots);
 
@@ -67,50 +108,151 @@ export abstract class JavaScriptSdk implements Sdk {
             return;
         }
 
-        const packageInfo = await this.projectManager.getPackageInfo('@croct/content');
+        const indicator = notifier ?? output.notify('Downloading content');
+        const packageInfo = await this.project.getPackageInfo(JavaScriptSdk.CONTENT_PACKAGE);
 
         if (packageInfo === null) {
-            output.alert('The package @croct/content is not installed');
+            indicator.alert(`The package ${JavaScriptSdk.CONTENT_PACKAGE} is not installed`);
 
             return;
         }
 
-        const indicator = output.notify(`Downloading content (0/${slots.length})`);
-
-        let progress = 0;
-
-        const contentList = await Promise.all(slots.map(async ([slot, version]) => {
-            const content = this.workspaceApi.getSlotStaticContent(
+        const contentList = await Promise.all(slots.map(
+            ([slot, version]) => this.workspaceApi.getSlotStaticContent(
                 {
                     organizationSlug: configuration.organization,
                     workspaceSlug: configuration.workspace,
                     slotSlug: slot,
                 },
-                Number.parseInt(version, 10),
-            );
+                version.getMaxVersion(),
+            ),
+        ));
 
-            await content;
+        const directoryPath = join(packageInfo.path, 'slot');
 
-            indicator.update(`Downloading content (${++progress}/${slots.length})`);
-        }));
+        // Create the directory if it does not exist
+        await mkdir(directoryPath).catch(() => {});
 
-        for (const [slot, version] of slots) {
-            const filePath = resolve(packageInfo.path, `${slot}@${version}.json`);
+        for (let index = 0; index < slots.length; index++) {
+            const [slot, version] = slots[index];
 
-            await writeFile(
-                filePath,
-                JSON.stringify(contentList, null, 2),
-                {
-                    encoding: 'utf-8',
-                    flag: 'w',
-                },
-            );
+            for (const {locale, content} of contentList[index]) {
+                const baseName = `${slot}@${version}`;
+                const files = [join(directoryPath, `${baseName}.${locale}.json`)];
+
+                if (locale === configuration.defaultLocale) {
+                    files.push(join(directoryPath, `${baseName}.json`));
+                }
+
+                for (const file of files) {
+                    await writeFile(file, JSON.stringify(content, null, 2), {
+                        encoding: 'utf-8',
+                        flag: 'w',
+                    });
+                }
+            }
         }
 
         indicator.confirm('Content downloaded');
     }
 
-    public updateTypes(_: Installation): Promise<void> {
-        return Promise.resolve(undefined);
+    public async updateTypes(installation: Installation, notifier?: TaskNotifier): Promise<void> {
+        const {configuration, output} = installation;
+        const slots = Object.entries(configuration.slots);
+        const components = Object.entries(configuration.components);
+
+        if (slots.length === 0 && components.length === 0) {
+            return;
+        }
+
+        const indicator = notifier ?? output.notify('Generating types');
+
+        const packageInfo = await this.project.getPackageInfo(JavaScriptSdk.CONTENT_PACKAGE);
+
+        if (packageInfo === null) {
+            indicator.alert(`The package ${JavaScriptSdk.CONTENT_PACKAGE} is not installed`);
+
+            return;
+        }
+
+        const filePath = JavaScriptSdk.getTypeFile(packageInfo.path);
+
+        // Create the directory if it does not exist
+        await mkdir(dirname(filePath), {recursive: true}).catch(() => {});
+
+        const types = await this.workspaceApi.generateTypes({
+            workspaceId: configuration.workspaceId,
+            target: TargetSdk.JAVASCRIPT,
+            components: components.map(
+                ([component, version]) => ({
+                    id: component,
+                    version: version.toString(),
+                }),
+            ),
+            slots: slots.map(
+                ([slot, version]) => ({
+                    id: slot,
+                    version: version.toString(),
+                }),
+            ),
+        });
+
+        const module = `${types}\nexport {};`;
+
+        await writeFile(filePath, module, {
+            encoding: 'utf-8',
+            flag: 'w',
+        });
+
+        indicator.confirm('Types generated');
+    }
+
+    private async registerTypeFile(notifier: TaskNotifier): Promise<void> {
+        const [tsConfigPath, packageInfo] = await Promise.all([
+            this.project.getTypeScriptConfigPath(),
+            this.project.getPackageInfo(JavaScriptSdk.CONTENT_PACKAGE),
+        ]);
+
+        if (tsConfigPath === null) {
+            notifier.alert('TypeScript configuration not found');
+
+            return;
+        }
+
+        if (packageInfo === null) {
+            notifier.alert(`The package ${JavaScriptSdk.CONTENT_PACKAGE} is not installed`);
+
+            return;
+        }
+
+        const typeFile = relative(this.project.getRootPath(), JavaScriptSdk.getTypeFile(packageInfo.path));
+        const tsConfigJson = parseJson(await readFile(tsConfigPath, {encoding: 'utf-8'}));
+
+        if (typeof tsConfigJson !== 'object' || tsConfigJson === null || Array.isArray(tsConfigJson)) {
+            throw new Error('Invalid tsconfig.json');
+        }
+
+        const filesEntry = Array.isArray(tsConfigJson.files) ? tsConfigJson.files : [];
+
+        if (Array.isArray(tsConfigJson.files)) {
+            if (tsConfigJson.files.includes(typeFile)) {
+                return;
+            }
+
+            filesEntry.push(typeFile);
+        } else {
+            tsConfigJson.files = [typeFile];
+        }
+
+        await writeFile(tsConfigPath, stringifyJson(tsConfigJson), {
+            encoding: 'utf-8',
+            flag: 'w',
+        });
+
+        notifier.confirm('Type file registered');
+    }
+
+    private static getTypeFile(path: string): string {
+        return join(path, 'types.d.ts');
     }
 }

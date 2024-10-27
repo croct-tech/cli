@@ -1,6 +1,7 @@
 import {join} from 'path';
 import {access, readFile, writeFile} from 'fs/promises';
 import {ProjectConfiguration, ProjectConfigurationFile} from '@/application/project/configuration';
+import {Version} from '@/application/project/version';
 
 export class JsonFileConfiguration implements ProjectConfigurationFile {
     private readonly projectDirectory: string;
@@ -23,10 +24,19 @@ export class JsonFileConfiguration implements ProjectConfigurationFile {
         const path = this.getConfigurationFilePath();
 
         try {
-            const json = await readFile(path, 'utf8');
+            const configuration = JSON.parse(await readFile(path, 'utf8'));
 
-            // @todo: Validate configuration
-            return JSON.parse(json);
+            return {
+                ...configuration,
+                components: Object.fromEntries(
+                    Object.entries<string>(configuration.components)
+                        .map(([key, value]) => [key, Version.parse(value)]),
+                ),
+                slots: Object.fromEntries(
+                    Object.entries<string>(configuration.slots)
+                        .map(([key, value]) => [key, Version.parse(value)]),
+                ),
+            };
         } catch {
             // Suppress error
             return null;
@@ -35,7 +45,27 @@ export class JsonFileConfiguration implements ProjectConfigurationFile {
 
     public async update(configuration: ProjectConfiguration): Promise<void> {
         const path = this.getConfigurationFilePath();
-        const json = JSON.stringify(configuration, null, 4);
+
+        const cleanedConfiguration: ProjectConfiguration = {
+            organization: configuration.organization,
+            workspace: configuration.workspace,
+            applications: {
+                development: configuration.applications.development,
+                production: configuration.applications.production,
+            },
+            defaultLocale: configuration.defaultLocale,
+            locales: configuration.locales,
+            slots: Object.fromEntries(
+                Object.entries(configuration.slots)
+                    .map(([key, value]) => [key, value]),
+            ),
+            components: Object.fromEntries(
+                Object.entries(configuration.components)
+                    .map(([key, value]) => [key, value]),
+            ),
+        };
+
+        const json = JSON.stringify(cleanedConfiguration, null, 4);
 
         try {
             // Overwrite the file

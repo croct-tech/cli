@@ -1,20 +1,18 @@
-import {access, readFile} from 'fs/promises';
 import {join} from 'path';
 import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import {ApplicationPlatform} from '@/application/model/entities';
 import {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
-import {ProjectManager} from '@/application/project/projectManager';
+import {JavaScriptProject} from '@/application/project/project';
 import {WorkspaceApi} from '@/application/api/workspace';
 import {EnvFile} from '@/application/project/envFile';
 import {UserApi} from '@/application/api/user';
 import {NextConfig, parseConfig} from '@/application/project/sdk/code/nextjs/parseConfig';
-import {Codemod} from '@/application/project/sdk/code/codemod';
-import {hasImport} from '@/application/project/sdk/code/javascript/hasImport';
+import {Codemod, CodemodOptions} from '@/application/project/sdk/code/codemod';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {formatMessage} from '@/application/error';
-import type {ComponentOptions} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
-import type {ComponentOptions} from '@/application/project/sdk/code/nextjs/createAppComponent';
+import type {LayoutComponentOptions} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
+import type {AppComponentOptions} from '@/application/project/sdk/code/nextjs/createAppComponent';
 
 type ApiConfiguration = {
     user: UserApi,
@@ -24,12 +22,12 @@ type ApiConfiguration = {
 
 type CodemodConfiguration = {
     middleware: Codemod<string>,
-    appRouterProvider: Codemod<string, ComponentOptions>,
-    pageRouterProvider: Codemod<string, ComponentOptions>,
+    appRouterProvider: Codemod<string, LayoutComponentOptions>,
+    pageRouterProvider: Codemod<string, AppComponentOptions>,
 };
 
 export type Configuration = {
-    projectManager: ProjectManager,
+    project: JavaScriptProject,
     api: ApiConfiguration,
     codemod: CodemodConfiguration,
 };
@@ -40,24 +38,19 @@ type NextProjectInfo = {
     sourceDirectory: string,
     sdk: {
         package: string,
-        installed: boolean,
     },
     middleware: {
         file: string,
         new: boolean,
-        installed: boolean,
     },
     provider: {
         file: string,
         new: boolean,
-        installed: boolean,
     },
     env: {
         file: EnvFile,
-        installed: {
-            apiKey: boolean,
-            appId: boolean,
-        },
+        apiKey: boolean,
+        appId: boolean,
     },
 };
 
@@ -77,7 +70,10 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
     private readonly codemod: CodemodConfiguration;
 
     public constructor(config: Configuration) {
-        super(config.projectManager);
+        super({
+            project: config.project,
+            workspaceApi: config.api.workspace,
+        });
 
         this.api = config.api;
         this.codemod = config.codemod;
@@ -91,14 +87,18 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         return ApplicationPlatform.NEXT;
     }
 
+    protected getTypeFilePath(): Promise<string> {
+        return Promise.resolve(join(this.project.getRootPath(), '.next/types/croct.d.ts'));
+    }
+
     public async resolve(hint?: string): Promise<Sdk | null> {
         if (hint !== undefined) {
             return Promise.resolve(hint.toLowerCase() === this.getPlatform().toLowerCase() ? this : null);
         }
 
         const hints = await Promise.all([
-            this.projectManager.isPackageListed(this.getPackage()),
-            this.projectManager.isPackageListed('next'),
+            this.project.isPackageListed(this.getPackage()),
+            this.project.isPackageListed('next'),
         ]);
 
         return hints.some(Boolean) ? this : null;
@@ -115,15 +115,16 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
             }),
             configuration: {
                 ...configuration,
-                locales: i18n.locales ?? configuration.locales,
+                locales: configuration.locales.filter(locale => i18n.locales.includes(locale)),
             },
         };
     }
 
     private async getProjectInfo(): Promise<NextProjectInfo> {
         const [isTypescript, directory] = await Promise.all([
-            this.projectManager.isPackageListed('typescript'),
-            this.locateFile(['app', 'src/app', 'pages', 'src/pages'])
+            this.project.isTypeScriptProject(),
+            this.project
+                .locateFile('app', 'src/app', 'pages', 'src/pages')
                 .then(path => path ?? 'app'),
         ]);
 
@@ -134,23 +135,18 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         };
 
         const sdkPackage = this.getPackage();
-        const [middlewareFile, providerComponentFile, isSdkInstalled] = await Promise.all([
-            this.locateFile(
-                ['middleware.js', 'middleware.ts'].map(file => join(project.sourceDirectory, file)),
-            ),
-            this.locateFile(
-                (project.router === 'app' ? ['app/layout.jsx', 'app/layout.tsx'] : ['_app.jsx', '_app.tsx'])
+        const [middlewareFile, providerComponentFile] = await Promise.all([
+            this.project.locateFile(
+                ...['middleware.js', 'middleware.ts']
                     .map(file => join(project.sourceDirectory, file)),
             ),
-            this.projectManager.isPackageListed(sdkPackage),
+            this.project.locateFile(
+                ...(project.router === 'app' ? ['app/layout.jsx', 'app/layout.tsx'] : ['_app.jsx', '_app.tsx'])
+                    .map(file => join(project.sourceDirectory, file)),
+            ),
         ]);
 
-        const [middlewareSource, providerSource] = await Promise.all([
-            middlewareFile === null ? null : this.readFile([middlewareFile]),
-            providerComponentFile === null ? null : this.readFile([providerComponentFile]),
-        ]);
-
-        const envFile = new EnvFile(join(this.projectManager.getDirectory(), '.env.local'));
+        const envFile = new EnvFile(join(this.project.getRootPath(), '.env.local'));
         const [apiKeyVar, appIdVar] = await Promise.all([
             envFile.hasVariable(NextEnvVar.API_KEY),
             envFile.hasVariable(NextEnvVar.APP_ID),
@@ -162,26 +158,19 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
             ...project,
             sdk: {
                 package: sdkPackage,
-                installed: isSdkInstalled,
             },
             env: {
                 file: envFile,
-                installed: {
-                    apiKey: apiKeyVar,
-                    appId: appIdVar,
-                },
+                apiKey: apiKeyVar,
+                appId: appIdVar,
             },
             middleware: {
-                file: middlewareFile ?? join(project.sourceDirectory, `middleware.${extension}`),
                 new: middlewareFile === null,
-                installed: PlugNextSdk.hasImport(middlewareSource, '@croct/plug-next/middleware'),
+                file: middlewareFile ?? join(project.sourceDirectory, `middleware.${extension}`),
             },
             provider: {
-                file: providerComponentFile ?? (
-                    `${project.router === 'app' ? 'app/layout' : '_app'}.${extension}x`
-                ),
                 new: providerComponentFile === null,
-                installed: PlugNextSdk.hasImport(providerSource, '@croct/plug-next/CroctProvider'),
+                file: providerComponentFile ?? (`${project.router === 'app' ? 'app/layout' : '_app'}.${extension}x`),
             },
         };
     }
@@ -190,80 +179,61 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         const {project} = installation;
         const tasks: Task[] = [];
 
-        if (!project.sdk.installed) {
-            tasks.push({
-                title: `Install ${this.getPackage()}`,
-                task: async notifier => {
-                    try {
-                        await this.projectManager.installPackage(this.getPackage());
+        tasks.push({
+            title: `Install ${this.getPackage()}`,
+            task: async notifier => {
+                try {
+                    await this.project.installPackage(this.getPackage());
+                    await this.project.installPackage(JavaScriptSdk.CONTENT_PACKAGE);
 
-                        notifier.confirm('SDK installed');
-                    } catch (error) {
-                        notifier.alert('Failed to install SDK', formatMessage(error));
-                    }
-                },
-            });
-        }
+                    notifier.confirm('SDK installed');
+                } catch (error) {
+                    notifier.alert('Failed to install SDK', formatMessage(error));
+                }
+            },
+        });
 
-        const isMiddlewareInstalled = project.middleware.installed;
+        tasks.push({
+            title: `Configure ${installation.project.middleware.file}`,
+            task: async notifier => {
+                try {
+                    await this.installMiddleware({
+                        ...installation,
+                        notifier: notifier,
+                    });
 
-        if (!isMiddlewareInstalled) {
-            const isNew = project.middleware.new;
+                    notifier.confirm('Middleware configured');
+                } catch (error) {
+                    notifier.alert('Failed to install middleware', formatMessage(error));
+                }
+            },
+        });
 
-            tasks.push({
-                title: isNew
-                    ? `Create ${installation.project.middleware.file}`
-                    : `Configure ${installation.project.middleware.file}`,
-                task: async notifier => {
-                    try {
-                        await this.installMiddleware({
-                            ...installation,
-                            notifier: notifier,
-                        });
+        tasks.push({
+            title: `Configure ${installation.project.provider.file}`,
+            task: async notifier => {
+                try {
+                    await this.installProvider({
+                        ...installation,
+                        notifier: notifier,
+                    });
 
-                        notifier.confirm(`Middleware ${isNew ? 'created' : 'configured'}`);
-                    } catch (error) {
-                        notifier.alert('Failed to install middleware', formatMessage(error));
-                    }
-                },
-            });
-        }
+                    notifier.confirm('Provider configured');
+                } catch (error) {
+                    notifier.alert('Failed to install provider', formatMessage(error));
+                }
+            },
+        });
 
-        const isProviderInstalled = project.provider.installed;
+        const isEnvConfigured = project.env.apiKey && project.env.appId;
 
-        if (!isProviderInstalled) {
-            const isNew = project.provider.new;
-
-            tasks.push({
-                title: isNew
-                    ? `Create ${installation.project.provider.file}`
-                    : `Configure ${installation.project.provider.file}`,
-                task: async notifier => {
-                    try {
-                        await this.installProvider({
-                            ...installation,
-                            notifier: notifier,
-                        });
-
-                        notifier.confirm(`Provider ${isNew ? 'created' : 'configured'}`);
-                    } catch (error) {
-                        notifier.alert('Failed to install provider', formatMessage(error));
-                    }
-                },
-            });
-        }
-
-        const isEnvInstalled = project.env.installed.apiKey && project.env.installed.appId;
-
-        if (!isEnvInstalled) {
+        if (!isEnvConfigured) {
             const {file} = project.env;
             const fileName = file.getName();
             const exists = await file.exists();
 
             tasks.push({
-                title: exists
-                    ? `Update ${fileName}`
-                    : `Create ${fileName}`,
+                title: exists ? `Update ${fileName}` : `Create ${fileName}`,
                 task: async notifier => {
                     try {
                         await this.updateEnvFile({
@@ -282,7 +252,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         return tasks;
     }
 
-    private installProvider(installation: NextInstallation): Promise<boolean> {
+    private installProvider(installation: NextInstallation): Promise<void> {
         return this.updateCode(
             installation.project.router === 'app'
                 ? this.codemod.appRouterProvider
@@ -292,16 +262,16 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         );
     }
 
-    private installMiddleware(installation: NextInstallation): Promise<boolean> {
+    private installMiddleware(installation: NextInstallation): Promise<void> {
         return this.updateCode(this.codemod.middleware, installation.project.middleware.file);
     }
 
-    private async updateCode<O extends Record<string, any>>(
+    private async updateCode<O extends CodemodOptions>(
         codemod: Codemod<string, O>,
         path: string,
         options?: O,
-    ): Promise<boolean> {
-        return (await codemod.apply(join(this.projectManager.getDirectory(), path), options)).modified;
+    ): Promise<void> {
+        await codemod.apply(join(this.project.getRootPath(), path), options);
     }
 
     private async updateEnvFile(installation: NextInstallation): Promise<void> {
@@ -329,7 +299,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
 
             let apiKey: GeneratedApiKey|null = null;
 
-            if (!plan.installed.apiKey) {
+            if (!plan.apiKey) {
                 notifier.update('Creating API key');
 
                 apiKey = await api.application.createApiKey({
@@ -353,12 +323,10 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
     }
 
     private async getConfig(): Promise<NextConfig> {
-        const config = await this.readFile([
-            'next.config.js',
-            'next.config.mjs',
-            'next.config.ts',
-            'next.config.mts',
-        ]);
+        const searchPaths = ['js', 'mjs', 'ts', 'mts'].map(ext => `next.config.${ext}`);
+        const config = await this.project
+            .readFile(...searchPaths)
+            .catch(() => null);
 
         if (config === null) {
             return {
@@ -370,57 +338,5 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         }
 
         return parseConfig(config);
-    }
-
-    private async readFile(fileNames: string[]): Promise<string | null> {
-        const filePath = await this.locateFile(fileNames);
-
-        if (filePath === null) {
-            return null;
-        }
-
-        const directory = this.projectManager.getDirectory();
-
-        try {
-            return await readFile(join(directory, filePath), 'utf8');
-        } catch {
-            // Suppress error
-        }
-
-        return null;
-    }
-
-    private async locateFile(fileNames: string[]): Promise<string | null> {
-        const directory = this.projectManager.getDirectory();
-
-        for (const filename of fileNames) {
-            const fullPath = join(directory, filename);
-
-            try {
-                await access(fullPath);
-
-                return filename;
-            } catch (error) {
-                if (error.code === 'ENOENT') {
-                    continue;
-                }
-
-                throw error;
-            }
-        }
-
-        return null;
-    }
-
-    private static hasImport(source: string|null, moduleName: string): boolean {
-        if (source === null) {
-            return false;
-        }
-
-        try {
-            return hasImport(source, {moduleName: moduleName});
-        } catch {
-            return false;
-        }
     }
 }

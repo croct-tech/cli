@@ -10,11 +10,16 @@ import {
     Workspace,
 } from '@/application/model/entities';
 import {Sdk, SdkResolver} from '@/application/project/sdk/sdk';
-import {ProjectConfiguration, ProjectConfigurationFile} from '@/application/project/configuration';
+import {
+    ProjectConfiguration,
+    ProjectConfigurationFile,
+    ResolvedProjectConfiguration,
+} from '@/application/project/configuration';
 import {OrganizationOptions} from '@/application/cli/form/organization/organizationForm';
 import {ApplicationOptions} from '@/application/cli/form/application/applicationForm';
 import {WorkspaceOptions} from '@/application/cli/form/workspace/workspaceForm';
 import {Form} from '@/application/cli/form/form';
+import {Version} from '@/application/project/version';
 
 export type InitInput = {
     override?: boolean,
@@ -96,12 +101,17 @@ export class InitCommand implements Command<InitInput, InitOutput> {
 
         const configuration = await this.configure(sdk, {
             organization: organization.slug,
+            organizationId: organization.id,
             workspace: workspace.slug,
+            workspaceId: workspace.id,
             applications: {
                 production: applications.production.slug,
+                productionId: applications.production.id,
                 development: applications.development.slug,
+                developmentId: applications.development.id,
             },
-            locales: [],
+            defaultLocale: workspace.defaultLocale,
+            locales: [workspace.defaultLocale],
             slots: {},
             components: {},
         });
@@ -110,14 +120,14 @@ export class InitCommand implements Command<InitInput, InitOutput> {
 
         await configurationFile.update(configuration);
 
-        notifier.confirm('Project configuration updated');
+        notifier.confirm('Configuration updated');
 
         return configuration;
     }
 
-    private async configure(sdk: Sdk, configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
+    private async configure(sdk: Sdk, configuration: ResolvedProjectConfiguration): Promise<ProjectConfiguration> {
         const {configurationFile} = this.config;
-        const updatedConfiguration: ProjectConfiguration = {
+        const updatedConfiguration: ResolvedProjectConfiguration = {
             ...configuration,
             slots: await this.getSlots(configuration.organization, configuration.workspace),
         };
@@ -131,7 +141,7 @@ export class InitCommand implements Command<InitInput, InitOutput> {
         });
     }
 
-    private async getSlots(organizationSlug: string, workspaceSlug: string): Promise<Record<string, string>> {
+    private async getSlots(organizationSlug: string, workspaceSlug: string): Promise<Record<string, Version>> {
         const {workspaceApi, io: {output}} = this.config;
 
         const notifier = output.notify('Loading slots');
@@ -143,7 +153,7 @@ export class InitCommand implements Command<InitInput, InitOutput> {
 
         notifier.stop();
 
-        return Object.fromEntries(slots.map(slot => [slot.slug, `${slot.version.major}.${slot.version.minor}`]));
+        return Object.fromEntries(slots.map(slot => [slot.slug, Version.of(slot.version.major)]));
     }
 
     private async getSdk(hint?: string): Promise<Sdk> {

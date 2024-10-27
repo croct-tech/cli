@@ -17,8 +17,8 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver {
         }
 
         const hints = await Promise.all([
-            this.projectManager.isPackageListed(this.getPackage()),
-            this.projectManager.isPackageListed('react'),
+            this.project.isPackageListed(this.getPackage()),
+            this.project.isPackageListed('react'),
         ]);
 
         return hints.some(Boolean) ? this : null;

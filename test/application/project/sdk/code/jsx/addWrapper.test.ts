@@ -115,7 +115,9 @@ describe('AddWrapper', () => {
     });
 
     it('should call the fallback codemod when the component is not found', async () => {
-        const codemod: Codemod<File> = {
+        const options = {test: true};
+
+        const codemod: Codemod<File, typeof options> = {
             apply: jest.fn((input: File) => {
                 const {body} = input.program;
 
@@ -136,9 +138,9 @@ describe('AddWrapper', () => {
             }),
         });
 
-        const {result} = await transformer.apply(`
-            export {Component} from './component';
-        `);
+        const {result} = await transformer.apply('export {Component} from \'./component\';', options);
+
+        expect(codemod.apply).toHaveBeenCalledWith(expect.any(Object), options);
 
         expect(result).toEqual(
             '/* This is a comment*/\n'
@@ -153,7 +155,7 @@ describe('AddWrapper', () => {
 
         const transformer = new ParseCode({
             languages: ['typescript', 'jsx'],
-            codemod: new AddWrapper({
+            codemod: new AddWrapper<{test: boolean}>({
                 ...defaultOptions,
                 fallbackCodemod: codemod,
             }),

@@ -1,10 +1,13 @@
 import {resolve} from 'path';
 import {loadFixtures} from '../fixtures';
 import {ParseCode} from '@/application/project/sdk/code/parseCode';
-import {CreateLayoutComponent, ComponentOptions} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
+import {
+    CreateLayoutComponent,
+    LayoutComponentOptions,
+} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
 
 describe('CreateLayoutComponent', () => {
-    const scenarios = loadFixtures<ComponentOptions>(
+    const scenarios = loadFixtures<LayoutComponentOptions>(
         resolve(__dirname, '../fixtures/nextjs-layout-component'),
         {},
         {},

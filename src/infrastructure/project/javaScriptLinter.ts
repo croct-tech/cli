@@ -1,7 +1,8 @@
-import {resolve} from 'path';
-import {x as run} from 'tinyexec';
+import {resolve as resolvePath} from 'path';
+import {execFile} from 'child_process';
+import {execPath} from 'node:process';
 import {Linter} from '@/application/project/linter';
-import {PackageInfo, ProjectManager} from '@/application/project/projectManager';
+import {PackageInfo, Project} from '@/application/project/project';
 
 type LinterCommand = {
     executable: string,
@@ -16,17 +17,17 @@ type LinterTool = {
 
 export type Configuration = {
     tools: LinterTool[],
-    projectManager: ProjectManager,
+    project: Project,
 };
 
-export class NodeLinter implements Linter {
+export class JavaScriptLinter implements Linter {
     private readonly tools: LinterTool[];
 
-    private readonly projectManager: ProjectManager;
+    private readonly project: Project;
 
-    public constructor({tools, projectManager}: Configuration) {
+    public constructor({tools, project}: Configuration) {
         this.tools = tools;
-        this.projectManager = projectManager;
+        this.project = project;
     }
 
     public async fix(files: string[]): Promise<void> {
@@ -36,43 +37,52 @@ export class NodeLinter implements Linter {
             return;
         }
 
-        const cwd = this.projectManager.getDirectory();
-
         try {
-            await run('node', [command.executable, ...command.args], {
-                nodeOptions: {
-                    cwd: cwd,
-                    stdio: 'ignore',
-                    timeout: 5000,
-                },
-                throwOnError: true,
-            });
+            await this.runCommand(command.executable, command.args);
         } catch {
             // suppress
         }
     }
 
+    private runCommand(executable: string, args: string[]): Promise<void> {
+        const options = {
+            cwd: this.project.getRootPath(),
+            timeout: 5000,
+            stdio: 'ignore',
+        };
+
+        return new Promise((resolve, reject) => {
+            execFile(execPath, [executable, ...args], options, error => {
+                if (error !== null) {
+                    reject(error);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    }
+
     private async getCommand(files: string[]): Promise<LinterCommand|null> {
         for (const liter of this.tools) {
-            if (!await this.projectManager.isPackageListed(liter.package)) {
+            if (!await this.project.isPackageListed(liter.package)) {
                 // Ensure the package is a direct dependency
                 continue;
             }
 
-            const info = await this.projectManager.getPackageInfo(liter.package);
+            const info = await this.project.getPackageInfo(liter.package);
 
             if (info === null) {
                 continue;
             }
 
-            const bin = NodeLinter.getBinPath(info, liter.bin);
+            const bin = JavaScriptLinter.getBinPath(info, liter.bin);
 
             if (bin === null) {
                 continue;
             }
 
             return {
-                executable: resolve(info.path, bin),
+                executable: resolvePath(info.path, bin),
                 args: liter.args(files),
             };
         }

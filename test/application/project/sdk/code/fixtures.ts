@@ -15,18 +15,16 @@ export function loadFixtures<T>(
     const scenarios: Record<string, FixtureScenario<T>> = {};
 
     for (const file of readdirSync(fixturePath)) {
-        if (!file.includes('.transformed.')) {
-            const name = basename(file);
+        const name = basename(file);
 
-            scenarios[name] = {
-                name: name,
-                fixture: readFileSync(join(fixturePath, name), 'utf-8'),
-                options: {
-                    ...defaultOptions,
-                    ...fixtureOptions[name],
-                },
-            };
-        }
+        scenarios[name] = {
+            name: name,
+            fixture: readFileSync(join(fixturePath, name), 'utf-8'),
+            options: {
+                ...defaultOptions,
+                ...fixtureOptions[name],
+            },
+        };
     }
 
     for (const name of Object.keys(scenarios)) {

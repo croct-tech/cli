@@ -2,25 +2,25 @@ import * as t from '@babel/types';
 import {Codemod, ResultCode} from '@/application/project/sdk/code/codemod';
 import {addImport} from '@/application/project/sdk/code/javascript/addImport';
 
-export type ComponentOptions = {
+export type AppComponentOptions = {
     typescript?: boolean,
 };
 
-export type ComponentConfiguration = {
+export type AppComponentConfiguration = {
     provider: {
         component: string,
         module: string,
     },
 };
 
-export class CreateAppComponent implements Codemod<t.File, ComponentOptions> {
-    private configuration: ComponentConfiguration;
+export class CreateAppComponent implements Codemod<t.File, AppComponentOptions> {
+    private configuration: AppComponentConfiguration;
 
-    public constructor(configuration: ComponentConfiguration) {
+    public constructor(configuration: AppComponentConfiguration) {
         this.configuration = configuration;
     }
 
-    public apply(input: t.File, options: ComponentOptions = {}): Promise<ResultCode<t.File>> {
+    public apply(input: t.File, options: AppComponentOptions = {}): Promise<ResultCode<t.File>> {
         const isTypescript = options.typescript ?? false;
         const {body} = input.program;
 

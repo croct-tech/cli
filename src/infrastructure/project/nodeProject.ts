@@ -1,23 +1,73 @@
 import {getPackageInfo, isPackageListed} from 'local-pkg';
 import {installPackage} from '@antfu/install-pkg';
 import {createMatchPathAsync, loadConfig} from 'tsconfig-paths';
-import {resolve as resolvePath, relative} from 'path';
-import * as console from 'node:console';
-import {PackageInfo, PackageInstallationOptions, ProjectManager} from '@/application/project/projectManager';
+import {resolve as resolvePath, relative, join, isAbsolute} from 'path';
+import {access, readFile} from 'fs/promises';
+import {JavaScriptProject, PackageInfo, PackageInstallationOptions} from '@/application/project/project';
 
 type Configuration = {
     directory: string,
 };
 
-export class NodeProjectManager implements ProjectManager {
+export class NodeProject implements JavaScriptProject {
     private readonly configuration: Configuration;
 
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
     }
 
-    public getDirectory(): string {
+    public getRootPath(): string {
         return this.configuration.directory;
+    }
+
+    public isTypeScriptProject(): Promise<boolean> {
+        return this.isPackageListed('typescript');
+    }
+
+    public getTypeScriptConfigPath(): Promise<string | null> {
+        const config = loadConfig(this.configuration.directory);
+
+        if (config.resultType === 'failed') {
+            return Promise.resolve(null);
+        }
+
+        return Promise.resolve(config.configFileAbsolutePath);
+    }
+
+    public async readFile(...fileNames: string[]): Promise<string | null> {
+        const filePath = await this.locateFile(...fileNames);
+
+        if (filePath === null) {
+            return null;
+        }
+
+        return readFile(join(this.getRootPath(), filePath), 'utf8');
+    }
+
+    public async locateFile(...fileNames: string[]): Promise<string | null> {
+        const directory = this.getRootPath();
+
+        for (const filename of fileNames) {
+            if (isAbsolute(filename)) {
+                throw new Error('The file path must be relative');
+            }
+
+            const fullPath = join(directory, filename);
+
+            try {
+                await access(fullPath);
+
+                return filename;
+            } catch (error) {
+                if (error.code === 'ENOENT') {
+                    continue;
+                }
+
+                throw error;
+            }
+        }
+
+        return null;
     }
 
     public async isPackageListed(packageName: string): Promise<boolean> {
@@ -84,8 +134,6 @@ export class NodeProjectManager implements ProjectManager {
                     }
                 });
             } catch (error) {
-                console.log('error', error);
-
                 reject(error);
             }
         });

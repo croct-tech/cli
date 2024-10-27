@@ -2,7 +2,7 @@ import {join} from 'path';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput, ExitCallback} from '@/infrastructure/application/cli/io/consoleOutput';
 import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
-import {NodeProjectManager} from '@/infrastructure/project/nodeProjectManager';
+import {NodeProject} from '@/infrastructure/project/nodeProject';
 import {SdkResolver, SequentialSdkResolver} from '@/application/project/sdk/sdk';
 import {PlugJsSdk} from '@/application/project/sdk/plugJsSdk';
 import {PlugReactSdk} from '@/application/project/sdk/plugReactSdk';
@@ -14,7 +14,7 @@ import {Input} from '@/application/cli/io/input';
 import {JsonFileConfiguration} from '@/infrastructure/project/jsonFileConfiguration';
 import {GraphqlClient} from '@/infrastructure/graphql';
 import {FetchGraphqlClient} from '@/infrastructure/graphql/fetchGraphqlClient';
-import {ProjectManager} from '@/application/project/projectManager';
+import {JavaScriptProject, Project} from '@/application/project/project';
 import {UserApi} from '@/application/api/user';
 import {OrganizationApi} from '@/application/api/organization';
 import {WorkspaceApi} from '@/application/api/workspace';
@@ -43,7 +43,7 @@ import {LintCode} from '@/application/project/sdk/code/lintCode';
 import {TransformFile} from '@/application/project/sdk/code/transformFile';
 import {CreateLayoutComponent} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
 import {CreateAppComponent} from '@/application/project/sdk/code/nextjs/createAppComponent';
-import {NodeLinter} from '@/infrastructure/project/nodeLinter';
+import {JavaScriptLinter} from '@/infrastructure/project/javaScriptLinter';
 
 export type Configuration = {
     io: {
@@ -74,10 +74,6 @@ export class Cli {
     private output?: ConsoleOutput;
 
     private sdkResolver?: SdkResolver;
-
-    private projectManager?: ProjectManager;
-
-    private linter?: Linter;
 
     private graphqlClient?: GraphqlClient;
 
@@ -210,125 +206,130 @@ export class Cli {
 
     private getSdkResolver(): SdkResolver {
         if (this.sdkResolver === undefined) {
-            this.sdkResolver = new SequentialSdkResolver([
-                new PlugNextSdk({
-                    projectManager: this.getProjectManager(),
-                    api: {
-                        user: this.getUserApi(),
-                        workspace: this.getWorkspaceApi(),
-                        application: this.getApplicationApi(),
-                    },
-                    codemod: {
-                        middleware: new LintCode(
-                            new TransformFile(
-                                new ParseCode({
-                                    languages: ['typescript', 'jsx'],
-                                    codemod: new ConfigureMiddleware({
-                                        import: {
-                                            module: '@croct/plug-next/middleware',
-                                            middlewareName: 'middleware',
-                                            middlewareFactoryName: 'withCroct',
-                                            configName: 'config',
-                                            matcherName: 'matcher',
-                                            matcherLocalName: 'croctMatcher',
-                                        },
-                                    }),
-                                }),
-                            ),
-                            this.getLinter(),
-                        ),
-                        appRouterProvider: new LintCode(
-                            new TransformFile(
-                                new ParseCode({
-                                    languages: ['typescript', 'jsx'],
-                                    codemod: new AddWrapper({
-                                        fallbackToNamedExports: false,
-                                        fallbackCodemod: new CreateLayoutComponent({
-                                            provider: {
-                                                component: 'CroctProvider',
-                                                module: '@croct/plug-next/CroctProvider',
-                                            },
-                                        }),
-                                        wrapper: {
-                                            module: '@croct/plug-next/CroctProvider',
-                                            component: 'CroctProvider',
-                                        },
-                                        targets: {
-                                            variable: 'children',
-                                        },
-                                    }),
-                                }),
-                            ),
-                            this.getLinter(),
-                        ),
-                        pageRouterProvider: new LintCode(
-                            new TransformFile(
-                                new ParseCode({
-                                    languages: ['typescript', 'jsx'],
-                                    codemod: new AddWrapper({
-                                        fallbackToNamedExports: false,
-                                        fallbackCodemod: new CreateAppComponent({
-                                            provider: {
-                                                component: 'CroctProvider',
-                                                module: '@croct/plug-next/CroctProvider',
-                                            },
-                                        }),
-                                        wrapper: {
-                                            module: '@croct/plug-next/CroctProvider',
-                                            component: 'CroctProvider',
-                                        },
-                                        targets: {
-                                            component: 'Component',
-                                        },
-                                    }),
-                                }),
-                            ),
-                            this.getLinter(),
-                        ),
-                    },
-                }),
-                new PlugReactSdk(this.getProjectManager()),
-                new PlugJsSdk(this.getProjectManager()),
-            ]);
+            this.sdkResolver = new SequentialSdkResolver(this.createJavaScriptSdkResolvers());
         }
 
         return this.sdkResolver;
     }
 
-    private getProjectManager(): ProjectManager {
-        if (this.projectManager === undefined) {
-            this.projectManager = new NodeProjectManager({
-                directory: this.configuration.directories.current,
-            });
-        }
+    private createJavaScriptSdkResolvers(): SdkResolver[] {
+        const project = this.createJavaScriptProject();
+        const linter = this.createJavaScriptLinter(project);
 
-        return this.projectManager;
+        return [
+            new PlugNextSdk({
+                project: project,
+                api: {
+                    user: this.getUserApi(),
+                    workspace: this.getWorkspaceApi(),
+                    application: this.getApplicationApi(),
+                },
+                codemod: {
+                    middleware: new LintCode(
+                        new TransformFile(
+                            new ParseCode({
+                                languages: ['typescript', 'jsx'],
+                                codemod: new ConfigureMiddleware({
+                                    import: {
+                                        module: '@croct/plug-next/middleware',
+                                        middlewareName: 'middleware',
+                                        middlewareFactoryName: 'withCroct',
+                                        configName: 'config',
+                                        matcherName: 'matcher',
+                                        matcherLocalName: 'croctMatcher',
+                                    },
+                                }),
+                            }),
+                        ),
+                        linter,
+                    ),
+                    appRouterProvider: new LintCode(
+                        new TransformFile(
+                            new ParseCode({
+                                languages: ['typescript', 'jsx'],
+                                codemod: new AddWrapper({
+                                    fallbackToNamedExports: false,
+                                    fallbackCodemod: new CreateLayoutComponent({
+                                        provider: {
+                                            component: 'CroctProvider',
+                                            module: '@croct/plug-next/CroctProvider',
+                                        },
+                                    }),
+                                    wrapper: {
+                                        module: '@croct/plug-next/CroctProvider',
+                                        component: 'CroctProvider',
+                                    },
+                                    targets: {
+                                        variable: 'children',
+                                    },
+                                }),
+                            }),
+                        ),
+                        linter,
+                    ),
+                    pageRouterProvider: new LintCode(
+                        new TransformFile(
+                            new ParseCode({
+                                languages: ['typescript', 'jsx'],
+                                codemod: new AddWrapper({
+                                    fallbackToNamedExports: false,
+                                    fallbackCodemod: new CreateAppComponent({
+                                        provider: {
+                                            component: 'CroctProvider',
+                                            module: '@croct/plug-next/CroctProvider',
+                                        },
+                                    }),
+                                    wrapper: {
+                                        module: '@croct/plug-next/CroctProvider',
+                                        component: 'CroctProvider',
+                                    },
+                                    targets: {
+                                        component: 'Component',
+                                    },
+                                }),
+                            }),
+                        ),
+                        linter,
+                    ),
+                },
+            }),
+            new PlugReactSdk({
+                project: project,
+                workspaceApi: this.getWorkspaceApi(),
+            }),
+            new PlugJsSdk({
+                project: project,
+                workspaceApi: this.getWorkspaceApi(),
+            }),
+        ];
     }
 
-    private getLinter(): Linter {
-        if (this.linter === undefined) {
-            this.linter = new NodeLinter({
-                projectManager: this.getProjectManager(),
-                tools: [
-                    {
-                        package: 'eslint',
-                        bin: 'eslint',
-                        args: files => ['--fix', ...files],
-                    },
-                    {
-                        package: 'prettier',
-                        args: files => ['--write', ...files],
-                    },
-                    {
-                        package: '@biomejs/biome',
-                        bin: 'biome',
-                        args: files => ['format', '--write', ...files],
-                    },
-                ],
-            });
-        }
+    private createJavaScriptProject(): JavaScriptProject {
+        return new NodeProject({
+            directory: this.configuration.directories.current,
+        });
+    }
 
-        return this.linter;
+    private createJavaScriptLinter(project: Project): Linter {
+        return new JavaScriptLinter({
+            project: project,
+            tools: [
+                {
+                    package: 'eslint',
+                    bin: 'eslint',
+                    args: files => ['--fix', ...files],
+                },
+                {
+                    package: 'prettier',
+                    args: files => ['--write', ...files],
+                },
+                {
+                    package: '@biomejs/biome',
+                    bin: 'biome',
+                    args: files => ['format', '--write', ...files],
+                },
+            ],
+        });
     }
 
     private getConfigurationFile(): ProjectConfigurationFile {

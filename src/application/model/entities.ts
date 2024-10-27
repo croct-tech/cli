@@ -36,6 +36,7 @@ export type Workspace = {
     logo?: string,
     slug: string,
     defaultLocale: string,
+    locales: string[],
     timeZone: string,
     website?: string,
 };

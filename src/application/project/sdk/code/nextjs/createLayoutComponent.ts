@@ -2,25 +2,25 @@ import * as t from '@babel/types';
 import {Codemod, ResultCode} from '@/application/project/sdk/code/codemod';
 import {addImport} from '@/application/project/sdk/code/javascript/addImport';
 
-export type ComponentOptions = {
+export type LayoutComponentOptions = {
     typescript?: boolean,
 };
 
-export type ComponentConfiguration = {
+export type LayoutComponentConfiguration = {
     provider: {
         component: string,
         module: string,
     },
 };
 
-export class CreateLayoutComponent implements Codemod<t.File, ComponentOptions> {
-    private configuration: ComponentConfiguration;
+export class CreateLayoutComponent implements Codemod<t.File, LayoutComponentOptions> {
+    private configuration: LayoutComponentConfiguration;
 
-    public constructor(configuration: ComponentConfiguration) {
+    public constructor(configuration: LayoutComponentConfiguration) {
         this.configuration = configuration;
     }
 
-    public apply(input: t.File, options: ComponentOptions = {}): Promise<ResultCode<t.File>> {
+    public apply(input: t.File, options: LayoutComponentOptions = {}): Promise<ResultCode<t.File>> {
         const isTypescript = options.typescript ?? false;
         const {body} = input.program;
 
