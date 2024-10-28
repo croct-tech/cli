@@ -35,11 +35,10 @@ export abstract class JsonStructureNode extends JsonValueNode {
             }
         }
 
+        childFormatting.indentationLevel = (formatting?.indentationLevel ?? 0) + 1;
+
         for (const item of this.getList()) {
-            item.rebuild({
-                ...childFormatting,
-                indentationLevel: (formatting?.indentationLevel ?? 0) + 1,
-            });
+            item.rebuild(childFormatting);
         }
 
         this.rebuildChildren(parentFormatting);
@@ -78,14 +77,8 @@ export abstract class JsonStructureNode extends JsonValueNode {
                 previousMatched = false;
             } else if (JsonStructureNode.matchesRemoval(manipulator, list, index)) {
                 manipulator.dropUntil(item.isEquivalent.bind(item));
-
-                if (leadingIndentation && manipulator.matchesPreviousToken(JsonTokenType.NEW_LINE)) {
-                    manipulator.previous();
-                    JsonStructureNode.indent(manipulator, formatting);
-                }
-
-                previousMatched = true;
                 manipulator.node(item);
+                previousMatched = true;
             } else {
                 const currentMatched = manipulator.matches(item);
 
@@ -206,7 +199,6 @@ export abstract class JsonStructureNode extends JsonValueNode {
             if (depth === 0 && comma) {
                 formatting.commaSpacing = token.type === JsonTokenType.WHITESPACE
                     || (formatting.commaSpacing === true && token.type === JsonTokenType.NEW_LINE);
-
                 formatting.entryIndentation = token.type === JsonTokenType.NEW_LINE;
                 comma = false;
             }
