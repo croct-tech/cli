@@ -1353,6 +1353,60 @@ describe('Functional test', () => {
             },
         },
         {
+            description: 'keep the formatting of the last property when adding a new property',
+            // language=JSON
+            input: multiline`
+              {
+                "foo": [
+                  "a"
+                ],
+                "bar": ["c"]
+              }`,
+            // language=JSON
+            output: multiline`
+              {
+                "foo": [
+                  "a",
+                  "b"
+                ],
+                "bar": ["c", "d"],
+                "baz": ["e"]
+              }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.get('foo', JsonArrayNode).push('b');
+                node.get('bar', JsonArrayNode).push('d');
+                node.set('baz', ['e']);
+            },
+        },
+        {
+            description: 'keep the formatting of the last element when adding a new element',
+            // language=JSON
+            input: multiline`
+              [
+                [
+                  "a"
+                ],
+                ["c"]
+              ]`,
+            // language=JSON
+            output: multiline`
+              [
+                [
+                  "a",
+                  "b"
+                ],
+                ["c", "d"],
+                ["e"]
+              ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.get(0, JsonArrayNode).push('b');
+                node.get(1, JsonArrayNode).push('d');
+                node.push(['e']);
+            },
+        },
+        {
             description: 'preserve wrong indentation when adding a new property',
             // language=JSON
             input: multiline`

@@ -24,14 +24,22 @@ export abstract class JsonStructureNode extends JsonValueNode {
 
         let childFormatting = parentFormatting;
 
-        for (let index = this.children.length - 1; index >= 0; index--) {
-            const child = this.children[index];
+        const children = [...this.children];
+
+        for (let index = children.length - 1; index >= 0; index--) {
+            const child = children[index];
 
             if (child instanceof JsonStructureNode) {
                 // Extract the formatting from the last child
                 childFormatting = child.resolveFormatting(parentFormatting);
 
                 break;
+            }
+
+            if (child instanceof JsonCompositeNode && this.children.includes(child)) {
+                // If the direct child is a composite node, traverse it
+                children.splice(index - 1, 0, ...child.children);
+                index += child.children.length;
             }
         }
 
@@ -197,8 +205,10 @@ export abstract class JsonStructureNode extends JsonValueNode {
             }
 
             if (depth === 0 && comma) {
-                formatting.commaSpacing = token.type === JsonTokenType.WHITESPACE
-                    || (formatting.commaSpacing === true && token.type === JsonTokenType.NEW_LINE);
+                if (token.type !== JsonTokenType.NEW_LINE) {
+                    formatting.commaSpacing = token.type === JsonTokenType.WHITESPACE;
+                }
+
                 formatting.entryIndentation = token.type === JsonTokenType.NEW_LINE;
                 comma = false;
             }

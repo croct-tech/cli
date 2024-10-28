@@ -34,7 +34,6 @@ export class ParseCode<O extends CodemodOptions> implements Codemod<string, O> {
                 result.result,
                 {
                     compact: false,
-                    // retainLines: true,
                     retainFunctionParens: true,
                 },
             ).code,

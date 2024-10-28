@@ -52,7 +52,7 @@ export class JsonObjectNode extends JsonStructureNode implements JsonCompositeDe
     }
 
     public has(name: string): boolean {
-        return name in this.propertyNodes;
+        return this.propertyNodes.some(current => current.key.toJSON() === name);
     }
 
     public get properties(): JsonPropertyNode[] {
