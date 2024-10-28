@@ -20,32 +20,54 @@ export abstract class JsonStructureNode extends JsonValueNode {
     }
 
     public rebuild(formatting: Partial<Formatting> = {}): void {
-        const resolvedFormatting = this.resolveFormatting(formatting);
+        const parentFormatting = this.resolveFormatting(formatting);
+
+        let childFormatting = parentFormatting;
+
+        for (let index = this.children.length - 1; index >= 0; index--) {
+            const child = this.children[index];
+
+            if (child instanceof JsonStructureNode) {
+                // Extract the formatting from the last child
+                childFormatting = child.resolveFormatting(parentFormatting);
+
+                break;
+            }
+        }
 
         for (const item of this.getList()) {
             item.rebuild({
-                ...resolvedFormatting,
+                ...childFormatting,
                 indentationLevel: (formatting?.indentationLevel ?? 0) + 1,
             });
         }
 
-        this.rebuildChildren(resolvedFormatting);
+        this.rebuildChildren(parentFormatting);
     }
 
     private rebuildChildren(formatting: Partial<Formatting>): void {
         const manipulator = new NodeManipulator(this.children);
 
+        const endToken = this.getEndToken();
+
         manipulator.token(this.getStartToken());
 
         const list = this.getList();
         const count = list.length;
-        const {spaced = false, indentationSize = 0} = formatting;
+
+        const {
+            commaSpacing = false,
+            entryIndentation = true,
+            blockLeadingIndentation = true,
+            blockTrailingIndentation = true,
+            indentationSize = 0,
+        } = formatting;
 
         let previousMatched = false;
 
         for (let index = 0; index < count; index++) {
             const item = list[index];
-            const leadingIndentation = index !== 0 || formatting.leadingIndentation !== false;
+            const leadingIndentation = (index !== 0 && entryIndentation) || (index === 0 && blockLeadingIndentation);
 
             if (JsonStructureNode.matchesInsertion(manipulator, list, index)) {
                 if (leadingIndentation) {
@@ -68,7 +90,20 @@ export abstract class JsonStructureNode extends JsonValueNode {
                 const currentMatched = manipulator.matches(item);
 
                 if (leadingIndentation) {
-                    JsonStructureNode.indent(manipulator, formatting, previousMatched && currentMatched);
+                    if (indentationSize > 0 && manipulator.matchesNext(node => endToken.isEquivalent(node))) {
+                        // If the following token is the end token, always indent.
+                        // This ensures it won't consume the indentation of the end delimiter.
+                        manipulator.insert(
+                            new JsonTokenNode({
+                                type: JsonTokenType.NEW_LINE,
+                                value: '\n',
+                            }),
+                        );
+
+                        manipulator.insert(JsonStructureNode.getIndentationToken(formatting));
+                    } else {
+                        JsonStructureNode.indent(manipulator, formatting, previousMatched && currentMatched);
+                    }
                 }
 
                 previousMatched = currentMatched;
@@ -76,7 +111,7 @@ export abstract class JsonStructureNode extends JsonValueNode {
             }
 
             if (index === count - 1) {
-                if (formatting.trailingIndentation !== false) {
+                if (blockTrailingIndentation) {
                     JsonStructureNode.indent(manipulator, {
                         ...formatting,
                         indentationLevel: (formatting.indentationLevel ?? 0) - 1,
@@ -90,18 +125,28 @@ export abstract class JsonStructureNode extends JsonValueNode {
                     }),
                 );
 
-                if (indentationSize === 0 && spaced) {
+                if (
+                    ((indentationSize === 0 || !entryIndentation) && commaSpacing)
+                    && (
+                        !manipulator.matchesNext(NodeMatcher.SPACE)
+                        || manipulator.matchesNext(node => endToken.isEquivalent(node))
+                    )
+                ) {
                     manipulator.token(
                         new JsonTokenNode({
                             type: JsonTokenType.WHITESPACE,
                             value: ' ',
                         }),
+                        manipulator.matchesNext(
+                            node => list[index + 1].isEquivalent(node),
+                            NodeMatcher.SPACE,
+                        ),
                     );
                 }
             }
         }
 
-        manipulator.token(this.getEndToken());
+        manipulator.token(endToken);
 
         manipulator.end();
     }
@@ -117,11 +162,12 @@ export abstract class JsonStructureNode extends JsonValueNode {
 
         let blockStart = true;
         let lineStart = true;
-        let punctuation = false;
+        let comma = false;
+        let colon = false;
         let lineIndentation = 0;
         let levelIndentation = 0;
-        let leadingIndentation = false;
-        let trailingIndentation = false;
+        let blockLeadingIndentation = false;
+        let blockTrailingIndentation = false;
         let empty = true;
 
         const startToken = this.getStartToken();
@@ -131,10 +177,10 @@ export abstract class JsonStructureNode extends JsonValueNode {
             if (depth === 0 && startToken.isEquivalent(token)) {
                 blockStart = true;
             } else if (depth === 0 && endToken.isEquivalent(token)) {
-                trailingIndentation = lineStart;
+                blockTrailingIndentation = lineStart;
             } else {
                 if (!empty && blockStart) {
-                    leadingIndentation = blockStart && lineStart;
+                    blockLeadingIndentation = blockStart && lineStart;
                     blockStart = false;
                 }
 
@@ -149,10 +195,6 @@ export abstract class JsonStructureNode extends JsonValueNode {
                     formatting.indentationCharacter = 'tab';
                 }
 
-                if (punctuation) {
-                    formatting.spaced = true;
-                }
-
                 if (depth === 0 && lineStart) {
                     // ignore characters that are not spaces, like \r
                     lineIndentation = token.value.includes('\t')
@@ -161,15 +203,29 @@ export abstract class JsonStructureNode extends JsonValueNode {
                 }
             }
 
-            lineStart = token.type === JsonTokenType.NEW_LINE || (lineStart && token.type === JsonTokenType.WHITESPACE);
+            if (depth === 0 && comma) {
+                formatting.commaSpacing = token.type === JsonTokenType.WHITESPACE
+                    || (formatting.commaSpacing === true && token.type === JsonTokenType.NEW_LINE);
 
-            punctuation = token.type === JsonTokenType.COMMA || token.type === JsonTokenType.COLON;
+                formatting.entryIndentation = token.type === JsonTokenType.NEW_LINE;
+                comma = false;
+            }
+
+            if (colon) {
+                formatting.colonSpacing = token.type === JsonTokenType.WHITESPACE;
+                colon = false;
+            }
+
+            colon = token.type === JsonTokenType.COLON || (colon && token.type === JsonTokenType.WHITESPACE);
+            comma = token.type === JsonTokenType.COMMA || (comma && token.type === JsonTokenType.WHITESPACE);
+
+            lineStart = token.type === JsonTokenType.NEW_LINE || (lineStart && token.type === JsonTokenType.WHITESPACE);
         }
 
         if (!empty) {
             formatting.indentationSize = 0;
-            formatting.leadingIndentation = leadingIndentation;
-            formatting.trailingIndentation = trailingIndentation;
+            formatting.blockLeadingIndentation = blockLeadingIndentation;
+            formatting.blockTrailingIndentation = blockTrailingIndentation;
         }
 
         const indentationLevel = Math.max(formatting.indentationLevel ?? 0, 0) + 1;
@@ -179,9 +235,14 @@ export abstract class JsonStructureNode extends JsonValueNode {
 
             formatting.indentationSize = (levelIndentation - remainder) / indentationLevel + remainder;
 
-            if (formatting.spaced === undefined) {
+            if (formatting.commaSpacing === undefined) {
                 // If no spacing detected but indentation is present, default to spaced
-                formatting.spaced = true;
+                formatting.commaSpacing = true;
+            }
+
+            if (formatting.colonSpacing === undefined) {
+                // If no spacing detected but indentation is present, default to spaced
+                formatting.colonSpacing = true;
             }
         }
 
@@ -191,9 +252,7 @@ export abstract class JsonStructureNode extends JsonValueNode {
     }
 
     private static indent(manipulator: NodeManipulator, formatting: Partial<Formatting>, optional = false): void {
-        const {indentationLevel = 0, indentationSize = 0} = formatting;
-
-        if (indentationSize <= 0) {
+        if ((formatting.indentationSize ?? 0) <= 0) {
             return;
         }
 
@@ -205,19 +264,21 @@ export abstract class JsonStructureNode extends JsonValueNode {
             optional,
         );
 
-        const char = formatting.indentationCharacter === 'tab' ? '\t' : ' ';
-
         if (manipulator.matchesToken(JsonTokenType.WHITESPACE)) {
             manipulator.next();
         } else {
-            manipulator.token(
-                new JsonTokenNode({
-                    type: JsonTokenType.WHITESPACE,
-                    value: char.repeat(indentationSize * indentationLevel),
-                }),
-                optional,
-            );
+            manipulator.token(JsonStructureNode.getIndentationToken(formatting), optional);
         }
+    }
+
+    private static getIndentationToken(formatting: Partial<Formatting>): JsonTokenNode {
+        const {indentationLevel = 0, indentationSize = 0} = formatting;
+        const char = formatting.indentationCharacter === 'tab' ? '\t' : ' ';
+
+        return new JsonTokenNode({
+            type: JsonTokenType.WHITESPACE,
+            value: char.repeat(indentationLevel * indentationSize),
+        });
     }
 
     private static* iterate(children: JsonNode[], maxDepth: number, depth = 0): Generator<DescendantNode> {

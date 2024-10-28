@@ -10,10 +10,12 @@ export type PartialJsonTreeDefinition<T extends JsonTreeDefinition = JsonTreeDef
 export type Formatting = {
     indentationLevel: number,
     indentationSize: number,
-    leadingIndentation: boolean,
-    trailingIndentation: boolean,
     indentationCharacter: 'space' | 'tab',
-    spaced: boolean,
+    blockTrailingIndentation: boolean,
+    blockLeadingIndentation: boolean,
+    entryIndentation: boolean,
+    commaSpacing: boolean,
+    colonSpacing: boolean,
 };
 
 export abstract class JsonTreeNode extends JsonNode {

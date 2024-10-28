@@ -46,7 +46,7 @@ export class JsonPropertyNode extends JsonTreeNode implements JsonPropertyDefini
 
     private rebuildChildren(formatting?: Partial<Formatting>): void {
         const manipulator = new NodeManipulator(this.children);
-        const spaced = formatting?.spaced ?? false;
+        const spaced = formatting?.colonSpacing ?? false;
 
         manipulator.node(this.key)
             .token(
@@ -60,7 +60,7 @@ export class JsonPropertyNode extends JsonTreeNode implements JsonPropertyDefini
             manipulator.token(
                 new JsonTokenNode({
                     type: JsonTokenType.WHITESPACE,
-                    value: ' '.repeat(spaced ? 1 : 0),
+                    value: ' ',
                 }),
                 !manipulator.done(),
             );

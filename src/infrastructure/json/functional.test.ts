@@ -210,7 +210,8 @@ describe('Functional test', () => {
                 node.set('foo', 1);
             },
             format: {
-                spaced: true,
+                commaSpacing: true,
+                colonSpacing: true,
             },
         },
         {
@@ -224,7 +225,7 @@ describe('Functional test', () => {
                 node.push(1, 2);
             },
             format: {
-                spaced: true,
+                commaSpacing: true,
             },
         },
         {
@@ -276,7 +277,8 @@ describe('Functional test', () => {
                 node.set('foo', 1);
             },
             format: {
-                spaced: true,
+                commaSpacing: true,
+                colonSpacing: true,
                 indentationSize: 2,
             },
         },
@@ -297,8 +299,99 @@ describe('Functional test', () => {
                 node.push(1, {foo: 2});
             },
             format: {
-                spaced: true,
+                commaSpacing: true,
+                colonSpacing: true,
                 indentationSize: 2,
+            },
+        },
+        {
+            description: 'add a property to an empty object leading, trailing, and no item indentation or spacing',
+            // language=JSON
+            input: '{}',
+            // language=JSON
+            output: multiline`
+              {
+                "foo":1,"bar":2,"baz":3
+              }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('foo', 1);
+                node.set('bar', 2);
+                node.set('baz', 3);
+            },
+            format: {
+                blockTrailingIndentation: true,
+                blockLeadingIndentation: true,
+                commaSpacing: false,
+                colonSpacing: false,
+                indentationSize: 2,
+                entryIndentation: false,
+            },
+        },
+        {
+            description: 'add an element to an empty array leading, trailing, and no item indentation or spacing',
+            // language=JSON
+            input: '[]',
+            // language=JSON
+            output: multiline`
+              [
+                1,2,3
+              ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(1, 2, 3);
+            },
+            format: {
+                blockTrailingIndentation: true,
+                blockLeadingIndentation: true,
+                commaSpacing: false,
+                indentationSize: 2,
+                entryIndentation: false,
+            },
+        },
+        {
+            description: 'add a property to an empty object leading, trailing, and no item indentation',
+            // language=JSON
+            input: '{}',
+            // language=JSON
+            output: multiline`
+            {
+              "foo": 1, "bar": 2, "baz": 3
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('foo', 1);
+                node.set('bar', 2);
+                node.set('baz', 3);
+            },
+            format: {
+                blockTrailingIndentation: true,
+                blockLeadingIndentation: true,
+                commaSpacing: true,
+                colonSpacing: true,
+                indentationSize: 2,
+                entryIndentation: false,
+            },
+        },
+        {
+            description: 'add an element to an empty array leading, trailing, and no item indentation',
+            // language=JSON
+            input: '[]',
+            // language=JSON
+            output: multiline`
+            [
+              1, 2, 3
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(1, 2, 3);
+            },
+            format: {
+                blockTrailingIndentation: true,
+                blockLeadingIndentation: true,
+                commaSpacing: true,
+                indentationSize: 2,
+                entryIndentation: false,
             },
         },
         {
@@ -714,8 +807,8 @@ describe('Functional test', () => {
             },
             format: {
                 indentationSize: 2,
-                leadingIndentation: true,
-                trailingIndentation: false,
+                blockLeadingIndentation: true,
+                blockTrailingIndentation: false,
             },
         },
         {
@@ -732,8 +825,8 @@ describe('Functional test', () => {
             },
             format: {
                 indentationSize: 2,
-                leadingIndentation: true,
-                trailingIndentation: false,
+                blockLeadingIndentation: true,
+                blockTrailingIndentation: false,
             },
         },
         {
@@ -750,8 +843,8 @@ describe('Functional test', () => {
             },
             format: {
                 indentationSize: 2,
-                leadingIndentation: false,
-                trailingIndentation: true,
+                blockLeadingIndentation: false,
+                blockTrailingIndentation: true,
             },
         },
         {
@@ -768,8 +861,8 @@ describe('Functional test', () => {
             },
             format: {
                 indentationSize: 2,
-                leadingIndentation: false,
-                trailingIndentation: true,
+                blockLeadingIndentation: false,
+                blockTrailingIndentation: true,
             },
         },
         {
@@ -810,17 +903,17 @@ describe('Functional test', () => {
             description: 'preserve mixed formatting when adding a new property',
             // language=JSON
             input: multiline`
-              {"foo": 1, "bar":2,
-                "baz": [
-                  3, 4
-                ]}`,
+            {"foo": 1, "bar":2,
+              "baz": [
+                3, 4
+              ]}`,
             // language=JSON
             output: multiline`
-              {"foo": 1, "bar":2,
-                "baz": [
-                  3, 4
-                ],
-                "qux": 5}`,
+            {"foo": 1, "bar":2,
+              "baz": [
+                3, 4
+              ],
+              "qux": 5}`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
                 node.set('qux', 5);
@@ -838,9 +931,8 @@ describe('Functional test', () => {
             output: multiline`
             {"foo": 1, "bar":2,
               "baz": [
-                3, 4,
-                5
-              ]}`,
+                3, 4, 5
+                ]}`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
                 const baz = node.get('baz', JsonArrayNode);
@@ -852,16 +944,16 @@ describe('Functional test', () => {
             description: 'preserve mixed formatting when deleting a property from the end of the line',
             // language=JSON
             input: multiline`
-              {"foo": 1, "bar":2,
-                "baz": {
-                  "qux": 3, "quux": 4, "quuz": 5
-                }}`,
+            {"foo": 1, "bar":2,
+              "baz": {
+                "qux": 3, "quux": 4, "quuz": 5
+              }}`,
             // language=JSON
             output: multiline`
-              {"foo": 1,
-                "baz": {
-                  "qux": 3, "quux": 4, "quuz": 5
-                }}`,
+            {"foo": 1,
+              "baz": {
+                "qux": 3, "quux": 4, "quuz": 5
+              }}`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
                 node.delete('bar');
@@ -871,16 +963,16 @@ describe('Functional test', () => {
             description: 'preserve mixed formatting when deleting an element from the end of the line',
             // language=JSON
             input: multiline`
-              {"foo": 1, "bar":2,
-                "baz": [
-                  3, 4, 5
-                ]}`,
+            {"foo": 1, "bar":2,
+              "baz": [
+                3, 4, 5
+              ]}`,
             // language=JSON
             output: multiline`
-              {"foo": 1, "bar":2,
-                "baz": [
-                  3, 4
-                ]}`,
+            {"foo": 1, "bar":2,
+              "baz": [
+                3, 4
+              ]}`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
                 const baz = node.get('baz', JsonArrayNode);
@@ -892,16 +984,16 @@ describe('Functional test', () => {
             description: 'preserve mixed formatting when deleting a property from the middle',
             // language=JSON
             input: multiline`
-              {"foo": 1, "bar":2,
-                "baz": {
-                  "qux": 3, "quux": 4, "quuz": 5
-                }}`,
+            {"foo": 1, "bar":2,
+              "baz": {
+                "qux": 3, "quux": 4, "quuz": 5
+              }}`,
             // language=JSON
             output: multiline`
-              {"foo": 1, "bar":2,
-                "baz": {
-                  "qux": 3, "quuz": 5
-                }}`,
+            {"foo": 1, "bar":2,
+              "baz": {
+                "qux": 3, "quuz": 5
+              }}`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
                 const baz = node.get('baz', JsonObjectNode);
@@ -913,16 +1005,16 @@ describe('Functional test', () => {
             description: 'preserve mixed formatting when deleting an element from the middle',
             // language=JSON
             input: multiline`
-              {"foo": 1, "bar":2,
-                "baz": [
-                  3, 4, 5
-                ]}`,
+            {"foo": 1, "bar":2,
+              "baz": [
+                3, 4, 5
+              ]}`,
             // language=JSON
             output: multiline`
-              {"foo": 1, "bar":2,
-                "baz": [
-                  3, 5
-                ]}`,
+            {"foo": 1, "bar":2,
+              "baz": [
+                3, 5
+              ]}`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
                 const baz = node.get('baz', JsonArrayNode);
@@ -934,16 +1026,16 @@ describe('Functional test', () => {
             description: 'preserve mixed formatting when deleting a property from the beginning',
             // language=JSON
             input: multiline`
-              {"foo": 1, "bar":2,
-                "baz": {
-                  "qux": 3, "quux": 4, "quuz": 5
-                }}`,
+            {"foo": 1, "bar":2,
+              "baz": {
+                "qux": 3, "quux": 4, "quuz": 5
+              }}`,
             // language=JSON
             output: multiline`
-              {"foo": 1, "bar":2,
-                "baz": {
-                  "quux": 4, "quuz": 5
-                }}`,
+            {"foo": 1, "bar":2,
+              "baz": {
+                "quux": 4, "quuz": 5
+              }}`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
                 const baz = node.get('baz', JsonObjectNode);
@@ -976,16 +1068,16 @@ describe('Functional test', () => {
             description: 'preserve mixed formatting when deleting a property from the end',
             // language=JSON
             input: multiline`
-              {"foo": 1, "bar":2,
-                "baz": {
-                  "qux": 3, "quux": 4, "quuz": 5
-                }}`,
+            {"foo": 1, "bar":2,
+              "baz": {
+                "qux": 3, "quux": 4, "quuz": 5
+              }}`,
             // language=JSON
             output: multiline`
-              {"foo": 1, "bar":2,
-                "baz": {
-                  "qux": 3, "quux": 4
-                }}`,
+            {"foo": 1, "bar":2,
+              "baz": {
+                "qux": 3, "quux": 4
+              }}`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
                 const baz = node.get('baz', JsonObjectNode);
@@ -1116,6 +1208,169 @@ describe('Functional test', () => {
                 const baz = node.get('baz', JsonArrayNode);
 
                 baz.clear();
+            },
+        },
+        {
+            description: 'preserve mixed spacing when adding a new property',
+            // language=JSON
+            input: multiline`
+            {
+              "foo":1, "bar":2
+            }`,
+            // language=JSON
+            output: multiline`
+            {
+              "foo":1, "bar":2, "baz":3
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('baz', 3);
+            },
+        },
+        {
+            description: 'preserve mixed spacing when adding a new element',
+            // language=JSON
+            input: multiline`
+            [
+              {"foo":1}, {"bar":2}
+            ]`,
+            // language=JSON
+            output: multiline`
+            [
+              {"foo":1}, {"bar":2}, {"baz":3}
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push({baz: 3});
+            },
+        },
+        {
+            description: 'preserve mixed formatting when adding a new property',
+            // language=JSON
+            input: multiline`
+            {
+              "foo":1, "bar":2,
+              "baz": 3
+            }`,
+            // language=JSON
+            output: multiline`
+            {
+              "foo":1, "bar":2,
+              "baz": 3,
+              "qux": 4
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('qux', 4);
+            },
+        },
+        {
+            description: 'preserve mixed formatting when adding a new element',
+            // language=JSON
+            input: multiline`
+            [
+              ["foo",1], ["bar",2],
+              ["baz", 3]
+            ]`,
+            // language=JSON
+            output: multiline`
+            [
+              ["foo",1], ["bar",2],
+              ["baz", 3],
+              ["qux", 4]
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(['qux', 4]);
+            },
+        },
+        {
+            description: 'preserve mixed formatting when adding a property to a nested object',
+            // language=JSON
+            input: multiline`
+            {"a": 1, "b": 2,
+              "c": {"d": 3}}`,
+            // language=JSON
+            output: multiline`
+            {"a": 1, "b": 2,
+              "c": {"d": 3, "e": 4}}`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                const c = node.get('c', JsonObjectNode);
+
+                c.set('e', 4);
+            },
+        },
+        {
+            description: 'preserve the spacing when adding an element to a nested array',
+            // language=JSON
+            input: multiline`
+            ["a", "b",
+              ["c"]]`,
+            // language=JSON
+            output: multiline`
+            ["a", "b",
+              ["c", "d"]]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                const array = node.get(2, JsonArrayNode);
+
+                array.push('d');
+            },
+        },
+        {
+            description: 'preserve mixed formatting when adding properties to a nested empty object',
+            // language=JSON
+            input: multiline`
+            {"a": 1, "b": 2,
+              "c": {}}`,
+            // language=JSON
+            output: multiline`
+            {"a": 1, "b": 2,
+              "c": {"d": 3,
+                "e": 4}}`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                const c = node.get('c', JsonObjectNode);
+
+                c.set('d', 3);
+                c.set('e', 4);
+            },
+        },
+        {
+            description: 'preserve mixed formatting when adding elements to a nested empty array',
+            // language=JSON
+            input: multiline`
+            ["a", "b",
+              []]`,
+            // language=JSON
+            output: multiline`
+            ["a", "b",
+              ["c",
+                "d"]]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                const array = node.get(2, JsonArrayNode);
+
+                array.push('c', 'd');
+            },
+        },
+        {
+            description: 'preserve wrong indentation when adding a new property',
+            // language=JSON
+            input: multiline`
+            {
+              "foo": 1
+               }`,
+            // language=JSON
+            output: multiline`
+            {
+              "foo": 1,
+              "bar": 2
+               }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 2);
             },
         },
         {
