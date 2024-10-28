@@ -1,9 +1,9 @@
 import {JsonValueNode} from './valueNode';
-import {JsonNode} from './node';
+import {Formatting, JsonNode} from './node';
 import {JsonTokenType} from '../token';
 import {JsonTokenNode} from './tokenNode';
 import {NodeManipulator, NodeMatcher} from '../manipulator';
-import {Formatting, JsonTreeNode} from '@/infrastructure/json/node/treeNode';
+import {JsonCompositeNode} from './compositeNode';
 
 type DescendantNode = {
     depth: number,
@@ -144,7 +144,7 @@ export abstract class JsonStructureNode extends JsonValueNode {
         manipulator.end();
     }
 
-    protected abstract getList(): JsonTreeNode[];
+    protected abstract getList(): JsonCompositeNode[];
 
     protected abstract getStartToken(): JsonTokenNode;
 
@@ -282,7 +282,7 @@ export abstract class JsonStructureNode extends JsonValueNode {
                 };
             }
 
-            if (maxDepth > 0 && child instanceof JsonTreeNode) {
+            if (maxDepth > 0 && child instanceof JsonCompositeNode) {
                 yield* JsonStructureNode.iterate(child.children, maxDepth - 1, depth + 1);
             }
         }

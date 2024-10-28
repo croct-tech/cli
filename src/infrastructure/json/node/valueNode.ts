@@ -1,6 +1,6 @@
 import {JsonValue} from '@croct/json';
-import {JsonTreeNode} from '@/infrastructure/json/node/treeNode';
+import {JsonCompositeNode} from '@/infrastructure/json/node/compositeNode';
 
-export abstract class JsonValueNode extends JsonTreeNode {
+export abstract class JsonValueNode extends JsonCompositeNode {
     public abstract toJSON(): JsonValue;
 }

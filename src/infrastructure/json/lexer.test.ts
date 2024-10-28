@@ -2346,9 +2346,7 @@ describe('Lexer', () => {
             ],
         },
     ])('should tokenize $input', ({input, tokens}) => {
-        const lexer = new JsonLexer(input);
-
-        const result = [...lexer];
+        const result = JsonLexer.tokenize(input);
 
         for (const token of result) {
             const {location} = token;

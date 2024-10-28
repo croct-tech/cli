@@ -10,12 +10,26 @@ export class JsonParser {
         this.lexer = new JsonLexer(source);
     }
 
-    public parse<T extends JsonValueNode>(type: {new(definition: any): T}): T;
+    public static parse<T extends JsonValueNode>(source: string, type: {new(...args: any[]): T}): T;
 
-    public parse(): JsonValueNode;
+    public static parse(source: string): JsonValueNode;
 
-    public parse<T extends JsonValueNode>(type?: {new(definition: any): T}): JsonValueNode {
-        const node = this.parseJson();
+    public static parse<T extends JsonValueNode>(source: string, type?: {new(...args: any[]): T}): JsonValueNode {
+        const parser = new JsonParser(source);
+
+        if (type !== undefined) {
+            return parser.parseValue(type);
+        }
+
+        return parser.parseValue();
+    }
+
+    public parseValue<T extends JsonValueNode>(type: {new(...args: any[]): T}): T;
+
+    public parseValue(): JsonValueNode;
+
+    public parseValue<T extends JsonValueNode>(type?: {new(...args: any[]): T}): JsonValueNode {
+        const node = this.parseRoot();
 
         if (type !== undefined && !(node instanceof type)) {
             throw new Error(`Expected ${type.name} but got ${node.constructor.name}`);
@@ -24,12 +38,12 @@ export class JsonParser {
         return node;
     }
 
-    private parseJson(): JsonValueNode {
+    private parseRoot(): JsonValueNode {
         this.lexer.next();
 
         const leadingSpaces = this.lexer.skipSpace();
 
-        const node = this.parseValue();
+        const node = this.parseNext();
 
         const trailingSpaces = this.lexer.skipSpace();
 
@@ -46,7 +60,7 @@ export class JsonParser {
         return node;
     }
 
-    private parseValue(): JsonValueNode {
+    private parseNext(): JsonValueNode {
         const token = this.lexer.peek();
 
         switch (token.type) {
@@ -97,7 +111,7 @@ export class JsonParser {
         const elements: JsonValueNode[] = [];
 
         while (!this.lexer.matches(JsonTokenType.ARRAY_END)) {
-            const element = this.parseValue();
+            const element = this.parseNext();
 
             elements.push(element);
 
@@ -171,7 +185,7 @@ export class JsonParser {
             ...this.lexer.skipSpace(),
         );
 
-        const value = this.parseValue();
+        const value = this.parseNext();
 
         children.push(value);
 

@@ -3,6 +3,9 @@ import {JsonTokenType} from './token';
 
 export type NodeMatcher = (node: JsonNode) => boolean;
 
+/**
+ * @internal
+ */
 export namespace NodeMatcher {
     export const ANY: NodeMatcher = () => true;
 

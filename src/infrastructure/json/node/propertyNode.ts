@@ -3,22 +3,22 @@ import {JsonValueNode} from './valueNode';
 import {JsonNode} from './node';
 import {JsonTokenNode} from '@/infrastructure/json/node/tokenNode';
 import {JsonTokenType} from '@/infrastructure/json/token';
-import {Formatting, JsonTreeDefinition, JsonTreeNode, PartialJsonTreeDefinition} from './treeNode';
+import {Formatting, JsonCompositeDefinition, JsonCompositeNode, PartialJsonCompositeDefinition} from './compositeNode';
 import {NodeManipulator} from '@/infrastructure/json/manipulator';
 import {JsonPrimitiveNode} from './primitiveNode';
 import {JsonValueFactory} from '@/infrastructure/json/node/factory';
 
-export interface JsonPropertyDefinition extends JsonTreeDefinition {
+export interface JsonPropertyDefinition extends JsonCompositeDefinition {
     readonly key: JsonPrimitiveNode<JsonTokenType.STRING>;
     value: JsonValueNode;
 }
 
-export class JsonPropertyNode extends JsonTreeNode implements JsonPropertyDefinition {
+export class JsonPropertyNode extends JsonCompositeNode implements JsonPropertyDefinition {
     public readonly key: JsonPrimitiveNode<JsonTokenType.STRING>;
 
     public value: JsonValueNode;
 
-    public constructor(definition: PartialJsonTreeDefinition<JsonPropertyDefinition>) {
+    public constructor(definition: PartialJsonCompositeDefinition<JsonPropertyDefinition>) {
         super(definition);
 
         this.key = definition.key;

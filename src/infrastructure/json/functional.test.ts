@@ -1,7 +1,6 @@
 import {JsonValue} from '@croct/json';
-import {JsonParser} from '@/infrastructure/json/parser';
-import {JsonArrayNode, JsonObjectNode, JsonValueNode} from '@/infrastructure/json/node';
-import {Formatting} from '@/infrastructure/json/node/treeNode';
+import {JsonParser} from './parser';
+import {Formatting, JsonArrayNode, JsonObjectNode, JsonValueNode} from './node';
 
 describe('Functional test', () => {
     it.each(derive([
@@ -61,9 +60,7 @@ describe('Functional test', () => {
         [],
     ]))('should losslessly parse %s', input => {
         const parser = new JsonParser(input);
-        const node = parser.parse();
-
-        node.rebuild();
+        const node = parser.parseValue();
 
         expect(node.toString()).toBe(input);
 
@@ -1412,15 +1409,11 @@ describe('Functional test', () => {
             },
         },
     ])('should $description', ({input, output, type, mutation, format}) => {
-        const parser = new JsonParser(input);
-
-        const node = parser.parse(type);
+        const node = JsonParser.parse(input, type);
 
         mutation(node);
 
-        node.rebuild(format);
-
-        expect(node.toString()).toBe(output);
+        expect(node.toString(format)).toBe(output);
     });
 
     function derive(scenarios: JsonValue[]): string[] {

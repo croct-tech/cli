@@ -4,19 +4,19 @@ import {JsonNode} from './node';
 import {JsonStructureNode} from './structureNode';
 import {JsonTokenType} from '@/infrastructure/json/token';
 import {JsonPropertyNode} from './propertyNode';
-import {JsonTreeDefinition, JsonTreeNode, PartialJsonTreeDefinition} from './treeNode';
+import {JsonCompositeDefinition, JsonCompositeNode, PartialJsonCompositeDefinition} from './compositeNode';
 import {JsonTokenNode} from '@/infrastructure/json/node/tokenNode';
 import {JsonPrimitiveNode} from '@/infrastructure/json/node/primitiveNode';
 import {JsonValueFactory} from '@/infrastructure/json/node/factory';
 
-export interface JsonObjectDefinition extends JsonTreeDefinition {
+export interface JsonObjectDefinition extends JsonCompositeDefinition {
     readonly properties: readonly JsonPropertyNode[];
 }
 
-export class JsonObjectNode extends JsonStructureNode implements JsonTreeDefinition {
+export class JsonObjectNode extends JsonStructureNode implements JsonCompositeDefinition {
     private readonly propertyNodes: JsonPropertyNode[];
 
-    public constructor(definition: PartialJsonTreeDefinition<JsonObjectDefinition>) {
+    public constructor(definition: PartialJsonCompositeDefinition<JsonObjectDefinition>) {
         super(definition);
 
         this.propertyNodes = [...definition.properties];
@@ -33,7 +33,7 @@ export class JsonObjectNode extends JsonStructureNode implements JsonTreeDefinit
         });
     }
 
-    protected getList(): JsonTreeNode[] {
+    protected getList(): JsonCompositeNode[] {
         return [...this.propertyNodes];
     }
 
@@ -88,11 +88,11 @@ export class JsonObjectNode extends JsonStructureNode implements JsonTreeDefinit
         }
     }
 
-    public get<T extends JsonValueNode>(name: string, type: new (definition: any) => T): T;
+    public get<T extends JsonValueNode>(name: string, type: new (...args: any[]) => T): T;
 
     public get(name: string): JsonValueNode;
 
-    public get<T extends JsonValueNode>(name: string, type?: new (definition: any) => T): JsonNode {
+    public get<T extends JsonValueNode>(name: string, type?: new (...args: any[]) => T): JsonNode {
         const property = this.propertyNodes.find(current => current.key.toJSON() === name);
 
         if (property === undefined) {

@@ -1,6 +1,5 @@
 import {dirname, join, relative} from 'path';
 import {mkdir, readFile, writeFile} from 'fs/promises';
-import {parse as parseJson, stringify as stringifyJson} from 'polite-json';
 import {Installation, Sdk} from '@/application/project/sdk/sdk';
 import {JavaScriptProject} from '@/application/project/project';
 import {ApplicationPlatform} from '@/application/model/entities';
@@ -8,6 +7,7 @@ import {ProjectConfiguration} from '@/application/project/configuration';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {TargetSdk, WorkspaceApi} from '@/application/api/workspace';
 import {formatMessage} from '@/application/error';
+import {JsonParser, JsonArrayNode, JsonObjectNode} from '@/infrastructure/json';
 
 export type InstallationPlan = {
     tasks: Task[],
@@ -208,12 +208,12 @@ export abstract class JavaScriptSdk implements Sdk {
     }
 
     private async registerTypeFile(notifier: TaskNotifier): Promise<void> {
-        const [tsConfigPath, packageInfo] = await Promise.all([
+        const [configPath, packageInfo] = await Promise.all([
             this.project.getTypeScriptConfigPath(),
             this.project.getPackageInfo(JavaScriptSdk.CONTENT_PACKAGE),
         ]);
 
-        if (tsConfigPath === null) {
+        if (configPath === null) {
             notifier.alert('TypeScript configuration not found');
 
             return;
@@ -226,25 +226,22 @@ export abstract class JavaScriptSdk implements Sdk {
         }
 
         const typeFile = relative(this.project.getRootPath(), JavaScriptSdk.getTypeFile(packageInfo.path));
-        const tsConfigJson = parseJson(await readFile(tsConfigPath, {encoding: 'utf-8'}));
+        const config = JsonParser.parse(await readFile(configPath, {encoding: 'utf-8'}), JsonObjectNode);
 
-        if (typeof tsConfigJson !== 'object' || tsConfigJson === null || Array.isArray(tsConfigJson)) {
-            throw new Error('Invalid tsconfig.json');
-        }
+        if (config.has('files')) {
+            const files = config.get('files', JsonArrayNode);
+            const currentFiles = files.toJSON();
 
-        const filesEntry = Array.isArray(tsConfigJson.files) ? tsConfigJson.files : [];
-
-        if (Array.isArray(tsConfigJson.files)) {
-            if (tsConfigJson.files.includes(typeFile)) {
-                return;
+            if (currentFiles.includes(typeFile)) {
+                return notifier.confirm('Type file already registered');
             }
 
-            filesEntry.push(typeFile);
+            files.push(typeFile);
         } else {
-            tsConfigJson.files = [typeFile];
+            config.set('files', [typeFile]);
         }
 
-        await writeFile(tsConfigPath, stringifyJson(tsConfigJson), {
+        await writeFile(configPath, config.toString(), {
             encoding: 'utf-8',
             flag: 'w',
         });

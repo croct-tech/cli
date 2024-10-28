@@ -1,13 +1,13 @@
 import {JsonPrimitive} from '@croct/json';
 import {JsonNode} from './node';
 import {JsonValueNode} from './valueNode';
-import {JsonTreeDefinition, PartialJsonTreeDefinition} from './treeNode';
+import {JsonCompositeDefinition, PartialJsonCompositeDefinition} from './compositeNode';
 import {NodeManipulator} from '../manipulator';
 import {JsonTokenNode} from './tokenNode';
 import {JsonPrimitiveTokenType, JsonPrimitiveValue, JsonTokenType} from '../token';
 import {JsonValueFactory} from '@/infrastructure/json/node/factory';
 
-export interface JsonPrimitiveDefinition<T extends JsonPrimitiveTokenType> extends JsonTreeDefinition {
+export interface JsonPrimitiveDefinition<T extends JsonPrimitiveTokenType> extends JsonCompositeDefinition {
     readonly token: JsonTokenNode<T>;
     readonly value: JsonPrimitiveValue<T>;
 }
@@ -26,7 +26,7 @@ export class JsonPrimitiveNode<T extends JsonPrimitiveTokenType = JsonPrimitiveT
 
     public readonly value: JsonPrimitiveValue<T>;
 
-    public constructor(definition: PartialJsonTreeDefinition<JsonPrimitiveDefinition<T>>) {
+    public constructor(definition: PartialJsonCompositeDefinition<JsonPrimitiveDefinition<T>>) {
         super(definition);
 
         this.token = definition.token;
@@ -68,10 +68,6 @@ export class JsonPrimitiveNode<T extends JsonPrimitiveTokenType = JsonPrimitiveT
         return other instanceof JsonPrimitiveNode
             && this.token.equals(other.token)
             && this.value === other.value;
-    }
-
-    public toString(): string {
-        return this.token.value;
     }
 
     public toJSON(): JsonPrimitiveValue<T> {

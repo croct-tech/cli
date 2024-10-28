@@ -67,6 +67,10 @@ export class JsonLexer implements Iterable<JsonToken> {
         this.remaining = source;
     }
 
+    public static tokenize(source: string): JsonToken[] {
+        return [...new JsonLexer(source)];
+    }
+
     public isEof(): boolean {
         return this.current?.type === JsonTokenType.EOF;
     }

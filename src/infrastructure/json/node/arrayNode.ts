@@ -2,18 +2,18 @@ import {JsonArray, JsonValue} from '@croct/json';
 import {JsonValueNode} from './valueNode';
 import {JsonStructureNode} from './structureNode';
 import {JsonTokenType} from '../token';
-import {JsonTreeDefinition, JsonTreeNode, PartialJsonTreeDefinition} from './treeNode';
+import {JsonCompositeDefinition, JsonCompositeNode, PartialJsonCompositeDefinition} from './compositeNode';
 import {JsonTokenNode} from './tokenNode';
-import {JsonValueFactory} from '@/infrastructure/json/node/factory';
+import {JsonValueFactory} from './factory';
 
-export interface JsonArrayDefinition extends JsonTreeDefinition {
+export interface JsonArrayDefinition extends JsonCompositeDefinition {
     readonly elements: readonly JsonValueNode[];
 }
 
 export class JsonArrayNode extends JsonStructureNode implements JsonArrayDefinition {
     private readonly elementNodes: JsonValueNode[];
 
-    public constructor(definition: PartialJsonTreeDefinition<JsonArrayDefinition>) {
+    public constructor(definition: PartialJsonCompositeDefinition<JsonArrayDefinition>) {
         super(definition);
 
         this.elementNodes = [...definition.elements];
@@ -25,7 +25,7 @@ export class JsonArrayNode extends JsonStructureNode implements JsonArrayDefinit
         });
     }
 
-    protected getList(): JsonTreeNode[] {
+    protected getList(): JsonCompositeNode[] {
         return [...this.elementNodes];
     }
 
@@ -47,7 +47,7 @@ export class JsonArrayNode extends JsonStructureNode implements JsonArrayDefinit
         return [...this.elementNodes];
     }
 
-    public get<T extends JsonValueNode>(index: number, type: new (definition: any) => T): T {
+    public get<T extends JsonValueNode>(index: number, type: new (...args: any[]) => T): T {
         const element = this.elementNodes[index];
 
         if (!(element instanceof type)) {
