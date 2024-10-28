@@ -87,10 +87,6 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         return ApplicationPlatform.NEXT;
     }
 
-    protected getTypeFilePath(): Promise<string> {
-        return Promise.resolve(join(this.project.getRootPath(), '.next/types/croct.d.ts'));
-    }
-
     public async resolve(hint?: string): Promise<Sdk | null> {
         if (hint !== undefined) {
             return Promise.resolve(hint.toLowerCase() === this.getPlatform().toLowerCase() ? this : null);
@@ -178,20 +174,6 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
     private async getInstallationTasks(installation: Omit<NextInstallation, 'notifier'>): Promise<Task[]> {
         const {project} = installation;
         const tasks: Task[] = [];
-
-        tasks.push({
-            title: `Install ${this.getPackage()}`,
-            task: async notifier => {
-                try {
-                    await this.project.installPackage(this.getPackage());
-                    await this.project.installPackage(JavaScriptSdk.CONTENT_PACKAGE);
-
-                    notifier.confirm('SDK installed');
-                } catch (error) {
-                    notifier.alert('Failed to install SDK', formatMessage(error));
-                }
-            },
-        });
 
         tasks.push({
             title: `Configure ${installation.project.middleware.file}`,

@@ -39,7 +39,25 @@ export abstract class JavaScriptSdk implements Sdk {
         const {input, output, configuration} = installation;
 
         const plan = await this.getInstallationPlan(installation);
-        const tasks = [...plan.tasks];
+        const tasks: Task[] = [];
+
+        tasks.push({
+            title: 'Install dependencies',
+            task: async notifier => {
+                notifier.update('Installing dependencies');
+
+                try {
+                    await this.project.installPackage('croct', {dev: true});
+                    await this.project.installPackage([this.getPackage(), JavaScriptSdk.CONTENT_PACKAGE]);
+
+                    notifier.confirm('Dependencies installed');
+                } catch (error) {
+                    notifier.alert('Failed to install dependencies', formatMessage(error));
+                }
+            },
+        });
+
+        tasks.push(...plan.tasks);
 
         if (Object.keys(configuration.slots).length > 0) {
             tasks.push({
@@ -71,6 +89,17 @@ export abstract class JavaScriptSdk implements Sdk {
                         await this.registerTypeFile(notifier);
                     } catch (error) {
                         notifier.alert('Failed to register type file', formatMessage(error));
+                    }
+                },
+            });
+
+            tasks.push({
+                title: 'Register NPM hook',
+                task: async notifier => {
+                    try {
+                        await this.registerNpmHookScript(notifier);
+                    } catch (error) {
+                        notifier.alert('Failed to register NPM hook', formatMessage(error));
                     }
                 },
             });
@@ -205,6 +234,43 @@ export abstract class JavaScriptSdk implements Sdk {
         });
 
         indicator.confirm('Types generated');
+    }
+
+    private async registerNpmHookScript(notifier: TaskNotifier): Promise<void> {
+        const packageFile = this.project.getProjectPackagePath();
+        const content = await readFile(packageFile, {encoding: 'utf-8'});
+
+        const packageJson = JsonParser.parse(content, JsonObjectNode);
+
+        let command = 'croct install';
+
+        if (packageJson.has('scripts')) {
+            const scripts = packageJson.get('scripts', JsonObjectNode);
+
+            if (scripts.has('postinstall')) {
+                const postInstall = scripts.get('postinstall');
+                const value = postInstall.toJSON();
+
+                if (typeof value === 'string' && value.includes('croct install')) {
+                    return notifier.confirm('Hook already registered');
+                }
+
+                command = `${value} && ${command}`;
+            }
+
+            scripts.set('postinstall', command);
+        } else {
+            packageJson.set('scripts', {
+                postinstall: command,
+            });
+        }
+
+        await writeFile(packageFile, packageJson.toString(), {
+            encoding: 'utf-8',
+            flag: 'w',
+        });
+
+        notifier.confirm('Hook script registered');
     }
 
     private async registerTypeFile(notifier: TaskNotifier): Promise<void> {

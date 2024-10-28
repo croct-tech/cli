@@ -38,6 +38,13 @@ export interface Project {
     getRootPath(): string;
 
     /**
+     * Returns the path to the project's package file.
+     *
+     * @returns The path to the project's package file.
+     */
+    getProjectPackagePath(): string;
+
+    /**
      * Checks if a package is listed in the project's dependencies.
      *
      * @param packageName The name of the package to check.
@@ -62,11 +69,11 @@ export interface Project {
      * This method installs the specified package and can be customized to install it
      * as a development dependency using the provided options.
      *
-     * @param packageName The name of the package to install.
+     * @param packageName The name of the packages to install.
      * @param options Optional settings to customize the installation.
      * @returns A promise that resolves once the package installation is complete.
      */
-    installPackage(packageName: string, options?: PackageInstallationOptions): Promise<void>;
+    installPackage(packageName: string|string[], options?: PackageInstallationOptions): Promise<void>;
 
     /**
      * Reads the first available file from the provided search paths.

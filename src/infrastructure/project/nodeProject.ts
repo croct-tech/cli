@@ -20,6 +20,10 @@ export class NodeProject implements JavaScriptProject {
         return this.configuration.directory;
     }
 
+    public getProjectPackagePath(): string {
+        return join(this.configuration.directory, 'package.json');
+    }
+
     public isTypeScriptProject(): Promise<boolean> {
         return this.isPackageListed('typescript');
     }
@@ -101,8 +105,8 @@ export class NodeProject implements JavaScriptProject {
         };
     }
 
-    public async installPackage(packageId: string, options: PackageInstallationOptions = {}): Promise<void> {
-        await installPackage(packageId, {
+    public async installPackage(packageName: string|string[], options: PackageInstallationOptions = {}): Promise<void> {
+        await installPackage(packageName, {
             cwd: this.configuration.directory,
             silent: true,
             dev: options.dev,
