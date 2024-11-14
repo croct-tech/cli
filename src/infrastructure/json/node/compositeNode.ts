@@ -16,7 +16,7 @@ export abstract class JsonCompositeNode extends JsonNode {
         this.children = [...(definition.children ?? [])];
     }
 
-    public toString(formatting?: Partial<Formatting>): string {
+    public toString(formatting?: Formatting): string {
         const clone = this.clone();
 
         clone.rebuild(formatting);
@@ -28,10 +28,10 @@ export abstract class JsonCompositeNode extends JsonNode {
 
     public abstract reset(): void;
 
-    public reformat(formatting: Partial<Formatting> = {}): void {
+    public reformat(formatting: Formatting = {}): void {
         this.reset();
         this.rebuild(formatting);
     }
 
-    public abstract rebuild(formatting?: Partial<Formatting>): void;
+    public abstract rebuild(formatting?: Formatting): void;
 }

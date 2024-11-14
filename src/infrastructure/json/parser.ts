@@ -64,10 +64,10 @@ export class JsonParser {
         const token = this.lexer.peek();
 
         switch (token.type) {
-            case JsonTokenType.OBJECT_START:
+            case JsonTokenType.BRACE_LEFT:
                 return this.parseObject();
 
-            case JsonTokenType.ARRAY_START:
+            case JsonTokenType.BRACKET_LEFT:
                 return this.parseArray();
 
             case JsonTokenType.STRING:
@@ -104,25 +104,25 @@ export class JsonParser {
 
     private parseArray(): JsonArrayNode {
         const children: Array<JsonNode|JsonToken> = [
-            this.lexer.consume(JsonTokenType.ARRAY_START),
+            this.lexer.consume(JsonTokenType.BRACKET_LEFT),
             ...this.lexer.skipSpace(),
         ];
 
         const elements: JsonValueNode[] = [];
 
-        while (!this.lexer.matches(JsonTokenType.ARRAY_END)) {
+        while (!this.lexer.matches(JsonTokenType.BRACKET_RIGHT)) {
             const element = this.parseNext();
 
             elements.push(element);
 
             children.push(element, ...this.lexer.skipSpace());
 
-            if (!this.lexer.matches(JsonTokenType.ARRAY_END)) {
+            if (!this.lexer.matches(JsonTokenType.BRACKET_RIGHT)) {
                 children.push(this.lexer.consume(JsonTokenType.COMMA), ...this.lexer.skipSpace());
             }
         }
 
-        children.push(this.lexer.consume(JsonTokenType.ARRAY_END));
+        children.push(this.lexer.consume(JsonTokenType.BRACKET_RIGHT));
 
         return new JsonArrayNode({
             elements: elements,
@@ -136,25 +136,25 @@ export class JsonParser {
 
     private parseObject(): JsonObjectNode {
         const children: Array<JsonNode|JsonToken> = [
-            this.lexer.consume(JsonTokenType.OBJECT_START),
+            this.lexer.consume(JsonTokenType.BRACE_LEFT),
             ...this.lexer.skipSpace(),
         ];
 
         const properties: JsonPropertyNode[] = [];
 
-        while (!this.lexer.matches(JsonTokenType.OBJECT_END)) {
+        while (!this.lexer.matches(JsonTokenType.BRACE_RIGHT)) {
             const property = this.parseObjectProperty();
 
             properties.push(property);
 
             children.push(property, ...this.lexer.skipSpace());
 
-            if (!this.lexer.matches(JsonTokenType.OBJECT_END)) {
+            if (!this.lexer.matches(JsonTokenType.BRACE_RIGHT)) {
                 children.push(this.lexer.consume(JsonTokenType.COMMA), ...this.lexer.skipSpace());
             }
         }
 
-        children.push(this.lexer.consume(JsonTokenType.OBJECT_END));
+        children.push(this.lexer.consume(JsonTokenType.BRACE_RIGHT));
 
         return new JsonObjectNode({
             properties: properties,

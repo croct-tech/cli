@@ -20,7 +20,7 @@ export namespace NodeMatcher {
 
     export const NEWLINE: NodeMatcher = node => (
         node instanceof JsonTokenNode
-        && node.type === JsonTokenType.NEW_LINE
+        && node.type === JsonTokenType.NEWLINE
     );
 }
 
@@ -262,8 +262,8 @@ export class NodeManipulator {
         }
 
         switch (node.type) {
-            case JsonTokenType.OBJECT_START:
-            case JsonTokenType.ARRAY_START:
+            case JsonTokenType.BRACE_LEFT:
+            case JsonTokenType.BRACKET_LEFT:
             case JsonTokenType.COLON:
                 return true;
 

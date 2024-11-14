@@ -10,19 +10,19 @@ export class JsonLexer implements Iterable<JsonToken> {
     // Sorted by precedence
     private static PATTERNS: TokenPattern[] = [
         {
-            type: JsonTokenType.OBJECT_START,
+            type: JsonTokenType.BRACE_LEFT,
             pattern: '{',
         },
         {
-            type: JsonTokenType.OBJECT_END,
+            type: JsonTokenType.BRACE_RIGHT,
             pattern: '}',
         },
         {
-            type: JsonTokenType.ARRAY_START,
+            type: JsonTokenType.BRACKET_LEFT,
             pattern: '[',
         },
         {
-            type: JsonTokenType.ARRAY_END,
+            type: JsonTokenType.BRACKET_RIGHT,
             pattern: ']',
         },
         {
@@ -50,7 +50,7 @@ export class JsonLexer implements Iterable<JsonToken> {
             pattern: ',',
         },
         {
-            type: JsonTokenType.NEW_LINE,
+            type: JsonTokenType.NEWLINE,
             pattern: /^(\r?\n)+/,
         },
         {
@@ -92,7 +92,7 @@ export class JsonLexer implements Iterable<JsonToken> {
     }
 
     public skipSpace(): JsonToken[] {
-        return this.skip(JsonTokenType.WHITESPACE, JsonTokenType.NEW_LINE);
+        return this.skip(JsonTokenType.WHITESPACE, JsonTokenType.NEWLINE);
     }
 
     public skip(...types: JsonTokenType[]): JsonToken[] {
@@ -197,7 +197,7 @@ export class JsonLexer implements Iterable<JsonToken> {
 
         end.index += value.length;
 
-        if (type === JsonTokenType.NEW_LINE) {
+        if (type === JsonTokenType.NEWLINE) {
             end.column = 1;
             end.line++;
         } else {

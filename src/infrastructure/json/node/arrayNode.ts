@@ -1,9 +1,7 @@
 import {JsonArray, JsonValue} from '@croct/json';
 import {JsonValueNode} from './valueNode';
-import {JsonStructureNode} from './structureNode';
-import {JsonTokenType} from '../token';
+import {JsonStructureNode, StructureDelimiter} from './structureNode';
 import {JsonCompositeDefinition, JsonCompositeNode, PartialJsonCompositeDefinition} from './compositeNode';
-import {JsonTokenNode} from './tokenNode';
 import {JsonValueFactory} from './factory';
 
 export interface JsonArrayDefinition extends JsonCompositeDefinition {
@@ -29,18 +27,8 @@ export class JsonArrayNode extends JsonStructureNode implements JsonArrayDefinit
         return [...this.elementNodes];
     }
 
-    protected getStartToken(): JsonTokenNode {
-        return new JsonTokenNode({
-            type: JsonTokenType.ARRAY_START,
-            value: '[',
-        });
-    }
-
-    protected getEndToken(): JsonTokenNode {
-        return new JsonTokenNode({
-            type: JsonTokenType.ARRAY_END,
-            value: ']',
-        });
+    protected getDelimiter(): StructureDelimiter {
+        return StructureDelimiter.BRACKET;
     }
 
     public get elements(): readonly JsonValueNode[] {

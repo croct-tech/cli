@@ -1,11 +1,9 @@
 import {JsonObject, JsonValue} from '@croct/json';
 import {JsonValueNode} from './valueNode';
 import {JsonNode} from './node';
-import {JsonStructureNode} from './structureNode';
-import {JsonTokenType} from '@/infrastructure/json/token';
+import {JsonStructureNode, StructureDelimiter} from './structureNode';
 import {JsonPropertyNode} from './propertyNode';
 import {JsonCompositeDefinition, JsonCompositeNode, PartialJsonCompositeDefinition} from './compositeNode';
-import {JsonTokenNode} from '@/infrastructure/json/node/tokenNode';
 import {JsonPrimitiveNode} from '@/infrastructure/json/node/primitiveNode';
 import {JsonValueFactory} from '@/infrastructure/json/node/factory';
 
@@ -37,18 +35,8 @@ export class JsonObjectNode extends JsonStructureNode implements JsonCompositeDe
         return [...this.propertyNodes];
     }
 
-    protected getStartToken(): JsonTokenNode {
-        return new JsonTokenNode({
-            type: JsonTokenType.OBJECT_START,
-            value: '{',
-        });
-    }
-
-    protected getEndToken(): JsonTokenNode {
-        return new JsonTokenNode({
-            type: JsonTokenType.OBJECT_END,
-            value: '}',
-        });
+    protected getDelimiter(): StructureDelimiter {
+        return StructureDelimiter.BRACE;
     }
 
     public has(name: string): boolean {

@@ -1,18 +1,18 @@
 import {SourceLocation} from './location';
 
 export enum JsonTokenType {
-    OBJECT_START = 'OBJECT_START',
-    OBJECT_END = 'OBJECT_END',
-    ARRAY_START = 'ARRAY_START',
-    ARRAY_END = 'ARRAY_END',
     STRING = 'STRING',
     NUMBER = 'NUMBER',
     BOOLEAN = 'BOOLEAN',
     NULL = 'NULL',
     COLON = 'COLON',
     COMMA = 'COMMA',
+    BRACE_LEFT = 'BRACE_LEFT',
+    BRACE_RIGHT = 'BRACE_RIGHT',
+    BRACKET_LEFT = 'BRACKET_LEFT',
+    BRACKET_RIGHT = 'BRACKET_RIGHT',
     WHITESPACE = 'WHITESPACE',
-    NEW_LINE = 'NEW_LINE',
+    NEWLINE = 'NEWLINE',
     EOF = 'EOF',
 }
 

@@ -29,7 +29,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.OBJECT_START,
+                    type: JsonTokenType.BRACE_LEFT,
                     value: '{',
                     location: {
                         start: {
@@ -45,7 +45,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.OBJECT_END,
+                    type: JsonTokenType.BRACE_RIGHT,
                     value: '}',
                     location: {
                         start: {
@@ -61,7 +61,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.NEW_LINE,
+                    type: JsonTokenType.NEWLINE,
                     value: '\r\n',
                     location: {
                         start: {
@@ -891,7 +891,7 @@ describe('Lexer', () => {
             input: '{}',
             tokens: [
                 {
-                    type: JsonTokenType.OBJECT_START,
+                    type: JsonTokenType.BRACE_LEFT,
                     value: '{',
                     location: {
                         start: {
@@ -907,7 +907,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.OBJECT_END,
+                    type: JsonTokenType.BRACE_RIGHT,
                     value: '}',
                     location: {
                         start: {
@@ -944,7 +944,7 @@ describe('Lexer', () => {
             input: '{"key": "value"}',
             tokens: [
                 {
-                    type: JsonTokenType.OBJECT_START,
+                    type: JsonTokenType.BRACE_LEFT,
                     value: '{',
                     location: {
                         start: {
@@ -1024,7 +1024,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.OBJECT_END,
+                    type: JsonTokenType.BRACE_RIGHT,
                     value: '}',
                     location: {
                         start: {
@@ -1061,7 +1061,7 @@ describe('Lexer', () => {
             input: '{"\\"key": "value"}',
             tokens: [
                 {
-                    type: JsonTokenType.OBJECT_START,
+                    type: JsonTokenType.BRACE_LEFT,
                     value: '{',
                     location: {
                         start: {
@@ -1141,7 +1141,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.OBJECT_END,
+                    type: JsonTokenType.BRACE_RIGHT,
                     value: '}',
                     location: {
                         start: {
@@ -1178,7 +1178,7 @@ describe('Lexer', () => {
             input: '{\n}',
             tokens: [
                 {
-                    type: JsonTokenType.OBJECT_START,
+                    type: JsonTokenType.BRACE_LEFT,
                     value: '{',
                     location: {
                         start: {
@@ -1194,7 +1194,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.NEW_LINE,
+                    type: JsonTokenType.NEWLINE,
                     value: '\n',
                     location: {
                         start: {
@@ -1210,7 +1210,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.OBJECT_END,
+                    type: JsonTokenType.BRACE_RIGHT,
                     value: '}',
                     location: {
                         start: {
@@ -1247,7 +1247,7 @@ describe('Lexer', () => {
             input: '{\r\n}',
             tokens: [
                 {
-                    type: JsonTokenType.OBJECT_START,
+                    type: JsonTokenType.BRACE_LEFT,
                     value: '{',
                     location: {
                         start: {
@@ -1263,7 +1263,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.NEW_LINE,
+                    type: JsonTokenType.NEWLINE,
                     value: '\r\n',
                     location: {
                         start: {
@@ -1279,7 +1279,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.OBJECT_END,
+                    type: JsonTokenType.BRACE_RIGHT,
                     value: '}',
                     location: {
                         start: {
@@ -1316,7 +1316,7 @@ describe('Lexer', () => {
             input: '[]',
             tokens: [
                 {
-                    type: JsonTokenType.ARRAY_START,
+                    type: JsonTokenType.BRACKET_LEFT,
                     value: '[',
                     location: {
                         start: {
@@ -1332,7 +1332,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.ARRAY_END,
+                    type: JsonTokenType.BRACKET_RIGHT,
                     value: ']',
                     location: {
                         start: {
@@ -1384,7 +1384,7 @@ describe('Lexer', () => {
             ),
             tokens: [
                 {
-                    type: JsonTokenType.OBJECT_START,
+                    type: JsonTokenType.BRACE_LEFT,
                     value: '{',
                     location: {
                         start: {
@@ -1400,7 +1400,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.NEW_LINE,
+                    type: JsonTokenType.NEWLINE,
                     value: '\n',
                     location: {
                         start: {
@@ -1512,7 +1512,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.NEW_LINE,
+                    type: JsonTokenType.NEWLINE,
                     value: '\n',
                     location: {
                         start: {
@@ -1624,7 +1624,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.NEW_LINE,
+                    type: JsonTokenType.NEWLINE,
                     value: '\n',
                     location: {
                         start: {
@@ -1736,7 +1736,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.NEW_LINE,
+                    type: JsonTokenType.NEWLINE,
                     value: '\n',
                     location: {
                         start: {
@@ -1848,7 +1848,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.NEW_LINE,
+                    type: JsonTokenType.NEWLINE,
                     value: '\n',
                     location: {
                         start: {
@@ -1928,7 +1928,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.OBJECT_START,
+                    type: JsonTokenType.BRACE_LEFT,
                     value: '{',
                     location: {
                         start: {
@@ -1944,7 +1944,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.NEW_LINE,
+                    type: JsonTokenType.NEWLINE,
                     value: '\n',
                     location: {
                         start: {
@@ -2040,7 +2040,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.NEW_LINE,
+                    type: JsonTokenType.NEWLINE,
                     value: '\n',
                     location: {
                         start: {
@@ -2072,7 +2072,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.OBJECT_END,
+                    type: JsonTokenType.BRACE_RIGHT,
                     value: '}',
                     location: {
                         start: {
@@ -2104,7 +2104,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.NEW_LINE,
+                    type: JsonTokenType.NEWLINE,
                     value: '\n',
                     location: {
                         start: {
@@ -2184,7 +2184,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.ARRAY_START,
+                    type: JsonTokenType.BRACKET_LEFT,
                     value: '[',
                     location: {
                         start: {
@@ -2200,7 +2200,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.NEW_LINE,
+                    type: JsonTokenType.NEWLINE,
                     value: '\n',
                     location: {
                         start: {
@@ -2248,7 +2248,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.NEW_LINE,
+                    type: JsonTokenType.NEWLINE,
                     value: '\n',
                     location: {
                         start: {
@@ -2280,7 +2280,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.ARRAY_END,
+                    type: JsonTokenType.BRACKET_RIGHT,
                     value: ']',
                     location: {
                         start: {
@@ -2296,7 +2296,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.NEW_LINE,
+                    type: JsonTokenType.NEWLINE,
                     value: '\n',
                     location: {
                         start: {
@@ -2312,7 +2312,7 @@ describe('Lexer', () => {
                     },
                 },
                 {
-                    type: JsonTokenType.OBJECT_END,
+                    type: JsonTokenType.BRACE_RIGHT,
                     value: '}',
                     location: {
                         start: {

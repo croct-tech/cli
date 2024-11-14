@@ -4,15 +4,20 @@ export interface JsonNodeDefinition {
     readonly location: SourceLocation;
 }
 
+export type BlockFormatting = {
+    indentationSize?: number,
+    trailingIndentation?: boolean,
+    leadingIndentation?: boolean,
+    entryIndentation?: boolean,
+    commaSpacing?: boolean,
+    colonSpacing?: boolean,
+};
+
 export type Formatting = {
-    indentationLevel: number,
-    indentationSize: number,
-    indentationCharacter: 'space' | 'tab',
-    blockTrailingIndentation: boolean,
-    blockLeadingIndentation: boolean,
-    entryIndentation: boolean,
-    commaSpacing: boolean,
-    colonSpacing: boolean,
+    indentationLevel?: number,
+    indentationCharacter?: 'space' | 'tab',
+    bracket?: BlockFormatting,
+    brace?: BlockFormatting,
 };
 
 export type PartialJsonNodeDefinition<T extends JsonNodeDefinition = JsonNodeDefinition> =
@@ -42,5 +47,5 @@ export abstract class JsonNode implements JsonNodeDefinition {
 
     public abstract clone(): JsonNode;
 
-    public abstract toString(formatting?: Partial<Formatting>): string;
+    public abstract toString(formatting?: Formatting): string;
 }

@@ -1,7 +1,7 @@
 import {JsonValueNode} from './valueNode';
-import {Formatting, JsonNode} from './node';
+import {BlockFormatting, Formatting, JsonNode} from './node';
 import {JsonTokenType} from '../token';
-import {JsonTokenNode} from './tokenNode';
+import {JsonTokenDefinition, JsonTokenNode} from './tokenNode';
 import {NodeManipulator, NodeMatcher} from '../manipulator';
 import {JsonCompositeNode} from './compositeNode';
 
@@ -9,6 +9,57 @@ type DescendantNode = {
     depth: number,
     token: JsonTokenNode,
 };
+
+export enum StructureDelimiter {
+    BRACE = 'brace',
+    BRACKET = 'bracket',
+}
+
+export namespace StructureDelimiter {
+    type TokenDefinition = {
+        start: Omit<JsonTokenDefinition, 'location'>,
+        end: Omit<JsonTokenDefinition, 'location'>,
+    };
+
+    const definitions: Record<StructureDelimiter, TokenDefinition> = {
+        [StructureDelimiter.BRACE]: {
+            start: {
+                type: JsonTokenType.BRACE_LEFT,
+                value: '{',
+            },
+            end: {
+                type: JsonTokenType.BRACE_RIGHT,
+                value: '}',
+            },
+        },
+        [StructureDelimiter.BRACKET]: {
+            start: {
+                type: JsonTokenType.BRACKET_LEFT,
+                value: '[',
+            },
+            end: {
+                type: JsonTokenType.BRACKET_RIGHT,
+                value: ']',
+            },
+        },
+    };
+
+    export function isStartToken(token: JsonTokenNode): boolean {
+        return Object.values(definitions).some(({start}) => start.type === token.type);
+    }
+
+    export function isEndToken(token: JsonTokenNode): boolean {
+        return Object.values(definitions).some(({end}) => end.type === token.type);
+    }
+
+    export function getStartToken(delimiter: StructureDelimiter): JsonTokenNode {
+        return new JsonTokenNode(definitions[delimiter].start);
+    }
+
+    export function getEndToken(delimiter: StructureDelimiter): JsonTokenNode {
+        return new JsonTokenNode(definitions[delimiter].end);
+    }
+}
 
 export abstract class JsonStructureNode extends JsonValueNode {
     public reset(): void {
@@ -19,31 +70,31 @@ export abstract class JsonStructureNode extends JsonValueNode {
         this.children.length = 0;
     }
 
-    public rebuild(formatting: Partial<Formatting> = {}): void {
-        const parentFormatting = this.resolveFormatting(formatting);
+    public rebuild(formatting: Formatting = {}): void {
+        const parentFormatting = this.detectFormatting(formatting);
 
         let childFormatting = parentFormatting;
 
         const children = [...this.children];
 
-        for (let index = children.length - 1; index >= 0; index--) {
+        for (let index = 0; index < children.length; index++) {
             const child = children[index];
 
             if (child instanceof JsonStructureNode) {
                 // Extract the formatting from the last child
-                childFormatting = child.resolveFormatting(parentFormatting);
+                childFormatting = {
+                    ...child.detectFormatting(childFormatting),
+                    indentationLevel: childFormatting.indentationLevel,
+                };
 
-                break;
+                continue;
             }
 
             if (child instanceof JsonCompositeNode && this.children.includes(child)) {
                 // If the direct child is a composite node, traverse it
-                children.splice(index - 1, 0, ...child.children);
-                index += child.children.length;
+                children.splice(index + 1, 0, ...child.children);
             }
         }
-
-        childFormatting.indentationLevel = (formatting?.indentationLevel ?? 0) + 1;
 
         for (const item of this.getList()) {
             item.rebuild(childFormatting);
@@ -52,23 +103,27 @@ export abstract class JsonStructureNode extends JsonValueNode {
         this.rebuildChildren(parentFormatting);
     }
 
-    private rebuildChildren(formatting: Partial<Formatting>): void {
+    private rebuildChildren(formatting: Formatting): void {
         const manipulator = new NodeManipulator(this.children);
+        const delimiter = this.getDelimiter();
 
-        const endToken = this.getEndToken();
+        const startToken = StructureDelimiter.getStartToken(delimiter);
+        const endToken = StructureDelimiter.getEndToken(delimiter);
 
-        manipulator.token(this.getStartToken());
+        manipulator.token(startToken);
 
         const list = this.getList();
         const count = list.length;
 
+        const {indentationLevel = 0} = formatting;
+
         const {
-            commaSpacing = false,
-            entryIndentation = true,
-            blockLeadingIndentation = true,
-            blockTrailingIndentation = true,
             indentationSize = 0,
-        } = formatting;
+            commaSpacing = false,
+            entryIndentation = false,
+            leadingIndentation: blockLeadingIndentation = false,
+            trailingIndentation: blockTrailingIndentation = false,
+        } = formatting[delimiter] ?? {};
 
         let previousMatched = false;
 
@@ -78,7 +133,7 @@ export abstract class JsonStructureNode extends JsonValueNode {
 
             if (JsonStructureNode.matchesInsertion(manipulator, list, index)) {
                 if (leadingIndentation) {
-                    JsonStructureNode.indent(manipulator, formatting);
+                    this.indent(manipulator, formatting);
                 }
 
                 manipulator.insert(item);
@@ -96,14 +151,14 @@ export abstract class JsonStructureNode extends JsonValueNode {
                         // This ensures it won't consume the indentation of the end delimiter.
                         manipulator.insert(
                             new JsonTokenNode({
-                                type: JsonTokenType.NEW_LINE,
+                                type: JsonTokenType.NEWLINE,
                                 value: '\n',
                             }),
                         );
 
-                        manipulator.insert(JsonStructureNode.getIndentationToken(formatting));
+                        manipulator.insert(this.getIndentationToken(formatting));
                     } else {
-                        JsonStructureNode.indent(manipulator, formatting, previousMatched && currentMatched);
+                        this.indent(manipulator, formatting, previousMatched && currentMatched);
                     }
                 }
 
@@ -113,9 +168,9 @@ export abstract class JsonStructureNode extends JsonValueNode {
 
             if (index === count - 1) {
                 if (blockTrailingIndentation) {
-                    JsonStructureNode.indent(manipulator, {
+                    this.indent(manipulator, {
                         ...formatting,
-                        indentationLevel: (formatting.indentationLevel ?? 0) - 1,
+                        indentationLevel: indentationLevel - 1,
                     });
                 }
             } else {
@@ -154,41 +209,48 @@ export abstract class JsonStructureNode extends JsonValueNode {
 
     protected abstract getList(): JsonCompositeNode[];
 
-    protected abstract getStartToken(): JsonTokenNode;
+    protected abstract getDelimiter(): StructureDelimiter;
 
-    protected abstract getEndToken(): JsonTokenNode;
-
-    private resolveFormatting(defaultFormatting: Partial<Formatting>): Partial<Formatting> {
-        const formatting: Partial<Formatting> = {...defaultFormatting};
-
-        let blockStart = true;
+    private detectFormatting(parent: Formatting = {}): Formatting {
+        let blockStart = false;
         let lineStart = true;
         let comma = false;
         let colon = false;
-        let lineIndentation = 0;
-        let levelIndentation = 0;
-        let blockLeadingIndentation = false;
-        let blockTrailingIndentation = false;
+        let lineIndentationSize = 0;
+        let levelIndentationSize = 0;
+        let leadingIndentation: boolean | undefined;
+        let trailingIndentation: boolean | undefined;
         let empty = true;
 
-        const startToken = this.getStartToken();
-        const endToken = this.getEndToken();
+        const formatting: Formatting = {};
+        const blockFormatting: BlockFormatting = {};
 
         for (const {token, depth} of JsonStructureNode.iterate(this.children, 1)) {
-            if (depth === 0 && startToken.isEquivalent(token)) {
+            if (depth === 0 && StructureDelimiter.isStartToken(token)) {
                 blockStart = true;
-            } else if (depth === 0 && endToken.isEquivalent(token)) {
-                blockTrailingIndentation = lineStart;
             } else {
-                if (!empty && blockStart) {
-                    blockLeadingIndentation = blockStart && lineStart;
-                    blockStart = false;
+                const blockEnd = StructureDelimiter.isEndToken(token);
+
+                if (depth === 0) {
+                    if (blockEnd) {
+                        trailingIndentation = lineStart;
+                    }
+
+                    if (blockStart) {
+                        leadingIndentation = token.type === JsonTokenType.NEWLINE;
+
+                        if (token.type !== JsonTokenType.WHITESPACE) {
+                            blockStart = false;
+                        }
+                    }
                 }
 
-                // Use the last indentation level as the base
-                levelIndentation = lineIndentation;
+                if (!blockEnd) {
+                    // Use the last indentation size as the base
+                    levelIndentationSize = lineIndentationSize;
 
-                empty = false;
+                    empty = false;
+                }
             }
 
             if (token.type === JsonTokenType.WHITESPACE) {
@@ -198,69 +260,93 @@ export abstract class JsonStructureNode extends JsonValueNode {
 
                 if (depth === 0 && lineStart) {
                     // ignore characters that are not spaces, like \r
-                    lineIndentation = token.value.includes('\t')
+                    lineIndentationSize = token.value.includes('\t')
                         ? token.value.replace(/[^\t]/g, '').length
                         : token.value.replace(/[^ ]/g, '').length;
                 }
             }
 
             if (depth === 0 && comma) {
-                if (token.type !== JsonTokenType.NEW_LINE) {
-                    formatting.commaSpacing = token.type === JsonTokenType.WHITESPACE;
+                if (token.type !== JsonTokenType.NEWLINE) {
+                    blockFormatting.commaSpacing = token.type === JsonTokenType.WHITESPACE;
                 }
 
-                formatting.entryIndentation = token.type === JsonTokenType.NEW_LINE;
+                blockFormatting.entryIndentation = token.type === JsonTokenType.NEWLINE;
                 comma = false;
             }
 
             if (colon) {
-                formatting.colonSpacing = token.type === JsonTokenType.WHITESPACE;
+                blockFormatting.colonSpacing = token.type === JsonTokenType.WHITESPACE;
                 colon = false;
             }
 
             colon = token.type === JsonTokenType.COLON || (colon && token.type === JsonTokenType.WHITESPACE);
             comma = token.type === JsonTokenType.COMMA || (comma && token.type === JsonTokenType.WHITESPACE);
 
-            lineStart = token.type === JsonTokenType.NEW_LINE || (lineStart && token.type === JsonTokenType.WHITESPACE);
+            lineStart = token.type === JsonTokenType.NEWLINE || (lineStart && token.type === JsonTokenType.WHITESPACE);
         }
 
         if (!empty) {
-            formatting.indentationSize = 0;
-            formatting.blockLeadingIndentation = blockLeadingIndentation;
-            formatting.blockTrailingIndentation = blockTrailingIndentation;
+            blockFormatting.indentationSize = 0;
+            blockFormatting.leadingIndentation = leadingIndentation ?? false;
+            blockFormatting.trailingIndentation = trailingIndentation ?? false;
         }
 
-        const indentationLevel = Math.max(formatting.indentationLevel ?? 0, 0) + 1;
+        const currentDepth = Math.max(parent.indentationLevel ?? 0, 0) + 1;
 
-        if (levelIndentation > 0) {
-            const remainder = levelIndentation % indentationLevel;
+        if (levelIndentationSize > 0) {
+            const remainder = levelIndentationSize % currentDepth;
 
-            formatting.indentationSize = (levelIndentation - remainder) / indentationLevel + remainder;
+            blockFormatting.indentationSize = (levelIndentationSize - remainder) / currentDepth + remainder;
 
-            if (formatting.commaSpacing === undefined) {
+            if (blockFormatting.commaSpacing === undefined) {
                 // If no spacing detected but indentation is present, default to spaced
-                formatting.commaSpacing = true;
+                blockFormatting.commaSpacing = true;
             }
 
-            if (formatting.colonSpacing === undefined) {
+            if (blockFormatting.colonSpacing === undefined) {
                 // If no spacing detected but indentation is present, default to spaced
-                formatting.colonSpacing = true;
+                blockFormatting.colonSpacing = true;
+            }
+
+            if (blockFormatting.entryIndentation === undefined) {
+                // If no indentation detected but indentation is present, default to indented
+                blockFormatting.entryIndentation = true;
             }
         }
 
-        formatting.indentationLevel = indentationLevel;
+        formatting[this.getDelimiter()] = blockFormatting;
 
-        return formatting;
+        formatting.indentationLevel = currentDepth;
+
+        return {
+            ...parent,
+            ...formatting,
+            brace: {
+                ...parent.bracket,
+                ...formatting.bracket,
+                ...parent.brace,
+                ...formatting.brace,
+            },
+            bracket: {
+                ...parent.brace,
+                ...formatting.brace,
+                ...parent.bracket,
+                ...formatting.bracket,
+            },
+        };
     }
 
-    private static indent(manipulator: NodeManipulator, formatting: Partial<Formatting>, optional = false): void {
-        if ((formatting.indentationSize ?? 0) <= 0) {
+    private indent(manipulator: NodeManipulator, formatting: Formatting, optional = false): void {
+        const delimiter = this.getDelimiter();
+
+        if ((formatting[delimiter]?.indentationSize ?? 0) <= 0) {
             return;
         }
 
         manipulator.token(
             new JsonTokenNode({
-                type: JsonTokenType.NEW_LINE,
+                type: JsonTokenType.NEWLINE,
                 value: '\n',
             }),
             optional,
@@ -269,12 +355,14 @@ export abstract class JsonStructureNode extends JsonValueNode {
         if (manipulator.matchesToken(JsonTokenType.WHITESPACE)) {
             manipulator.next();
         } else {
-            manipulator.token(JsonStructureNode.getIndentationToken(formatting), optional);
+            manipulator.token(this.getIndentationToken(formatting), optional);
         }
     }
 
-    private static getIndentationToken(formatting: Partial<Formatting>): JsonTokenNode {
-        const {indentationLevel = 0, indentationSize = 0} = formatting;
+    private getIndentationToken(formatting: Formatting): JsonTokenNode {
+        const delimiter = this.getDelimiter();
+        const {indentationLevel = 0} = formatting;
+        const {indentationSize = 0} = formatting[delimiter] ?? {};
         const char = formatting.indentationCharacter === 'tab' ? '\t' : ' ';
 
         return new JsonTokenNode({

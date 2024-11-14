@@ -75,7 +75,7 @@ describe('Functional test', () => {
         output: string,
         type: new (definition: any) => T,
         mutation: (node: T) => void,
-        format?: Partial<Formatting>,
+        format?: Formatting,
     };
 
     it.each<ManipulationScenario>([
@@ -207,8 +207,10 @@ describe('Functional test', () => {
                 node.set('foo', 1);
             },
             format: {
-                commaSpacing: true,
-                colonSpacing: true,
+                bracket: {
+                    commaSpacing: true,
+                    colonSpacing: true,
+                },
             },
         },
         {
@@ -222,7 +224,9 @@ describe('Functional test', () => {
                 node.push(1, 2);
             },
             format: {
-                commaSpacing: true,
+                bracket: {
+                    commaSpacing: true,
+                },
             },
         },
         {
@@ -239,7 +243,11 @@ describe('Functional test', () => {
                 node.set('foo', 1);
             },
             format: {
-                indentationSize: 2,
+                brace: {
+                    indentationSize: 2,
+                    leadingIndentation: true,
+                    trailingIndentation: true,
+                },
             },
         },
         {
@@ -257,7 +265,12 @@ describe('Functional test', () => {
                 node.push(1, 2);
             },
             format: {
-                indentationSize: 2,
+                bracket: {
+                    indentationSize: 2,
+                    entryIndentation: true,
+                    trailingIndentation: true,
+                    leadingIndentation: true,
+                },
             },
         },
         {
@@ -274,9 +287,12 @@ describe('Functional test', () => {
                 node.set('foo', 1);
             },
             format: {
-                commaSpacing: true,
-                colonSpacing: true,
-                indentationSize: 2,
+                brace: {
+                    indentationSize: 2,
+                    colonSpacing: true,
+                    leadingIndentation: true,
+                    trailingIndentation: true,
+                },
             },
         },
         {
@@ -296,9 +312,17 @@ describe('Functional test', () => {
                 node.push(1, {foo: 2});
             },
             format: {
-                commaSpacing: true,
-                colonSpacing: true,
-                indentationSize: 2,
+                brace: {
+                    indentationSize: 2,
+                    entryIndentation: true,
+                    leadingIndentation: true,
+                    trailingIndentation: true,
+                },
+                bracket: {
+                    indentationSize: 2,
+                    colonSpacing: true,
+                    entryIndentation: true,
+                },
             },
         },
         {
@@ -317,12 +341,14 @@ describe('Functional test', () => {
                 node.set('baz', 3);
             },
             format: {
-                blockTrailingIndentation: true,
-                blockLeadingIndentation: true,
-                commaSpacing: false,
-                colonSpacing: false,
-                indentationSize: 2,
-                entryIndentation: false,
+                brace: {
+                    indentationSize: 2,
+                    commaSpacing: false,
+                    colonSpacing: false,
+                    entryIndentation: false,
+                    trailingIndentation: true,
+                    leadingIndentation: true,
+                },
             },
         },
         {
@@ -339,11 +365,13 @@ describe('Functional test', () => {
                 node.push(1, 2, 3);
             },
             format: {
-                blockTrailingIndentation: true,
-                blockLeadingIndentation: true,
-                commaSpacing: false,
-                indentationSize: 2,
-                entryIndentation: false,
+                bracket: {
+                    indentationSize: 2,
+                    commaSpacing: false,
+                    entryIndentation: false,
+                    trailingIndentation: true,
+                    leadingIndentation: true,
+                },
             },
         },
         {
@@ -362,12 +390,14 @@ describe('Functional test', () => {
                 node.set('baz', 3);
             },
             format: {
-                blockTrailingIndentation: true,
-                blockLeadingIndentation: true,
-                commaSpacing: true,
-                colonSpacing: true,
-                indentationSize: 2,
-                entryIndentation: false,
+                brace: {
+                    indentationSize: 2,
+                    commaSpacing: true,
+                    colonSpacing: true,
+                    entryIndentation: false,
+                    trailingIndentation: true,
+                    leadingIndentation: true,
+                },
             },
         },
         {
@@ -384,11 +414,13 @@ describe('Functional test', () => {
                 node.push(1, 2, 3);
             },
             format: {
-                blockTrailingIndentation: true,
-                blockLeadingIndentation: true,
-                commaSpacing: true,
-                indentationSize: 2,
-                entryIndentation: false,
+                bracket: {
+                    indentationSize: 2,
+                    commaSpacing: true,
+                    entryIndentation: false,
+                    trailingIndentation: true,
+                    leadingIndentation: true,
+                },
             },
         },
         {
@@ -803,9 +835,11 @@ describe('Functional test', () => {
                 node.set('foo', 1);
             },
             format: {
-                indentationSize: 2,
-                blockLeadingIndentation: true,
-                blockTrailingIndentation: false,
+                brace: {
+                    indentationSize: 2,
+                    leadingIndentation: true,
+                    trailingIndentation: false,
+                },
             },
         },
         {
@@ -821,9 +855,11 @@ describe('Functional test', () => {
                 node.push(1);
             },
             format: {
-                indentationSize: 2,
-                blockLeadingIndentation: true,
-                blockTrailingIndentation: false,
+                bracket: {
+                    indentationSize: 2,
+                    leadingIndentation: true,
+                    trailingIndentation: false,
+                },
             },
         },
         {
@@ -839,9 +875,11 @@ describe('Functional test', () => {
                 node.set('foo', 1);
             },
             format: {
-                indentationSize: 2,
-                blockLeadingIndentation: false,
-                blockTrailingIndentation: true,
+                brace: {
+                    indentationSize: 2,
+                    leadingIndentation: false,
+                    trailingIndentation: true,
+                },
             },
         },
         {
@@ -857,9 +895,11 @@ describe('Functional test', () => {
                 node.push(1);
             },
             format: {
-                indentationSize: 2,
-                blockLeadingIndentation: false,
-                blockTrailingIndentation: true,
+                bracket: {
+                    indentationSize: 2,
+                    leadingIndentation: false,
+                    trailingIndentation: true,
+                },
             },
         },
         {
@@ -1360,7 +1400,9 @@ describe('Functional test', () => {
                 "foo": [
                   "a"
                 ],
-                "bar": ["c"]
+                "bar": {
+                  "baz":"c", "qux":"d"
+                }
               }`,
             // language=JSON
             output: multiline`
@@ -1369,41 +1411,116 @@ describe('Functional test', () => {
                   "a",
                   "b"
                 ],
-                "bar": ["c", "d"],
-                "baz": ["e"]
+                "bar": {
+                  "baz":"c", "qux":"d", "quux":"e"
+                },
+                "baz":{
+                  "e":5, "f":6
+                },
+                "qux":[
+                  3,
+                  4
+                ]
               }`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
                 node.get('foo', JsonArrayNode).push('b');
-                node.get('bar', JsonArrayNode).push('d');
-                node.set('baz', ['e']);
+
+                const bar = node.get('bar', JsonObjectNode);
+
+                bar.set('qux', 'd');
+                bar.set('quux', 'e');
+
+                node.set('baz', {e: 5, f: 6});
+
+                node.set('qux', [3, 4]);
             },
         },
         {
             description: 'keep the formatting of the last element when adding a new element',
             // language=JSON
             input: multiline`
+            [
               [
-                [
-                  "a"
-                ],
-                ["c"]
-              ]`,
+                "a"
+              ],
+              ["c"]
+            ]`,
             // language=JSON
             output: multiline`
+            [
               [
-                [
-                  "a",
-                  "b"
-                ],
-                ["c", "d"],
-                ["e"]
-              ]`,
+                "a",
+                "b"
+              ],
+              ["c", "d"],
+              ["e"]
+            ]`,
             type: JsonArrayNode,
             mutation: (node: JsonArrayNode): void => {
                 node.get(0, JsonArrayNode).push('b');
                 node.get(1, JsonArrayNode).push('d');
                 node.push(['e']);
+            },
+        },
+        {
+            description: 'use the formatting of the last array adding a new array',
+            // language=JSON
+            input: multiline`
+            [
+              [
+                "a",
+                "b"
+              ],
+              {"foo":"bar"}
+            ]`,
+            // language=JSON
+            output: multiline`
+            [
+              [
+                "a",
+                "b"
+              ],
+              {"foo":"bar"},
+              [
+                "c",
+                "d"
+              ]
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(['c', 'd']);
+            },
+        },
+        {
+            description: 'preserve the formatting formatting differences between arrays and objects',
+            // language=JSON
+            input: multiline`
+            [
+              [
+                "a",
+                "b"
+              ],
+              {"foo":"bar"}
+            ]`,
+            // language=JSON
+            output: multiline`
+            [
+              [
+                "a",
+                "b"
+              ],
+              {"foo":"bar"},
+              [
+                "c",
+                "d"
+              ],
+              {"baz":"qux"}
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(['c', 'd']);
+                node.push({baz: 'qux'});
             },
         },
         {

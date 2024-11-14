@@ -1,9 +1,9 @@
 import {JsonValue} from '@croct/json';
 import {JsonValueNode} from './valueNode';
-import {JsonNode} from './node';
+import {Formatting, JsonNode} from './node';
 import {JsonTokenNode} from '@/infrastructure/json/node/tokenNode';
 import {JsonTokenType} from '@/infrastructure/json/token';
-import {Formatting, JsonCompositeDefinition, JsonCompositeNode, PartialJsonCompositeDefinition} from './compositeNode';
+import {JsonCompositeDefinition, JsonCompositeNode, PartialJsonCompositeDefinition} from './compositeNode';
 import {NodeManipulator} from '@/infrastructure/json/manipulator';
 import {JsonPrimitiveNode} from './primitiveNode';
 import {JsonValueFactory} from '@/infrastructure/json/node/factory';
@@ -36,7 +36,7 @@ export class JsonPropertyNode extends JsonCompositeNode implements JsonPropertyD
         this.value = JsonValueFactory.create(value);
     }
 
-    public rebuild(formatting?: Partial<Formatting>): void {
+    public rebuild(formatting?: Formatting): void {
         this.key.rebuild();
 
         this.value.rebuild(formatting);
@@ -44,9 +44,9 @@ export class JsonPropertyNode extends JsonCompositeNode implements JsonPropertyD
         this.rebuildChildren(formatting);
     }
 
-    private rebuildChildren(formatting?: Partial<Formatting>): void {
+    private rebuildChildren(formatting: Formatting = {}): void {
         const manipulator = new NodeManipulator(this.children);
-        const spaced = formatting?.colonSpacing ?? false;
+        const spaced = formatting.brace?.colonSpacing ?? false;
 
         manipulator.node(this.key)
             .token(
