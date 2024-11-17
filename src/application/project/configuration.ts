@@ -18,7 +18,9 @@ export type ResolvedProjectConfiguration = ProjectConfiguration & {
     workspaceId: string,
     applications: ProjectConfiguration['applications'] & {
         developmentId: string,
+        developmentPublicId: string,
         productionId: string,
+        productionPublicId: string,
     },
 };
 

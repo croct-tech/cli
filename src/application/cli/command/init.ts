@@ -107,8 +107,10 @@ export class InitCommand implements Command<InitInput, InitOutput> {
             applications: {
                 production: applications.production.slug,
                 productionId: applications.production.id,
+                productionPublicId: applications.production.publicId,
                 development: applications.development.slug,
                 developmentId: applications.development.id,
+                developmentPublicId: applications.development.publicId,
             },
             defaultLocale: workspace.defaultLocale,
             locales: [workspace.defaultLocale],

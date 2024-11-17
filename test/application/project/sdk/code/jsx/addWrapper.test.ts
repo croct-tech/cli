@@ -1,19 +1,19 @@
 import {resolve} from 'path';
 import {addComment, File} from '@babel/types';
-import {AddWrapper, WrapperOptions} from '@/application/project/sdk/code/jsx/addWrapper';
+import {AddWrapper, WrapperConfiguration} from '@/application/project/sdk/code/jsx/addWrapper';
 import {loadFixtures} from '../fixtures';
 import {ParseCode} from '@/application/project/sdk/code/parseCode';
 import {Codemod} from '@/application/project/sdk/code/codemod';
 
 describe('AddWrapper', () => {
-    const defaultOptions: WrapperOptions = {
+    const defaultOptions: WrapperConfiguration = {
         wrapper: {
             module: '@croct/plug-react',
             component: 'CroctProvider',
         },
     };
 
-    const scenarios = loadFixtures<WrapperOptions>(
+    const scenarios = loadFixtures<WrapperConfiguration>(
         resolve(__dirname, '../fixtures/jsx-wrapper'),
         defaultOptions,
         // Custom options
@@ -71,7 +71,7 @@ describe('AddWrapper', () => {
                     ...defaultOptions.wrapper,
                     props: {
                         appId: {
-                            type: 'env',
+                            type: 'property',
                             name: 'REACT_APP_CROCT_APP_ID',
                         },
                     },

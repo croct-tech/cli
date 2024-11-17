@@ -2,7 +2,7 @@ import {join} from 'path';
 import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import {ApplicationPlatform} from '@/application/model/entities';
-import {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
+import {ApplicationApi} from '@/application/api/application';
 import {JavaScriptProject} from '@/application/project/project';
 import {WorkspaceApi} from '@/application/api/workspace';
 import {EnvFile} from '@/application/project/envFile';
@@ -41,16 +41,14 @@ type NextProjectInfo = {
     },
     middleware: {
         file: string,
-        new: boolean,
     },
     provider: {
         file: string,
-        new: boolean,
     },
     env: {
-        file: EnvFile,
-        apiKey: boolean,
-        appId: boolean,
+        localFile: EnvFile,
+        developmentFile: EnvFile,
+        productionFile: EnvFile,
     },
 };
 
@@ -105,7 +103,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         const [{i18n}, projectInfo] = await Promise.all([this.getConfig(), this.getProjectInfo()]);
 
         return {
-            tasks: await this.getInstallationTasks({
+            tasks: this.getInstallationTasks({
                 ...installation,
                 project: projectInfo,
             }),
@@ -142,12 +140,6 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
             ),
         ]);
 
-        const envFile = new EnvFile(join(this.project.getRootPath(), '.env.local'));
-        const [apiKeyVar, appIdVar] = await Promise.all([
-            envFile.hasVariable(NextEnvVar.API_KEY),
-            envFile.hasVariable(NextEnvVar.APP_ID),
-        ]);
-
         const extension = project.typescript ? 'ts' : 'js';
 
         return {
@@ -156,27 +148,24 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
                 package: sdkPackage,
             },
             env: {
-                file: envFile,
-                apiKey: apiKeyVar,
-                appId: appIdVar,
+                localFile: new EnvFile(join(this.project.getRootPath(), '.env.local')),
+                developmentFile: new EnvFile(join(this.project.getRootPath(), '.env.development')),
+                productionFile: new EnvFile(join(this.project.getRootPath(), '.env.production')),
             },
             middleware: {
-                new: middlewareFile === null,
                 file: middlewareFile ?? join(project.sourceDirectory, `middleware.${extension}`),
             },
             provider: {
-                new: providerComponentFile === null,
                 file: providerComponentFile ?? (`${project.router === 'app' ? 'app/layout' : '_app'}.${extension}x`),
             },
         };
     }
 
-    private async getInstallationTasks(installation: Omit<NextInstallation, 'notifier'>): Promise<Task[]> {
-        const {project} = installation;
+    private getInstallationTasks(installation: Omit<NextInstallation, 'notifier'>): Task[] {
         const tasks: Task[] = [];
 
         tasks.push({
-            title: `Configure ${installation.project.middleware.file}`,
+            title: 'Configure middleware',
             task: async notifier => {
                 try {
                     await this.installMiddleware({
@@ -192,7 +181,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         });
 
         tasks.push({
-            title: `Configure ${installation.project.provider.file}`,
+            title: 'Configure provider',
             task: async notifier => {
                 try {
                     await this.installProvider({
@@ -207,29 +196,21 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
             },
         });
 
-        const isEnvConfigured = project.env.apiKey && project.env.appId;
+        tasks.push({
+            title: 'Setup environment variables',
+            task: async notifier => {
+                try {
+                    await this.updateEnvVariables({
+                        ...installation,
+                        notifier: notifier,
+                    });
 
-        if (!isEnvConfigured) {
-            const {file} = project.env;
-            const fileName = file.getName();
-            const exists = await file.exists();
-
-            tasks.push({
-                title: exists ? `Update ${fileName}` : `Create ${fileName}`,
-                task: async notifier => {
-                    try {
-                        await this.updateEnvFile({
-                            ...installation,
-                            notifier: notifier,
-                        });
-
-                        notifier.confirm(`Env file ${exists ? 'updated' : 'created'}`);
-                    } catch (error) {
-                        notifier.alert('Failed to update .env.local', formatMessage(error));
-                    }
-                },
-            });
-        }
+                    notifier.confirm('Environment variables updated');
+                } catch (error) {
+                    notifier.alert('Failed to update .env.local', formatMessage(error));
+                }
+            },
+        });
 
         return tasks;
     }
@@ -256,51 +237,48 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
         await codemod.apply(join(this.project.getRootPath(), path), options);
     }
 
-    private async updateEnvFile(installation: NextInstallation): Promise<void> {
-        const {project: {env: plan}, configuration, notifier} = installation;
-
-        notifier.update('Loading application information');
+    private async updateEnvVariables(installation: NextInstallation): Promise<void> {
+        const {project: {env: plan}, configuration: {applications}, notifier} = installation;
 
         const {api} = this;
 
-        try {
-            const [user, application] = await Promise.all([
-                await api.user.getUser(),
-                await api.workspace.getApplication({
-                    organizationSlug: configuration.organization,
-                    workspaceSlug: configuration.workspace,
-                    applicationSlug: configuration.applications.development,
-                }),
-            ]);
+        if (!await plan.localFile.hasVariable(NextEnvVar.API_KEY)) {
+            try {
+                notifier.update('Loading information');
 
-            if (application === null) {
-                notifier.alert('Application not found');
+                const user = await api.user.getUser();
 
-                return;
-            }
-
-            let apiKey: GeneratedApiKey|null = null;
-
-            if (!plan.apiKey) {
                 notifier.update('Creating API key');
 
-                apiKey = await api.application.createApiKey({
+                const apiKey = await api.application.createApiKey({
                     name: `${user.username} CLI`,
-                    applicationId: application.id,
+                    applicationId: applications.developmentId,
                     permissions: {
                         tokenIssue: true,
                     },
                 });
+
+                await plan.localFile.setVariables({
+                    [NextEnvVar.API_KEY]: apiKey.secret,
+                });
+            } catch (error) {
+                notifier.alert(`Failed to update ${plan.developmentFile.getName()}`);
+
+                return;
             }
 
-            await plan.file.setVariables({
-                [NextEnvVar.APP_ID]: application.publicId,
-                ...(apiKey !== null ? {[NextEnvVar.API_KEY]: apiKey.secret} : {}),
-            });
-
-            notifier.confirm('.env.local updated');
-        } catch (error) {
-            notifier.alert(`Failed to update ${plan.file.getName()}`);
+            try {
+                await Promise.all([
+                    plan.developmentFile.setVariables({
+                        [NextEnvVar.APP_ID]: applications.developmentPublicId,
+                    }),
+                    plan.productionFile.setVariables({
+                        [NextEnvVar.APP_ID]: applications.productionPublicId,
+                    }),
+                ]);
+            } catch (error) {
+                notifier.alert('Failed to update environment variables', formatMessage(error));
+            }
         }
     }
 

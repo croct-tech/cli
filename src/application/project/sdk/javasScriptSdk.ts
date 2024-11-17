@@ -70,7 +70,9 @@ export abstract class JavaScriptSdk implements Sdk {
                     }
                 },
             });
+        }
 
+        if (await this.project.isTypeScriptProject()) {
             tasks.push({
                 title: 'Update types',
                 task: async notifier => {
@@ -92,18 +94,18 @@ export abstract class JavaScriptSdk implements Sdk {
                     }
                 },
             });
-
-            tasks.push({
-                title: 'Register NPM hook',
-                task: async notifier => {
-                    try {
-                        await this.registerNpmHookScript(notifier);
-                    } catch (error) {
-                        notifier.alert('Failed to register NPM hook', formatMessage(error));
-                    }
-                },
-            });
         }
+
+        tasks.push({
+            title: 'Register post-install hook',
+            task: async notifier => {
+                try {
+                    await this.registerNpmHookScript(notifier);
+                } catch (error) {
+                    notifier.alert('Failed to register NPM hook', formatMessage(error));
+                }
+            },
+        });
 
         if (tasks.length > 0) {
             output.break();
@@ -190,10 +192,6 @@ export abstract class JavaScriptSdk implements Sdk {
         const slots = Object.entries(configuration.slots);
         const components = Object.entries(configuration.components);
 
-        if (slots.length === 0 && components.length === 0) {
-            return;
-        }
-
         const indicator = notifier ?? output.notify('Generating types');
 
         const packageInfo = await this.project.getPackageInfo(JavaScriptSdk.CONTENT_PACKAGE);
@@ -209,24 +207,28 @@ export abstract class JavaScriptSdk implements Sdk {
         // Create the directory if it does not exist
         await mkdir(dirname(filePath), {recursive: true}).catch(() => {});
 
-        const types = await this.workspaceApi.generateTypes({
-            workspaceId: configuration.workspaceId,
-            target: TargetSdk.JAVASCRIPT,
-            components: components.map(
-                ([component, version]) => ({
-                    id: component,
-                    version: version.toString(),
-                }),
-            ),
-            slots: slots.map(
-                ([slot, version]) => ({
-                    id: slot,
-                    version: version.toString(),
-                }),
-            ),
-        });
+        let module = 'export {};';
 
-        const module = `${types}\nexport {};`;
+        if (slots.length > 0 || components.length > 0) {
+            const types = await this.workspaceApi.generateTypes({
+                workspaceId: configuration.workspaceId,
+                target: TargetSdk.JAVASCRIPT,
+                components: components.map(
+                    ([component, version]) => ({
+                        id: component,
+                        version: version.toString(),
+                    }),
+                ),
+                slots: slots.map(
+                    ([slot, version]) => ({
+                        id: slot,
+                        version: version.toString(),
+                    }),
+                ),
+            });
+
+            module = `${types}\n${module}`;
+        }
 
         await writeFile(filePath, module, {
             encoding: 'utf-8',

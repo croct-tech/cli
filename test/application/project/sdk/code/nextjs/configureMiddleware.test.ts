@@ -1,10 +1,10 @@
 import {resolve} from 'path';
-import {MiddlewareOptions, ConfigureMiddleware} from '@/application/project/sdk/code/nextjs/configureMiddleware';
+import {MiddlewareConfiguration, ConfigureMiddleware} from '@/application/project/sdk/code/nextjs/configureMiddleware';
 import {loadFixtures} from '../fixtures';
 import {ParseCode} from '@/application/project/sdk/code/parseCode';
 
 describe('ConfigureMiddleware', () => {
-    const defaultOptions: MiddlewareOptions = {
+    const defaultOptions: MiddlewareConfiguration = {
         import: {
             module: '@croct/plug-next/middleware',
             middlewareFactoryName: 'withCroct',
@@ -15,7 +15,7 @@ describe('ConfigureMiddleware', () => {
         },
     };
 
-    const scenarios = loadFixtures<MiddlewareOptions>(
+    const scenarios = loadFixtures<MiddlewareConfiguration>(
         resolve(__dirname, '../fixtures/nextjs-middleware'),
         defaultOptions,
         {

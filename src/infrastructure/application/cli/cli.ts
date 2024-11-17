@@ -295,7 +295,43 @@ export class Cli {
             }),
             new PlugReactSdk({
                 project: project,
-                workspaceApi: this.getWorkspaceApi(),
+                api: {
+                    workspace: this.getWorkspaceApi(),
+                },
+                codemod: {
+                    provider: new LintCode(
+                        new TransformFile(
+                            new ParseCode({
+                                languages: ['typescript', 'jsx'],
+                                codemod: new AddWrapper({
+                                    fallbackToNamedExports: true,
+                                    wrapper: {
+                                        module: '@croct/plug-react',
+                                        component: 'CroctProvider',
+                                    },
+                                    targets: {
+                                        variable: 'children',
+                                    },
+                                }),
+                            }),
+                        ),
+                        linter,
+                    ),
+                },
+                bundlers: [
+                    {
+                        package: 'react-scripts',
+                        prefix: 'process.env.REACT_APP_',
+                    },
+                    {
+                        package: 'vite',
+                        prefix: 'import.meta.env.VITE_',
+                    },
+                    {
+                        package: 'parcel',
+                        prefix: 'process.env.',
+                    },
+                ],
             }),
             new PlugJsSdk({
                 project: project,
