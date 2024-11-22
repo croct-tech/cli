@@ -175,7 +175,7 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver {
                                         condition: {
                                             operator: '===',
                                             left: {
-                                                type: 'property',
+                                                type: 'reference',
                                                 path: ['process', 'env', 'NODE_ENV'],
                                             },
                                             right: {
@@ -193,7 +193,7 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver {
                                         },
                                     }
                                     : {
-                                        type: 'property',
+                                        type: 'reference',
                                         path: projectEnv.property.split('.'),
                                     },
                             },

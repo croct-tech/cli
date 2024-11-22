@@ -71,8 +71,19 @@ describe('AddWrapper', () => {
                     ...defaultOptions.wrapper,
                     props: {
                         appId: {
-                            type: 'property',
+                            type: 'reference',
                             path: ['process', 'env', 'REACT_APP_CROCT_APP_ID'],
+                        },
+                    },
+                },
+            },
+            'providerVariableProp.tsx': {
+                wrapper: {
+                    ...defaultOptions.wrapper,
+                    props: {
+                        appId: {
+                            type: 'reference',
+                            path: ['CROCT_APP_ID'],
                         },
                     },
                 },
@@ -86,7 +97,7 @@ describe('AddWrapper', () => {
                             condition: {
                                 operator: '===',
                                 left: {
-                                    type: 'property',
+                                    type: 'reference',
                                     path: ['process', 'env', 'NODE_ENV'],
                                 },
                                 right: {
@@ -95,11 +106,11 @@ describe('AddWrapper', () => {
                                 },
                             },
                             consequent: {
-                                type: 'property',
+                                type: 'reference',
                                 path: ['process', 'env', 'PRODUCTION_CROCT_APP_ID'],
                             },
                             alternate: {
-                                type: 'property',
+                                type: 'reference',
                                 path: ['process', 'env', 'STAGING_CROCT_APP_ID'],
                             },
                         },

@@ -319,6 +319,19 @@ export default function Layout({
 }"
 `;
 
+exports[`AddWrapper should correctly transform providerVariableProp.tsx: providerVariableProp.tsx 1`] = `
+"import { CroctProvider } from "@croct/plug-react";
+export default function Layout({
+  children
+}) {
+  return (<CroctProvider appId={CROCT_APP_ID}>
+    <>
+            <main>{children}</main>
+        </>
+  </CroctProvider>);
+}"
+`;
+
 exports[`AddWrapper should correctly transform targetChildren.tsx: targetChildren.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 export default function Layout({

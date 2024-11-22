@@ -16,7 +16,7 @@ type TargetChildren = {
 };
 
 type PropertyTypes = {
-    property: {
+    reference: {
         path: string[],
     },
     literal: {
@@ -383,7 +383,7 @@ export class AddWrapper<O extends WrapperOptions = WrapperOptions> implements Co
 
     private static buildPropertyExpression(property: PropertyType): t.Expression {
         switch (property.type) {
-            case 'property':
+            case 'reference':
                 if (property.path.length < 2) {
                     return t.identifier(property.path[0]);
                 }
