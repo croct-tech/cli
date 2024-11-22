@@ -4,8 +4,6 @@ import {UserApi} from '@/application/api/user';
 
 export type AdminInput = Record<string, never>;
 
-export type AdminOutput = void;
-
 export type AdminConfig = {
     output: Output,
     userApi: UserApi,
@@ -15,14 +13,14 @@ export type AdminConfig = {
     },
 };
 
-export class AdminCommand implements Command<AdminInput, AdminOutput> {
+export class AdminCommand implements Command<AdminInput> {
     private readonly config: AdminConfig;
 
     public constructor(config: AdminConfig) {
         this.config = config;
     }
 
-    public async execute(): Promise<AdminOutput> {
+    public async execute(): Promise<void> {
         const {output, userApi} = this.config;
 
         const notifier = output.notify('Starting session');

@@ -62,7 +62,7 @@ enum NextEnvVar {
     APP_ID = 'NEXT_PUBLIC_CROCT_APP_ID',
 }
 
-export class PlugNextSdk extends JavaScriptSdk implements SdkResolver {
+export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> {
     private readonly api: ApiConfiguration;
 
     private readonly codemod: CodemodConfiguration;

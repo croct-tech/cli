@@ -24,10 +24,8 @@ export type ResolvedProjectConfiguration = ProjectConfiguration & {
     },
 };
 
-export interface ProjectConfigurationFile {
-    exists(): Promise<boolean>;
-
-    load(): Promise<ProjectConfiguration | null>;
-
+export interface ProjectConfigurationManager {
+    load(): Promise<ProjectConfiguration|null>;
+    resolve(): Promise<ResolvedProjectConfiguration>;
     update(configuration: ProjectConfiguration): Promise<void>;
 }

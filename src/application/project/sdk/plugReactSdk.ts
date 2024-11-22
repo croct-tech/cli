@@ -51,7 +51,7 @@ type ReactInstallation = Installation & {
     notifier: TaskNotifier,
 };
 
-export class PlugReactSdk extends JavaScriptSdk implements SdkResolver {
+export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> {
     private readonly codemod: CodemodConfiguration;
 
     private readonly bundlers: Bundlers[];

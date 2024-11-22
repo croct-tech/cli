@@ -2,7 +2,7 @@ import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import {ApplicationPlatform} from '@/application/model/entities';
 
-export class PlugJsSdk extends JavaScriptSdk implements SdkResolver {
+export class PlugJsSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> {
     public getPackage(): string {
         return '@croct/plug';
     }

@@ -1,7 +1,8 @@
 import {join} from 'path';
 import {access, readFile, writeFile} from 'fs/promises';
-import {ProjectConfiguration, ProjectConfigurationFile} from '@/application/project/configuration';
+import {ProjectConfiguration} from '@/application/project/configuration';
 import {Version} from '@/application/project/version';
+import {ProjectConfigurationFile} from '@/infrastructure/project/configurationFileManager';
 
 export class JsonFileConfiguration implements ProjectConfigurationFile {
     private readonly projectDirectory: string;

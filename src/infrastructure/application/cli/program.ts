@@ -61,6 +61,16 @@ const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a
             });
         });
 
+    const addCommand = program.command('add');
+
+    addCommand.command('slot [slots...]')
+        .description('Add a slot to your project.')
+        .action(async args => {
+            await run().addSlot({
+                slots: args,
+            });
+        });
+
     program.command('login')
         .description('Authenticate your user.')
         .action(async () => {

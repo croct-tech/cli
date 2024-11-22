@@ -131,6 +131,14 @@ export abstract class JavaScriptSdk implements Sdk {
 
     protected abstract getInstallationPlan(installation: Installation): Promise<InstallationPlan>;
 
+    public async update(installation: Installation): Promise<void> {
+        await this.updateContent(installation);
+
+        if (await this.project.isTypeScriptProject()) {
+            await this.updateTypes(installation);
+        }
+    }
+
     public async updateContent(installation: Installation, notifier?: TaskNotifier): Promise<void> {
         const {configuration, output} = installation;
         const slots = Object.entries(configuration.slots);

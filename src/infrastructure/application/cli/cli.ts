@@ -3,13 +3,13 @@ import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput, ExitCallback} from '@/infrastructure/application/cli/io/consoleOutput';
 import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
 import {NodeProject} from '@/infrastructure/project/nodeProject';
-import {SdkResolver, SequentialSdkResolver} from '@/application/project/sdk/sdk';
+import {Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {PlugJsSdk} from '@/application/project/sdk/plugJsSdk';
 import {PlugReactSdk} from '@/application/project/sdk/plugReactSdk';
 import {PlugNextSdk} from '@/application/project/sdk/plugNextSdk';
-import {InitCommand, InitInput, InitOutput} from '@/application/cli/command/init';
-import {LoginCommand, LoginOutput} from '@/application/cli/command/login';
-import {LogoutCommand, LogoutOutput} from '@/application/cli/command/logout';
+import {InitCommand, InitInput} from '@/application/cli/command/init';
+import {LoginCommand} from '@/application/cli/command/login';
+import {LogoutCommand} from '@/application/cli/command/logout';
 import {Input} from '@/application/cli/io/input';
 import {JsonFileConfiguration} from '@/infrastructure/project/jsonFileConfiguration';
 import {GraphqlClient} from '@/infrastructure/graphql';
@@ -34,7 +34,6 @@ import {AuthenticationListener} from '@/application/cli/authentication/authentic
 import {SignUpForm} from '@/application/cli/form/auth/signUpForm';
 import {Command, CommandInput} from '@/application/cli/command/command';
 import {AdminCommand} from '@/application/cli/command/admin';
-import {ProjectConfigurationFile} from '@/application/project/configuration';
 import {AddWrapper} from '@/application/project/sdk/code/jsx/addWrapper';
 import {ParseCode} from '@/application/project/sdk/code/parseCode';
 import {ConfigureMiddleware} from '@/application/project/sdk/code/nextjs/configureMiddleware';
@@ -44,6 +43,11 @@ import {TransformFile} from '@/application/project/sdk/code/transformFile';
 import {CreateLayoutComponent} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
 import {CreateAppComponent} from '@/application/project/sdk/code/nextjs/createAppComponent';
 import {JavaScriptLinter} from '@/infrastructure/project/javaScriptLinter';
+import {SdkDetector} from '@/application/cli/sdkDetector';
+import {ProjectConfigurationManager} from '@/application/project/configuration';
+import {ConfigurationFileManager} from '@/infrastructure/project/configurationFileManager';
+import {AddSlotCommand, AddSlotInput} from '@/application/cli/command/slot/add';
+import {SlotForm} from '@/application/cli/form/workspace/slotForm';
 
 export type Configuration = {
     io: {
@@ -87,17 +91,17 @@ export class Cli {
 
     private authenticationListener?: AuthenticationListener;
 
-    private configurationFile?: ProjectConfigurationFile;
+    private configurationManager?: ProjectConfigurationManager;
 
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
     }
 
-    public init(input: InitInput): Promise<InitOutput> {
+    public init(input: InitInput): Promise<void> {
         return this.execute(
             new InitCommand({
                 sdkResolver: this.getSdkResolver(),
-                configurationFile: this.getConfigurationFile(),
+                configurationManager: this.getConfigurationManager(),
                 workspaceApi: this.getWorkspaceApi(),
                 form: {
                     organization: new OrganizationForm({
@@ -125,11 +129,30 @@ export class Cli {
         );
     }
 
-    public login(): Promise<LoginOutput> {
+    public addSlot(input: AddSlotInput): Promise<void> {
+        return this.execute(
+            new AddSlotCommand({
+                sdkResolver: this.getSdkResolver(),
+                configurationManager: this.getConfigurationManager(),
+                slotForm: new SlotForm({
+                    input: this.getInput(),
+                    output: this.getOutput(),
+                    workspaceApi: this.getWorkspaceApi(),
+                }),
+                io: {
+                    input: this.getInput(),
+                    output: this.getOutput(),
+                },
+            }),
+            input,
+        );
+    }
+
+    public login(): Promise<void> {
         return this.execute(new LoginCommand({authenticator: this.getAuthenticator()}), {});
     }
 
-    public logout(): Promise<LogoutOutput> {
+    public logout(): Promise<void> {
         return this.execute(new LogoutCommand({authenticator: this.getAuthenticator()}), {});
     }
 
@@ -206,13 +229,16 @@ export class Cli {
 
     private getSdkResolver(): SdkResolver {
         if (this.sdkResolver === undefined) {
-            this.sdkResolver = new SequentialSdkResolver(this.createJavaScriptSdkResolvers());
+            this.sdkResolver = new SdkDetector({
+                resolvers: this.createJavaScriptSdkResolvers(),
+                output: this.getOutput(),
+            });
         }
 
         return this.sdkResolver;
     }
 
-    private createJavaScriptSdkResolvers(): SdkResolver[] {
+    private createJavaScriptSdkResolvers(): Array<SdkResolver<Sdk|null>> {
         const project = this.createJavaScriptProject();
         const linter = this.createJavaScriptLinter(project);
 
@@ -368,12 +394,21 @@ export class Cli {
         });
     }
 
-    private getConfigurationFile(): ProjectConfigurationFile {
-        if (this.configurationFile === undefined) {
-            this.configurationFile = new JsonFileConfiguration(this.configuration.directories.current);
+    private getConfigurationManager(): ProjectConfigurationManager {
+        if (this.configurationManager === undefined) {
+            this.configurationManager = new ConfigurationFileManager({
+                file: new JsonFileConfiguration(this.configuration.directories.current),
+                output: this.getOutput(),
+                api: {
+                    user: this.getUserApi(),
+                    organization: this.getOrganizationApi(),
+                    workspace: this.getWorkspaceApi(),
+                    application: this.getApplicationApi(),
+                },
+            });
         }
 
-        return this.configurationFile;
+        return this.configurationManager;
     }
 
     private getUserApi(optionalAuthentication = false): UserApi {
@@ -446,9 +481,9 @@ export class Cli {
         return this.authenticationListener;
     }
 
-    private async execute<I extends CommandInput, O>(command: Command<I, O>, input: I): Promise<O> {
+    private async execute<I extends CommandInput>(command: Command<I>, input: I): Promise<void> {
         try {
-            return await command.execute(input);
+            await command.execute(input);
         } catch (error) {
             const output = this.getOutput();
 

@@ -1,6 +1,6 @@
 import prompts, {Options, PromptObject} from 'prompts';
 import {Readable, Writable} from 'stream';
-import {Confirmation, Input, Prompt, Selection} from '@/application/cli/io/input';
+import {Confirmation, Input, MultipleSelection, Prompt, Selection} from '@/application/cli/io/input';
 
 type PromptState = {
     aborted: boolean,
@@ -46,9 +46,30 @@ export class ConsoleInput implements Input {
                 option => ({
                     title: option.label,
                     value: option.value,
+                    disabled: option.disabled,
                 }),
             ),
             initial: initial === -1 ? undefined : initial,
+        });
+    }
+
+    public selectMultiple<T>(selection: MultipleSelection<T>): Promise<T[]> {
+        const initial = selection.default !== undefined
+            ? selection.options.findIndex(option => selection.default === option.value)
+            : -1;
+
+        return this.interact({
+            type: selection.options.length > 10 ? 'autocompleteMultiselect' : 'multiselect',
+            message: selection.message,
+            choices: selection.options.map(
+                option => ({
+                    title: option.label,
+                    value: option.value,
+                    disabled: option.disabled,
+                    selected: option.selected,
+                }),
+            ),
+            initial: initial,
         });
     }
 

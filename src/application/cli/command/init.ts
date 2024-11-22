@@ -12,7 +12,7 @@ import {
 import {Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {
     ProjectConfiguration,
-    ProjectConfigurationFile,
+    ProjectConfigurationManager,
     ResolvedProjectConfiguration,
 } from '@/application/project/configuration';
 import {OrganizationOptions} from '@/application/cli/form/organization/organizationForm';
@@ -27,12 +27,10 @@ export type InitInput = {
     new?: 'organization' | 'workspace' | 'application',
 };
 
-export type InitOutput = ProjectConfiguration;
-
 export type InitConfig = {
     workspaceApi: WorkspaceApi,
     sdkResolver: SdkResolver,
-    configurationFile: ProjectConfigurationFile,
+    configurationManager: ProjectConfigurationManager,
     form: {
         organization: Form<Organization, OrganizationOptions>,
         workspace: Form<Workspace, WorkspaceOptions>,
@@ -44,28 +42,29 @@ export type InitConfig = {
     },
 };
 
-export class InitCommand implements Command<InitInput, InitOutput> {
+export class InitCommand implements Command<InitInput> {
     private readonly config: InitConfig;
 
     public constructor(config: InitConfig) {
         this.config = config;
     }
 
-    public async execute(input: InitInput): Promise<InitOutput> {
+    public async execute(input: InitInput): Promise<void> {
         const {output} = this.config.io;
+        const {sdkResolver} = this.config;
 
-        const sdk = await this.getSdk(input.sdk);
+        const sdk = await sdkResolver.resolve(input.sdk);
 
         output.inform(`Using ${ApplicationPlatform.getName(sdk.getPlatform())} SDK`);
 
-        const {configurationFile, form} = this.config;
+        const {configurationManager, form} = this.config;
 
-        const currentConfiguration = await configurationFile.load();
+        const currentConfiguration = await configurationManager.load();
 
         if (currentConfiguration !== null && input.override !== true) {
             output.inform('Project already initialized, pass --override to reconfigure');
 
-            return currentConfiguration;
+            return;
         }
 
         const organization = await form.organization.handle({
@@ -99,42 +98,40 @@ export class InitCommand implements Command<InitInput, InitOutput> {
             }),
         };
 
-        const configuration = await this.configure(sdk, {
-            organization: organization.slug,
-            organizationId: organization.id,
-            workspace: workspace.slug,
-            workspaceId: workspace.id,
-            applications: {
-                production: applications.production.slug,
-                productionId: applications.production.id,
-                productionPublicId: applications.production.publicId,
-                development: applications.development.slug,
-                developmentId: applications.development.id,
-                developmentPublicId: applications.development.publicId,
-            },
-            defaultLocale: workspace.defaultLocale,
-            locales: [workspace.defaultLocale],
-            slots: {},
-            components: {},
-        });
-
         const notifier = output.notify('Updating project configuration');
 
-        await configurationFile.update(configuration);
+        await configurationManager.update(
+            await this.configure(sdk, {
+                organization: organization.slug,
+                organizationId: organization.id,
+                workspace: workspace.slug,
+                workspaceId: workspace.id,
+                applications: {
+                    production: applications.production.slug,
+                    productionId: applications.production.id,
+                    productionPublicId: applications.production.publicId,
+                    development: applications.development.slug,
+                    developmentId: applications.development.id,
+                    developmentPublicId: applications.development.publicId,
+                },
+                defaultLocale: workspace.defaultLocale,
+                locales: [workspace.defaultLocale],
+                slots: {},
+                components: {},
+            }),
+        );
 
         notifier.confirm('Configuration updated');
-
-        return configuration;
     }
 
     private async configure(sdk: Sdk, configuration: ResolvedProjectConfiguration): Promise<ProjectConfiguration> {
-        const {configurationFile} = this.config;
+        const {configurationManager} = this.config;
         const updatedConfiguration: ResolvedProjectConfiguration = {
             ...configuration,
             slots: await this.getSlots(configuration.organization, configuration.workspace),
         };
 
-        await configurationFile.update(updatedConfiguration);
+        await configurationManager.update(updatedConfiguration);
 
         return sdk.install({
             input: this.config.io.input,
@@ -156,24 +153,5 @@ export class InitCommand implements Command<InitInput, InitOutput> {
         notifier.stop();
 
         return Object.fromEntries(slots.map(slot => [slot.slug, Version.of(slot.version.major)]));
-    }
-
-    private async getSdk(hint?: string): Promise<Sdk> {
-        const {output} = this.config.io;
-        const {sdkResolver} = this.config;
-
-        const notifier = output.notify('Resolving SDK');
-
-        const sdk = await sdkResolver.resolve(hint);
-
-        if (sdk === null) {
-            notifier.alert('No supported SDK found.');
-
-            return output.exit();
-        }
-
-        notifier.stop();
-
-        return sdk;
     }
 }

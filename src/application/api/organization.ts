@@ -4,7 +4,7 @@ export type OrganizationPath = {
     organizationSlug: string,
 };
 
-export type NewWorkspace = Omit<Workspace, 'id' | 'slug' | 'logo'> & {
+export type NewWorkspace = Omit<Workspace, 'id' | 'slug' | 'logo' | 'locales'> & {
     organizationId: string,
 };
 

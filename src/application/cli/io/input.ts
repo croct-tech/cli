@@ -6,11 +6,22 @@ export type Confirmation = {
 export type SelectionOption<T> = {
     value: T,
     label: string,
+    disabled?: boolean,
+};
+
+export type MultipleSelectionOption<T> = SelectionOption<T> & {
+    selected?: boolean,
 };
 
 export type Selection<T> = {
     message: string,
     options: Array<SelectionOption<T>>,
+    default?: T,
+};
+
+export type MultipleSelection<T> = {
+    message: string,
+    options: Array<MultipleSelectionOption<T>>,
     default?: T,
 };
 
@@ -26,5 +37,6 @@ export type Prompt = {
 export interface Input {
     confirm(confirmation: Confirmation): Promise<boolean>;
     select<T>(selection: Selection<T>): Promise<T>;
+    selectMultiple<T>(selection: MultipleSelection<T>): Promise<T[]>;
     prompt(prompt: Prompt): Promise<string>;
 }
