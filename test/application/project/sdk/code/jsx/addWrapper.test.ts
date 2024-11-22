@@ -66,7 +66,7 @@ describe('AddWrapper', () => {
                     variable: 'children',
                 },
             },
-            'providerReferenceProp.tsx': {
+            'providerObjectMemberProp.tsx': {
                 wrapper: {
                     ...defaultOptions.wrapper,
                     props: {
