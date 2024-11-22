@@ -81,7 +81,7 @@ export class AddWrapper<O extends WrapperOptions = WrapperOptions> implements Co
         this.configuration = configuration;
     }
 
-    public apply(input: t.File, options: O): Promise<ResultCode<t.File>> {
+    public apply(input: t.File, options?: O): Promise<ResultCode<t.File>> {
         const ast = t.cloneNode(input, true);
 
         const componentImport = addImport(ast, {
@@ -194,9 +194,10 @@ export class AddWrapper<O extends WrapperOptions = WrapperOptions> implements Co
      * @param node The declaration to wrap.
      * @param component The name of the component to use as the wrapper.
      * @param ast The AST representing the source code.
+     * @param options The wrapper options.
      * @return the result of the transformation.
      */
-    private wrapDeclaration(node: DeclarationKind, component: string, ast: t.File, options: O): Transformation {
+    private wrapDeclaration(node: DeclarationKind, component: string, ast: t.File, options?: O): Transformation {
         if (t.isArrowFunctionExpression(node)) {
             if (t.isBlockStatement(node.body)) {
                 return this.wrapBlockStatement(node.body, component, ast, options);
@@ -243,9 +244,10 @@ export class AddWrapper<O extends WrapperOptions = WrapperOptions> implements Co
      * @param node The block statement to wrap
      * @param component The name of the component to use as the wrapper.
      * @param ast The AST representing the source code.
+     * @param options The wrapper options.
      * @return the result of the transformation.
      */
-    private wrapBlockStatement(node: t.BlockStatement, component: string, ast: t.File, options: O): Transformation {
+    private wrapBlockStatement(node: t.BlockStatement, component: string, ast: t.File, options?: O): Transformation {
         const returnStatement = AddWrapper.findReturnStatement(node);
         const argument = returnStatement?.argument ?? null;
 
@@ -274,9 +276,10 @@ export class AddWrapper<O extends WrapperOptions = WrapperOptions> implements Co
      * @param node The node containing the target element.
      * @param component The name of the component to use as the wrapper.
      * @param ast The AST representing the source code.
+     * @param options The wrapper options.
      * @return The result of the transformation.
      */
-    private insertWrapper(node: ExpressionKind, component: string, ast: t.File, options: O): WrapperInsertion {
+    private insertWrapper(node: ExpressionKind, component: string, ast: t.File, options?: O): WrapperInsertion {
         if (this.containsElement(node, component)) {
             return {
                 result: Transformation.ALREADY_APPLIED,
@@ -340,7 +343,7 @@ export class AddWrapper<O extends WrapperOptions = WrapperOptions> implements Co
      * @param options The wrapper options.
      * @return The wrapped JSX element.
      */
-    private wrapElement(node: JsxKind, name: string|undefined, options: O): t.JSXElement {
+    private wrapElement(node: JsxKind, name: string|undefined, options?: O): t.JSXElement {
         return t.jsxElement(
             t.jsxOpeningElement(
                 t.jsxIdentifier(name ?? this.configuration.wrapper.component),
@@ -362,9 +365,9 @@ export class AddWrapper<O extends WrapperOptions = WrapperOptions> implements Co
      *
      * @return The list of JSX attributes for the wrapper component.
      */
-    private getProviderProps(options: O): t.JSXAttribute[] {
+    private getProviderProps(options?: O): t.JSXAttribute[] {
         const attributes: t.JSXAttribute[] = [];
-        const props = {...this.configuration.wrapper.props, ...options.props};
+        const props = {...this.configuration.wrapper.props, ...options?.props};
 
         for (const [key, value] of Object.entries(props)) {
             attributes.push(

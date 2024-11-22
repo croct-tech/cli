@@ -280,7 +280,20 @@ export default function App({
 }"
 `;
 
-exports[`AddWrapper should correctly transform providerEnvProp.tsx: providerEnvProp.tsx 1`] = `
+exports[`AddWrapper should correctly transform providerLiteralProp.tsx: providerLiteralProp.tsx 1`] = `
+"import { CroctProvider } from "@croct/plug-react";
+export default function Layout({
+  children
+}) {
+  return (<CroctProvider booleanProp={true} numberProp={42} stringProp={"value"} nullProp={null}>
+    <>
+            <main>{children}</main>
+        </>
+  </CroctProvider>);
+}"
+`;
+
+exports[`AddWrapper should correctly transform providerReferenceProp.tsx: providerReferenceProp.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 export default function Layout({
   children
@@ -293,12 +306,12 @@ export default function Layout({
 }"
 `;
 
-exports[`AddWrapper should correctly transform providerLiteralProp.tsx: providerLiteralProp.tsx 1`] = `
+exports[`AddWrapper should correctly transform providerTernaryProp.tsx: providerTernaryProp.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 export default function Layout({
   children
 }) {
-  return (<CroctProvider booleanProp={true} numberProp={42} stringProp={"value"} nullProp={null}>
+  return (<CroctProvider booleanProp={process.env.NODE_ENV === "production" ? process.env.PRODUCTION_CROCT_APP_ID : process.env.STAGING_CROCT_APP_ID}>
     <>
             <main>{children}</main>
         </>

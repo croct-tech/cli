@@ -66,13 +66,42 @@ describe('AddWrapper', () => {
                     variable: 'children',
                 },
             },
-            'providerEnvProp.tsx': {
+            'providerReferenceProp.tsx': {
                 wrapper: {
                     ...defaultOptions.wrapper,
                     props: {
                         appId: {
                             type: 'property',
-                            name: 'REACT_APP_CROCT_APP_ID',
+                            path: ['process', 'env', 'REACT_APP_CROCT_APP_ID'],
+                        },
+                    },
+                },
+            },
+            'providerTernaryProp.tsx': {
+                wrapper: {
+                    ...defaultOptions.wrapper,
+                    props: {
+                        booleanProp: {
+                            type: 'ternary',
+                            condition: {
+                                operator: '===',
+                                left: {
+                                    type: 'property',
+                                    path: ['process', 'env', 'NODE_ENV'],
+                                },
+                                right: {
+                                    type: 'literal',
+                                    value: 'production',
+                                },
+                            },
+                            consequent: {
+                                type: 'property',
+                                path: ['process', 'env', 'PRODUCTION_CROCT_APP_ID'],
+                            },
+                            alternate: {
+                                type: 'property',
+                                path: ['process', 'env', 'STAGING_CROCT_APP_ID'],
+                            },
                         },
                     },
                 },
