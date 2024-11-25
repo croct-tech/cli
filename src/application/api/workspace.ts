@@ -1,5 +1,5 @@
 import {JsonObject} from '@croct/json';
-import {Application, Slot} from '@/application/model/entities';
+import {Application, Component, Slot} from '@/application/model/entities';
 import {OrganizationPath} from '@/application/api/organization';
 
 export type WorkspacePath = OrganizationPath & {
@@ -42,6 +42,8 @@ export type TargetTyping = {
 
 export interface WorkspaceApi {
     getSlots(path: WorkspacePath): Promise<Slot[]>;
+
+    getComponents(path: WorkspacePath): Promise<Component[]>;
 
     getSlotStaticContent(path: SlotPath, majorVersion?: number): Promise<LocalizedContent[]>;
 

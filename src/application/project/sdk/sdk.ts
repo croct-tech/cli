@@ -1,4 +1,4 @@
-import {ApplicationPlatform} from '@/application/model/entities';
+import {ApplicationPlatform, Slot} from '@/application/model/entities';
 import {Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
 import {ProjectConfiguration, ResolvedProjectConfiguration} from '@/application/project/configuration';
@@ -16,6 +16,7 @@ export interface Sdk {
     update(installation: Installation): Promise<void>;
     updateTypes(installation: Installation): Promise<void>;
     updateContent(installation: Installation): Promise<void>;
+    generateSlotExample(slot: Slot, installation: Installation): Promise<void>;
 }
 
 export interface SdkResolver<T extends Sdk|null = Sdk> {

@@ -8,7 +8,7 @@ import {
     WorkspaceApi,
     WorkspacePath,
 } from '@/application/api/workspace';
-import {Application, ApplicationEnvironment, Slot} from '@/application/model/entities';
+import {Application, ApplicationEnvironment, Component, Slot} from '@/application/model/entities';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
 
 export class GraphqlWorkspaceApi implements WorkspaceApi {
@@ -136,6 +136,34 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                 version: {
                     major: node.content.version.major,
                     minor: node.content.version.minor,
+                },
+                resolvedDefinition: node.content.componentDefinition.resolvedDefinition,
+            }];
+        });
+    }
+
+    public async getComponents(path: WorkspacePath): Promise<Component[]> {
+        const {data} = await this.client.execute(componentQuery, {
+            organizationSlug: path.organizationSlug,
+            workspaceSlug: path.workspaceSlug,
+        });
+
+        const edges = data.organization?.workspace?.components.edges ?? [];
+
+        return edges.flatMap((edge): Component[] => {
+            const node = edge?.node ?? null;
+
+            if (node === null) {
+                return [];
+            }
+
+            return [{
+                id: node.id,
+                name: node.name,
+                slug: node.customId,
+                version: {
+                    major: node.definition.version.major,
+                    minor: node.definition.version.minor,
                 },
             }];
         });
@@ -303,6 +331,33 @@ const slotQuery = graphql(`
                             customId
                             name
                             content {
+                                version {
+                                    major
+                                    minor
+                                }
+                                componentDefinition {
+                                    resolvedDefinition
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+`);
+
+const componentQuery = graphql(`
+    query Components($organizationSlug: ReadableId!, $workspaceSlug: ReadableId!) {
+        organization(slug: $organizationSlug) {
+            workspace(slug: $workspaceSlug) {
+                components(first: 100) {
+                    edges {
+                        node {
+                            id
+                            customId
+                            name
+                            definition {
                                 version {
                                     major
                                     minor

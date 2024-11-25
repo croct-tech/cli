@@ -2,12 +2,15 @@ import {dirname, join, relative} from 'path';
 import {mkdir, readFile, writeFile} from 'fs/promises';
 import {Installation, Sdk} from '@/application/project/sdk/sdk';
 import {JavaScriptProject} from '@/application/project/project';
-import {ApplicationPlatform} from '@/application/model/entities';
+import {ApplicationPlatform, Slot} from '@/application/model/entities';
 import {ProjectConfiguration} from '@/application/project/configuration';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {TargetSdk, WorkspaceApi} from '@/application/api/workspace';
 import {formatMessage} from '@/application/error';
 import {JsonParser, JsonArrayNode, JsonObjectNode} from '@/infrastructure/json';
+import {formatName} from '@/application/project/utils/formatName';
+import {ExampleFile} from '@/application/project/example/example';
+import {Linter} from '@/application/project/linter';
 
 export type InstallationPlan = {
     tasks: Task[],
@@ -17,6 +20,7 @@ export type InstallationPlan = {
 export type Configuration = {
     project: JavaScriptProject,
     workspaceApi: WorkspaceApi,
+    linter: Linter,
 };
 
 export abstract class JavaScriptSdk implements Sdk {
@@ -26,14 +30,41 @@ export abstract class JavaScriptSdk implements Sdk {
 
     protected readonly workspaceApi: WorkspaceApi;
 
-    public constructor({project, workspaceApi}: Configuration) {
+    protected readonly linter: Linter;
+
+    public constructor({project, linter, workspaceApi}: Configuration) {
         this.project = project;
         this.workspaceApi = workspaceApi;
+        this.linter = linter;
     }
 
     public abstract getPackage(): string;
 
     public abstract getPlatform(): ApplicationPlatform;
+
+    public async generateSlotExample(slot: Slot, installation: Installation): Promise<void> {
+        const rootPath = this.project.getRootPath();
+        const files: string[] = [];
+
+        for (const file of await this.generateSlotExampleFiles(slot, installation)) {
+            const directory = join(rootPath, dirname(file.name));
+
+            await mkdir(directory, {recursive: true}).catch(() => null);
+
+            const filePath = join(rootPath, file.name);
+
+            await writeFile(filePath, file.code, {
+                encoding: 'utf-8',
+                flag: 'w',
+            });
+
+            files.push(filePath);
+        }
+
+        await this.linter.fix(files);
+    }
+
+    protected abstract generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]>;
 
     public async install(installation: Installation): Promise<ProjectConfiguration> {
         const {input, output, configuration} = installation;
@@ -126,7 +157,43 @@ export abstract class JavaScriptSdk implements Sdk {
             await output.monitor({tasks: tasks});
         }
 
-        return plan.configuration;
+        return {
+            ...plan.configuration,
+            paths: {
+                components: await this.resolvePath(
+                    ['components', 'Components', 'component', 'Component'],
+                    plan.configuration.paths.components,
+                ),
+                examples: await this.resolvePath(
+                    ['examples', 'Examples'],
+                    plan.configuration.paths.examples,
+                ),
+            },
+        };
+    }
+
+    private async resolvePath(directories: string[], currentPath: string): Promise<string> {
+        if (currentPath !== '') {
+            return currentPath;
+        }
+
+        const parentDirs = ['lib', 'src'];
+
+        const path = await this.project.locateFile(
+            ...parentDirs.flatMap(dir => directories.map(directory => join(dir, directory))),
+            ...directories,
+            ...parentDirs,
+        );
+
+        if (path === null) {
+            return directories[0];
+        }
+
+        if (parentDirs.includes(path)) {
+            return join(path, directories[0]);
+        }
+
+        return path;
     }
 
     protected abstract getInstallationPlan(installation: Installation): Promise<InstallationPlan>;
@@ -172,19 +239,42 @@ export abstract class JavaScriptSdk implements Sdk {
         // Create the directory if it does not exist
         await mkdir(directoryPath).catch(() => {});
 
+        const indexes: Record<string, string[]> = {};
+
         for (let index = 0; index < slots.length; index++) {
             const [slot, version] = slots[index];
 
             for (const {locale, content} of contentList[index]) {
                 const baseName = `${slot}@${version}`;
-                const files = [join(directoryPath, `${baseName}.${locale}.json`)];
 
-                if (locale === configuration.defaultLocale) {
-                    files.push(join(directoryPath, `${baseName}.json`));
-                }
+                indexes[locale] = [...indexes[locale] ?? [], baseName];
 
-                for (const file of files) {
-                    await writeFile(file, JSON.stringify(content, null, 2), {
+                await mkdir(join(directoryPath, locale), {recursive: true}).catch(() => {});
+
+                await writeFile(join(directoryPath, `${locale}/${baseName}.json`), JSON.stringify(content, null, 2), {
+                    encoding: 'utf-8',
+                    flag: 'w',
+                });
+            }
+        }
+
+        for (const [locale, files] of Object.entries(indexes)) {
+            const paths = [`./${locale}`];
+
+            if (locale === configuration.defaultLocale) {
+                paths.push('./');
+            }
+
+            for (const path of paths) {
+                const importFile = path === './' ? `./${locale}/` : './';
+                const moduleCode = files.map(file => {
+                    const alias = formatName(file.replace('@', ' V'));
+
+                    return `export {default as ${alias}} from '${importFile}${file}.json' with {type: 'json'};`;
+                }).join('\n');
+
+                for (const extension of ['.js', '.d.ts']) {
+                    await writeFile(join(directoryPath, `${path}/index${extension}`), moduleCode, {
                         encoding: 'utf-8',
                         flag: 'w',
                     });

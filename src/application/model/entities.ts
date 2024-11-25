@@ -1,3 +1,5 @@
+import {RootDefinition} from '@/application/project/example/content-model/definitions';
+
 export enum Expertise {
     DESIGN = 'DESIGN',
     ENGINEERING = 'ENGINEERING',
@@ -96,6 +98,17 @@ export type ApiKey = {
 };
 
 export type Slot = {
+    id: string,
+    name: string,
+    slug: string,
+    version: {
+        major: number,
+        minor: number,
+    },
+    resolvedDefinition: RootDefinition,
+};
+
+export type Component = {
     id: string,
     name: string,
     slug: string,

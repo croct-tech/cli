@@ -1,7 +1,7 @@
 import {join} from 'path';
 import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
-import {ApplicationPlatform} from '@/application/model/entities';
+import {ApplicationPlatform, Slot} from '@/application/model/entities';
 import {ApplicationApi} from '@/application/api/application';
 import {JavaScriptProject} from '@/application/project/project';
 import {WorkspaceApi} from '@/application/api/workspace';
@@ -13,6 +13,9 @@ import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {formatMessage} from '@/application/error';
 import type {LayoutComponentOptions} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
 import type {AppComponentOptions} from '@/application/project/sdk/code/nextjs/createAppComponent';
+import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
+import {NextExampleRouter, PlugNextExampleGenerator} from '@/application/project/example/slot/plugNextExampleGenerator';
+import {Linter} from '@/application/project/linter';
 
 type ApiConfiguration = {
     user: UserApi,
@@ -29,13 +32,17 @@ type CodemodConfiguration = {
 export type Configuration = {
     project: JavaScriptProject,
     api: ApiConfiguration,
+    linter: Linter,
     codemod: CodemodConfiguration,
 };
 
+type NextRouter = 'app' | 'page';
+
 type NextProjectInfo = {
     typescript: boolean,
-    router: 'app' | 'page',
+    router: NextRouter,
     sourceDirectory: string,
+    pageDirectory: string,
     sdk: {
         package: string,
     },
@@ -70,6 +77,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
     public constructor(config: Configuration) {
         super({
             project: config.project,
+            linter: config.linter,
             workspaceApi: config.api.workspace,
         });
 
@@ -83,6 +91,44 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
 
     public getPlatform(): ApplicationPlatform {
         return ApplicationPlatform.NEXT;
+    }
+
+    protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
+        const router = await this.detectRouter();
+        const componentsImportPath = await this.project.getImportPath(
+            installation.configuration.paths.components,
+            installation.configuration.paths.examples,
+        );
+
+        const generator = new PlugNextExampleGenerator({
+            router: router === 'page' ? NextExampleRouter.PAGE : NextExampleRouter.APP,
+            language: await this.project.isTypeScriptProject()
+                ? CodeLanguage.TYPESCRIPT_XML
+                : CodeLanguage.JAVASCRIPT_XML,
+            code: {
+                importPaths: {
+                    slot: componentsImportPath,
+                },
+                files: {
+                    slot: {
+                        directory: join(installation.configuration.paths.components, '%name%'),
+                        name: 'index',
+                    },
+                    page: {
+                        directory: join(installation.configuration.paths.examples, slot.slug),
+                        name: 'index',
+                    },
+                },
+            },
+        });
+
+        const example = generator.generate({
+            id: slot.slug,
+            version: slot.version.major,
+            definition: slot.resolvedDefinition,
+        });
+
+        return example.files;
     }
 
     public async resolve(hint?: string): Promise<Sdk | null> {
@@ -110,6 +156,10 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
             configuration: {
                 ...configuration,
                 locales: configuration.locales.filter(locale => i18n.locales.includes(locale)),
+                paths: {
+                    ...configuration.paths,
+                    examples: projectInfo.pageDirectory,
+                },
             },
         };
     }
@@ -117,15 +167,14 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
     private async getProjectInfo(): Promise<NextProjectInfo> {
         const [isTypescript, directory] = await Promise.all([
             this.project.isTypeScriptProject(),
-            this.project
-                .locateFile('app', 'src/app', 'pages', 'src/pages')
-                .then(path => path ?? 'app'),
+            this.getPageDirectory(),
         ]);
 
-        const project: Pick<NextProjectInfo, 'typescript' | 'router' | 'sourceDirectory'> = {
+        const project: Pick<NextProjectInfo, 'typescript' | 'router' | 'sourceDirectory' | 'pageDirectory'> = {
             typescript: isTypescript,
-            router: directory.endsWith('app') ? 'app' : 'page',
+            router: await this.detectRouter(directory),
             sourceDirectory: directory.startsWith('src') ? 'src' : './',
+            pageDirectory: directory,
         };
 
         const sdkPackage = this.getPackage();
@@ -280,6 +329,16 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
                 notifier.alert('Failed to update environment variables', formatMessage(error));
             }
         }
+    }
+
+    private async detectRouter(directory?: string): Promise<NextRouter> {
+        return (directory ?? await this.getPageDirectory()).endsWith('pages') ? 'page' : 'app';
+    }
+
+    private getPageDirectory(): Promise<string> {
+        return this.project
+            .locateFile('app', 'src/app', 'pages', 'src/pages')
+            .then(path => path ?? 'app');
     }
 
     private async getConfig(): Promise<NextConfig> {

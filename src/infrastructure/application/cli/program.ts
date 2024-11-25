@@ -64,10 +64,20 @@ const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a
     const addCommand = program.command('add');
 
     addCommand.command('slot [slots...]')
+        .option('-e, --example', 'generate an implementation example')
         .description('Add a slot to your project.')
-        .action(async args => {
+        .action(async (args, options) => {
             await run().addSlot({
                 slots: args,
+                example: options.example,
+            });
+        });
+
+    addCommand.command('component [components...]')
+        .description('Add a component to your project.')
+        .action(async args => {
+            await run().addComponent({
+                components: args,
             });
         });
 

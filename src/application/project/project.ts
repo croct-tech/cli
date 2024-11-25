@@ -129,9 +129,10 @@ export interface JavaScriptProject extends Project {
      * as an import statement in JavaScript or TypeScript code.
      *
      * @param filePath The local file path to convert.
+     * @param importPath The path from which the import is made.
      * @returns The corresponding import path.
      */
-    getImportPath(filePath: string): Promise<string>;
+    getImportPath(filePath: string, importPath?: string): Promise<string>;
 
     /**
      * Resolves the actual path of an import statement.

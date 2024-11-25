@@ -1,6 +1,8 @@
 import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
-import {ApplicationPlatform} from '@/application/model/entities';
+import {ApplicationPlatform, Slot} from '@/application/model/entities';
+import {PlugJsExampleGenerator} from '@/application/project/example/slot/plugJsExampleGenerator';
+import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
 
 export class PlugJsSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> {
     public getPackage(): string {
@@ -17,6 +19,28 @@ export class PlugJsSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> {
         }
 
         return Promise.resolve(this);
+    }
+
+    protected generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
+        const generator = new PlugJsExampleGenerator({
+            language: CodeLanguage.JAVASCRIPT,
+            appId: installation.configuration.applications.developmentPublicId,
+            code: {
+                browser: true,
+                paths: {
+                    slot: installation.configuration.paths.examples,
+                    page: installation.configuration.paths.examples,
+                },
+            },
+        });
+
+        const example = generator.generate({
+            id: slot.slug,
+            version: slot.version.major,
+            definition: slot.resolvedDefinition,
+        });
+
+        return Promise.resolve(example.files);
     }
 
     protected getInstallationPlan(installation: Installation): Promise<InstallationPlan> {

@@ -143,40 +143,49 @@ export class NodeProject implements JavaScriptProject {
         });
     }
 
-    public getImportPath(filePath: string): Promise<string> {
+    public getImportPath(filePath: string, importPath?: string): Promise<string> {
         const config = loadConfig(this.configuration.directory);
+        const resolvedBasePath = resolvePath(this.configuration.directory, filePath);
 
-        if (config.resultType === 'failed') {
-            return Promise.resolve(relative(resolvePath(this.configuration.directory), filePath).replace(/\\/g, '/'));
-        }
+        if (config.resultType !== 'failed') {
+            const absoluteFilePath = resolvedBasePath.replace(/\\/g, '/');
+            let longestMatchLength = 0;
 
-        const absoluteFilePath = resolvePath(this.configuration.directory, filePath).replace(/\\/g, '/');
-        let importPath = relative(config.absoluteBaseUrl, absoluteFilePath).replace(/\\/g, '/');
-        let longestMatchLength = 0;
+            let currentPath: string | null = null;
 
-        // Go through each alias and check if it matches the given filePath
-        for (const [alias, aliasPaths] of Object.entries(config.paths)) {
-            const cleanAlias = alias.replace(/\*$/, ''); // Remove wildcard from alias
+            // Go through each alias and check if it matches the given filePath
+            for (const [alias, aliasPaths] of Object.entries(config.paths)) {
+                const cleanAlias = alias.replace(/\*$/, ''); // Remove wildcard from alias
 
-            for (const aliasPath of aliasPaths) {
-                const cleanAliasPath = aliasPath.replace(/\*$/, ''); // Remove wildcard from alias path
-                const aliasBasePath = resolvePath(config.absoluteBaseUrl, cleanAliasPath).replace(/\\/g, '/');
+                for (const aliasPath of aliasPaths) {
+                    const cleanAliasPath = aliasPath.replace(/\*$/, ''); // Remove wildcard from alias path
+                    const aliasBasePath = resolvePath(config.absoluteBaseUrl, cleanAliasPath).replace(/\\/g, '/');
 
-                // Check if the file path starts with the alias base path
-                if (absoluteFilePath.startsWith(aliasBasePath)) {
-                    const aliasMatchLength = cleanAliasPath.length;
+                    // Check if the file path starts with the alias base path
+                    if (absoluteFilePath.startsWith(aliasBasePath)) {
+                        const aliasMatchLength = cleanAliasPath.length;
 
-                    if (aliasMatchLength > longestMatchLength) {
-                        longestMatchLength = aliasMatchLength;
+                        if (aliasMatchLength > longestMatchLength) {
+                            longestMatchLength = aliasMatchLength;
 
-                        const remainder = absoluteFilePath.slice(aliasBasePath.length).replace(/^\//, '');
+                            const remainder = absoluteFilePath.slice(aliasBasePath.length).replace(/^\//, '');
 
-                        importPath = cleanAlias + remainder;
+                            currentPath = cleanAlias + remainder;
+                        }
                     }
                 }
             }
+
+            if (currentPath !== null) {
+                return Promise.resolve(currentPath);
+            }
         }
 
-        return Promise.resolve(importPath);
+        const resolvedFilePath = join(resolvedBasePath, filePath);
+        const resolvedRelativePath = importPath === undefined
+            ? relative(this.configuration.directory, resolvedFilePath)
+            : relative(resolvePath(resolvedBasePath, importPath), resolvedFilePath);
+
+        return Promise.resolve(resolvedRelativePath.replace(/\\/g, '/'));
     }
 }

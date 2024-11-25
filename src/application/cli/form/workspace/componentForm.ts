@@ -1,4 +1,4 @@
-import {Slot} from '@/application/model/entities';
+import {Component} from '@/application/model/entities';
 import {Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
 import {Form} from '@/application/cli/form/form';
@@ -10,47 +10,47 @@ export type Configuration = {
     workspaceApi: WorkspaceApi,
 };
 
-export type SlotOptions = {
+export type ComponentOptions = {
     organizationSlug: string,
     workspaceSlug: string,
     default?: string[],
     selected?: string[],
 };
 
-export class SlotForm implements Form<Slot[], SlotOptions> {
+export class ComponentForm implements Form<Component[], ComponentOptions> {
     private readonly config: Configuration;
 
     public constructor(config: Configuration) {
         this.config = config;
     }
 
-    public async handle(options: SlotOptions): Promise<Slot[]> {
+    public async handle(options: ComponentOptions): Promise<Component[]> {
         const {workspaceApi: api, output, input} = this.config;
 
-        const notifier = output.notify('Loading slots');
+        const notifier = output.notify('Loading components');
 
-        const slots = await api.getSlots({
+        const components = await api.getComponents({
             organizationSlug: options.organizationSlug,
             workspaceSlug: options.workspaceSlug,
         });
 
         notifier.stop();
 
-        if (slots.length === 0) {
+        if (components.length === 0) {
             return [];
         }
 
-        const defaultSlots = options.default ?? [];
+        const defaultComponents = options.default ?? [];
 
-        if (defaultSlots.length > 0) {
-            return slots.filter(({slug}) => defaultSlots.includes(slug));
+        if (defaultComponents.length > 0) {
+            return components.filter(({slug}) => defaultComponents.includes(slug));
         }
 
         const selected = options.selected ?? [];
 
         return input.selectMultiple({
-            message: 'Select slots',
-            options: slots.map(
+            message: 'Select components',
+            options: components.map(
                 option => {
                     const isSelected = selected.includes(option.slug);
 

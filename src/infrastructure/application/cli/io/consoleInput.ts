@@ -60,7 +60,9 @@ export class ConsoleInput implements Input {
 
         return this.interact({
             type: selection.options.length > 10 ? 'autocompleteMultiselect' : 'multiselect',
+            hint: '<space> to select. <a> to toggle all. <enter> to submit.',
             message: selection.message,
+            instructions: false,
             choices: selection.options.map(
                 option => ({
                     title: option.label,

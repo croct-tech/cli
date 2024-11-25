@@ -1,7 +1,7 @@
 import {join} from 'path';
 import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
-import {ApplicationPlatform} from '@/application/model/entities';
+import {ApplicationPlatform, Slot} from '@/application/model/entities';
 import {JavaScriptProject} from '@/application/project/project';
 import {WorkspaceApi} from '@/application/api/workspace';
 import {Codemod} from '@/application/project/sdk/code/codemod';
@@ -9,6 +9,9 @@ import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {formatMessage} from '@/application/error';
 import type {WrapperOptions} from '@/application/project/sdk/code/jsx/addWrapper';
 import {EnvFile} from '@/application/project/envFile';
+import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
+import {PlugReactExampleGenerator} from '@/application/project/example/slot/plugReactExampleGenerator';
+import {Linter} from '@/application/project/linter';
 
 type ApiConfiguration = {
     workspace: WorkspaceApi,
@@ -26,6 +29,7 @@ type Bundlers = {
 export type Configuration = {
     project: JavaScriptProject,
     api: ApiConfiguration,
+    linter: Linter,
     codemod: CodemodConfiguration,
     bundlers: Bundlers[],
 };
@@ -59,6 +63,7 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
     public constructor(config: Configuration) {
         super({
             project: config.project,
+            linter: config.linter,
             workspaceApi: config.api.workspace,
         });
 
@@ -67,11 +72,11 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
     }
 
     public getPackage(): string {
-        return '@croct/plug-next';
+        return '@croct/plug-react';
     }
 
     public getPlatform(): ApplicationPlatform {
-        return ApplicationPlatform.NEXT;
+        return ApplicationPlatform.REACT;
     }
 
     public async resolve(hint?: string): Promise<Sdk | null> {
@@ -85,6 +90,40 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
         ]);
 
         return hints.some(Boolean) ? this : null;
+    }
+
+    protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
+        const componentsImportPath = await this.project.getImportPath(
+            installation.configuration.paths.components,
+            installation.configuration.paths.examples,
+        );
+
+        const generator = new PlugReactExampleGenerator({
+            language: await this.project.isTypeScriptProject()
+                ? CodeLanguage.TYPESCRIPT_XML
+                : CodeLanguage.JAVASCRIPT_XML,
+            code: {
+                importPaths: {
+                    slot: componentsImportPath,
+                },
+                files: {
+                    slot: {
+                        directory: installation.configuration.paths.components,
+                    },
+                    page: {
+                        directory: installation.configuration.paths.examples,
+                    },
+                },
+            },
+        });
+
+        const example = generator.generate({
+            id: slot.slug,
+            version: slot.version.major,
+            definition: slot.resolvedDefinition,
+        });
+
+        return example.files;
     }
 
     protected async getInstallationPlan(installation: Installation): Promise<InstallationPlan> {

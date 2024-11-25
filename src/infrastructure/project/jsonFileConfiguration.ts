@@ -64,6 +64,10 @@ export class JsonFileConfiguration implements ProjectConfigurationFile {
                 Object.entries(configuration.components)
                     .map(([key, value]) => [key, value]),
             ),
+            paths: {
+                components: configuration.paths.components,
+                examples: configuration.paths.examples,
+            },
         };
 
         const json = JSON.stringify(cleanedConfiguration, null, 4);

@@ -11,6 +11,10 @@ export type ProjectConfiguration = {
     locales: string[],
     slots: Record<string, Version>,
     components: Record<string, Version>,
+    paths: {
+        components: string,
+        examples: string,
+    },
 };
 
 export type ResolvedProjectConfiguration = ProjectConfiguration & {

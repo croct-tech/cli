@@ -2,13 +2,7 @@ import {Command} from '@/application/cli/command/command';
 import {WorkspaceApi} from '@/application/api/workspace';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
-import {
-    Application,
-    ApplicationEnvironment,
-    ApplicationPlatform,
-    Organization,
-    Workspace,
-} from '@/application/model/entities';
+import {Application, ApplicationEnvironment, Organization, Workspace} from '@/application/model/entities';
 import {Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {
     ProjectConfiguration,
@@ -55,14 +49,12 @@ export class InitCommand implements Command<InitInput> {
 
         const sdk = await sdkResolver.resolve(input.sdk);
 
-        output.inform(`Using ${ApplicationPlatform.getName(sdk.getPlatform())} SDK`);
-
         const {configurationManager, form} = this.config;
 
         const currentConfiguration = await configurationManager.load();
 
         if (currentConfiguration !== null && input.override !== true) {
-            output.inform('Project already initialized, pass --override to reconfigure');
+            output.inform('Project already initialized, pass `--override` to reconfigure');
 
             return;
         }
@@ -118,6 +110,10 @@ export class InitCommand implements Command<InitInput> {
                 locales: [workspace.defaultLocale],
                 slots: {},
                 components: {},
+                paths: {
+                    components: '',
+                    examples: '',
+                },
             }),
         );
 

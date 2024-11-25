@@ -48,6 +48,8 @@ import {ProjectConfigurationManager} from '@/application/project/configuration';
 import {ConfigurationFileManager} from '@/infrastructure/project/configurationFileManager';
 import {AddSlotCommand, AddSlotInput} from '@/application/cli/command/slot/add';
 import {SlotForm} from '@/application/cli/form/workspace/slotForm';
+import {AddComponentCommand, AddComponentInput} from '@/application/cli/command/component/add';
+import {ComponentForm} from '@/application/cli/form/workspace/componentForm';
 
 export type Configuration = {
     io: {
@@ -135,6 +137,25 @@ export class Cli {
                 sdkResolver: this.getSdkResolver(),
                 configurationManager: this.getConfigurationManager(),
                 slotForm: new SlotForm({
+                    input: this.getInput(),
+                    output: this.getOutput(),
+                    workspaceApi: this.getWorkspaceApi(),
+                }),
+                io: {
+                    input: this.getInput(),
+                    output: this.getOutput(),
+                },
+            }),
+            input,
+        );
+    }
+
+    public addComponent(input: AddComponentInput): Promise<void> {
+        return this.execute(
+            new AddComponentCommand({
+                sdkResolver: this.getSdkResolver(),
+                configurationManager: this.getConfigurationManager(),
+                componentForm: new ComponentForm({
                     input: this.getInput(),
                     output: this.getOutput(),
                     workspaceApi: this.getWorkspaceApi(),
@@ -245,6 +266,7 @@ export class Cli {
         return [
             new PlugNextSdk({
                 project: project,
+                linter: linter,
                 api: {
                     user: this.getUserApi(),
                     workspace: this.getWorkspaceApi(),
@@ -321,6 +343,7 @@ export class Cli {
             }),
             new PlugReactSdk({
                 project: project,
+                linter: linter,
                 api: {
                     workspace: this.getWorkspaceApi(),
                 },
@@ -361,6 +384,7 @@ export class Cli {
             }),
             new PlugJsSdk({
                 project: project,
+                linter: linter,
                 workspaceApi: this.getWorkspaceApi(),
             }),
         ];

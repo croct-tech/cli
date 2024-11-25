@@ -1,5 +1,6 @@
 import {Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {Output} from '@/application/cli/io/output';
+import {ApplicationPlatform} from '@/application/model/entities';
 
 export type SdkDetectorConfiguration = {
     resolvers: Array<SdkResolver<Sdk|null>>,
@@ -28,6 +29,8 @@ export class SdkDetector implements SdkResolver {
         }
 
         notifier.stop();
+
+        this.output.inform(`Using ${ApplicationPlatform.getName(sdk.getPlatform())} SDK`);
 
         return sdk;
     }
