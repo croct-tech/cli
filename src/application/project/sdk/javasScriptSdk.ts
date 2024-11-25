@@ -214,7 +214,7 @@ export abstract class JavaScriptSdk implements Sdk {
             return;
         }
 
-        const indicator = notifier ?? output.notify('Downloading content');
+        const indicator = notifier ?? output.notify('Updating content');
         const packageInfo = await this.project.getPackageInfo(JavaScriptSdk.CONTENT_PACKAGE);
 
         if (packageInfo === null) {
@@ -282,7 +282,7 @@ export abstract class JavaScriptSdk implements Sdk {
             }
         }
 
-        indicator.confirm('Content downloaded');
+        indicator.confirm('Content updated');
     }
 
     public async updateTypes(installation: Installation, notifier?: TaskNotifier): Promise<void> {
@@ -290,7 +290,7 @@ export abstract class JavaScriptSdk implements Sdk {
         const slots = Object.entries(configuration.slots);
         const components = Object.entries(configuration.components);
 
-        const indicator = notifier ?? output.notify('Generating types');
+        const indicator = notifier ?? output.notify('Updating types');
 
         const packageInfo = await this.project.getPackageInfo(JavaScriptSdk.CONTENT_PACKAGE);
 
@@ -333,7 +333,7 @@ export abstract class JavaScriptSdk implements Sdk {
             flag: 'w',
         });
 
-        indicator.confirm('Types generated');
+        indicator.confirm('Types updated');
     }
 
     private async registerNpmHookScript(notifier: TaskNotifier): Promise<void> {
