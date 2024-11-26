@@ -78,7 +78,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
             .replace(/\..+$/, '')
             .split('/');
 
-        const slotFileName = parts.length > 1 && parts[parts.length - 1] === this.addExtension('index')
+        const slotFileName = parts.length > 1 && parts[parts.length - 1] === 'index'
             ? parts[parts.length - 2]
             : parts[parts.length - 1];
 

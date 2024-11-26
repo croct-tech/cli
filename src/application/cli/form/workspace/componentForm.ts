@@ -13,7 +13,8 @@ export type Configuration = {
 export type ComponentOptions = {
     organizationSlug: string,
     workspaceSlug: string,
-    default?: string[],
+    allowed?: string[],
+    preselected?: string[],
     selected?: string[],
 };
 
@@ -25,28 +26,25 @@ export class ComponentForm implements Form<Component[], ComponentOptions> {
     }
 
     public async handle(options: ComponentOptions): Promise<Component[]> {
-        const {workspaceApi: api, output, input} = this.config;
+        const {output, input} = this.config;
 
         const notifier = output.notify('Loading components');
 
-        const components = await api.getComponents({
-            organizationSlug: options.organizationSlug,
-            workspaceSlug: options.workspaceSlug,
-        });
+        const components = await this.getComponents(options, options.allowed);
 
         notifier.stop();
 
-        if (components.length === 0) {
+        const selected = options.selected ?? [];
+
+        if (components.length === 0 || (selected.length > 0 && components.every(({slug}) => selected.includes(slug)))) {
             return [];
         }
 
-        const defaultComponents = options.default ?? [];
+        const preselected = options.preselected ?? [];
 
-        if (defaultComponents.length > 0) {
-            return components.filter(({slug}) => defaultComponents.includes(slug));
+        if (preselected.length > 0) {
+            return components.filter(({slug}) => preselected.includes(slug));
         }
-
-        const selected = options.selected ?? [];
 
         return input.selectMultiple({
             message: 'Select components',
@@ -63,5 +61,20 @@ export class ComponentForm implements Form<Component[], ComponentOptions> {
                 },
             ),
         });
+    }
+
+    private async getComponents(options: ComponentOptions, allowed?: string[]): Promise<Component[]> {
+        const {workspaceApi: api} = this.config;
+
+        const components = await api.getComponents({
+            organizationSlug: options.organizationSlug,
+            workspaceSlug: options.workspaceSlug,
+        });
+
+        if (allowed === undefined) {
+            return components;
+        }
+
+        return components.filter(({slug}) => allowed.includes(slug));
     }
 }

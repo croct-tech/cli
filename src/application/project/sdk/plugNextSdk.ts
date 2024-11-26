@@ -116,7 +116,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
                     },
                     page: {
                         directory: join(installation.configuration.paths.examples, slot.slug),
-                        name: 'index',
+                        name: router === 'page' ? 'index' : 'page',
                     },
                 },
             },

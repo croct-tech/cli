@@ -44,13 +44,13 @@ const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a
 
     program.command('init')
         .description('Configure the your project.')
-        .option('-o, --override', 'override any existing configuration')
+        .option('-o, --override', 'Override any existing configuration')
         .addOption(
-            new Option('-n, --new <resource>', 'specify the resources to create')
+            new Option('-n, --new <resource>', 'Specify the resources to create')
                 .choices(['organization', 'workspace', 'application'] as const),
         )
         .addOption(
-            new Option('-s, --sdk <platform>', 'specify the SDK')
+            new Option('-s, --sdk <platform>', 'Specify the SDK')
                 .choices(['javascript', 'react', 'next'] as const),
         )
         .action(async options => {
@@ -61,10 +61,11 @@ const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a
             });
         });
 
-    const addCommand = program.command('add');
+    const addCommand = program.command('add')
+        .description('Add a resource to your project.');
 
     addCommand.command('slot [slots...]')
-        .option('-e, --example', 'generate an implementation example')
+        .option('-e, --example', 'Generate an implementation example')
         .description('Add a slot to your project.')
         .action(async (args, options) => {
             await run().addSlot({
@@ -77,6 +78,25 @@ const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a
         .description('Add a component to your project.')
         .action(async args => {
             await run().addComponent({
+                components: args,
+            });
+        });
+
+    const removeCommand = program.command('remove')
+        .description('Remove a resource from your project.');
+
+    removeCommand.command('slot [slots...]')
+        .description('Remove a slot from your project.')
+        .action(async args => {
+            await run().removeSlot({
+                slots: args,
+            });
+        });
+
+    removeCommand.command('component [components...]')
+        .description('Remove a component from your project.')
+        .action(async args => {
+            await run().removeComponent({
                 components: args,
             });
         });

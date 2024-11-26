@@ -13,7 +13,8 @@ export type Configuration = {
 export type SlotOptions = {
     organizationSlug: string,
     workspaceSlug: string,
-    default?: string[],
+    allowed?: string[],
+    preselected?: string[],
     selected?: string[],
 };
 
@@ -25,28 +26,25 @@ export class SlotForm implements Form<Slot[], SlotOptions> {
     }
 
     public async handle(options: SlotOptions): Promise<Slot[]> {
-        const {workspaceApi: api, output, input} = this.config;
+        const {output, input} = this.config;
 
         const notifier = output.notify('Loading slots');
 
-        const slots = await api.getSlots({
-            organizationSlug: options.organizationSlug,
-            workspaceSlug: options.workspaceSlug,
-        });
+        const slots = await this.getSlots(options, options.allowed);
 
         notifier.stop();
 
-        if (slots.length === 0) {
+        const selected = options.selected ?? [];
+
+        if (slots.length === 0 || (selected.length > 0 && slots.every(({slug}) => selected.includes(slug)))) {
             return [];
         }
 
-        const defaultSlots = options.default ?? [];
+        const preselected = options.preselected ?? [];
 
-        if (defaultSlots.length > 0) {
-            return slots.filter(({slug}) => defaultSlots.includes(slug));
+        if (preselected.length > 0) {
+            return slots.filter(({slug}) => preselected.includes(slug));
         }
-
-        const selected = options.selected ?? [];
 
         return input.selectMultiple({
             message: 'Select slots',
@@ -63,5 +61,20 @@ export class SlotForm implements Form<Slot[], SlotOptions> {
                 },
             ),
         });
+    }
+
+    private async getSlots(options: SlotOptions, allowed?: string[]): Promise<Slot[]> {
+        const {workspaceApi: api} = this.config;
+
+        const slots = await api.getSlots({
+            organizationSlug: options.organizationSlug,
+            workspaceSlug: options.workspaceSlug,
+        });
+
+        if (allowed === undefined) {
+            return slots;
+        }
+
+        return slots.filter(({slug}) => allowed.includes(slug));
     }
 }

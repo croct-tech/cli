@@ -6,14 +6,12 @@ import {ProjectConfigurationManager} from '@/application/project/configuration';
 import {Form} from '@/application/cli/form/form';
 import {Slot} from '@/application/model/entities';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
-import {Version} from '@/application/project/version';
 
-export type AddSlotInput = {
+export type RemoveSlotInput = {
     slots?: string[],
-    example?: boolean,
 };
 
-export type AddSlotConfig = {
+export type RemoveSlotConfig = {
     sdkResolver: SdkResolver,
     configurationManager: ProjectConfigurationManager,
     slotForm: Form<Slot[], SlotOptions>,
@@ -23,14 +21,14 @@ export type AddSlotConfig = {
     },
 };
 
-export class AddSlotCommand implements Command<AddSlotInput> {
-    private readonly config: AddSlotConfig;
+export class RemoveSlotCommand implements Command<RemoveSlotInput> {
+    private readonly config: RemoveSlotConfig;
 
-    public constructor(config: AddSlotConfig) {
+    public constructor(config: RemoveSlotConfig) {
         this.config = config;
     }
 
-    public async execute(input: AddSlotInput): Promise<void> {
+    public async execute(input: RemoveSlotInput): Promise<void> {
         const {sdkResolver, configurationManager, slotForm, io} = this.config;
         const {output} = io;
 
@@ -40,22 +38,12 @@ export class AddSlotCommand implements Command<AddSlotInput> {
         const slots = await slotForm.handle({
             organizationSlug: configuration.organization,
             workspaceSlug: configuration.workspace,
+            allowed: Object.keys(configuration.slots),
             preselected: input.slots,
-            selected: Object.keys(configuration.slots),
         });
 
-        if (input.slots !== undefined && input.slots.length > 0 && slots.length !== input.slots.length) {
-            const missingSlots = input.slots.filter(slug => !slots.some(slot => slot.slug === slug));
-
-            output.alert(`Slots not found: ${missingSlots.join(', ')}.`);
-
-            return output.exit();
-        }
-
-        const newSlots = slots.filter(slot => !(slot.slug in configuration.slots));
-
-        if (newSlots.length === 0) {
-            output.alert('No slots to add');
+        if (slots.length === 0) {
+            output.alert('No slots to remove');
 
             return;
         }
@@ -65,10 +53,10 @@ export class AddSlotCommand implements Command<AddSlotInput> {
             output: io.output,
             configuration: {
                 ...configuration,
-                slots: {
-                    ...configuration.slots,
-                    ...Object.fromEntries(newSlots.map(slot => [slot.slug, Version.of(slot.version.major)])),
-                },
+                slots: Object.fromEntries(
+                    Object.entries(configuration.slots)
+                        .filter(([slug]) => !slots.some(slot => slot.slug === slug)),
+                ),
             },
         };
 
@@ -77,13 +65,5 @@ export class AddSlotCommand implements Command<AddSlotInput> {
         output.confirm('Configuration updated');
 
         await sdk.update(installation);
-
-        if (input.example === true) {
-            const notifier = output.notify('Generating example');
-
-            await Promise.all(newSlots.map(slot => sdk.generateSlotExample(slot, installation)));
-
-            notifier.confirm('Example generated');
-        }
     }
 }

@@ -50,6 +50,8 @@ import {AddSlotCommand, AddSlotInput} from '@/application/cli/command/slot/add';
 import {SlotForm} from '@/application/cli/form/workspace/slotForm';
 import {AddComponentCommand, AddComponentInput} from '@/application/cli/command/component/add';
 import {ComponentForm} from '@/application/cli/form/workspace/componentForm';
+import {RemoveSlotCommand, RemoveSlotInput} from '@/application/cli/command/slot/remove';
+import {RemoveComponentCommand, RemoveComponentInput} from '@/application/cli/command/component/remove';
 
 export type Configuration = {
     io: {
@@ -150,9 +152,47 @@ export class Cli {
         );
     }
 
+    public removeSlot(input: RemoveSlotInput): Promise<void> {
+        return this.execute(
+            new RemoveSlotCommand({
+                sdkResolver: this.getSdkResolver(),
+                configurationManager: this.getConfigurationManager(),
+                slotForm: new SlotForm({
+                    input: this.getInput(),
+                    output: this.getOutput(),
+                    workspaceApi: this.getWorkspaceApi(),
+                }),
+                io: {
+                    input: this.getInput(),
+                    output: this.getOutput(),
+                },
+            }),
+            input,
+        );
+    }
+
     public addComponent(input: AddComponentInput): Promise<void> {
         return this.execute(
             new AddComponentCommand({
+                sdkResolver: this.getSdkResolver(),
+                configurationManager: this.getConfigurationManager(),
+                componentForm: new ComponentForm({
+                    input: this.getInput(),
+                    output: this.getOutput(),
+                    workspaceApi: this.getWorkspaceApi(),
+                }),
+                io: {
+                    input: this.getInput(),
+                    output: this.getOutput(),
+                },
+            }),
+            input,
+        );
+    }
+
+    public removeComponent(input: RemoveComponentInput): Promise<void> {
+        return this.execute(
+            new RemoveComponentCommand({
                 sdkResolver: this.getSdkResolver(),
                 configurationManager: this.getConfigurationManager(),
                 componentForm: new ComponentForm({
