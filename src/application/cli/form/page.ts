@@ -1,3 +1,5 @@
+/* eslint-disable max-len -- Avoid wrapping URLs */
+import stringSimilarity from 'string-similarity-js';
 import {Input} from '@/application/cli/io/input';
 import {Form} from '@/application/cli/form/form';
 
@@ -10,6 +12,7 @@ export type PageOptions = {
     workspaceSlug: string,
     devApplicationSlug: string,
     prodApplicationSlug: string,
+    page?: string,
 };
 
 type Placeholder = 'organization' | 'workspace' | 'dev-application' | 'prod-application';
@@ -20,12 +23,12 @@ export class PageForm implements Form<string, PageOptions> {
         'Personal settings': '/settings',
         Organization: '/organizations/:organization',
         'Organization settings': '/organizations/:organization/settings',
-        'Organization users': '/organizations/:organization/users',
+        'Organization members': '/organizations/:organization/members',
         Workspace: '/organizations/:organization/workspaces/:workspace',
         'Workspace settings': '/organizations/:organization/workspaces/:workspace/settings',
-        'Workspace users': '/organizations/:organization/workspaces/:workspace/users',
-        'Dev application': '/organizations/:organization/workspaces/:workspace/applications/:dev-application',
-        'Prod application': '/organizations/:organization/workspaces/:workspace/applications/:prod-application',
+        'Workspace members': '/organizations/:organization/workspaces/:workspace/members',
+        'Dev application': '/organizations/:organization/workspaces/:workspace/applications/:dev-application/dashboard',
+        'Prod application': '/organizations/:organization/workspaces/:workspace/applications/:prod-application/dashboard',
         'Dev application settings': '/organizations/:organization/workspaces/:workspace/applications/:dev-application/settings',
         'Prod application settings': '/organizations/:organization/workspaces/:workspace/applications/:prod-application/settings',
         Slots: '/organizations/:organization/workspaces/:workspace/slots',
@@ -40,9 +43,21 @@ export class PageForm implements Form<string, PageOptions> {
     }
 
     public async handle(options: PageOptions): Promise<string> {
+        return PageForm.resolvePath(await this.getPage(options.page), options);
+    }
+
+    private getPage(page?: string): Promise<string> {
+        if (page !== undefined) {
+            const match = PageForm.findMatch(page);
+
+            if (match !== null) {
+                return Promise.resolve(match);
+            }
+        }
+
         const {input} = this.config;
 
-        const path = await input.select({
+        return input.select({
             message: 'Where do you want to go?',
             options: Object.entries(PageForm.SITEMAP).map(
                 ([label, value]) => ({
@@ -51,8 +66,26 @@ export class PageForm implements Form<string, PageOptions> {
                 }),
             ),
         });
+    }
 
-        return PageForm.resolvePath(path, options);
+    private static findMatch(page: string): string|null {
+        if (page.startsWith('/')) {
+            return page;
+        }
+
+        let match = null;
+        let max = 0.5;
+
+        for (const label of Object.keys(PageForm.SITEMAP)) {
+            const similarity = stringSimilarity(page, label);
+
+            if (similarity > max) {
+                match = PageForm.SITEMAP[label];
+                max = similarity;
+            }
+        }
+
+        return match;
     }
 
     private static resolvePath(path: string, options: PageOptions): string {

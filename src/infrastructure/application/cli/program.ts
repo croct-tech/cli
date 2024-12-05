@@ -17,7 +17,7 @@ function createProgram(interactive: boolean, cli?: Cli): typeof program {
         .name('croct')
         .description('Manage your Croct projects.')
         .version('0.0.1', '-v, --version', 'Display the version number')
-        .option('-d, --cwd <path>', 'Specify the working directory')
+        .option('-d, --cwd <path>', 'The working directory')
         .option('-n, --no-interaction', 'Disable interaction mode')
         .addOption(
             new Option('-q, --quiet', 'Disable output messages')
@@ -25,20 +25,56 @@ function createProgram(interactive: boolean, cli?: Cli): typeof program {
                 .implies({interaction: false}),
         );
 
-    const workspaceOption = new Option('--wor <workspace-slug>', 'Specify the workspace');
-    const organizationOption = new Option('--org <organization-slug>', 'Specify the organization');
-    const devApplicationOption = new Option('--dev-app <application-slug>', 'Specify the development application');
-    const prodApplicationOption = new Option('--prod-app <application-slug>', 'Specify the production application');
+    const loginCommand = program.command('login')
+        .description('Authenticate your user.');
+
+    const usernameOption = new Option('-u, --username <username>', 'The email');
+    const passwordOption = new Option('-p, --password <password>', 'The password');
+
+    loginCommand.command('credentials', {isDefault: true})
+        .addOption(interactive ? usernameOption : usernameOption.makeOptionMandatory())
+        .addOption(interactive ? passwordOption : passwordOption.makeOptionMandatory())
+        .description('Authenticate using credentials.')
+        .action(async options => {
+            await cli?.login({
+                method: 'credentials',
+                username: options.username,
+                password: options.password,
+            });
+        });
+
+    program.command('logout')
+        .description('Logout the current user.')
+        .action(async () => {
+            await cli?.logout();
+        });
+
+    program.command('admin')
+        .argument('[page...]', 'The name of the page or path to open')
+        .description('Log in and open the admin panel.')
+        .action(async path => {
+            await cli?.admin({
+                // eslint-disable-next-line no-nested-ternary -- Best option for this case
+                page: path !== undefined
+                    ? path.join(' ')
+                    : (interactive ? undefined : '/'),
+            });
+        });
+
+    const workspaceOption = new Option('--wor <workspace-slug>', 'The workspace');
+    const organizationOption = new Option('--org <organization-slug>', 'The organization');
+    const devApplicationOption = new Option('--dev-app <application-slug>', 'The development application');
+    const prodApplicationOption = new Option('--prod-app <application-slug>', 'The production application');
 
     program.command('init')
-        .description('Configure the your project.')
+        .description('Configure the project.')
         .option('-o, --override', 'Override any existing configuration')
         .addOption(
-            new Option('-n, --new <resource>', 'Specify the resources to create')
+            new Option('-n, --new <resource>', 'The resources to create')
                 .choices(['organization', 'org', 'workspace', 'wor', 'application', 'app'] as const),
         )
         .addOption(
-            new Option('-s, --sdk <platform>', 'Specify the SDK')
+            new Option('-s, --sdk <platform>', 'The SDK')
                 .choices(['javascript', 'react', 'next'] as const),
         )
         .addOption(interactive ? organizationOption : organizationOption.makeOptionMandatory())
@@ -82,8 +118,8 @@ function createProgram(interactive: boolean, cli?: Cli): typeof program {
 
     program.command('upgrade')
         .description('Upgrade components and slots to the latest version.')
-        .option('-s, --slots <slots...>', 'Specify the slots to upgrade')
-        .option('-c, --components <components...>', 'Specify the components to upgrade')
+        .option('-s, --slots <slots...>', 'The slots to upgrade')
+        .option('-c, --components <components...>', 'The components to upgrade')
         .action(async options => {
             await cli?.upgrade({
                 // The null coalescing operator is used to ensure that
@@ -134,39 +170,6 @@ function createProgram(interactive: boolean, cli?: Cli): typeof program {
         .action(async args => {
             await cli?.removeComponent({
                 components: args,
-            });
-        });
-
-    const loginCommand = program.command('login')
-        .description('Authenticate your user.');
-
-    const usernameOption = new Option('-u, --username <username>', 'Specify the email');
-    const passwordOption = new Option('-p, --password <password>', 'Specify the password');
-
-    loginCommand.command('credentials', {isDefault: true})
-        .addOption(interactive ? usernameOption : usernameOption.makeOptionMandatory())
-        .addOption(interactive ? passwordOption : passwordOption.makeOptionMandatory())
-        .description('Authenticate using credentials.')
-        .action(async options => {
-            await cli?.login({
-                method: 'credentials',
-                username: options.username,
-                password: options.password,
-            });
-        });
-
-    program.command('logout')
-        .description('Logout the current user.')
-        .action(async () => {
-            await cli?.logout();
-        });
-
-    program.command('admin')
-        .argument('[path]', 'The path to open in the browser.')
-        .description('Login and open admin in browser.')
-        .action(async path => {
-            await cli?.admin({
-                path: path ?? (interactive ? undefined : '/'),
             });
         });
 

@@ -6,7 +6,7 @@ import {Form} from '@/application/cli/form/form';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 
 export type AdminInput = {
-    path?: string,
+    page?: string,
 };
 
 export type AdminConfig = {
@@ -34,7 +34,8 @@ export class AdminCommand implements Command<AdminInput> {
             .configurationManager
             .resolve();
 
-        const path = input.path ?? await pageForm.handle({
+        const path = await pageForm.handle({
+            page: input.page,
             organizationSlug: configuration.organization,
             workspaceSlug: configuration.workspace,
             devApplicationSlug: configuration.applications.development,
