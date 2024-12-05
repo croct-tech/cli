@@ -1579,6 +1579,106 @@ describe('Functional test', () => {
                 // Do nothing
             },
         },
+        {
+            description: 'preserve empty object formatting',
+            // language=JSON
+            input: multiline`
+            {
+              "bar": [],
+              "foo": {
+                
+              } 
+            }`,
+            // language=JSON
+            output: multiline`
+            {
+              "bar": [],
+              "foo": {
+                
+              } 
+            }`,
+            type: JsonObjectNode,
+            mutation: (): void => {
+                // Do nothing
+            },
+        },
+        {
+            description: 'preserve empty array formatting',
+            // language=JSON
+            input: multiline`
+            {
+              "bar": {},
+              "foo": [
+                  
+              ] 
+            }`,
+            // language=JSON
+            output: multiline`
+            {
+              "bar": {},
+              "foo": [
+                  
+              ] 
+            }`,
+            type: JsonObjectNode,
+            mutation: (): void => {
+                // Do nothing
+            },
+        },
+        {
+            description: 'use formatting of the last object when adding a new property to an empty object',
+            // language=JSON
+            input: multiline`
+            {
+              "foo": {
+                "baz": 2
+              },
+              "qux": {
+            
+              }
+            }`,
+            // language=JSON
+            output: multiline`
+            {
+              "foo": {
+                "baz": 2
+              },
+              "qux": {
+                "bar": 1
+              }
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.get('qux', JsonObjectNode).set('bar', 1);
+            },
+        },
+        {
+            description: 'use the formatting of the last array when adding a new element to an empty array',
+            // language=JSON
+            input: multiline`
+            [
+              [
+                1
+              ],
+              [
+            
+              ]
+            ]`,
+            // language=JSON
+            output: multiline`
+            [
+              [
+                1  
+              ],
+              [
+                2
+              ]
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.get(1, JsonArrayNode).push(2);
+            },
+        },
     ])('should $description', ({input, output, type, mutation, format}) => {
         const node = JsonParser.parse(input, type);
 

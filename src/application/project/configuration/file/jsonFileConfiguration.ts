@@ -3,6 +3,12 @@ import {readFile, writeFile} from 'fs/promises';
 import {Configuration} from '@/application/project/configuration/configuration';
 import {Version} from '@/application/project/version';
 import {ConfigurationFile} from '@/application/project/configuration/file/configurationFile';
+import {JsonParser} from '@/infrastructure/json';
+
+type SerializedConfiguration = Omit<Configuration, 'slots' | 'components'> & {
+    slots: Record<string, string>,
+    components: Record<string, string>,
+};
 
 export class JsonFileConfiguration implements ConfigurationFile {
     private readonly projectDirectory: string;
@@ -37,7 +43,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
     public async update(configuration: Configuration): Promise<void> {
         const path = this.getConfigurationFilePath();
 
-        const cleanedConfiguration: Configuration = {
+        const cleanedConfiguration: SerializedConfiguration = {
             organization: configuration.organization,
             workspace: configuration.workspace,
             applications: {
@@ -48,11 +54,11 @@ export class JsonFileConfiguration implements ConfigurationFile {
             locales: configuration.locales,
             slots: Object.fromEntries(
                 Object.entries(configuration.slots)
-                    .map(([key, value]) => [key, value]),
+                    .map(([key, value]) => [key, value.toString()]),
             ),
             components: Object.fromEntries(
                 Object.entries(configuration.components)
-                    .map(([key, value]) => [key, value]),
+                    .map(([key, value]) => [key, value.toString()]),
             ),
             paths: {
                 components: configuration.paths.components,
@@ -60,7 +66,10 @@ export class JsonFileConfiguration implements ConfigurationFile {
             },
         };
 
-        const json = JSON.stringify(cleanedConfiguration, null, 4);
+        // @todo add validation
+        const json = JsonParser.parse(await readFile(path, 'utf8'))
+            .merge(cleanedConfiguration)
+            .toString();
 
         try {
             // Overwrite the file

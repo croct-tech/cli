@@ -2,7 +2,7 @@ import {join} from 'path';
 import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import {ApplicationPlatform, Slot} from '@/application/model/entities';
-import {ApplicationApi} from '@/application/api/application';
+import {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
 import {JavaScriptProject} from '@/application/project/project';
 import {WorkspaceApi} from '@/application/api/workspace';
 import {EnvFile} from '@/application/project/envFile';
@@ -16,6 +16,7 @@ import type {AppComponentOptions} from '@/application/project/sdk/code/nextjs/cr
 import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {NextExampleRouter, PlugNextExampleGenerator} from '@/application/project/example/slot/plugNextExampleGenerator';
 import {Linter} from '@/application/project/linter';
+import {ApiError} from '@/application/api/error';
 
 type ApiConfiguration = {
     user: UserApi,
@@ -292,42 +293,45 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
         const {api} = this;
 
         if (!await plan.localFile.hasVariable(NextEnvVar.API_KEY)) {
+            notifier.update('Loading information');
+
+            const user = await api.user.getUser();
+
+            notifier.update('Creating API key');
+
+            let apiKey: GeneratedApiKey;
+
             try {
-                notifier.update('Loading information');
-
-                const user = await api.user.getUser();
-
-                notifier.update('Creating API key');
-
-                const apiKey = await api.application.createApiKey({
+                apiKey = await api.application.createApiKey({
                     name: `${user.username} CLI`,
                     applicationId: applications.developmentId,
                     permissions: {
                         tokenIssue: true,
                     },
                 });
-
-                await plan.localFile.setVariables({
-                    [NextEnvVar.API_KEY]: apiKey.secret,
-                });
             } catch (error) {
-                notifier.alert(`Failed to update ${plan.developmentFile.getName()}`);
+                if (error instanceof ApiError && error.isAccessDenied()) {
+                    throw new ApiError(
+                        'Your user does not have permission to create an API key',
+                        error.details,
+                    );
+                }
 
-                return;
+                throw error;
             }
 
-            try {
-                await Promise.all([
-                    plan.developmentFile.setVariables({
-                        [NextEnvVar.APP_ID]: applications.developmentPublicId,
-                    }),
-                    plan.productionFile.setVariables({
-                        [NextEnvVar.APP_ID]: applications.productionPublicId,
-                    }),
-                ]);
-            } catch (error) {
-                notifier.alert('Failed to update environment variables', formatMessage(error));
-            }
+            await plan.localFile.setVariables({
+                [NextEnvVar.API_KEY]: apiKey.secret,
+            });
+
+            await Promise.all([
+                plan.developmentFile.setVariables({
+                    [NextEnvVar.APP_ID]: applications.developmentPublicId,
+                }),
+                plan.productionFile.setVariables({
+                    [NextEnvVar.APP_ID]: applications.productionPublicId,
+                }),
+            ]);
         }
     }
 

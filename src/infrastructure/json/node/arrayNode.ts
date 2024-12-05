@@ -23,6 +23,25 @@ export class JsonArrayNode extends JsonStructureNode implements JsonArrayDefinit
         });
     }
 
+    public merge(other: JsonValueNode|JsonValue): JsonValueNode {
+        if (!(other instanceof JsonArrayNode) && !Array.isArray(other)) {
+            return JsonValueFactory.create(other);
+        }
+
+        const otherElements = other instanceof JsonArrayNode ? other.elements : other;
+        const elements = this.elementNodes.splice(0);
+
+        for (let index = 0; index < otherElements.length; index++) {
+            this.push(
+                index < elements.length
+                    ? elements[index].merge(otherElements[index])
+                    : otherElements[index],
+            );
+        }
+
+        return this;
+    }
+
     protected getList(): JsonCompositeNode[] {
         return [...this.elementNodes];
     }

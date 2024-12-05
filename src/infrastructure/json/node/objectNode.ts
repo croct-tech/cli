@@ -31,6 +31,52 @@ export class JsonObjectNode extends JsonStructureNode implements JsonCompositeDe
         });
     }
 
+    public merge(other: JsonValueNode|JsonValue): JsonValueNode {
+        if (!(other instanceof JsonValueNode)) {
+            if (typeof other !== 'object' || other === null || Array.isArray(other)) {
+                return JsonValueFactory.create(other);
+            }
+
+            for (const [key, value] of Object.entries(other)) {
+                if (value === undefined) {
+                    this.delete(key);
+
+                    continue;
+                }
+
+                const property = this.propertyNodes.find(current => current.key.toJSON() === key);
+
+                if (property !== undefined) {
+                    property.value = property.value.merge(value);
+
+                    continue;
+                }
+
+                this.set(key, value);
+            }
+
+            return this;
+        }
+
+        if (!(other instanceof JsonObjectNode)) {
+            return other;
+        }
+
+        for (const property of other.propertyNodes) {
+            const index = this.propertyNodes.findIndex(current => current.key.toJSON() === property.key.toJSON());
+
+            if (index >= 0) {
+                const cloneProperty = this.propertyNodes[index].clone();
+
+                cloneProperty.value = cloneProperty.value.merge(property.value);
+            } else {
+                this.propertyNodes.push(property);
+            }
+        }
+
+        return this;
+    }
+
     protected getList(): JsonCompositeNode[] {
         return [...this.propertyNodes];
     }

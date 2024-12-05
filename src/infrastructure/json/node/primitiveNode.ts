@@ -1,4 +1,4 @@
-import {JsonPrimitive} from '@croct/json';
+import {JsonPrimitive, JsonValue} from '@croct/json';
 import {JsonNode} from './node';
 import {JsonValueNode} from './valueNode';
 import {JsonCompositeDefinition, PartialJsonCompositeDefinition} from './compositeNode';
@@ -45,6 +45,16 @@ export class JsonPrimitiveNode<T extends JsonPrimitiveTokenType = JsonPrimitiveT
 
     public static of(value: JsonPrimitive|JsonPrimitiveNode): JsonPrimitiveNode {
         return JsonValueFactory.create(value);
+    }
+
+    public merge(other: JsonValueNode|JsonValue): JsonValueNode {
+        const node = JsonValueFactory.create(other);
+
+        if (!this.isEquivalent(node)) {
+            return node;
+        }
+
+        return this;
     }
 
     public reset(): void {
