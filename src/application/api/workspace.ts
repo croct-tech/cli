@@ -1,10 +1,6 @@
 import {JsonObject} from '@croct/json';
 import {Application, Component, Slot} from '@/application/model/entities';
-import {OrganizationPath} from '@/application/api/organization';
-
-export type WorkspacePath = OrganizationPath & {
-    workspaceSlug: string,
-};
+import {WorkspacePath} from '@/application/api/organization';
 
 export type SlotPath = WorkspacePath & {
     slotSlug: string,

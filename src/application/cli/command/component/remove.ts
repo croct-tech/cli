@@ -2,10 +2,11 @@ import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
 import {SdkResolver} from '@/application/project/sdk/sdk';
-import {ProjectConfigurationManager, ResolvedProjectConfiguration} from '@/application/project/configuration';
+import {ResolvedConfiguration} from '@/application/project/configuration/configuration';
 import {Form} from '@/application/cli/form/form';
 import {Component} from '@/application/model/entities';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
+import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 
 export type RemoveComponentInput = {
     components?: string[],
@@ -13,10 +14,10 @@ export type RemoveComponentInput = {
 
 export type RemoveComponentConfig = {
     sdkResolver: SdkResolver,
-    configurationManager: ProjectConfigurationManager,
+    configurationManager: ConfigurationManager,
     componentForm: Form<Component[], ComponentOptions>,
     io: {
-        input: Input,
+        input?: Input,
         output: Output,
     },
 };
@@ -43,12 +44,10 @@ export class RemoveComponentCommand implements Command<RemoveComponentInput> {
         });
 
         if (components.length === 0) {
-            output.alert('No components to remove');
-
-            return;
+            return output.alert('No components to remove.');
         }
 
-        const updatedConfiguration: ResolvedProjectConfiguration = {
+        const updatedConfiguration: ResolvedConfiguration = {
             ...configuration,
             components: Object.fromEntries(
                 Object.entries(configuration.components)

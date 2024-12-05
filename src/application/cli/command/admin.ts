@@ -1,11 +1,18 @@
 import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
 import {UserApi} from '@/application/api/user';
+import {PageOptions} from '@/application/cli/form/page';
+import {Form} from '@/application/cli/form/form';
+import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 
-export type AdminInput = Record<string, never>;
+export type AdminInput = {
+    path?: string,
+};
 
 export type AdminConfig = {
     output: Output,
+    configurationManager: ConfigurationManager,
+    pageForm: Form<string, PageOptions>,
     userApi: UserApi,
     endpoint: {
         url: string,
@@ -20,8 +27,19 @@ export class AdminCommand implements Command<AdminInput> {
         this.config = config;
     }
 
-    public async execute(): Promise<void> {
-        const {output, userApi} = this.config;
+    public async execute(input: AdminInput): Promise<void> {
+        const {output, pageForm, userApi} = this.config;
+
+        const configuration = await this.config
+            .configurationManager
+            .resolve();
+
+        const path = input.path ?? await pageForm.handle({
+            organizationSlug: configuration.organization,
+            workspaceSlug: configuration.workspace,
+            devApplicationSlug: configuration.applications.development,
+            prodApplicationSlug: configuration.applications.production,
+        });
 
         const notifier = output.notify('Starting session');
 
@@ -29,7 +47,7 @@ export class AdminCommand implements Command<AdminInput> {
 
         notifier.stop();
 
-        const url = new URL(this.config.endpoint.url);
+        const url = new URL(path.startsWith('/') ? path.slice(1) : path, this.config.endpoint.url);
 
         url.searchParams.set(this.config.endpoint.parameter, sessionId);
 

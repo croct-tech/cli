@@ -1,18 +1,18 @@
 import {ApplicationPlatform, Slot} from '@/application/model/entities';
 import {Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
-import {ProjectConfiguration, ResolvedProjectConfiguration} from '@/application/project/configuration';
+import {Configuration, ResolvedConfiguration} from '@/application/project/configuration/configuration';
 
 export type Installation = {
-    input: Input,
+    input?: Input,
     output: Output,
-    configuration: ResolvedProjectConfiguration,
+    configuration: ResolvedConfiguration,
 };
 
 export interface Sdk {
     getPackage(): string;
     getPlatform(): ApplicationPlatform;
-    install(installation: Installation): Promise<ProjectConfiguration>;
+    install(installation: Installation): Promise<Configuration>;
     update(installation: Installation): Promise<void>;
     updateTypes(installation: Installation): Promise<void>;
     updateContent(installation: Installation): Promise<void>;

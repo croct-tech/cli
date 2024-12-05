@@ -2,11 +2,16 @@ import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
 import {SdkResolver} from '@/application/project/sdk/sdk';
-import {ProjectConfigurationManager, ResolvedProjectConfiguration} from '@/application/project/configuration';
+import {
+    ResolvedConfiguration,
+    Configuration as ProjectConfiguration,
+} from '@/application/project/configuration/configuration';
 import {Form} from '@/application/cli/form/form';
 import {Component} from '@/application/model/entities';
 import {Version} from '@/application/project/version';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
+import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import {CliError, CliErrorCode} from '@/application/cli/error';
 
 export type AddComponentInput = {
     components?: string[],
@@ -14,10 +19,10 @@ export type AddComponentInput = {
 
 export type AddComponentConfig = {
     sdkResolver: SdkResolver,
-    configurationManager: ProjectConfigurationManager,
+    configurationManager: ConfigurationManager,
     componentForm: Form<Component[], ComponentOptions>,
     io: {
-        input: Input,
+        input?: Input,
         output: Output,
     },
 };
@@ -30,13 +35,44 @@ export class AddComponentCommand implements Command<AddComponentInput> {
     }
 
     public async execute(input: AddComponentInput): Promise<void> {
-        const {sdkResolver, configurationManager, componentForm, io} = this.config;
+        const {sdkResolver, configurationManager, io} = this.config;
         const {output} = io;
 
         const sdk = await sdkResolver.resolve();
         const configuration = await configurationManager.resolve();
+        const components = await this.getComponents(configuration, input);
 
-        const components = await componentForm.handle({
+        if (components.length === 0) {
+            output.inform('No components selected');
+
+            return;
+        }
+
+        const updatedConfiguration: ResolvedConfiguration = {
+            ...configuration,
+            components: {
+                ...configuration.components,
+                ...Object.fromEntries(
+                    components.map(component => [component.slug, Version.of(component.version.major)]),
+                ),
+            },
+        };
+
+        output.confirm('Configuration updated');
+
+        await configurationManager.update(updatedConfiguration);
+
+        await sdk.update({
+            input: io.input,
+            output: io.output,
+            configuration: updatedConfiguration,
+        });
+    }
+
+    private async getComponents(configuration: ProjectConfiguration, input: AddComponentInput): Promise<Component[]> {
+        const form = this.config.componentForm;
+
+        const components = await form.handle({
             organizationSlug: configuration.organization,
             workspaceSlug: configuration.workspace,
             preselected: input.components,
@@ -52,37 +88,12 @@ export class AddComponentCommand implements Command<AddComponentInput> {
                 slug => !components.some(component => component.slug === slug),
             );
 
-            output.alert(`Components not found: ${missingComponents.join(', ')}.`);
-
-            return output.exit();
+            throw new CliError(`Components not found: \`${missingComponents.join('`, `')}\`.`, {
+                code: CliErrorCode.PRECONDITION,
+                suggestions: ['Run `remove component` to remove a component from your configuration.'],
+            });
         }
 
-        const newComponents = components.filter(component => !(component.slug in configuration.components));
-
-        if (newComponents.length === 0) {
-            output.alert('No components to add');
-
-            return;
-        }
-
-        const updatedConfiguration: ResolvedProjectConfiguration = {
-            ...configuration,
-            components: {
-                ...configuration.components,
-                ...Object.fromEntries(
-                    newComponents.map(component => [component.slug, Version.of(component.version.major)]),
-                ),
-            },
-        };
-
-        output.confirm('Configuration updated');
-
-        await configurationManager.update(updatedConfiguration);
-
-        await sdk.update({
-            input: io.input,
-            output: io.output,
-            configuration: updatedConfiguration,
-        });
+        return components;
     }
 }

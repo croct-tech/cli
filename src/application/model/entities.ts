@@ -69,6 +69,18 @@ export enum ApplicationEnvironment {
     PRODUCTION = 'PRODUCTION',
 }
 
+export namespace ApplicationEnvironment {
+    export function getLabel(environment: ApplicationEnvironment): string {
+        switch (environment) {
+            case ApplicationEnvironment.DEVELOPMENT:
+                return 'dev';
+
+            case ApplicationEnvironment.PRODUCTION:
+                return 'prod';
+        }
+    }
+}
+
 export enum ApplicationTrafficStatus {
     NEVER_RECEIVED_TRAFFIC = 'NEVER_RECEIVED_TRAFFIC',
     NOT_RECEIVING_TRAFFIC = 'NOT_RECEIVING_TRAFFIC',

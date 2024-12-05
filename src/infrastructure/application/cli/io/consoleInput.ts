@@ -41,6 +41,7 @@ export class ConsoleInput implements Input {
 
         return this.interact({
             type: selection.options.length > 10 ? 'autocomplete' : 'select',
+            instructions: false,
             message: selection.message,
             choices: selection.options.map(
                 option => ({

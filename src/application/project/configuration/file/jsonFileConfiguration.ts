@@ -1,27 +1,17 @@
 import {join} from 'path';
-import {access, readFile, writeFile} from 'fs/promises';
-import {ProjectConfiguration} from '@/application/project/configuration';
+import {readFile, writeFile} from 'fs/promises';
+import {Configuration} from '@/application/project/configuration/configuration';
 import {Version} from '@/application/project/version';
-import {ProjectConfigurationFile} from '@/infrastructure/project/configurationFileManager';
+import {ConfigurationFile} from '@/application/project/configuration/file/configurationFile';
 
-export class JsonFileConfiguration implements ProjectConfigurationFile {
+export class JsonFileConfiguration implements ConfigurationFile {
     private readonly projectDirectory: string;
 
     public constructor(projectDirectory: string) {
         this.projectDirectory = projectDirectory;
     }
 
-    public async exists(): Promise<boolean> {
-        try {
-            await access(this.getConfigurationFilePath());
-
-            return true;
-        } catch {
-            return false;
-        }
-    }
-
-    public async load(): Promise<ProjectConfiguration|null> {
+    public async load(): Promise<Configuration|null> {
         const path = this.getConfigurationFilePath();
 
         try {
@@ -44,10 +34,10 @@ export class JsonFileConfiguration implements ProjectConfigurationFile {
         }
     }
 
-    public async update(configuration: ProjectConfiguration): Promise<void> {
+    public async update(configuration: Configuration): Promise<void> {
         const path = this.getConfigurationFilePath();
 
-        const cleanedConfiguration: ProjectConfiguration = {
+        const cleanedConfiguration: Configuration = {
             organization: configuration.organization,
             workspace: configuration.workspace,
             applications: {

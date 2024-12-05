@@ -16,6 +16,7 @@ export type Configuration = {
 
 export type SignInOptions = {
     email?: string,
+    password?: string,
 };
 
 enum Action {
@@ -38,19 +39,23 @@ export class SignInForm implements Form<Token, SignInOptions> {
             label: 'Enter your email',
         });
 
-        return this.login(email);
+        return this.login(email, options.password);
     }
 
-    private async login(email: string): Promise<Token> {
+    private async login(email: string, password?: string): Promise<Token> {
         const {input, output, userApi} = this.config;
 
         let action = Action.RETRY_PASSWORD;
 
+        let initialPassword = password;
+
         while (action === Action.RETRY_PASSWORD) {
-            const password = await PasswordInput.prompt({
+            const password = initialPassword ?? await PasswordInput.prompt({
                 input: input,
                 label: 'Password',
             });
+
+            initialPassword = undefined;
 
             const notifier = output.notify('Checking credentials');
 

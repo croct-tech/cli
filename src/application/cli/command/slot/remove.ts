@@ -2,10 +2,10 @@ import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
 import {Installation, SdkResolver} from '@/application/project/sdk/sdk';
-import {ProjectConfigurationManager} from '@/application/project/configuration';
 import {Form} from '@/application/cli/form/form';
 import {Slot} from '@/application/model/entities';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
+import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 
 export type RemoveSlotInput = {
     slots?: string[],
@@ -13,10 +13,10 @@ export type RemoveSlotInput = {
 
 export type RemoveSlotConfig = {
     sdkResolver: SdkResolver,
-    configurationManager: ProjectConfigurationManager,
+    configurationManager: ConfigurationManager,
     slotForm: Form<Slot[], SlotOptions>,
     io: {
-        input: Input,
+        input?: Input,
         output: Output,
     },
 };
@@ -43,9 +43,7 @@ export class RemoveSlotCommand implements Command<RemoveSlotInput> {
         });
 
         if (slots.length === 0) {
-            output.alert('No slots to remove');
-
-            return;
+            return output.inform('No slots to remove.');
         }
 
         const installation: Installation = {

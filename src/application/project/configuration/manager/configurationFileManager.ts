@@ -1,33 +1,26 @@
 import {WorkspaceApi} from '@/application/api/workspace';
-import {ApplicationApi} from '@/application/api/application';
 import {
-    ProjectConfiguration,
-    ProjectConfigurationManager,
-    ResolvedProjectConfiguration,
-} from '@/application/project/configuration';
-import {CliError} from '@/application/cli/error';
+    Configuration as ProjectConfiguration,
+    ResolvedConfiguration,
+} from '@/application/project/configuration/configuration';
+import {CliError, CliErrorCode} from '@/application/cli/error';
 import {UserApi} from '@/application/api/user';
 import {OrganizationApi} from '@/application/api/organization';
 import {Output} from '@/application/cli/io/output';
+import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import {ConfigurationFile} from '@/application/project/configuration/file/configurationFile';
 
 export type Configuration = {
-    file: ProjectConfigurationFile,
+    file: ConfigurationFile,
     api: {
         user: UserApi,
         organization: OrganizationApi,
         workspace: WorkspaceApi,
-        application: ApplicationApi,
     },
     output: Output,
 };
 
-export interface ProjectConfigurationFile {
-    load(): Promise<ProjectConfiguration|null>;
-
-    update(configuration: ProjectConfiguration): Promise<void>;
-}
-
-export class ConfigurationFileManager implements ProjectConfigurationManager {
+export class ConfigurationFileManager implements ConfigurationManager {
     private readonly config: Configuration;
 
     public constructor(config: Configuration) {
@@ -46,11 +39,12 @@ export class ConfigurationFileManager implements ProjectConfigurationManager {
         return file.update(configuration);
     }
 
-    public async resolve(): Promise<ResolvedProjectConfiguration> {
+    public async resolve(): Promise<ResolvedConfiguration> {
         const configuration = await this.load();
 
         if (configuration === null) {
-            throw new CliError('Configuration file not found.', {
+            throw new CliError('Project configuration not found.', {
+                code: CliErrorCode.PRECONDITION,
                 // @todo add link to init documentation
                 suggestions: [
                     'Run `init` command to initialize the project',
@@ -69,13 +63,12 @@ export class ConfigurationFileManager implements ProjectConfigurationManager {
         }
     }
 
-    private async loadConfiguration(configuration: ProjectConfiguration): Promise<ResolvedProjectConfiguration> {
+    private async loadConfiguration(configuration: ProjectConfiguration): Promise<ResolvedConfiguration> {
         const {api} = this.config;
 
-        const organization = (await api.user.getOrganizations())
-            .find(candidate => candidate.slug === configuration.organization);
+        const organization = await api.user.getOrganization(configuration.organization);
 
-        if (organization === undefined) {
+        if (organization === null) {
             throw new CliError('Project\'s organization not found.', {
                 suggestions: [
                     'Check if you have access to the organization',
@@ -84,10 +77,12 @@ export class ConfigurationFileManager implements ProjectConfigurationManager {
             });
         }
 
-        const workspace = (await api.organization.getWorkspaces({organizationSlug: organization.slug}))
-            .find(candidate => candidate.slug === configuration.workspace);
+        const workspace = await api.organization.getWorkspace({
+            organizationSlug: organization.slug,
+            workspaceSlug: configuration.workspace,
+        });
 
-        if (workspace === undefined) {
+        if (workspace === null) {
             throw new CliError('Project\'s workspace not found.', {
                 suggestions: [
                     'Check if you have access to the workspace',
@@ -96,14 +91,20 @@ export class ConfigurationFileManager implements ProjectConfigurationManager {
             });
         }
 
-        const applications = (await api.workspace.getApplications({
-            organizationSlug: organization.slug,
-            workspaceSlug: workspace.slug,
-        }));
+        const [developmentApplication, productionApplication] = await Promise.all([
+            api.workspace.getApplication({
+                organizationSlug: organization.slug,
+                workspaceSlug: workspace.slug,
+                applicationSlug: configuration.applications.development,
+            }),
+            api.workspace.getApplication({
+                organizationSlug: organization.slug,
+                workspaceSlug: workspace.slug,
+                applicationSlug: configuration.applications.production,
+            }),
+        ]);
 
-        const developmentApplication = applications.find(app => app.slug === configuration.applications.development);
-
-        if (developmentApplication === undefined) {
+        if (developmentApplication === null) {
             throw new CliError('Project\'s development application not found.', {
                 suggestions: [
                     'Check if you have access to the application',
@@ -112,9 +113,7 @@ export class ConfigurationFileManager implements ProjectConfigurationManager {
             });
         }
 
-        const productionApplication = applications.find(app => app.slug === configuration.applications.production);
-
-        if (productionApplication === undefined) {
+        if (productionApplication === null) {
             throw new CliError('Project\'s production application not found.', {
                 suggestions: [
                     'Check if you have access to the application',

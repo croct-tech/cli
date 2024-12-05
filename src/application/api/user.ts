@@ -45,5 +45,7 @@ export interface UserApi {
 
     getOrganizations(): Promise<Organization[]>;
 
+    getOrganization(organizationSlug: string): Promise<Organization|null>;
+
     setupOrganization(organization: OrganizationSetup): Promise<Organization>;
 }

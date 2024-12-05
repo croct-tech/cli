@@ -12,6 +12,7 @@ import {generateAvailableSlug} from '@/infrastructure/application/api/utils/gene
 import {
     ApplicationEnvironment,
     OrganizationMetadataQuery,
+    OrganizationQuery,
     OrganizationType,
     Platform,
     SetupOrganizationMutationVariables,
@@ -21,6 +22,8 @@ import {generateSlug} from '@/infrastructure/application/api/utils/generateSlug'
 type OrganizationSetupPayload = SetupOrganizationMutationVariables['payload'];
 
 type WebsiteMetadata = OrganizationMetadataQuery['websiteMetadata'];
+
+type OrganizationData = NonNullable<OrganizationQuery['organization']>;
 
 export class GraphqlUserApi implements UserApi {
     private readonly client: GraphqlClient;
@@ -107,8 +110,22 @@ export class GraphqlUserApi implements UserApi {
         return token;
     }
 
+    public async getOrganization(organizationSlug: string): Promise<Organization | null> {
+        const {data} = await this.client.execute(organizationQuery, {
+            slug: organizationSlug,
+        });
+
+        const organization = data.organization ?? null;
+
+        if (organization === null) {
+            return null;
+        }
+
+        return GraphqlUserApi.normalizeOrganization(organization);
+    }
+
     public async getOrganizations(): Promise<Organization[]> {
-        const {data} = await this.client.execute(organizationQuery);
+        const {data} = await this.client.execute(organizationsQuery);
 
         const edges = data.organizations.edges ?? [];
 
@@ -119,20 +136,22 @@ export class GraphqlUserApi implements UserApi {
                 return [];
             }
 
-            const {logo = null, website = null} = node;
-
-            const organization: Organization = {
-                id: node.id,
-                name: node.name,
-                slug: node.slug,
-                type: node.type as any,
-                email: node.email,
-                ...(logo !== null ? {logo: logo} : {}),
-                ...(website !== null ? {website: website} : {}),
-            };
-
-            return [organization];
+            return [GraphqlUserApi.normalizeOrganization(node)];
         });
+    }
+
+    private static normalizeOrganization(data: OrganizationData): Organization {
+        const {logo = null, website = null} = data;
+
+        return {
+            id: data.id,
+            name: data.name,
+            slug: data.slug,
+            type: data.type as any,
+            email: data.email,
+            ...(logo !== null ? {logo: logo} : {}),
+            ...(website !== null ? {website: website} : {}),
+        };
     }
 
     public async setupOrganization(setup: OrganizationSetup): Promise<Organization> {
@@ -347,6 +366,20 @@ const userEmailQuery = graphql(`
 `);
 
 const organizationQuery = graphql(`
+    query Organization($slug: ReadableId!) {
+        organization(slug: $slug) {
+            id
+            name
+            slug
+            type
+            website
+            logo
+            email
+        }
+    }
+`);
+
+const organizationsQuery = graphql(`
     query Organizations {
         organizations(first: 100) {
             edges {

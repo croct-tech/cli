@@ -28,7 +28,8 @@
     "test": "jest -c jest.config.js --coverage",
     "validate": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json",
-    "graphql-codegen": "graphql-codegen --config codegen.ts"
+    "graphql-codegen": "graphql-codegen --config codegen.ts",
+    "postinstall": "croct install"
   },
   "dependencies": {
     "@antfu/install-pkg": "^0.4.1",
@@ -36,10 +37,13 @@
     "@babel/parser": "^7.25.7",
     "@babel/traverse": "^7.25.7",
     "@babel/types": "^7.25.9",
+    "@croct/content": "^1.0.0",
     "@croct/json": "^2.1.0",
     "@croct/md-lite": "^0.3.1",
+    "@croct/plug": "^0.16.4",
     "boxen": "^8.0.1",
     "chalk": "^5.3.0",
+    "ci-info": "^4.1.0",
     "cli-cursor": "^5.0.0",
     "commander": "^12.1.0",
     "is-unicode-supported": "^2.1.0",
@@ -59,6 +63,7 @@
     "@types/jest": "^29.0.0",
     "@types/prompts": "^2.4.9",
     "@typescript-eslint/parser": "^8.0.0",
+    "croct": "^0.0.0",
     "eslint": "^8.57.1",
     "jest": "^29.7.0",
     "tsx": "^4.19.1",

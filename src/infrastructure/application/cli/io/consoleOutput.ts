@@ -2,17 +2,21 @@ import open from 'open';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import terminalLink from 'terminal-link';
-import {Writable} from 'stream';
+import {Writable, PassThrough} from 'stream';
 import {Output, Notifier, TaskList, TaskResolver} from '@/application/cli/io/output';
-import {CliError, CliHelp} from '@/application/cli/error';
-import {TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
+import {CliError, CliErrorCode, CliHelp} from '@/application/cli/error';
+import {InteractiveTaskMonitor} from '@/infrastructure/application/cli/io/interactiveTaskMonitor';
 import {format} from '@/infrastructure/application/cli/io/formatting';
+import {TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
+import {NonInteractiveTaskMonitor} from '@/infrastructure/application/cli/io/nonInteractiveTaskMonitor';
 
 export type ExitCallback = () => never;
 
 export type Configuration = {
     output: Writable,
     onExit: ExitCallback,
+    quiet?: boolean,
+    interactive?: boolean,
 };
 
 export class ConsoleOutput implements Output {
@@ -20,12 +24,17 @@ export class ConsoleOutput implements Output {
 
     private readonly onExit: ExitCallback;
 
+    private readonly quiet: boolean;
+
     private taskMonitor: TaskMonitor;
 
-    public constructor({output, onExit}: Configuration) {
+    public constructor({output, onExit, quiet = false, interactive = true}: Configuration) {
         this.output = output;
         this.onExit = onExit;
-        this.taskMonitor = new TaskMonitor(output);
+        this.quiet = quiet;
+        this.taskMonitor = interactive && !quiet
+            ? new InteractiveTaskMonitor(output)
+            : new NonInteractiveTaskMonitor(quiet ? new PassThrough() : output);
     }
 
     public suspend(): void {
@@ -36,32 +45,42 @@ export class ConsoleOutput implements Output {
         this.taskMonitor.resume();
     }
 
+    public stop(): void {
+        this.taskMonitor.stop(false);
+    }
+
     public async open(target: string): Promise<void> {
         await open(target);
     }
 
     public break(): void {
-        this.output.write('\n');
+        this.stop();
+        this.write('\n');
     }
 
     public log(text: string): void {
-        this.output.write(`${format(text)}\n`);
+        this.stop();
+        this.write(`${format(text)}\n`);
     }
 
     public confirm(text: string): void {
-        this.output.write(`${format(text, {icon: {semantic: 'success'}})}\n`);
+        this.stop();
+        this.write(`${format(text, {icon: {semantic: 'success'}})}\n`);
     }
 
     public inform(text: string): void {
-        this.output.write(`${format(text, {icon: {semantic: 'info'}})}\n`);
+        this.stop();
+        this.write(`${format(text, {icon: {semantic: 'info'}})}\n`);
     }
 
     public warn(text: string): void {
-        this.output.write(`${format(text, {icon: {semantic: 'warning'}})}\n`);
+        this.stop();
+        this.write(`${format(text, {icon: {semantic: 'warning'}})}\n`);
     }
 
     public alert(text: string): void {
-        this.output.write(`${format(text, {icon: {semantic: 'error'}})}\n`);
+        this.stop();
+        this.write(`${format(text, {icon: {semantic: 'error'}})}\n`);
     }
 
     public notify(initialStatus: string): Notifier {
@@ -88,27 +107,24 @@ export class ConsoleOutput implements Output {
     }
 
     public report(error: any): void {
-        this.alert(`\n${this.formatError(error)}`);
+        this.stop();
+        this.write(`${this.formatError(error)}\n`, true);
     }
 
     public exit(): never {
-        this.suspend();
+        this.stop();
         this.onExit();
     }
 
     private formatError(error: any): string {
-        let message = CliError.formatMessage(error);
+        let message = format(CliError.formatMessage(error));
 
-        const usefulLinks = [
+        const usefulLinks: CliHelp['links'] = [
             {
                 description: 'Documentation',
                 link: 'https://docs.croct.io/sdk/cli',
             },
-            {
-                description: 'Report this issue',
-                link: 'https://github.com/croct-tech/croct-cli/issues/new',
-            },
-        ] satisfies CliHelp['links'];
+        ];
 
         if (error instanceof CliError) {
             const {suggestions, links} = error.help;
@@ -121,6 +137,13 @@ export class ConsoleOutput implements Output {
                     message += suggestions.map(suggestion => `  • ${format(suggestion)}`)
                         .join('\n');
                 }
+            }
+
+            if (error.code === CliErrorCode.OTHER) {
+                usefulLinks.push({
+                    description: 'Report this issue',
+                    link: 'https://github.com/croct-tech/croct-cli/issues/new',
+                });
             }
 
             if (links !== undefined) {
@@ -136,7 +159,7 @@ export class ConsoleOutput implements Output {
         )
             .join('\n');
 
-        if (error instanceof Error) {
+        if (error instanceof Error && (!(error instanceof CliError) || error.code === CliErrorCode.OTHER)) {
             message += `\n\n${chalk.bold('Details:')}\n`;
             message += error.stack ?? error.message;
         }
@@ -153,5 +176,11 @@ export class ConsoleOutput implements Output {
             borderColor: 'red',
             borderStyle: 'round',
         });
+    }
+
+    private write(text: string, critical = false): void {
+        if (!this.quiet || critical) {
+            this.output.write(text);
+        }
     }
 }

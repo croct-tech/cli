@@ -6,10 +6,17 @@ import {
     SlotPath,
     TargetTyping,
     WorkspaceApi,
-    WorkspacePath,
 } from '@/application/api/workspace';
 import {Application, ApplicationEnvironment, Component, Slot} from '@/application/model/entities';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
+import {WorkspacePath} from '@/application/api/organization';
+import {ApplicationQuery} from '@/infrastructure/graphql/schema/graphql';
+
+type ApplicationData = NonNullable<
+    NonNullable<
+        NonNullable<ApplicationQuery['organization']
+    >['workspace']
+>['application']>;
 
 export class GraphqlWorkspaceApi implements WorkspaceApi {
     private readonly client: GraphqlClient;
@@ -31,20 +38,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
             return null;
         }
 
-        const {logo = null} = node;
-
-        return {
-            id: node.id,
-            name: node.name,
-            slug: node.slug,
-            timeZone: node.settings.timeZone,
-            website: node.website,
-            environment: node.environment as any,
-            platform: node.platform as any,
-            publicId: node.publicId,
-            trafficStatus: node.applicationStatus as any,
-            ...(logo !== null ? {logo: logo} : {}),
-        };
+        return GraphqlWorkspaceApi.normalizeApplication(node);
     }
 
     public async getApplications(path: WorkspacePath): Promise<Application[]> {
@@ -62,21 +56,25 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                 return [];
             }
 
-            const {logo = null} = node;
-
-            return [{
-                id: node.id,
-                name: node.name,
-                slug: node.slug,
-                timeZone: node.settings.timeZone,
-                website: node.website,
-                environment: node.environment as any,
-                platform: node.platform as any,
-                publicId: node.publicId,
-                trafficStatus: node.applicationStatus as any,
-                ...(logo !== null ? {logo: logo} : {}),
-            }];
+            return [GraphqlWorkspaceApi.normalizeApplication(node)];
         });
+    }
+
+    private static normalizeApplication(data: ApplicationData): Application {
+        const {logo = null} = data;
+
+        return {
+            id: data.id,
+            name: data.name,
+            slug: data.slug,
+            timeZone: data.settings.timeZone,
+            website: data.website,
+            environment: data.environment as any,
+            platform: data.platform as any,
+            publicId: data.publicId,
+            trafficStatus: data.applicationStatus as any,
+            ...(logo !== null ? {logo: logo} : {}),
+        };
     }
 
     public async createApplication(application: NewApplication): Promise<Application> {

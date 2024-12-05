@@ -1,28 +1,24 @@
 import {mkdir, readFile, unlink, writeFile} from 'fs/promises';
 import {dirname} from 'path';
-import {Logger} from '@/application/cli/io/output';
-import {Authenticator} from '@/application/cli/authentication/authenticator/index';
+import {AuthenticationInput, Authenticator} from '@/application/cli/authentication/authenticator/index';
+import {CliError, CliErrorCode} from '@/application/cli/error';
 
-export type TokenFileAuthenticatorConfig = {
+export type Configuration<I extends AuthenticationInput>= {
     filePath: string,
-    authenticator: Authenticator,
-    logger: Logger,
+    authenticator: Authenticator<I>,
 };
 
-export class TokenFileAuthenticator implements Authenticator {
+export class TokenFileAuthenticator<I extends AuthenticationInput> implements Authenticator<I> {
     private readonly filePath: string;
 
-    private readonly authenticator: Authenticator;
+    private readonly authenticator: Authenticator<I>;
 
-    private readonly logger: Logger;
-
-    public constructor({filePath, authenticator, logger}: TokenFileAuthenticatorConfig) {
+    public constructor({filePath, authenticator}: Configuration<I>) {
         this.filePath = filePath;
         this.authenticator = authenticator;
-        this.logger = logger;
     }
 
-    public async getToken(): Promise<string | null> {
+    public async getToken(): Promise<string|null> {
         try {
             return await readFile(this.filePath, 'utf-8');
         } catch {
@@ -30,16 +26,12 @@ export class TokenFileAuthenticator implements Authenticator {
         }
     }
 
-    public async login(): Promise<string> {
-        try {
-            return await readFile(this.filePath, 'utf-8');
-        } catch {
-            const token = await this.authenticator.login();
+    public async login(input: I): Promise<string> {
+        const token = await this.authenticator.login(input);
 
-            await this.saveToken(token);
+        await this.saveToken(token);
 
-            return token;
-        }
+        return token;
     }
 
     public async logout(): Promise<void> {
@@ -48,8 +40,14 @@ export class TokenFileAuthenticator implements Authenticator {
         try {
             await unlink(this.filePath);
         } catch (error) {
-            if (error.code !== 'ENOENT') {
-                this.logger.warn(`Failed to logout, check permissions for ${this.filePath}`);
+            if ((error instanceof Error) && 'code' in error && error.code !== 'ENOENT') {
+                throw new CliError(
+                    `Failed to logout, check permissions for ${this.filePath}`,
+                    {
+                        code: CliErrorCode.OTHER,
+                        cause: error,
+                    },
+                );
             }
         }
     }
@@ -61,8 +59,14 @@ export class TokenFileAuthenticator implements Authenticator {
             await mkdir(dir, {recursive: true});
 
             await writeFile(this.filePath, token, {flag: 'w', encoding: 'utf-8'});
-        } catch {
-            this.logger.warn(`Failed to save token, check permissions for ${dirname(this.filePath)}`);
+        } catch (cause) {
+            throw new CliError(
+                `Failed to save token, check permissions for ${dirname(this.filePath)}`,
+                {
+                    code: CliErrorCode.OTHER,
+                    cause: cause,
+                },
+            );
         }
     }
 }

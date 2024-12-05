@@ -1,6 +1,6 @@
 import {Version} from '@/application/project/version';
 
-export type ProjectConfiguration = {
+export type Configuration = {
     organization: string,
     workspace: string,
     applications: {
@@ -17,19 +17,13 @@ export type ProjectConfiguration = {
     },
 };
 
-export type ResolvedProjectConfiguration = ProjectConfiguration & {
+export type ResolvedConfiguration = Configuration & {
     organizationId: string,
     workspaceId: string,
-    applications: ProjectConfiguration['applications'] & {
+    applications: Configuration['applications'] & {
         developmentId: string,
         developmentPublicId: string,
         productionId: string,
         productionPublicId: string,
     },
 };
-
-export interface ProjectConfigurationManager {
-    load(): Promise<ProjectConfiguration|null>;
-    resolve(): Promise<ResolvedProjectConfiguration>;
-    update(configuration: ProjectConfiguration): Promise<void>;
-}

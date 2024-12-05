@@ -3,7 +3,14 @@ type Link = {
     description: string,
 };
 
+export enum CliErrorCode {
+    PRECONDITION = 'precondition',
+    INVALID_INPUT = 'invalid_input',
+    OTHER = 'other',
+}
+
 export type CliHelp = {
+    code?: CliErrorCode,
     cause?: any,
     suggestions?: string[],
     links?: Link[],
@@ -12,10 +19,13 @@ export type CliHelp = {
 export class CliError extends Error {
     public readonly help: Readonly<CliHelp>;
 
+    public readonly code: CliErrorCode;
+
     public constructor(message: string, troubleshooting: CliHelp = {}) {
         super(message);
 
         this.help = troubleshooting;
+        this.code = troubleshooting.code ?? CliErrorCode.OTHER;
 
         Object.setPrototypeOf(this, CliError.prototype);
     }

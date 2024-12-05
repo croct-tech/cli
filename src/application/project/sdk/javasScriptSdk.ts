@@ -3,7 +3,7 @@ import {mkdir, readFile, writeFile} from 'fs/promises';
 import {Installation, Sdk} from '@/application/project/sdk/sdk';
 import {JavaScriptProject} from '@/application/project/project';
 import {ApplicationPlatform, Slot} from '@/application/model/entities';
-import {ProjectConfiguration} from '@/application/project/configuration';
+import {Configuration as ProjectConfiguration} from '@/application/project/configuration/configuration';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {TargetSdk, WorkspaceApi} from '@/application/api/workspace';
 import {formatMessage} from '@/application/error';
@@ -92,12 +92,12 @@ export abstract class JavaScriptSdk implements Sdk {
 
         if (Object.keys(configuration.slots).length > 0) {
             tasks.push({
-                title: 'Update content',
+                title: 'Download content',
                 task: async notifier => {
                     try {
                         await this.updateContent(installation, notifier);
                     } catch (error) {
-                        notifier.alert('Failed to update content', formatMessage(error));
+                        notifier.alert('Failed to download content', formatMessage(error));
                     }
                 },
             });
@@ -105,53 +105,45 @@ export abstract class JavaScriptSdk implements Sdk {
 
         if (await this.project.isTypeScriptProject()) {
             tasks.push({
-                title: 'Update types',
+                title: 'Generate types',
                 task: async notifier => {
                     try {
                         await this.updateTypes(installation, notifier);
-                    } catch (error) {
-                        notifier.alert('Failed to update types', formatMessage(error));
-                    }
-                },
-            });
-
-            tasks.push({
-                title: 'Register type file',
-                task: async notifier => {
-                    try {
                         await this.registerTypeFile(notifier);
                     } catch (error) {
-                        notifier.alert('Failed to register type file', formatMessage(error));
+                        notifier.alert('Failed to generate types', formatMessage(error));
                     }
                 },
             });
         }
 
         tasks.push({
-            title: 'Register post-install hook',
+            title: 'Register script',
             task: async notifier => {
                 try {
-                    await this.registerNpmHookScript(notifier);
+                    await this.registerScript(notifier);
                 } catch (error) {
-                    notifier.alert('Failed to register NPM hook', formatMessage(error));
+                    notifier.alert('Failed to register script', formatMessage(error));
                 }
             },
         });
 
         if (tasks.length > 0) {
-            output.break();
-            output.inform('**Installation plan**');
+            if (input !== undefined) {
+                output.break();
+                output.inform('**Installation plan**');
 
-            for (const {title} of tasks) {
-                output.log(` - ${title}`);
-            }
+                for (const {title} of tasks) {
+                    output.log(` - ${title}`);
+                }
 
-            output.break();
+                output.break();
 
-            if (!await input.confirm({message: 'Proceed?', default: true})) {
-                output.alert('Installation aborted');
-
-                return output.exit();
+                if (!await input.confirm({message: 'Proceed?', default: true})) {
+                    return output.exit();
+                }
+            } else {
+                output.log('Installation in progress...');
             }
 
             await output.monitor({tasks: tasks});
@@ -336,7 +328,7 @@ export abstract class JavaScriptSdk implements Sdk {
         indicator.confirm('Types updated');
     }
 
-    private async registerNpmHookScript(notifier: TaskNotifier): Promise<void> {
+    private async registerScript(notifier: TaskNotifier): Promise<void> {
         const packageFile = this.project.getProjectPackagePath();
         const content = await readFile(packageFile, {encoding: 'utf-8'});
 
@@ -352,7 +344,7 @@ export abstract class JavaScriptSdk implements Sdk {
                 const value = postInstall.toJSON();
 
                 if (typeof value === 'string' && value.includes('croct install')) {
-                    return notifier.confirm('Hook already registered');
+                    return notifier.confirm('Script already registered');
                 }
 
                 command = `${value} && ${command}`;
@@ -370,7 +362,7 @@ export abstract class JavaScriptSdk implements Sdk {
             flag: 'w',
         });
 
-        notifier.confirm('Hook script registered');
+        notifier.confirm('Script registered');
     }
 
     private async registerTypeFile(notifier: TaskNotifier): Promise<void> {
