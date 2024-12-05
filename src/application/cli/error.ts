@@ -5,11 +5,13 @@ type Link = {
 
 export enum CliErrorCode {
     PRECONDITION = 'precondition',
+    ACCESS_DENIED = 'access_denied',
     INVALID_INPUT = 'invalid_input',
     OTHER = 'other',
 }
 
 export type CliHelp = {
+    title?: string,
     code?: CliErrorCode,
     cause?: any,
     suggestions?: string[],

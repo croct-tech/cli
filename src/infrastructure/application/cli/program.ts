@@ -80,6 +80,19 @@ function createProgram(interactive: boolean, cli?: Cli): typeof program {
             await cli?.install({});
         });
 
+    program.command('upgrade')
+        .description('Upgrade components and slots to the latest version.')
+        .option('-s, --slots <slots...>', 'Specify the slots to upgrade')
+        .option('-c, --components <components...>', 'Specify the components to upgrade')
+        .action(async options => {
+            await cli?.upgrade({
+                // The null coalescing operator is used to ensure that
+                // specifying --slots won't affect --components and vice versa
+                slots: options.slots ?? (options.components !== undefined ? [] : undefined),
+                components: options.components ?? (options.slots !== undefined ? [] : undefined),
+            });
+        });
+
     const addCommand = program.command('add')
         .description('Add a resource to your project.');
 

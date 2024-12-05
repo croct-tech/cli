@@ -59,7 +59,7 @@ export class CredentialsAuthenticator implements Authenticator<CredentialsInput>
             if (error instanceof ApiError) {
                 if (error.isAccessDenied(AccessDeniedReason.UNVERIFIED_USER)) {
                     throw new CliError('Email not verified', {
-                        code: CliErrorCode.INVALID_INPUT,
+                        code: CliErrorCode.ACCESS_DENIED,
                         cause: error,
                         suggestions: ['Access your email and click on the activation link'],
                     });
@@ -67,7 +67,7 @@ export class CredentialsAuthenticator implements Authenticator<CredentialsInput>
 
                 if (error.isAccessDenied(AccessDeniedReason.BAD_CREDENTIALS)) {
                     throw new CliError('Username or password is incorrect', {
-                        code: CliErrorCode.INVALID_INPUT,
+                        code: CliErrorCode.ACCESS_DENIED,
                         cause: error,
                         suggestions: ['Check your credentials or reset your password'],
                     });

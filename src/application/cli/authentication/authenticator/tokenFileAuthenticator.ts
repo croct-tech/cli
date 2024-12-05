@@ -42,7 +42,7 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
         } catch (error) {
             if ((error instanceof Error) && 'code' in error && error.code !== 'ENOENT') {
                 throw new CliError(
-                    `Failed to logout, check permissions for ${this.filePath}`,
+                    `Failed to logout, check file permissions for ${this.filePath}`,
                     {
                         code: CliErrorCode.OTHER,
                         cause: error,
@@ -61,7 +61,7 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
             await writeFile(this.filePath, token, {flag: 'w', encoding: 'utf-8'});
         } catch (cause) {
             throw new CliError(
-                `Failed to save token, check permissions for ${dirname(this.filePath)}`,
+                `Failed to save token, check file permissions for ${this.filePath}`,
                 {
                     code: CliErrorCode.OTHER,
                     cause: cause,

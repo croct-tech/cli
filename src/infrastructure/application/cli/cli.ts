@@ -60,12 +60,14 @@ import {NewConfigurationManager} from '@/application/project/configuration/manag
 import {InstallCommand, InstallInput} from '@/application/cli/command/install';
 import {PageForm} from '@/application/cli/form/page';
 import {NonInteractiveAuthenticator} from '@/application/cli/authentication/authenticator/nonInteractiveAuthenticator';
-import {CliErrorCode} from '@/application/cli/error';
+import {CliError, CliErrorCode} from '@/application/cli/error';
 import {NonInteractiveInput} from '@/infrastructure/application/cli/io/nonInteractiveInput';
 import {
     MultiAuthenticationInput,
     MultiAuthenticator,
 } from '@/application/cli/authentication/authenticator/multiAuthenticator';
+import {ApiError} from '@/application/api/error';
+import {UpgradeCommand, UpgradeInput} from '@/application/cli/command/upgrade';
 
 export type Configuration = {
     io: {
@@ -170,6 +172,32 @@ export class Cli {
                     output: this.getOutput(),
                     workspaceApi: this.getWorkspaceApi(),
                 }),
+                io: {
+                    input: this.getInput(),
+                    output: this.getOutput(),
+                },
+            }),
+            input,
+        );
+    }
+
+    public upgrade(input: UpgradeInput): Promise<void> {
+        return this.execute(
+            new UpgradeCommand({
+                sdkResolver: this.getSdkResolver(),
+                configurationManager: this.getConfigurationManager(),
+                form: {
+                    slotForm: new SlotForm({
+                        input: this.getFormInput(),
+                        output: this.getOutput(),
+                        workspaceApi: this.getWorkspaceApi(),
+                    }),
+                    componentForm: new ComponentForm({
+                        input: this.getFormInput(),
+                        output: this.getOutput(),
+                        workspaceApi: this.getWorkspaceApi(),
+                    }),
+                },
                 io: {
                     input: this.getInput(),
                     output: this.getOutput(),
@@ -648,9 +676,24 @@ export class Cli {
         } catch (error) {
             const output = this.getOutput();
 
-            output.report(error);
+            output.report(Cli.handleError(error));
 
             return output.exit();
         }
+    }
+
+    private static handleError(error: unknown): any {
+        if (error instanceof ApiError && error.isAccessDenied()) {
+            return new CliError(
+                'Your user lacks the necessary permissions to complete this operation.',
+                {
+                    code: CliErrorCode.ACCESS_DENIED,
+                    suggestions: ['Contact your organization or workspace administrator for assistance.'],
+                    cause: error,
+                },
+            );
+        }
+
+        return error;
     }
 }

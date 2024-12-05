@@ -117,55 +117,8 @@ export class ConsoleOutput implements Output {
     }
 
     private formatError(error: any): string {
-        let message = format(CliError.formatMessage(error));
-
-        const usefulLinks: CliHelp['links'] = [
-            {
-                description: 'Documentation',
-                link: 'https://docs.croct.io/sdk/cli',
-            },
-        ];
-
-        if (error instanceof CliError) {
-            const {suggestions, links} = error.help;
-
-            if (suggestions !== undefined) {
-                if (suggestions.length === 1) {
-                    message += `\n\n💡 ${format(suggestions[0])}`;
-                } else {
-                    message += `\n\n💡 ${chalk.bold('Suggestions:')}\n`;
-                    message += suggestions.map(suggestion => `  • ${format(suggestion)}`)
-                        .join('\n');
-                }
-            }
-
-            if (error.code === CliErrorCode.OTHER) {
-                usefulLinks.push({
-                    description: 'Report this issue',
-                    link: 'https://github.com/croct-tech/croct-cli/issues/new',
-                });
-            }
-
-            if (links !== undefined) {
-                usefulLinks.push(...links);
-            }
-        }
-
-        message += `\n\n🔗 ${chalk.bold('Useful links')}\n`;
-        message += usefulLinks.map(
-            ({description, link}) => ` • ${terminalLink(description, link, {
-                fallback: (text, url) => `${text}: ${url}`,
-            })}`,
-        )
-            .join('\n');
-
-        if (error instanceof Error && (!(error instanceof CliError) || error.code === CliErrorCode.OTHER)) {
-            message += `\n\n${chalk.bold('Details:')}\n`;
-            message += error.stack ?? error.message;
-        }
-
-        return boxen(message, {
-            title: 'Error',
+        return boxen(ConsoleOutput.formatErrorBody(error), {
+            title: ConsoleOutput.formatErrorTitle(error),
             titleAlignment: 'center',
             padding: {
                 top: 1,
@@ -176,6 +129,101 @@ export class ConsoleOutput implements Output {
             borderColor: 'red',
             borderStyle: 'round',
         });
+    }
+
+    private static formatErrorTitle(error: any): string {
+        if (!(error instanceof CliError)) {
+            return 'Unexpected error';
+        }
+
+        const titles: Record<CliErrorCode, string> = {
+            [CliErrorCode.INVALID_INPUT]: 'Invalid input',
+            [CliErrorCode.PRECONDITION]: 'Precondition failed',
+            [CliErrorCode.ACCESS_DENIED]: 'Access denied',
+            [CliErrorCode.OTHER]: 'Error',
+        };
+
+        return titles[error.code];
+    }
+
+    private static formatErrorBody(error: any): string {
+        let body = format(CliError.formatMessage(error));
+
+        if (error instanceof CliError) {
+            body += ConsoleOutput.formatErrorSuggestions(error);
+            body += ConsoleOutput.formatErrorUsefulLinks(error);
+        }
+
+        body += ConsoleOutput.formatErrorDetails(error);
+
+        return body;
+    }
+
+    private static formatErrorDetails(error: any): string {
+        let message = '';
+
+        if (error instanceof Error && (!(error instanceof CliError) || error.code === CliErrorCode.OTHER)) {
+            message += `\n\n${chalk.bold('Details:')}\n`;
+            message += error.stack ?? error.message;
+        }
+
+        return message;
+    }
+
+    private static formatErrorSuggestions(error: CliError): string {
+        const {suggestions} = error.help;
+        let message = '';
+
+        if (suggestions !== undefined && suggestions.length > 0) {
+            if (suggestions.length === 1) {
+                message += `\n\n💡 ${format(suggestions[0])}`;
+            } else {
+                message += `\n\n💡 ${chalk.bold('Suggestions:')}\n`;
+                message += suggestions.map(suggestion => `  • ${format(suggestion)}`)
+                    .join('\n');
+            }
+        }
+
+        return message;
+    }
+
+    private static formatErrorUsefulLinks(error: CliError): string {
+        const usefulLinks: CliHelp['links'] = [];
+        let message = '';
+
+        switch (error.code) {
+            case CliErrorCode.INVALID_INPUT:
+            case CliErrorCode.PRECONDITION:
+                usefulLinks.push({
+                    description: 'Documentation',
+                    link: 'https://docs.croct.io/sdk/cli',
+                });
+
+                break;
+
+            default:
+                usefulLinks.push({
+                    description: 'Report this issue',
+                    link: 'https://github.com/croct-tech/croct-cli/issues/new',
+                });
+
+                break;
+        }
+
+        if (error.help.links !== undefined) {
+            usefulLinks.push(...error.help.links);
+        }
+
+        if (usefulLinks.length > 0) {
+            message += `\n\n🔗 ${chalk.bold('Useful links')}\n`;
+            message += usefulLinks.map(
+                ({description, link}) => ` • ${terminalLink(description, link, {
+                    fallback: (text, url) => `${text}: ${url}`,
+                })}`,
+            ).join('\n');
+        }
+
+        return message;
     }
 
     private write(text: string, critical = false): void {
