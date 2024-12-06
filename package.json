@@ -28,7 +28,7 @@
     "test": "jest -c jest.config.js --coverage",
     "validate": "tsc --noEmit",
     "build": "tsup",
-    "graphql-codegen": "graphql-codegen --config codegen.ts",
+    "graphql-codegen": "graphql-codegen --config codegen.ts"
   },
   "dependencies": {
     "@antfu/install-pkg": "^0.4.1",
