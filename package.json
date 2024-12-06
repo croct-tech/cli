@@ -29,7 +29,6 @@
     "validate": "tsc --noEmit",
     "build": "tsup",
     "graphql-codegen": "graphql-codegen --config codegen.ts",
-    "postinstall": "croct install"
   },
   "dependencies": {
     "@antfu/install-pkg": "^0.4.1",
