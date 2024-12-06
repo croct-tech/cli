@@ -1626,50 +1626,76 @@ describe('Functional test', () => {
             },
         },
         {
-            description: 'use formatting of the last object when adding a new property to an empty object',
+            description: 'use add a property to an empty object preserving the leading and trailing spaces',
             // language=JSON
             input: multiline`
             {
-              "foo": {
-                "baz": 2
-              },
-              "qux": {
             
+            }`,
+            // language=JSON
+            output: multiline`
+            {
+            "foo": 1
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('foo', 1);
+            },
+        },
+        {
+            description: 'add an element to an empty array preserving the leading and trailing spaces',
+            // language=JSON
+            input: multiline`
+            [
+            
+            ]`,
+            // language=JSON
+            output: multiline`
+            [
+            1
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(1);
+            },
+        },
+        {
+            description: 'preserve the indentation of an empty object when adding a property',
+            // language=JSON
+            input: multiline`
+            {
+              "foo": 1,
+              "bar": {
+              
               }
             }`,
             // language=JSON
             output: multiline`
             {
-              "foo": {
+              "foo": 1,
+              "bar": {
                 "baz": 2
-              },
-              "qux": {
-                "bar": 1
               }
             }`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
-                node.get('qux', JsonObjectNode).set('bar', 1);
+                node.get('bar', JsonObjectNode).set('baz', 2);
             },
         },
         {
-            description: 'use the formatting of the last array when adding a new element to an empty array',
+            description: 'preserve the indentation of an empty array when adding an element',
             // language=JSON
             input: multiline`
             [
+              1,
               [
-                1
-              ],
-              [
-            
+              
               ]
             ]`,
             // language=JSON
             output: multiline`
             [
-              [
-                1  
-              ],
+              1,
               [
                 2
               ]
@@ -1677,6 +1703,160 @@ describe('Functional test', () => {
             type: JsonArrayNode,
             mutation: (node: JsonArrayNode): void => {
                 node.get(1, JsonArrayNode).push(2);
+            },
+        },
+        {
+            description: 'add a property to an empty object using the specified indentation',
+            // language=JSON
+            input: multiline`
+            {
+            
+            }`,
+            // language=JSON
+            output: multiline`
+            {
+              "foo": 1
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('foo', 1);
+            },
+            format: {
+                brace: {
+                    indentationSize: 2,
+                },
+            },
+        },
+        {
+            description: 'add a property to an empty object using the specified indentation',
+            // language=JSON
+            input: multiline`
+            [
+            
+            ]`,
+            // language=JSON
+            output: multiline`
+            [
+              1
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(1);
+            },
+            format: {
+                brace: {
+                    indentationSize: 2,
+                },
+            },
+        },
+        {
+            description: 'collapse multiple lines adding a property to an empty object',
+            // language=JSON
+            input: multiline`
+            {
+            
+            
+            }`,
+            // language=JSON
+            output: multiline`
+            {
+            "foo": 1
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('foo', 1);
+            },
+        },
+        {
+            description: 'collapse multiple lines adding a property to an empty array',
+            // language=JSON
+            input: multiline`
+            [
+            
+            
+            ]`,
+            // language=JSON
+            output: multiline`
+            [
+            1
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(1);
+            },
+        },
+        {
+            description: 'collapse multiple lines with partial indentation adding a property to an empty object',
+            // language=JSON
+            input: multiline`
+            {
+              
+            
+            }`,
+            // language=JSON
+            output: multiline`
+            {
+              "foo": 1
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('foo', 1);
+            },
+        },
+        {
+            description: 'collapse multiple lines with partial indentation adding a property to an empty array',
+            // language=JSON
+            input: multiline`
+            [
+              
+            
+            ]`,
+            // language=JSON
+            output: multiline`
+            [
+              1
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(1);
+            },
+        },
+        {
+            description: 'preserve last line of empty object with full indentation when adding a property',
+            // language=JSON
+            input: multiline`
+            {
+              
+              
+            }`,
+            // language=JSON
+            output: multiline`
+            {
+              "foo": 1
+              
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('foo', 1);
+            },
+        },
+        {
+            description: 'preserve last line of empty array with full indentation when adding an element',
+            // language=JSON
+            input: multiline`
+            [
+              
+              
+            ]`,
+            // language=JSON
+            output: multiline`
+            [
+              1
+              
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(1);
             },
         },
     ])('should $description', ({input, output, type, mutation, format}) => {

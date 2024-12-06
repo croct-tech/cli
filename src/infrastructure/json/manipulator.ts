@@ -107,7 +107,7 @@ export class NodeManipulator {
         return this.findNext(matcher, skipped) >= 0;
     }
 
-    public findNext(matcher: NodeMatcher, skipper = NodeMatcher.SPACE): number {
+    public findNext(matcher: NodeMatcher, skipper: NodeMatcher = NodeMatcher.SPACE): number {
         let matchIndex = -1;
         const previousPosition = this.index;
 
