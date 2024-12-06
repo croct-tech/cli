@@ -1,5 +1,3 @@
-import {Version} from '@/application/project/version';
-
 export type Configuration = {
     organization: string,
     workspace: string,
@@ -9,8 +7,8 @@ export type Configuration = {
     },
     defaultLocale: string,
     locales: string[],
-    slots: Record<string, Version>,
-    components: Record<string, Version>,
+    slots: Record<string, string>,
+    components: Record<string, string>,
     paths: {
         components: string,
         examples: string,
@@ -27,3 +25,15 @@ export type ResolvedConfiguration = Configuration & {
         productionPublicId: string,
     },
 };
+
+export class ConfigurationError extends Error {
+    public details: string[];
+
+    public constructor(message: string, details: string[] = []) {
+        super(message);
+
+        this.details = details;
+
+        Object.setPrototypeOf(this, ConfigurationError.prototype);
+    }
+}

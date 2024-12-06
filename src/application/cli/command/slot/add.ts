@@ -5,7 +5,6 @@ import {Installation, SdkResolver} from '@/application/project/sdk/sdk';
 import {Form} from '@/application/cli/form/form';
 import {Slot} from '@/application/model/entities';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
-import {Version} from '@/application/project/version';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {CliError, CliErrorCode} from '@/application/cli/error';
 import {Configuration as ProjectConfiguration} from '@/application/project/configuration/configuration';
@@ -53,7 +52,7 @@ export class AddSlotCommand implements Command<AddSlotInput> {
                 ...configuration,
                 slots: {
                     ...configuration.slots,
-                    ...Object.fromEntries(slots.map(slot => [slot.slug, Version.of(slot.version.major)])),
+                    ...Object.fromEntries(slots.map(slot => [slot.slug, `${slot.version.major}`])),
                 },
             },
         };

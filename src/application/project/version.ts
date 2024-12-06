@@ -11,6 +11,16 @@ export class Version {
         this.versions = versions ?? [];
     }
 
+    public static isValid(version: string): boolean {
+        try {
+            Version.parse(version);
+
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
     /**
      * Creates a new major version pattern from the given limits.
      *
@@ -101,19 +111,11 @@ export class Version {
     }
 
     public getMinVersion(): number {
-        if (this.min === undefined && this.versions.length !== 1) {
-            throw new Error('Undetermined minimum version.');
-        }
-
-        return this.min ?? this.versions[0];
+        return this.min ?? Math.min(...this.versions);
     }
 
     public getMaxVersion(): number {
-        if (this.max === undefined && this.versions.length !== 1) {
-            throw new Error('Undetermined maximum version.');
-        }
-
-        return this.max ?? this.versions[0];
+        return this.max ?? Math.max(...this.versions);
     }
 
     public getVersions(): readonly number[] {

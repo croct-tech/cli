@@ -138,6 +138,7 @@ export class ConsoleOutput implements Output {
 
         const titles: Record<CliErrorCode, string> = {
             [CliErrorCode.INVALID_INPUT]: 'Invalid input',
+            [CliErrorCode.INVALID_CONFIGURATION]: 'Invalid configuration',
             [CliErrorCode.PRECONDITION]: 'Precondition failed',
             [CliErrorCode.ACCESS_DENIED]: 'Access denied',
             [CliErrorCode.OTHER]: 'Error',
@@ -162,8 +163,16 @@ export class ConsoleOutput implements Output {
     private static formatErrorDetails(error: any): string {
         let message = '';
 
-        if (error instanceof Error && (!(error instanceof CliError) || error.code === CliErrorCode.OTHER)) {
-            message += `\n\n${chalk.bold('Details:')}\n`;
+        const title = `\n\n${chalk.bold('Details:')}\n`;
+
+        if (error instanceof CliError && error.help.details !== undefined) {
+            message += title;
+            message += error.help
+                .details
+                .map(detail => ` • ${format(detail)}`)
+                .join('\n');
+        } else if (error instanceof Error && (!(error instanceof CliError) || error.code === CliErrorCode.OTHER)) {
+            message += title;
             message += error.stack ?? error.message;
         }
 
@@ -199,6 +208,9 @@ export class ConsoleOutput implements Output {
                     link: 'https://docs.croct.io/sdk/cli',
                 });
 
+                break;
+
+            case CliErrorCode.INVALID_CONFIGURATION:
                 break;
 
             default:

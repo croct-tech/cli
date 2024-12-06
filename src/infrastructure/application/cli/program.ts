@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import {Command, Option} from '@commander-js/extra-typings';
 import XDGAppPaths from 'xdg-app-paths';
 import * as process from 'node:process';

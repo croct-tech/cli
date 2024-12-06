@@ -3,14 +3,18 @@ import {mkdir, readFile, writeFile} from 'fs/promises';
 import {Installation, Sdk} from '@/application/project/sdk/sdk';
 import {JavaScriptProject} from '@/application/project/project';
 import {ApplicationPlatform, Slot} from '@/application/model/entities';
-import {Configuration as ProjectConfiguration} from '@/application/project/configuration/configuration';
+import {
+    Configuration as ProjectConfiguration,
+    ResolvedConfiguration,
+} from '@/application/project/configuration/configuration';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
-import {TargetSdk, WorkspaceApi} from '@/application/api/workspace';
+import {LocalizedContent, TargetSdk, WorkspaceApi} from '@/application/api/workspace';
 import {formatMessage} from '@/application/error';
-import {JsonParser, JsonArrayNode, JsonObjectNode} from '@/infrastructure/json';
+import {JsonArrayNode, JsonObjectNode, JsonParser} from '@/infrastructure/json';
 import {formatName} from '@/application/project/utils/formatName';
 import {ExampleFile} from '@/application/project/example/example';
 import {Linter} from '@/application/project/linter';
+import {Version} from '@/application/project/version';
 
 export type InstallationPlan = {
     tasks: Task[],
@@ -21,6 +25,11 @@ export type Configuration = {
     project: JavaScriptProject,
     workspaceApi: WorkspaceApi,
     linter: Linter,
+};
+
+type VersionedContent = {
+    version: number,
+    list: LocalizedContent[],
 };
 
 export abstract class JavaScriptSdk implements Sdk {
@@ -199,14 +208,16 @@ export abstract class JavaScriptSdk implements Sdk {
     }
 
     public async updateContent(installation: Installation, notifier?: TaskNotifier): Promise<void> {
-        const {configuration, output} = installation;
+        const {output} = installation;
+        const indicator = notifier ?? output.notify('Updating content');
+
+        const configuration = await this.resolveVersions(installation.configuration);
         const slots = Object.entries(configuration.slots);
 
         if (slots.length === 0) {
             return;
         }
 
-        const indicator = notifier ?? output.notify('Updating content');
         const packageInfo = await this.project.getPackageInfo(JavaScriptSdk.CONTENT_PACKAGE);
 
         if (packageInfo === null) {
@@ -215,16 +226,30 @@ export abstract class JavaScriptSdk implements Sdk {
             return;
         }
 
-        const contentList = await Promise.all(slots.map(
-            ([slot, version]) => this.workspaceApi.getSlotStaticContent(
-                {
-                    organizationSlug: configuration.organization,
-                    workspaceSlug: configuration.workspace,
-                    slotSlug: slot,
-                },
-                version.getMaxVersion(),
-            ),
-        ));
+        const contentList = await Promise.all(
+            slots.flatMap(([slot, versionSpecifier]) => {
+                const constraint = Version.parse(versionSpecifier);
+                const versions = constraint.getVersions();
+
+                return versions.map(
+                    (version): Promise<VersionedContent|null> => this.workspaceApi
+                        .getSlotStaticContent(
+                            {
+                                organizationSlug: configuration.organization,
+                                workspaceSlug: configuration.workspace,
+                                slotSlug: slot,
+                            },
+                            version,
+                        )
+                        .then(
+                            (content): VersionedContent => ({
+                                version: version,
+                                list: content,
+                            }),
+                        ),
+                );
+            }),
+        );
 
         const directoryPath = join(packageInfo.path, 'slot');
 
@@ -234,10 +259,15 @@ export abstract class JavaScriptSdk implements Sdk {
         const indexes: Record<string, string[]> = {};
 
         for (let index = 0; index < slots.length; index++) {
-            const [slot, version] = slots[index];
+            const [slot] = slots[index];
+            const versionedContent = contentList[index];
 
-            for (const {locale, content} of contentList[index]) {
-                const baseName = `${slot}@${version}`;
+            if (versionedContent === null) {
+                continue;
+            }
+
+            for (const {locale, content} of versionedContent.list) {
+                const baseName = `${slot}@${versionedContent.version}`;
 
                 indexes[locale] = [...indexes[locale] ?? [], baseName];
 
@@ -278,11 +308,13 @@ export abstract class JavaScriptSdk implements Sdk {
     }
 
     public async updateTypes(installation: Installation, notifier?: TaskNotifier): Promise<void> {
-        const {configuration, output} = installation;
-        const slots = Object.entries(configuration.slots);
-        const components = Object.entries(configuration.components);
+        const {output} = installation;
 
         const indicator = notifier ?? output.notify('Updating types');
+
+        const configuration = await this.resolveVersions(installation.configuration);
+        const slots = Object.entries(configuration.slots);
+        const components = Object.entries(configuration.components);
 
         const packageInfo = await this.project.getPackageInfo(JavaScriptSdk.CONTENT_PACKAGE);
 
@@ -405,6 +437,65 @@ export abstract class JavaScriptSdk implements Sdk {
         });
 
         notifier.confirm('Type file registered');
+    }
+
+    private async resolveVersions(configuration: ResolvedConfiguration): Promise<ResolvedConfiguration> {
+        const listedComponents = Object.keys(configuration.components);
+        const listedSlots = Object.keys(configuration.slots);
+
+        if (listedComponents.length === 0 && listedSlots.length === 0) {
+            return configuration;
+        }
+
+        const [slots, components] = await Promise.all([
+            this.workspaceApi.getSlots({
+                organizationSlug: configuration.organization,
+                workspaceSlug: configuration.workspace,
+            }),
+            this.workspaceApi.getComponents({
+                organizationSlug: configuration.organization,
+                workspaceSlug: configuration.workspace,
+            }),
+        ]);
+
+        return {
+            ...configuration,
+            components: Object.fromEntries(
+                Object.entries(configuration.components).flatMap<[string, string]>(([slug, version]) => {
+                    const versions = Version.parse(version)
+                        .getVersions()
+                        .filter(
+                            major => components.some(
+                                component => component.slug === slug
+                                    && component.version.major === major,
+                            ),
+                        );
+
+                    if (versions.length === 0) {
+                        return [];
+                    }
+
+                    return [[slug, Version.either(...versions).toString()]];
+                }),
+            ),
+            slots: Object.fromEntries(
+                Object.entries(configuration.slots).flatMap<[string, string]>(([slug, version]) => {
+                    const versions = Version.parse(version)
+                        .getVersions()
+                        .filter(
+                            major => slots.some(
+                                slot => slot.slug === slug && slot.version.major === major,
+                            ),
+                        );
+
+                    if (versions.length === 0) {
+                        return [];
+                    }
+
+                    return [[slug, Version.either(...versions).toString()]];
+                }),
+            ),
+        };
     }
 
     private static getTypeFile(path: string): string {

@@ -15,7 +15,6 @@ import {OrganizationOptions} from '@/application/cli/form/organization/organizat
 import {ApplicationOptions} from '@/application/cli/form/application/applicationForm';
 import {WorkspaceOptions} from '@/application/cli/form/workspace/workspaceForm';
 import {Form} from '@/application/cli/form/form';
-import {Version} from '@/application/project/version';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {UserApi} from '@/application/api/user';
 import {OrganizationApi} from '@/application/api/organization';
@@ -241,7 +240,7 @@ export class InitCommand implements Command<InitInput> {
         return application;
     }
 
-    private async getSlots(organizationSlug: string, workspaceSlug: string): Promise<Record<string, Version>> {
+    private async getSlots(organizationSlug: string, workspaceSlug: string): Promise<Record<string, string>> {
         const {api, io: {output}} = this.config;
 
         const notifier = output.notify('Loading slots');
@@ -253,7 +252,7 @@ export class InitCommand implements Command<InitInput> {
 
         notifier.stop();
 
-        return Object.fromEntries(slots.map(slot => [slot.slug, Version.of(slot.version.major)]));
+        return Object.fromEntries(slots.map(slot => [slot.slug, `${slot.version.major}`]));
     }
 
     private async configure(sdk: Sdk, configuration: ResolvedConfiguration): Promise<Configuration> {

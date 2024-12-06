@@ -8,7 +8,6 @@ import {
 } from '@/application/project/configuration/configuration';
 import {Form} from '@/application/cli/form/form';
 import {Component} from '@/application/model/entities';
-import {Version} from '@/application/project/version';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {CliError, CliErrorCode} from '@/application/cli/error';
@@ -53,7 +52,7 @@ export class AddComponentCommand implements Command<AddComponentInput> {
             components: {
                 ...configuration.components,
                 ...Object.fromEntries(
-                    components.map(component => [component.slug, Version.of(component.version.major)]),
+                    components.map(component => [component.slug, `${component.version.major}`]),
                 ),
             },
         };

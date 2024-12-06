@@ -50,7 +50,7 @@ export class SignInForm implements Form<Token, SignInOptions> {
         let initialPassword = password;
 
         while (action === Action.RETRY_PASSWORD) {
-            const password = initialPassword ?? await PasswordInput.prompt({
+            const enteredPassword = initialPassword ?? await PasswordInput.prompt({
                 input: input,
                 label: 'Password',
             });
@@ -62,7 +62,7 @@ export class SignInForm implements Form<Token, SignInOptions> {
             try {
                 const token = await userApi.issueToken({
                     email: email,
-                    password: password,
+                    password: enteredPassword,
                 });
 
                 notifier.confirm('Logged in');

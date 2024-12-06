@@ -1,4 +1,4 @@
-import {Confirmation, Input, MultipleSelection, Prompt, Selection} from '@/application/cli/io/input';
+import {Input} from '@/application/cli/io/input';
 import {CliError, CliHelp} from '@/application/cli/error';
 
 export type Instruction = CliHelp & {
@@ -12,19 +12,19 @@ export class NonInteractiveInput implements Input {
         this.instruction = instruction;
     }
 
-    public prompt(_: Prompt): Promise<string> {
+    public prompt(): Promise<string> {
         return this.report();
     }
 
-    public select<T>(_: Selection<T>): Promise<T> {
+    public select<T>(): Promise<T> {
         return this.report();
     }
 
-    public selectMultiple<T>(_: MultipleSelection<T>): Promise<T[]> {
+    public selectMultiple<T>(): Promise<T[]> {
         return this.report();
     }
 
-    public confirm(_: Confirmation): Promise<boolean> {
+    public confirm(): Promise<boolean> {
         return this.report();
     }
 

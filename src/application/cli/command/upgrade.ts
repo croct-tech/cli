@@ -5,7 +5,6 @@ import {SdkResolver} from '@/application/project/sdk/sdk';
 import {Form} from '@/application/cli/form/form';
 import {Component, Slot} from '@/application/model/entities';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
-import {Version} from '@/application/project/version';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {CliError, CliErrorCode} from '@/application/cli/error';
 import {
@@ -13,6 +12,7 @@ import {
     ResolvedConfiguration,
 } from '@/application/project/configuration/configuration';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
+import {Version} from '@/application/project/version';
 
 export type UpgradeInput = {
     slots?: string[],
@@ -51,12 +51,28 @@ export class UpgradeCommand implements Command<UpgradeInput> {
             ...configuration,
             slots: {
                 ...configuration.slots,
-                ...Object.fromEntries(slots.map(slot => [slot.slug, Version.of(slot.version.major)])),
+                ...Object.fromEntries(slots.map(
+                    slot => [
+                        slot.slug,
+                        UpgradeCommand.resolveVersion(
+                            slot.version.major,
+                            configuration.slots[slot.slug],
+                        ),
+                    ],
+                )),
             },
             components: {
                 ...configuration.components,
                 ...Object.fromEntries(
-                    components.map(component => [component.slug, Version.of(component.version.major)]),
+                    components.map(
+                        component => [
+                            component.slug,
+                            UpgradeCommand.resolveVersion(
+                                component.version.major,
+                                configuration.components[component.slug],
+                            ),
+                        ],
+                    ),
                 ),
             },
         };
@@ -124,5 +140,29 @@ export class UpgradeCommand implements Command<UpgradeInput> {
         }
 
         return slots;
+    }
+
+    private static resolveVersion(latestVersion: number, currentVersion?: string): string {
+        const latest = Version.of(latestVersion);
+
+        if (currentVersion === undefined) {
+            return latest.toString();
+        }
+
+        const current = Version.parse(currentVersion);
+
+        if (current.isExact()) {
+            return latest.toString();
+        }
+
+        if (current.isRange()) {
+            if (current.getMaxVersion() >= latest.getMaxVersion()) {
+                return currentVersion;
+            }
+
+            return Version.between(current.getMinVersion(), latest.getMaxVersion()).toString();
+        }
+
+        return Version.either(...current.getVersions(), ...latest.getVersions()).toString();
     }
 }

@@ -68,6 +68,7 @@ import {
 } from '@/application/cli/authentication/authenticator/multiAuthenticator';
 import {ApiError} from '@/application/api/error';
 import {UpgradeCommand, UpgradeInput} from '@/application/cli/command/upgrade';
+import {ConfigurationError} from '@/application/project/configuration/configuration';
 
 export type Configuration = {
     io: {
@@ -689,6 +690,18 @@ export class Cli {
                 {
                     code: CliErrorCode.ACCESS_DENIED,
                     suggestions: ['Contact your organization or workspace administrator for assistance.'],
+                    cause: error,
+                },
+            );
+        }
+
+        if (error instanceof ConfigurationError) {
+            return new CliError(
+                error.message,
+                {
+                    code: CliErrorCode.INVALID_CONFIGURATION,
+                    details: error.details,
+                    suggestions: ['Run `init` to create a new configuration.'],
                     cause: error,
                 },
             );
