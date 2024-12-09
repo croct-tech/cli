@@ -16,10 +16,21 @@ const localeSchema = z.string().regex(
     'Locale must be in the form of en, en_US, or en-US.',
 );
 
-const versionSchema = z.string().refine(
-    Version.isValid,
-    'Version must a exact (1), range (1 - 2), or union (1 || 2).',
-);
+const versionSchema = z.string()
+    .refine(
+        Version.isValid,
+        'Version must be exact (1), range (1 - 2), or set (1 || 2).',
+    )
+    .refine(
+        version => {
+            try {
+                return Version.parse(version).getCardinality() <= 5;
+            } catch {
+                return false;
+            }
+        },
+        'Version range must not exceed 5 major versions.',
+    );
 
 const ConfigurationSchema = z.object({
     organization: identifierSchema,

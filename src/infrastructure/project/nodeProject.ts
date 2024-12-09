@@ -2,7 +2,7 @@ import {getPackageInfo, isPackageListed} from 'local-pkg';
 import {installPackage} from '@antfu/install-pkg';
 import {createMatchPathAsync, loadConfig} from 'tsconfig-paths';
 import {resolve as resolvePath, relative, join, isAbsolute} from 'path';
-import {access, readFile} from 'fs/promises';
+import {access, readFile, lstat} from 'fs/promises';
 import {JavaScriptProject, PackageInfo, PackageInstallationOptions} from '@/application/project/project';
 
 type Configuration = {
@@ -97,10 +97,24 @@ export class NodeProject implements JavaScriptProject {
             return null;
         }
 
+        let packagePath = info.rootPath;
+
+        try {
+            // Package info does not preserve symlinks
+            const path = join(this.configuration.directory, 'node_modules', packageName);
+            const folder = await lstat(path);
+
+            if (folder.isSymbolicLink()) {
+                packagePath = path;
+            }
+        } catch {
+            // Ignore errors
+        }
+
         return {
             name: info.name,
             version: info.version ?? null,
-            path: info.rootPath,
+            path: packagePath,
             metadata: info.packageJson,
         };
     }

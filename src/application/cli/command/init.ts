@@ -142,7 +142,7 @@ export class InitCommand implements Command<InitInput> {
                     developmentPublicId: devApplication.publicId,
                 },
                 defaultLocale: workspace.defaultLocale,
-                locales: [workspace.defaultLocale],
+                locales: workspace.locales,
                 slots: {},
                 components: {},
                 paths: {

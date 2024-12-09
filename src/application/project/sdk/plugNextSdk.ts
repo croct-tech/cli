@@ -148,6 +148,13 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
     protected async getInstallationPlan(installation: Installation): Promise<InstallationPlan> {
         const {configuration} = installation;
         const [{i18n}, projectInfo] = await Promise.all([this.getConfig(), this.getProjectInfo()]);
+        const filteredLocales = configuration.locales.filter(
+            locale => i18n.locales.includes(locale) || locale === configuration.defaultLocale,
+        );
+        const locales = filteredLocales.length > 0 ? filteredLocales : i18n.locales;
+        const defaultLocale = i18n.defaultLocale !== undefined && locales.includes(i18n.defaultLocale)
+            ? i18n.defaultLocale
+            : configuration.defaultLocale;
 
         return {
             tasks: this.getInstallationTasks({
@@ -156,7 +163,8 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
             }),
             configuration: {
                 ...configuration,
-                locales: configuration.locales.filter(locale => i18n.locales.includes(locale)),
+                locales: locales,
+                defaultLocale: defaultLocale,
                 paths: {
                     ...configuration.paths,
                     examples: projectInfo.pageDirectory,

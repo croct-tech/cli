@@ -96,6 +96,7 @@ export class SignUpForm implements Form<Token, SignUpOptions> {
                     },
                     {
                         title: 'Waiting for confirmation',
+                        subtitle: 'Check your email for the confirmation link',
                         task: async (notifier): Promise<void> => {
                             const token = await listener.wait(await sessionId);
 

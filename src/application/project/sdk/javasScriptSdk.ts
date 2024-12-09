@@ -1,7 +1,15 @@
-import {dirname, join, relative} from 'path';
-import {mkdir, readFile, writeFile} from 'fs/promises';
+import {dirname, join, relative, resolve} from 'path';
+import {
+    mkdir,
+    readFile,
+    writeFile,
+    lstat,
+    realpath,
+    unlink,
+    cp,
+} from 'fs/promises';
 import {Installation, Sdk} from '@/application/project/sdk/sdk';
-import {JavaScriptProject} from '@/application/project/project';
+import {JavaScriptProject, PackageInfo} from '@/application/project/project';
 import {ApplicationPlatform, Slot} from '@/application/model/entities';
 import {
     Configuration as ProjectConfiguration,
@@ -215,10 +223,12 @@ export abstract class JavaScriptSdk implements Sdk {
         const slots = Object.entries(configuration.slots);
 
         if (slots.length === 0) {
+            indicator.confirm('No content to update');
+
             return;
         }
 
-        const packageInfo = await this.project.getPackageInfo(JavaScriptSdk.CONTENT_PACKAGE);
+        const packageInfo = await this.mountContentPackageFolder();
 
         if (packageInfo === null) {
             indicator.alert(`The package ${JavaScriptSdk.CONTENT_PACKAGE} is not installed`);
@@ -316,7 +326,7 @@ export abstract class JavaScriptSdk implements Sdk {
         const slots = Object.entries(configuration.slots);
         const components = Object.entries(configuration.components);
 
-        const packageInfo = await this.project.getPackageInfo(JavaScriptSdk.CONTENT_PACKAGE);
+        const packageInfo = await this.mountContentPackageFolder();
 
         if (packageInfo === null) {
             indicator.alert(`The package ${JavaScriptSdk.CONTENT_PACKAGE} is not installed`);
@@ -400,7 +410,7 @@ export abstract class JavaScriptSdk implements Sdk {
     private async registerTypeFile(notifier: TaskNotifier): Promise<void> {
         const [configPath, packageInfo] = await Promise.all([
             this.project.getTypeScriptConfigPath(),
-            this.project.getPackageInfo(JavaScriptSdk.CONTENT_PACKAGE),
+            this.mountContentPackageFolder(),
         ]);
 
         if (configPath === null) {
@@ -467,7 +477,7 @@ export abstract class JavaScriptSdk implements Sdk {
                         .filter(
                             major => components.some(
                                 component => component.slug === slug
-                                    && component.version.major === major,
+                                    && major <= component.version.major,
                             ),
                         );
 
@@ -484,7 +494,8 @@ export abstract class JavaScriptSdk implements Sdk {
                         .getVersions()
                         .filter(
                             major => slots.some(
-                                slot => slot.slug === slug && slot.version.major === major,
+                                slot => slot.slug === slug
+                                    && major <= slot.version.major,
                             ),
                         );
 
@@ -496,6 +507,31 @@ export abstract class JavaScriptSdk implements Sdk {
                 }),
             ),
         };
+    }
+
+    private async mountContentPackageFolder(): Promise<PackageInfo|null> {
+        const packageInfo = await this.project.getPackageInfo(JavaScriptSdk.CONTENT_PACKAGE);
+
+        if (packageInfo === null) {
+            return null;
+        }
+
+        const stats = await lstat(packageInfo.path);
+
+        if (stats.isSymbolicLink()) {
+            // Package managers like PNPM create symlinks to the global cache.
+            // Because the content is project-specific, create a local copy of the package
+            // to avoid conflicts with other projects.
+            const realPath = await realpath(packageInfo.path);
+
+            await unlink(packageInfo.path);
+
+            const localFolder = resolve(packageInfo.path);
+
+            await cp(realPath, localFolder, {recursive: true});
+        }
+
+        return packageInfo;
     }
 
     private static getTypeFile(path: string): string {
