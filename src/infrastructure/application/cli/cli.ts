@@ -213,6 +213,7 @@ export class Cli {
             new AddSlotCommand({
                 sdkResolver: this.getSdkResolver(),
                 configurationManager: this.getConfigurationManager(),
+                workspaceApi: this.getWorkspaceApi(),
                 slotForm: new SlotForm({
                     input: this.getFormInput(),
                     output: this.getOutput(),

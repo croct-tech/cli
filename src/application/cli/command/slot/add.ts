@@ -9,6 +9,7 @@ import {ConfigurationManager} from '@/application/project/configuration/manager/
 import {CliError, CliErrorCode} from '@/application/cli/error';
 import {Configuration as ProjectConfiguration} from '@/application/project/configuration/configuration';
 import {Version} from '@/application/project/version';
+import {WorkspaceApi} from '@/application/api/workspace';
 
 export type AddSlotInput = {
     slots?: string[],
@@ -19,6 +20,7 @@ export type AddSlotConfig = {
     sdkResolver: SdkResolver,
     configurationManager: ConfigurationManager,
     slotForm: Form<Slot[], SlotOptions>,
+    workspaceApi: WorkspaceApi,
     io: {
         input?: Input,
         output: Output,
@@ -55,7 +57,7 @@ export class AddSlotCommand implements Command<AddSlotInput> {
                 ...configuration,
                 slots: {
                     ...configuration.slots,
-                    ...Object.fromEntries(slots.map(([slot, version]) => [slot, `${version}`])),
+                    ...Object.fromEntries(slots.map(([slot, version]) => [slot.slug, version.toString()])),
                 },
             },
         };
@@ -76,7 +78,7 @@ export class AddSlotCommand implements Command<AddSlotInput> {
     }
 
     private async getSlots(configuration: ProjectConfiguration, input: AddSlotInput): Promise<VersionedSlot[]> {
-        const {slotForm} = this.config;
+        const {slotForm, workspaceApi} = this.config;
 
         const versionedSlots = input.slots === undefined
             ? undefined
@@ -89,9 +91,15 @@ export class AddSlotCommand implements Command<AddSlotInput> {
                     }
 
                     if (!Version.isValid(version)) {
-                        throw new CliError(`Invalid version \`${version}\` for slot \`${slug}\``, {
-                            code: CliErrorCode.INVALID_INPUT,
-                        });
+                        throw new CliError(
+                            `Invalid version specifier \`${version}\` for slot \`${slug}\`.`,
+                            {
+                                code: CliErrorCode.INVALID_INPUT,
+                                suggestions: [
+                                    'Version must be exact (i.e. `1`), range (i.e. `1 - 2`), or set (i.e. `1 || 2`).',
+                                ],
+                            },
+                        );
                     }
 
                     return [slug, Version.parse(version)];
@@ -116,6 +124,40 @@ export class AddSlotCommand implements Command<AddSlotInput> {
             });
         }
 
-        return slots.map(slot => [slot, versionedSlots?.[slot.slug] ?? Version.of(slot.version.major)]);
+        return Promise.all(slots.map(async slot => {
+            const version = versionedSlots?.[slot.slug];
+
+            if (version === undefined || version.getMaxVersion() === slot.version.major) {
+                return [slot, version ?? Version.of(slot.version.major)];
+            }
+
+            if (version.getMinVersion() > slot.version.major) {
+                throw new CliError(
+                    `No matching version for slot \`${slot.slug}\`.`,
+                    {
+                        code: CliErrorCode.INVALID_INPUT,
+                        details: [
+                            `Requested version: ${version.toString()}`,
+                            `Current version: ${slot.version.major}`,
+                        ],
+                        suggestions: ['Omit version specifier to use the latest version'],
+                    },
+                );
+            }
+
+            if (input.example !== true) {
+                return [slot, version];
+            }
+
+            // Get the specified version to generate correct example
+            const slotVersion = await workspaceApi.getSlot({
+                organizationSlug: configuration.organization,
+                workspaceSlug: configuration.workspace,
+                slotSlug: slot.slug,
+                majorVersion: Math.min(slot.version.major, version.getMinVersion()),
+            });
+
+            return [slotVersion ?? slot, version];
+        }));
     }
 }

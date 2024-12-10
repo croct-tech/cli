@@ -6,6 +6,10 @@ export type SlotPath = WorkspacePath & {
     slotSlug: string,
 };
 
+export type SlotCriteria = SlotPath & {
+    majorVersion?: number,
+};
+
 export type ApplicationPath = WorkspacePath & {
     applicationSlug: string,
 };
@@ -36,10 +40,22 @@ export type TargetTyping = {
     slots: VersionSpecifier[],
 };
 
+export type ComponentPath = WorkspacePath & {
+    componentSlug: string,
+};
+
+export type ComponentCriteria = ComponentPath & {
+    majorVersion?: number,
+};
+
 export interface WorkspaceApi {
     getSlots(path: WorkspacePath): Promise<Slot[]>;
 
+    getSlot(criteria: SlotCriteria): Promise<Slot|null>;
+
     getComponents(path: WorkspacePath): Promise<Component[]>;
+
+    getComponent(criteria: ComponentCriteria): Promise<Component|null>;
 
     getSlotStaticContent(path: SlotPath, majorVersion?: number): Promise<LocalizedContent[]>;
 

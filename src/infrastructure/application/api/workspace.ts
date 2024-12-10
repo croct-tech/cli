@@ -1,8 +1,10 @@
 import {graphql, GraphqlClient} from '@/infrastructure/graphql';
 import {
     ApplicationPath,
+    ComponentCriteria,
     LocalizedContent,
     NewApplication,
+    SlotCriteria,
     SlotPath,
     TargetTyping,
     WorkspaceApi,
@@ -10,13 +12,19 @@ import {
 import {Application, ApplicationEnvironment, Component, Slot} from '@/application/model/entities';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
 import {WorkspacePath} from '@/application/api/organization';
-import {ApplicationQuery} from '@/infrastructure/graphql/schema/graphql';
+import {ApplicationQuery, ComponentQuery, SlotQuery} from '@/infrastructure/graphql/schema/graphql';
 
 type ApplicationData = NonNullable<
-    NonNullable<
-        NonNullable<ApplicationQuery['organization']
-    >['workspace']
->['application']>;
+    NonNullable<NonNullable<ApplicationQuery['organization']>['workspace']>['application']
+>;
+
+type SlotData = NonNullable<
+    NonNullable<NonNullable<SlotQuery['organization']>['workspace']>['slot']
+>;
+
+type ComponentData = NonNullable<
+    NonNullable<NonNullable<ComponentQuery['organization']>['workspace']>['component']
+>;
 
 export class GraphqlWorkspaceApi implements WorkspaceApi {
     private readonly client: GraphqlClient;
@@ -113,7 +121,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
     }
 
     public async getSlots(path: WorkspacePath): Promise<Slot[]> {
-        const {data} = await this.client.execute(slotQuery, {
+        const {data} = await this.client.execute(slotsQuery, {
             organizationSlug: path.organizationSlug,
             workspaceSlug: path.workspaceSlug,
         });
@@ -127,21 +135,42 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                 return [];
             }
 
-            return [{
-                id: node.id,
-                name: node.name,
-                slug: node.customId,
-                version: {
-                    major: node.content.version.major,
-                    minor: node.content.version.minor,
-                },
-                resolvedDefinition: node.content.componentDefinition.resolvedDefinition,
-            }];
+            return [GraphqlWorkspaceApi.normalizeSlot(node)];
         });
     }
 
+    public async getSlot(criteria: SlotCriteria): Promise<Slot|null> {
+        const {data} = await this.client.execute(slotQuery, {
+            organizationSlug: criteria.organizationSlug,
+            workspaceSlug: criteria.workspaceSlug,
+            slotSlug: criteria.slotSlug,
+            majorVersion: criteria.majorVersion,
+        });
+
+        const node = data.organization?.workspace?.slot ?? null;
+
+        if (node === null) {
+            return null;
+        }
+
+        return GraphqlWorkspaceApi.normalizeSlot(node);
+    }
+
+    private static normalizeSlot(data: SlotData): Slot {
+        return {
+            id: data.id,
+            name: data.name,
+            slug: data.customId,
+            version: {
+                major: data.content.version.major,
+                minor: data.content.version.minor,
+            },
+            resolvedDefinition: data.content.componentDefinition.resolvedDefinition,
+        };
+    }
+
     public async getComponents(path: WorkspacePath): Promise<Component[]> {
-        const {data} = await this.client.execute(componentQuery, {
+        const {data} = await this.client.execute(componentsQuery, {
             organizationSlug: path.organizationSlug,
             workspaceSlug: path.workspaceSlug,
         });
@@ -155,16 +184,37 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                 return [];
             }
 
-            return [{
-                id: node.id,
-                name: node.name,
-                slug: node.customId,
-                version: {
-                    major: node.definition.version.major,
-                    minor: node.definition.version.minor,
-                },
-            }];
+            return [GraphqlWorkspaceApi.normalizeComponent(node)];
         });
+    }
+
+    public async getComponent(criteria: ComponentCriteria): Promise<Component|null> {
+        const {data} = await this.client.execute(componentQuery, {
+            organizationSlug: criteria.organizationSlug,
+            workspaceSlug: criteria.workspaceSlug,
+            componentSlug: criteria.componentSlug,
+            majorVersion: criteria.majorVersion,
+        });
+
+        const node = data.organization?.workspace?.component ?? null;
+
+        if (node === null) {
+            return null;
+        }
+
+        return GraphqlWorkspaceApi.normalizeComponent(node);
+    }
+
+    private static normalizeComponent(data: ComponentData): Component {
+        return {
+            id: data.id,
+            name: data.name,
+            slug: data.customId,
+            version: {
+                major: data.definition.version.major,
+                minor: data.definition.version.minor,
+            },
+        };
     }
 
     public async getSlotStaticContent(path: SlotPath, majorVersion?: number): Promise<LocalizedContent[]> {
@@ -318,7 +368,7 @@ const slotStaticContentQuery = graphql(`
     }
 `);
 
-const slotQuery = graphql(`
+const slotsQuery = graphql(`
     query Slots($organizationSlug: ReadableId!, $workspaceSlug: ReadableId!) {
         organization(slug: $organizationSlug) {
             workspace(slug: $workspaceSlug) {
@@ -345,7 +395,35 @@ const slotQuery = graphql(`
     }
 `);
 
-const componentQuery = graphql(`
+const slotQuery = graphql(`
+    query Slot(
+        $organizationSlug: ReadableId!, 
+        $workspaceSlug: ReadableId!, 
+        $slotSlug: ReadableId!, 
+        $majorVersion: Int
+    ) {
+        organization(slug: $organizationSlug) {
+            workspace(slug: $workspaceSlug) {
+                slot(customId: $slotSlug) {
+                    id
+                    customId
+                    name
+                    content(majorVersion: $majorVersion) {
+                        version {
+                            major
+                            minor
+                        }
+                        componentDefinition {
+                            resolvedDefinition
+                        }
+                    }
+                }
+            }
+        }
+    }
+`);
+
+const componentsQuery = graphql(`
     query Components($organizationSlug: ReadableId!, $workspaceSlug: ReadableId!) {
         organization(slug: $organizationSlug) {
             workspace(slug: $workspaceSlug) {
@@ -361,6 +439,31 @@ const componentQuery = graphql(`
                                     minor
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        }
+    }
+`);
+
+const componentQuery = graphql(`
+    query Component(
+        $organizationSlug: ReadableId!, 
+        $workspaceSlug: ReadableId!, 
+        $componentSlug: ReadableId!,
+        $majorVersion: Int
+    ) {
+        organization(slug: $organizationSlug) {
+            workspace(slug: $workspaceSlug) {
+                component(customId: $componentSlug) {
+                    id
+                    customId
+                    name
+                    definition(majorVersion: $majorVersion) {
+                        version {
+                            major
+                            minor
                         }
                     }
                 }

@@ -1,16 +1,14 @@
 import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
-import {SdkResolver} from '@/application/project/sdk/sdk';
-import {
-    ResolvedConfiguration,
-    Configuration as ProjectConfiguration,
-} from '@/application/project/configuration/configuration';
+import {Installation, SdkResolver} from '@/application/project/sdk/sdk';
 import {Form} from '@/application/cli/form/form';
 import {Component} from '@/application/model/entities';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {CliError, CliErrorCode} from '@/application/cli/error';
+import {Configuration as ProjectConfiguration} from '@/application/project/configuration/configuration';
+import {Version} from '@/application/project/version';
 
 export type AddComponentInput = {
     components?: string[],
@@ -25,6 +23,8 @@ export type AddComponentConfig = {
         output: Output,
     },
 };
+
+type VersionedComponent = [Component, Version];
 
 export class AddComponentCommand implements Command<AddComponentInput> {
     private readonly config: AddComponentConfig;
@@ -47,52 +47,104 @@ export class AddComponentCommand implements Command<AddComponentInput> {
             return;
         }
 
-        const updatedConfiguration: ResolvedConfiguration = {
-            ...configuration,
-            components: {
-                ...configuration.components,
-                ...Object.fromEntries(
-                    components.map(component => [component.slug, `${component.version.major}`]),
-                ),
+        const installation: Installation = {
+            input: io.input,
+            output: io.output,
+            configuration: {
+                ...configuration,
+                components: {
+                    ...configuration.components,
+                    ...Object.fromEntries(components.map(
+                        ([component, version]) => [component.slug, version.toString()],
+                    )),
+                },
             },
         };
 
+        await configurationManager.update(installation.configuration);
+
         output.confirm('Configuration updated');
 
-        await configurationManager.update(updatedConfiguration);
-
-        await sdk.update({
-            input: io.input,
-            output: io.output,
-            configuration: updatedConfiguration,
-        });
+        await sdk.update(installation);
     }
 
-    private async getComponents(configuration: ProjectConfiguration, input: AddComponentInput): Promise<Component[]> {
-        const form = this.config.componentForm;
+    private async getComponents(
+        configuration: ProjectConfiguration,
+        input: AddComponentInput,
+    ): Promise<VersionedComponent[]> {
+        const {componentForm} = this.config;
 
-        const components = await form.handle({
+        const versionedComponents = input.components === undefined
+            ? undefined
+            : Object.fromEntries(
+                input.components?.map<[string, Version|undefined]>(versionedId => {
+                    const [slug, version] = versionedId.split('@', 2);
+
+                    if (version === undefined) {
+                        return [slug, undefined];
+                    }
+
+                    if (!Version.isValid(version)) {
+                        throw new CliError(
+                            `Invalid version specifier \`${version}\` for component \`${slug}\`.`,
+                            {
+                                code: CliErrorCode.INVALID_INPUT,
+                                suggestions: [
+                                    'Version must be exact (i.e. `1`), range (i.e. `1 - 2`), or set (i.e. `1 || 2`).',
+                                ],
+                            },
+                        );
+                    }
+
+                    return [slug, Version.parse(version)];
+                }),
+            );
+
+        const components = await componentForm.handle({
             organizationSlug: configuration.organization,
             workspaceSlug: configuration.workspace,
-            preselected: input.components,
+            preselected: versionedComponents === undefined
+                ? undefined
+                : Object.keys(versionedComponents),
             selected: Object.keys(configuration.components),
         });
 
         if (
             input.components !== undefined
-            && input.components.length > 0
-            && components.length !== input.components.length
+            && input.components.length > 0 && components.length !== input.components.length
         ) {
             const missingComponents = input.components.filter(
                 slug => !components.some(component => component.slug === slug),
             );
 
-            throw new CliError(`Non-existing components: ${missingComponents.join(', ')}`, {
+            throw new CliError(`Non-existing components: \`${missingComponents.join('`, `')}\``, {
                 code: CliErrorCode.INVALID_INPUT,
                 suggestions: ['Run `component add` without arguments to see available components'],
             });
         }
 
-        return components;
+        return components.map(component => {
+            const version = versionedComponents?.[component.slug];
+
+            if (version === undefined || version.getMaxVersion() === component.version.major) {
+                return [component, version ?? Version.of(component.version.major)];
+            }
+
+            if (version.getMinVersion() > component.version.major) {
+                throw new CliError(
+                    `No matching version for component \`${component.slug}\`.`,
+                    {
+                        code: CliErrorCode.INVALID_INPUT,
+                        details: [
+                            `Requested version: ${version.toString()}`,
+                            `Current version: ${component.version.major}`,
+                        ],
+                        suggestions: ['Omit version specifier to use the latest version'],
+                    },
+                );
+            }
+
+            return [component, version];
+        });
     }
 }
