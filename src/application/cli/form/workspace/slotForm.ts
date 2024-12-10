@@ -34,16 +34,16 @@ export class SlotForm implements Form<Slot[], SlotOptions> {
 
         notifier.stop();
 
-        const selected = options.selected ?? [];
-
-        if (slots.length === 0 || (selected.length > 0 && slots.every(({slug}) => selected.includes(slug)))) {
-            return [];
-        }
-
         const preselected = options.preselected ?? [];
 
         if (preselected.length > 0) {
             return slots.filter(({slug}) => preselected.includes(slug));
+        }
+
+        const selected = options.selected ?? [];
+
+        if (slots.length === 0 || (selected.length > 0 && slots.every(({slug}) => selected.includes(slug)))) {
+            return [];
         }
 
         return input.selectMultiple({

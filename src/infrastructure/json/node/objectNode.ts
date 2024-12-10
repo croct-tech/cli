@@ -31,7 +31,7 @@ export class JsonObjectNode extends JsonStructureNode implements JsonCompositeDe
         });
     }
 
-    public merge(other: JsonValueNode|JsonValue): JsonValueNode {
+    public update(other: JsonValueNode|JsonValue, merge = false): JsonValueNode {
         if (!(other instanceof JsonValueNode)) {
             if (typeof other !== 'object' || other === null || Array.isArray(other)) {
                 return JsonValueFactory.create(other);
@@ -47,12 +47,22 @@ export class JsonObjectNode extends JsonStructureNode implements JsonCompositeDe
                 const property = this.propertyNodes.find(current => current.key.toJSON() === key);
 
                 if (property !== undefined) {
-                    property.value = property.value.merge(value);
+                    property.value = property.value.update(value);
 
                     continue;
                 }
 
                 this.set(key, value);
+            }
+
+            if (!merge) {
+                for (const property of this.propertyNodes) {
+                    const key = property.key.toJSON();
+
+                    if (other[key] === undefined) {
+                        this.delete(property.key.toJSON());
+                    }
+                }
             }
 
             return this;
@@ -68,9 +78,19 @@ export class JsonObjectNode extends JsonStructureNode implements JsonCompositeDe
             if (index >= 0) {
                 const cloneProperty = this.propertyNodes[index].clone();
 
-                cloneProperty.value = cloneProperty.value.merge(property.value);
+                cloneProperty.value = cloneProperty.value.update(property.value);
             } else {
                 this.propertyNodes.push(property);
+            }
+        }
+
+        if (!merge) {
+            for (const property of this.propertyNodes) {
+                const key = property.key.toJSON();
+
+                if (!other.has(key)) {
+                    this.delete(key);
+                }
             }
         }
 

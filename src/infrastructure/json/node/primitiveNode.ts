@@ -47,7 +47,7 @@ export class JsonPrimitiveNode<T extends JsonPrimitiveTokenType = JsonPrimitiveT
         return JsonValueFactory.create(value);
     }
 
-    public merge(other: JsonValueNode|JsonValue): JsonValueNode {
+    public update(other: JsonValueNode|JsonValue): JsonValueNode {
         const node = JsonValueFactory.create(other);
 
         if (!this.isEquivalent(node)) {

@@ -23,7 +23,7 @@ export class JsonArrayNode extends JsonStructureNode implements JsonArrayDefinit
         });
     }
 
-    public merge(other: JsonValueNode|JsonValue): JsonValueNode {
+    public update(other: JsonValueNode|JsonValue, merge = false): JsonValueNode {
         if (!(other instanceof JsonArrayNode) && !Array.isArray(other)) {
             return JsonValueFactory.create(other);
         }
@@ -34,9 +34,13 @@ export class JsonArrayNode extends JsonStructureNode implements JsonArrayDefinit
         for (let index = 0; index < otherElements.length; index++) {
             this.push(
                 index < elements.length
-                    ? elements[index].merge(otherElements[index])
+                    ? elements[index].update(otherElements[index])
                     : otherElements[index],
             );
+        }
+
+        if (!merge && otherElements.length < elements.length) {
+            this.splice(otherElements.length, elements.length - otherElements.length);
         }
 
         return this;

@@ -91,7 +91,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
     private async updateFile(configuration: Configuration): Promise<void> {
         const file = await this.loadFile();
         const data = file.configuration !== null && file.source !== null
-            ? JsonParser.parse(file.source).merge(configuration)
+            ? JsonParser.parse(file.source).update(configuration)
             : JsonObjectNode.of(configuration);
 
         const json = data.toString({

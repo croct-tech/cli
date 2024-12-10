@@ -34,16 +34,16 @@ export class ComponentForm implements Form<Component[], ComponentOptions> {
 
         notifier.stop();
 
-        const selected = options.selected ?? [];
-
-        if (components.length === 0 || (selected.length > 0 && components.every(({slug}) => selected.includes(slug)))) {
-            return [];
-        }
-
         const preselected = options.preselected ?? [];
 
         if (preselected.length > 0) {
             return components.filter(({slug}) => preselected.includes(slug));
+        }
+
+        const selected = options.selected ?? [];
+
+        if (components.length === 0 || (selected.length > 0 && components.every(({slug}) => selected.includes(slug)))) {
+            return [];
         }
 
         return input.selectMultiple({

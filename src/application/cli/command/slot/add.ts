@@ -8,6 +8,7 @@ import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {CliError, CliErrorCode} from '@/application/cli/error';
 import {Configuration as ProjectConfiguration} from '@/application/project/configuration/configuration';
+import {Version} from '@/application/project/version';
 
 export type AddSlotInput = {
     slots?: string[],
@@ -23,6 +24,8 @@ export type AddSlotConfig = {
         output: Output,
     },
 };
+
+type VersionedSlot = [Slot, Version];
 
 export class AddSlotCommand implements Command<AddSlotInput> {
     private readonly config: AddSlotConfig;
@@ -40,7 +43,7 @@ export class AddSlotCommand implements Command<AddSlotInput> {
         const slots = await this.getSlots(configuration, input);
 
         if (slots.length === 0) {
-            output.inform('No slots selected');
+            output.inform('No slots to add');
 
             return;
         }
@@ -52,7 +55,7 @@ export class AddSlotCommand implements Command<AddSlotInput> {
                 ...configuration,
                 slots: {
                     ...configuration.slots,
-                    ...Object.fromEntries(slots.map(slot => [slot.slug, `${slot.version.major}`])),
+                    ...Object.fromEntries(slots.map(([slot, version]) => [slot, `${version}`])),
                 },
             },
         };
@@ -66,31 +69,53 @@ export class AddSlotCommand implements Command<AddSlotInput> {
         if (input.example === true) {
             const notifier = output.notify('Generating example');
 
-            await Promise.all(slots.map(slot => sdk.generateSlotExample(slot, installation)));
+            await Promise.all(slots.map(([slot]) => sdk.generateSlotExample(slot, installation)));
 
             notifier.confirm('Example generated');
         }
     }
 
-    private async getSlots(configuration: ProjectConfiguration, input: AddSlotInput): Promise<Slot[]> {
+    private async getSlots(configuration: ProjectConfiguration, input: AddSlotInput): Promise<VersionedSlot[]> {
         const {slotForm} = this.config;
+
+        const versionedSlots = input.slots === undefined
+            ? undefined
+            : Object.fromEntries(
+                input.slots?.map<[string, Version|undefined]>(versionedId => {
+                    const [slug, version] = versionedId.split('@', 2);
+
+                    if (version === undefined) {
+                        return [slug, undefined];
+                    }
+
+                    if (!Version.isValid(version)) {
+                        throw new CliError(`Invalid version \`${version}\` for slot \`${slug}\``, {
+                            code: CliErrorCode.INVALID_INPUT,
+                        });
+                    }
+
+                    return [slug, Version.parse(version)];
+                }),
+            );
 
         const slots = await slotForm.handle({
             organizationSlug: configuration.organization,
             workspaceSlug: configuration.workspace,
-            preselected: input.slots,
+            preselected: versionedSlots === undefined
+                ? undefined
+                : Object.keys(versionedSlots),
             selected: Object.keys(configuration.slots),
         });
 
         if (input.slots !== undefined && input.slots.length > 0 && slots.length !== input.slots.length) {
             const missingSlots = input.slots.filter(slug => !slots.some(slot => slot.slug === slug));
 
-            throw new CliError(`Slots not found: \`${missingSlots.join('`, `')}\`.`, {
-                code: CliErrorCode.PRECONDITION,
-                suggestions: ['Run `remove slot` to remove a slot from your configuration.'],
+            throw new CliError(`Non-existing slots: \`${missingSlots.join('`, `')}\``, {
+                code: CliErrorCode.INVALID_INPUT,
+                suggestions: ['Run `slot add` without arguments to see available slots'],
             });
         }
 
-        return slots;
+        return slots.map(slot => [slot, versionedSlots?.[slot.slug] ?? Version.of(slot.version.major)]);
     }
 }

@@ -42,7 +42,7 @@ export class AddComponentCommand implements Command<AddComponentInput> {
         const components = await this.getComponents(configuration, input);
 
         if (components.length === 0) {
-            output.inform('No components selected');
+            output.inform('No components to add');
 
             return;
         }
@@ -87,9 +87,9 @@ export class AddComponentCommand implements Command<AddComponentInput> {
                 slug => !components.some(component => component.slug === slug),
             );
 
-            throw new CliError(`Components not found: \`${missingComponents.join('`, `')}\`.`, {
-                code: CliErrorCode.PRECONDITION,
-                suggestions: ['Run `remove component` to remove a component from your configuration.'],
+            throw new CliError(`Non-existing components: ${missingComponents.join(', ')}`, {
+                code: CliErrorCode.INVALID_INPUT,
+                suggestions: ['Run `component add` without arguments to see available components'],
             });
         }
 
