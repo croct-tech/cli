@@ -76,43 +76,7 @@ export class AddComponentCommand implements Command<AddComponentInput> {
 
         const versionedComponents = input.components === undefined
             ? undefined
-            : Object.fromEntries(
-                input.components?.map<[string, Version|undefined]>(versionedId => {
-                    const [slug, specifier] = versionedId.split('@', 2);
-
-                    if (specifier === undefined) {
-                        return [slug, undefined];
-                    }
-
-                    if (!Version.isValid(specifier)) {
-                        throw new CliError(
-                            `Invalid version specifier \`${specifier}\` for component \`${slug}\`.`,
-                            {
-                                code: CliErrorCode.INVALID_INPUT,
-                                suggestions: [
-                                    'Version must be exact (i.e. `1`), range (i.e. `1 - 2`), or set (i.e. `1 || 2`).',
-                                ],
-                            },
-                        );
-                    }
-
-                    const version = Version.parse(specifier);
-
-                    if (version.getCardinality() > 5) {
-                        throw new CliError(
-                            `Version range specified for component \`${slug}\` exceeds 5 major versions.`,
-                            {
-                                code: CliErrorCode.INVALID_INPUT,
-                                suggestions: [
-                                    'Narrow down the version range to 5 major versions or less.',
-                                ],
-                            },
-                        );
-                    }
-
-                    return [slug, version];
-                }),
-            );
+            : AddComponentCommand.getVersionMap(input.components);
 
         const components = await componentForm.handle({
             organizationSlug: configuration.organization,
@@ -160,5 +124,45 @@ export class AddComponentCommand implements Command<AddComponentInput> {
 
             return [component, version];
         });
+    }
+
+    private static getVersionMap(components: string[]): Record<string, Version|undefined> {
+        return Object.fromEntries(
+            components.map<[string, Version|undefined]>(versionedId => {
+                const [slug, specifier] = versionedId.split('@', 2);
+
+                if (specifier === undefined) {
+                    return [slug, undefined];
+                }
+
+                if (!Version.isValid(specifier)) {
+                    throw new CliError(
+                        `Invalid version specifier \`${specifier}\` for component \`${slug}\`.`,
+                        {
+                            code: CliErrorCode.INVALID_INPUT,
+                            suggestions: [
+                                'Version must be exact (i.e. `1`), range (i.e. `1 - 2`), or set (i.e. `1 || 2`).',
+                            ],
+                        },
+                    );
+                }
+
+                const version = Version.parse(specifier);
+
+                if (version.getCardinality() > 5) {
+                    throw new CliError(
+                        `Version range specified for component \`${slug}\` exceeds 5 major versions.`,
+                        {
+                            code: CliErrorCode.INVALID_INPUT,
+                            suggestions: [
+                                'Narrow down the version range to 5 major versions or less.',
+                            ],
+                        },
+                    );
+                }
+
+                return [slug, version];
+            }),
+        );
     }
 }

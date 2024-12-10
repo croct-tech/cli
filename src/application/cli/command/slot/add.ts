@@ -82,43 +82,7 @@ export class AddSlotCommand implements Command<AddSlotInput> {
 
         const versionedSlots = input.slots === undefined
             ? undefined
-            : Object.fromEntries(
-                input.slots?.map<[string, Version|undefined]>(versionedId => {
-                    const [slug, specifier] = versionedId.split('@', 2);
-
-                    if (specifier === undefined) {
-                        return [slug, undefined];
-                    }
-
-                    if (!Version.isValid(specifier)) {
-                        throw new CliError(
-                            `Invalid version specifier \`${specifier}\` for slot \`${slug}\`.`,
-                            {
-                                code: CliErrorCode.INVALID_INPUT,
-                                suggestions: [
-                                    'Version must be exact (i.e. `1`), range (i.e. `1 - 2`), or set (i.e. `1 || 2`).',
-                                ],
-                            },
-                        );
-                    }
-
-                    const version = Version.parse(specifier);
-
-                    if (version.getCardinality() > 5) {
-                        throw new CliError(
-                            `Version range specified for slot \`${slug}\` exceeds 5 major versions.`,
-                            {
-                                code: CliErrorCode.INVALID_INPUT,
-                                suggestions: [
-                                    'Narrow down the version range to 5 major versions or less.',
-                                ],
-                            },
-                        );
-                    }
-
-                    return [slug, version];
-                }),
-            );
+            : AddSlotCommand.getVersionMap(input.slots);
 
         const slots = await slotForm.handle({
             organizationSlug: configuration.organization,
@@ -173,5 +137,45 @@ export class AddSlotCommand implements Command<AddSlotInput> {
 
             return [slotVersion ?? slot, version];
         }));
+    }
+
+    private static getVersionMap(slots: string[]): Record<string, Version|undefined> {
+        return Object.fromEntries(
+            slots.map(versionedId => {
+                const [slug, specifier] = versionedId.split('@', 2);
+
+                if (specifier === undefined) {
+                    return [slug, undefined];
+                }
+
+                if (!Version.isValid(specifier)) {
+                    throw new CliError(
+                        `Invalid version specifier \`${specifier}\` for slot \`${slug}\`.`,
+                        {
+                            code: CliErrorCode.INVALID_INPUT,
+                            suggestions: [
+                                'Version must be exact (i.e. `1`), range (i.e. `1 - 2`), or set (i.e. `1 || 2`).',
+                            ],
+                        },
+                    );
+                }
+
+                const version = Version.parse(specifier);
+
+                if (version.getCardinality() > 5) {
+                    throw new CliError(
+                        `Version range specified for slot \`${slug}\` exceeds 5 major versions.`,
+                        {
+                            code: CliErrorCode.INVALID_INPUT,
+                            suggestions: [
+                                'Narrow down the version range to 5 major versions or less.',
+                            ],
+                        },
+                    );
+                }
+
+                return [slug, version];
+            }),
+        );
     }
 }
