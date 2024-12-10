@@ -84,15 +84,15 @@ export class AddSlotCommand implements Command<AddSlotInput> {
             ? undefined
             : Object.fromEntries(
                 input.slots?.map<[string, Version|undefined]>(versionedId => {
-                    const [slug, version] = versionedId.split('@', 2);
+                    const [slug, specifier] = versionedId.split('@', 2);
 
-                    if (version === undefined) {
+                    if (specifier === undefined) {
                         return [slug, undefined];
                     }
 
-                    if (!Version.isValid(version)) {
+                    if (!Version.isValid(specifier)) {
                         throw new CliError(
-                            `Invalid version specifier \`${version}\` for slot \`${slug}\`.`,
+                            `Invalid version specifier \`${specifier}\` for slot \`${slug}\`.`,
                             {
                                 code: CliErrorCode.INVALID_INPUT,
                                 suggestions: [
@@ -102,7 +102,21 @@ export class AddSlotCommand implements Command<AddSlotInput> {
                         );
                     }
 
-                    return [slug, Version.parse(version)];
+                    const version = Version.parse(specifier);
+
+                    if (version.getCardinality() > 5) {
+                        throw new CliError(
+                            `Version range specified for slot \`${slug}\` exceeds 5 major versions.`,
+                            {
+                                code: CliErrorCode.INVALID_INPUT,
+                                suggestions: [
+                                    'Narrow down the version range to 5 major versions or less.',
+                                ],
+                            },
+                        );
+                    }
+
+                    return [slug, version];
                 }),
             );
 
