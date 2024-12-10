@@ -70,6 +70,8 @@ export class JsonFileConfiguration implements ConfigurationFile {
     }
 
     public update(configuration: Configuration): Promise<void> {
+        this.checkConfiguration(configuration);
+
         return this.updateFile({
             organization: configuration.organization,
             workspace: configuration.workspace,
@@ -136,26 +138,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
         }
 
         if (file.configuration !== null) {
-            const result = ConfigurationSchema.safeParse(file.configuration);
-
-            if (result.error !== undefined) {
-                const error = result.error.errors[0];
-                const path = error.path.reduce(
-                    (previous, segment) => {
-                        if (typeof segment === 'string') {
-                            return previous === '' ? segment : `${previous}.${segment}`;
-                        }
-
-                        return `${previous}[${segment}]`;
-                    },
-                    '',
-                );
-
-                throw new ConfigurationError(error.message, [
-                    `Configuration file: ${relative(this.projectDirectory, file.path)}`,
-                    `Violation path: ${path}`,
-                ]);
-            }
+            this.checkConfiguration(file.configuration, file);
         }
 
         return file;
@@ -163,5 +146,28 @@ export class JsonFileConfiguration implements ConfigurationFile {
 
     private getConfigurationFilePath(): string {
         return join(this.projectDirectory, 'croct.json');
+    }
+
+    private checkConfiguration(configuration: Configuration, file?: LoadedFile): void {
+        const result = ConfigurationSchema.safeParse(configuration);
+
+        if (result.error !== undefined) {
+            const error = result.error.errors[0];
+            const path = error.path.reduce(
+                (previous, segment) => {
+                    if (typeof segment === 'string') {
+                        return previous === '' ? segment : `${previous}.${segment}`;
+                    }
+
+                    return `${previous}[${segment}]`;
+                },
+                '',
+            );
+
+            throw new ConfigurationError(error.message, [
+                ...(file !== undefined ? `Configuration file: ${relative(this.projectDirectory, file.path)}` : []),
+                `Violation path: ${path}`,
+            ]);
+        }
     }
 }
