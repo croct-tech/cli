@@ -1,23 +1,34 @@
-import {getPackageInfo, isPackageListed} from 'local-pkg';
+import {z} from 'zod';
 import {installPackage} from '@antfu/install-pkg';
-import {createMatchPathAsync, loadConfig} from 'tsconfig-paths';
 import {relative, join, isAbsolute} from 'path';
 import {JavaScriptProject, PackageInfo, PackageInstallationOptions} from '@/application/project/project';
 import {Filesystem} from '@/application/filesystem';
+import {ImportConfigLoader} from '@/infrastructure/project/importConfigLoader';
 
 export type Configuration = {
     directory: string,
     filesystem: Filesystem,
+    importConfigLoader: ImportConfigLoader,
 };
+
+const packageSchema = z.object({
+    name: z.string(),
+    version: z.string().optional(),
+    dependencies: z.record(z.string()).optional(),
+    devDependencies: z.record(z.string()).optional(),
+});
 
 export class NodeProject implements JavaScriptProject {
     private readonly filesystem: Filesystem;
 
+    private readonly importConfigLoader: ImportConfigLoader;
+
     private readonly directory: string;
 
-    public constructor({directory, filesystem}: Configuration) {
+    public constructor({directory, filesystem, importConfigLoader}: Configuration) {
         this.filesystem = filesystem;
         this.directory = directory;
+        this.importConfigLoader = importConfigLoader;
     }
 
     public getRootPath(): string {
@@ -32,14 +43,14 @@ export class NodeProject implements JavaScriptProject {
         return this.isPackageListed('typescript');
     }
 
-    public getTypeScriptConfigPath(): Promise<string | null> {
-        const config = loadConfig(this.directory);
+    public async getTypeScriptConfigPath(): Promise<string | null> {
+        const config = await this.importConfigLoader.load(this.directory, ['tsconfig.json']);
 
-        if (config.resultType === 'failed') {
-            return Promise.resolve(null);
+        if (config === null) {
+            return null;
         }
 
-        return Promise.resolve(config.configFileAbsolutePath);
+        return config.path;
     }
 
     public async readFile(...fileNames: string[]): Promise<string | null> {
@@ -71,47 +82,42 @@ export class NodeProject implements JavaScriptProject {
     }
 
     public async isPackageListed(packageName: string): Promise<boolean> {
-        try {
-            return await isPackageListed(packageName, this.directory);
-        } catch {
-            return Promise.resolve(false);
+        const info = await this.getPackageJson(this.getProjectPackagePath());
+
+        if (info === null) {
+            return false;
         }
+
+        return (info.dependencies !== undefined && packageName in info.dependencies)
+            || (info.devDependencies !== undefined && packageName in info.devDependencies);
     }
 
     public async getPackageInfo(packageName: string): Promise<PackageInfo|null> {
-        let info: Awaited<ReturnType<typeof getPackageInfo>>;
+        const directory = join(this.directory, 'node_modules', packageName);
+        const info = await this.getPackageJson(join(directory, 'package.json'));
 
-        try {
-            info = await getPackageInfo(packageName, {
-                paths: [this.directory],
-            });
-        } catch {
+        if (info === null) {
             return null;
-        }
-
-        if (info === undefined) {
-            return null;
-        }
-
-        let packagePath = info.rootPath;
-
-        try {
-            // Package info does not preserve symlinks
-            const path = join(this.directory, 'node_modules', packageName);
-
-            if (await this.filesystem.isSymbolicLink(path)) {
-                packagePath = path;
-            }
-        } catch {
-            // Ignore errors
         }
 
         return {
             name: info.name,
             version: info.version ?? null,
-            path: packagePath,
-            metadata: info.packageJson,
+            path: directory,
+            metadata: info,
         };
+    }
+
+    private async getPackageJson(path: string): Promise<z.infer<typeof packageSchema> | null> {
+        if (!await this.filesystem.exists(path)) {
+            return null;
+        }
+
+        try {
+            return packageSchema.parse(JSON.parse(await this.filesystem.readFile(path)));
+        } catch {
+            return null;
+        }
     }
 
     public async installPackage(packageName: string|string[], options: PackageInstallationOptions = {}): Promise<void> {
@@ -122,41 +128,11 @@ export class NodeProject implements JavaScriptProject {
         });
     }
 
-    public resolveImportPath(importPath: string): Promise<string> {
-        const config = loadConfig(this.directory);
-
-        if (config.resultType === 'failed') {
-            return Promise.resolve(importPath);
-        }
-
-        return new Promise((resolve, reject) => {
-            const matchPath = createMatchPathAsync(config.absoluteBaseUrl, config.paths);
-
-            try {
-                matchPath(importPath, undefined, () => true, ['.ts', '.tsx', '.js', '.jsx'], (error, path) => {
-                    if (error !== undefined) {
-                        reject(error);
-                    } else {
-                        resolve(
-                            path
-                            ?? relative(
-                                config.absoluteBaseUrl,
-                                join(this.directory, importPath),
-                            ).replace(/\\/g, '/'),
-                        );
-                    }
-                });
-            } catch (error) {
-                reject(error);
-            }
-        });
-    }
-
-    public getImportPath(filePath: string, importPath?: string): Promise<string> {
-        const config = loadConfig(this.directory);
+    public async getImportPath(filePath: string, importPath?: string): Promise<string> {
+        const config = await this.importConfigLoader.load(this.directory, ['tsconfig.json', 'jsconfig.json']);
         const resolvedBasePath = join(this.directory, filePath);
 
-        if (config.resultType !== 'failed') {
+        if (config !== null) {
             const absoluteFilePath = resolvedBasePath.replace(/\\/g, '/');
             let longestMatchLength = 0;
 
@@ -168,8 +144,7 @@ export class NodeProject implements JavaScriptProject {
 
                 for (const aliasPath of aliasPaths) {
                     const cleanAliasPath = aliasPath.replace(/\*$/, ''); // Remove wildcard from alias path
-                    const aliasBasePath = join(config.absoluteBaseUrl, cleanAliasPath)
-                        .replace(/\\/g, '/');
+                    const aliasBasePath = join(config.baseUrl, cleanAliasPath).replace(/\\/g, '/');
 
                     // Check if the file path starts with the alias base path
                     if (absoluteFilePath.startsWith(aliasBasePath)) {

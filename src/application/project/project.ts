@@ -133,15 +133,4 @@ export interface JavaScriptProject extends Project {
      * @returns The corresponding import path.
      */
     getImportPath(filePath: string, importPath?: string): Promise<string>;
-
-    /**
-     * Resolves the actual path of an import statement.
-     *
-     * This method takes an import path and resolves it to the actual
-     * file path it refers to within the project.
-     *
-     * @param importPath The import path to resolve.
-     * @returns The resolved file path.
-     */
-    resolveImportPath(importPath: string): Promise<string>;
 }

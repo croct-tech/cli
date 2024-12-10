@@ -22,11 +22,17 @@ export class EmailInput implements Form<string> {
 
         return input.prompt({
             message: this.config.label,
-            validate: (value: string): string | boolean => (
-                /^([A-Z0-9_+-]+\.?)*[A-Z0-9_+-]@([A-Z0-9][A-Z0-9-]*\.)+[A-Z]{2,}$/i.test(value)
-                    ? true
-                    : 'Please enter a valid email'
-            ),
+            validate: (value: string): string | boolean => {
+                if (value.length > 255) {
+                    return 'The email must be less than 255 characters';
+                }
+
+                if (!/^([A-Z0-9_+-]+\.?)*[A-Z0-9_+-]@([A-Z0-9][A-Z0-9-]*\.)+[A-Z]{2,}$/i.test(value)) {
+                    return 'Please enter a valid email';
+                }
+
+                return true;
+            },
         });
     }
 }

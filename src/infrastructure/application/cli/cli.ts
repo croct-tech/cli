@@ -71,6 +71,7 @@ import {UpgradeCommand, UpgradeInput} from '@/application/cli/command/upgrade';
 import {ConfigurationError} from '@/application/project/configuration/configuration';
 import {Filesystem} from '@/application/filesystem';
 import {LocalFilesystem} from '@/infrastructure/localFilesystem';
+import {ImportConfigLoader} from '@/infrastructure/project/importConfigLoader';
 
 export type Configuration = {
     io: {
@@ -557,6 +558,7 @@ export class Cli {
     private createJavaScriptProject(): JavaScriptProject {
         return new NodeProject({
             filesystem: this.getFileSystem(),
+            importConfigLoader: new ImportConfigLoader(this.getFileSystem()),
             directory: this.configuration.directories.current,
         });
     }
