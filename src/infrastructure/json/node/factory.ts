@@ -36,10 +36,6 @@ export namespace JsonValueFactory {
         }
 
         if (typeof value === 'object' && value !== null) {
-            if (!isPlainObject(value)) {
-                throw new Error('Unsupported object type.');
-            }
-
             return new JsonObjectNode({
                 properties: Object.entries(value).flatMap(([propertyName, propertyValue]) => {
                     if (propertyValue === undefined) {
@@ -64,9 +60,4 @@ export namespace JsonValueFactory {
             value: value,
         });
     }
-}
-
-function isPlainObject(value: unknown): value is JsonObject {
-    return typeof value === 'object' && value !== null
-        && [null, Object.prototype].includes(Object.getPrototypeOf(value));
 }
