@@ -1,10 +1,13 @@
-import {access, readFile, writeFile} from 'fs/promises';
 import {basename} from 'path';
+import {Filesystem} from '@/application/filesystem';
 
 export class EnvFile {
+    private readonly filesystem: Filesystem;
+
     private readonly path: string;
 
-    public constructor(path: string) {
+    public constructor(filesystem: Filesystem, path: string) {
+        this.filesystem = filesystem;
         this.path = path;
     }
 
@@ -12,18 +15,8 @@ export class EnvFile {
         return basename(this.path);
     }
 
-    public async exists(): Promise<boolean> {
-        try {
-            await access(this.path);
-
-            return true;
-        } catch (error) {
-            if (error.code === 'ENOENT') {
-                return false;
-            }
-
-            throw error;
-        }
+    public exists(): Promise<boolean> {
+        return this.filesystem.exists(this.path);
     }
 
     public async hasVariable(name: string): Promise<boolean> {
@@ -77,15 +70,14 @@ export class EnvFile {
     }
 
     private async write(content: string): Promise<void> {
-        await writeFile(this.path, content, {
-            encoding: 'utf-8',
-            flag: 'w',
+        await this.filesystem.writeFile(this.path, content, {
+            overwrite: true,
         });
     }
 
     private async read(): Promise<string> {
         try {
-            return await readFile(this.path, {encoding: 'utf-8'});
+            return await this.filesystem.readFile(this.path);
         } catch (error) {
             if (error.code !== 'ENOENT') {
                 throw error;

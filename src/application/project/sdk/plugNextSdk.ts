@@ -17,6 +17,7 @@ import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {NextExampleRouter, PlugNextExampleGenerator} from '@/application/project/example/slot/plugNextExampleGenerator';
 import {Linter} from '@/application/project/linter';
 import {ApiError} from '@/application/api/error';
+import {Filesystem} from '@/application/filesystem';
 
 type ApiConfiguration = {
     user: UserApi,
@@ -32,6 +33,7 @@ type CodemodConfiguration = {
 
 export type Configuration = {
     project: JavaScriptProject,
+    filesystem: Filesystem,
     api: ApiConfiguration,
     linter: Linter,
     codemod: CodemodConfiguration,
@@ -78,6 +80,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
     public constructor(config: Configuration) {
         super({
             project: config.project,
+            filesystem: config.filesystem,
             linter: config.linter,
             workspaceApi: config.api.workspace,
         });
@@ -206,9 +209,9 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
                 package: sdkPackage,
             },
             env: {
-                localFile: new EnvFile(join(this.project.getRootPath(), '.env.local')),
-                developmentFile: new EnvFile(join(this.project.getRootPath(), '.env.development')),
-                productionFile: new EnvFile(join(this.project.getRootPath(), '.env.production')),
+                localFile: new EnvFile(this.filesystem, join(this.project.getRootPath(), '.env.local')),
+                developmentFile: new EnvFile(this.filesystem, join(this.project.getRootPath(), '.env.development')),
+                productionFile: new EnvFile(this.filesystem, join(this.project.getRootPath(), '.env.production')),
             },
             middleware: {
                 file: middlewareFile ?? join(project.sourceDirectory, `middleware.${extension}`),

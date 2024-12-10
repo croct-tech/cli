@@ -1,11 +1,12 @@
-import {mkdir, readFile, unlink, writeFile} from 'fs/promises';
 import {dirname} from 'path';
 import {AuthenticationInput, Authenticator} from '@/application/cli/authentication/authenticator/index';
 import {CliError, CliErrorCode} from '@/application/cli/error';
+import {Filesystem} from '@/application/filesystem';
 
 export type Configuration<I extends AuthenticationInput>= {
     filePath: string,
     authenticator: Authenticator<I>,
+    filesystem: Filesystem,
 };
 
 export class TokenFileAuthenticator<I extends AuthenticationInput> implements Authenticator<I> {
@@ -13,14 +14,17 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
 
     private readonly authenticator: Authenticator<I>;
 
-    public constructor({filePath, authenticator}: Configuration<I>) {
+    private readonly filesystem: Filesystem;
+
+    public constructor({filePath, authenticator, filesystem}: Configuration<I>) {
         this.filePath = filePath;
         this.authenticator = authenticator;
+        this.filesystem = filesystem;
     }
 
     public async getToken(): Promise<string|null> {
         try {
-            return await readFile(this.filePath, 'utf-8');
+            return await this.filesystem.readFile(this.filePath);
         } catch {
             return this.authenticator.getToken();
         }
@@ -38,7 +42,7 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
         await this.authenticator.logout();
 
         try {
-            await unlink(this.filePath);
+            await this.filesystem.unlink(this.filePath);
         } catch (error) {
             if ((error instanceof Error) && 'code' in error && error.code !== 'ENOENT') {
                 throw new CliError(
@@ -54,11 +58,10 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
 
     private async saveToken(token: string): Promise<void> {
         try {
-            const dir = dirname(this.filePath);
+            const directory = dirname(this.filePath);
 
-            await mkdir(dir, {recursive: true});
-
-            await writeFile(this.filePath, token, {flag: 'w', encoding: 'utf-8'});
+            await this.filesystem.createDirectory(directory, {recursive: true});
+            await this.filesystem.writeFile(this.filePath, token, {overwrite: true});
         } catch (cause) {
             throw new CliError(
                 `Failed to save token, check file permissions for ${this.filePath}`,

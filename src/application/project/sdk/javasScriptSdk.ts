@@ -1,13 +1,4 @@
-import {dirname, join, relative, resolve} from 'path';
-import {
-    mkdir,
-    readFile,
-    writeFile,
-    lstat,
-    realpath,
-    unlink,
-    cp,
-} from 'fs/promises';
+import {dirname, join, relative} from 'path';
 import {Installation, Sdk} from '@/application/project/sdk/sdk';
 import {JavaScriptProject, PackageInfo} from '@/application/project/project';
 import {ApplicationPlatform, Slot} from '@/application/model/entities';
@@ -23,6 +14,7 @@ import {formatName} from '@/application/project/utils/formatName';
 import {ExampleFile} from '@/application/project/example/example';
 import {Linter} from '@/application/project/linter';
 import {Version} from '@/application/project/version';
+import {Filesystem} from '@/application/filesystem';
 
 export type InstallationPlan = {
     tasks: Task[],
@@ -33,6 +25,7 @@ export type Configuration = {
     project: JavaScriptProject,
     workspaceApi: WorkspaceApi,
     linter: Linter,
+    filesystem: Filesystem,
 };
 
 type VersionedContent = {
@@ -49,10 +42,13 @@ export abstract class JavaScriptSdk implements Sdk {
 
     protected readonly linter: Linter;
 
-    public constructor({project, linter, workspaceApi}: Configuration) {
+    protected readonly filesystem: Filesystem;
+
+    public constructor({project, linter, workspaceApi, filesystem}: Configuration) {
         this.project = project;
         this.workspaceApi = workspaceApi;
         this.linter = linter;
+        this.filesystem = filesystem;
     }
 
     public abstract getPackage(): string;
@@ -66,14 +62,13 @@ export abstract class JavaScriptSdk implements Sdk {
         for (const file of await this.generateSlotExampleFiles(slot, installation)) {
             const directory = join(rootPath, dirname(file.name));
 
-            await mkdir(directory, {recursive: true}).catch(() => null);
+            await this.filesystem
+                .createDirectory(directory, {recursive: true})
+                .catch(() => null);
 
             const filePath = join(rootPath, file.name);
 
-            await writeFile(filePath, file.code, {
-                encoding: 'utf-8',
-                flag: 'w',
-            });
+            await this.filesystem.writeFile(filePath, file.code, {overwrite: true});
 
             files.push(filePath);
         }
@@ -264,7 +259,9 @@ export abstract class JavaScriptSdk implements Sdk {
         const directoryPath = join(packageInfo.path, 'slot');
 
         // Create the directory if it does not exist
-        await mkdir(directoryPath).catch(() => {});
+        await this.filesystem
+            .createDirectory(directoryPath)
+            .catch(() => {});
 
         const indexes: Record<string, string[]> = {};
 
@@ -281,12 +278,15 @@ export abstract class JavaScriptSdk implements Sdk {
 
                 indexes[locale] = [...indexes[locale] ?? [], baseName];
 
-                await mkdir(join(directoryPath, locale), {recursive: true}).catch(() => {});
+                await this.filesystem
+                    .createDirectory(join(directoryPath, locale), {recursive: true})
+                    .catch(() => {});
 
-                await writeFile(join(directoryPath, `${locale}/${baseName}.json`), JSON.stringify(content, null, 2), {
-                    encoding: 'utf-8',
-                    flag: 'w',
-                });
+                await this.filesystem.writeFile(
+                    join(directoryPath, `${locale}/${baseName}.json`),
+                    JSON.stringify(content, null, 2),
+                    {overwrite: true},
+                );
             }
         }
 
@@ -306,10 +306,11 @@ export abstract class JavaScriptSdk implements Sdk {
                 }).join('\n');
 
                 for (const extension of ['.js', '.d.ts']) {
-                    await writeFile(join(directoryPath, `${path}/index${extension}`), moduleCode, {
-                        encoding: 'utf-8',
-                        flag: 'w',
-                    });
+                    await this.filesystem.writeFile(
+                        join(directoryPath, `${path}/index${extension}`),
+                        moduleCode,
+                        {overwrite: true},
+                    );
                 }
             }
         }
@@ -337,7 +338,9 @@ export abstract class JavaScriptSdk implements Sdk {
         const filePath = JavaScriptSdk.getTypeFile(packageInfo.path);
 
         // Create the directory if it does not exist
-        await mkdir(dirname(filePath), {recursive: true}).catch(() => {});
+        await this.filesystem
+            .createDirectory(dirname(filePath), {recursive: true})
+            .catch(() => {});
 
         let module = 'export {};';
 
@@ -362,17 +365,14 @@ export abstract class JavaScriptSdk implements Sdk {
             module = `${types}\n${module}`;
         }
 
-        await writeFile(filePath, module, {
-            encoding: 'utf-8',
-            flag: 'w',
-        });
+        await this.filesystem.writeFile(filePath, module, {overwrite: true});
 
         indicator.confirm('Types updated');
     }
 
     private async registerScript(notifier: TaskNotifier): Promise<void> {
         const packageFile = this.project.getProjectPackagePath();
-        const content = await readFile(packageFile, {encoding: 'utf-8'});
+        const content = await this.filesystem.readFile(packageFile);
 
         const packageJson = JsonParser.parse(content, JsonObjectNode);
 
@@ -385,7 +385,7 @@ export abstract class JavaScriptSdk implements Sdk {
                 const postInstall = scripts.get('postinstall');
                 const value = postInstall.toJSON();
 
-                if (typeof value === 'string' && value.includes('croct install')) {
+                if (typeof value === 'string' && value.includes('croct install --no-interaction')) {
                     return notifier.confirm('Script already registered');
                 }
 
@@ -399,10 +399,7 @@ export abstract class JavaScriptSdk implements Sdk {
             });
         }
 
-        await writeFile(packageFile, packageJson.toString(), {
-            encoding: 'utf-8',
-            flag: 'w',
-        });
+        await this.filesystem.writeFile(packageFile, packageJson.toString(), {overwrite: true});
 
         notifier.confirm('Script registered');
     }
@@ -426,7 +423,7 @@ export abstract class JavaScriptSdk implements Sdk {
         }
 
         const typeFile = relative(this.project.getRootPath(), JavaScriptSdk.getTypeFile(packageInfo.path));
-        const config = JsonParser.parse(await readFile(configPath, {encoding: 'utf-8'}), JsonObjectNode);
+        const config = JsonParser.parse(await this.filesystem.readFile(configPath), JsonObjectNode);
 
         if (config.has('files')) {
             const files = config.get('files', JsonArrayNode);
@@ -441,10 +438,7 @@ export abstract class JavaScriptSdk implements Sdk {
             config.set('files', [typeFile]);
         }
 
-        await writeFile(configPath, config.toString(), {
-            encoding: 'utf-8',
-            flag: 'w',
-        });
+        await this.filesystem.writeFile(configPath, config.toString(), {overwrite: true});
 
         notifier.confirm('Type file registered');
     }
@@ -516,19 +510,15 @@ export abstract class JavaScriptSdk implements Sdk {
             return null;
         }
 
-        const stats = await lstat(packageInfo.path);
-
-        if (stats.isSymbolicLink()) {
+        if (await this.filesystem.isSymbolicLink(packageInfo.path)) {
             // Package managers like PNPM create symlinks to the global cache.
             // Because the content is project-specific, create a local copy of the package
             // to avoid conflicts with other projects.
-            const realPath = await realpath(packageInfo.path);
+            const realPath = await this.filesystem.getRealPath(packageInfo.path);
 
-            await unlink(packageInfo.path);
+            await this.filesystem.unlink(packageInfo.path);
 
-            const localFolder = resolve(packageInfo.path);
-
-            await cp(realPath, localFolder, {recursive: true});
+            await this.filesystem.copyDirectory(realPath, packageInfo.path, {recursive: true});
         }
 
         return packageInfo;

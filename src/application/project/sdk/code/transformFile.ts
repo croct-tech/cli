@@ -1,11 +1,14 @@
-import {readFile, writeFile} from 'fs/promises';
 import {Codemod, CodemodError, CodemodOptions, ResultCode} from '@/application/project/sdk/code/codemod';
 import {formatCause} from '@/application/error';
+import {Filesystem} from '@/application/filesystem';
 
 export class TransformFile<O extends CodemodOptions> implements Codemod<string, O> {
+    private readonly filesystem: Filesystem;
+
     private readonly codemod: Codemod<string, O>;
 
-    public constructor(codemod: Codemod<string, O>) {
+    public constructor(filesystem: Filesystem, codemod: Codemod<string, O>) {
+        this.filesystem = filesystem;
         this.codemod = codemod;
     }
 
@@ -13,7 +16,7 @@ export class TransformFile<O extends CodemodOptions> implements Codemod<string, 
         let source = '';
 
         try {
-            source = await readFile(input, 'utf-8');
+            source = await this.filesystem.readFile(input);
         } catch (error) {
             if (error.code !== 'ENOENT') {
                 throw new CodemodError(`Failed to read file: ${formatCause(error)}`);
@@ -24,7 +27,9 @@ export class TransformFile<O extends CodemodOptions> implements Codemod<string, 
 
         if (result.modified) {
             try {
-                await writeFile(input, result.result, {encoding: 'utf-8', flag: 'w'});
+                await this.filesystem.writeFile(input, result.result, {
+                    overwrite: true,
+                });
             } catch (error) {
                 throw new CodemodError(`Failed to write file: ${formatCause(error)}`);
             }

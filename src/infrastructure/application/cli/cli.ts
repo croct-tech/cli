@@ -69,6 +69,8 @@ import {
 import {ApiError} from '@/application/api/error';
 import {UpgradeCommand, UpgradeInput} from '@/application/cli/command/upgrade';
 import {ConfigurationError} from '@/application/project/configuration/configuration';
+import {Filesystem} from '@/application/filesystem';
+import {LocalFilesystem} from '@/infrastructure/localFilesystem';
 
 export type Configuration = {
     io: {
@@ -100,6 +102,8 @@ type AuthenticationInput = MultiAuthenticationInput<AuthenticationMethods>;
 
 export class Cli {
     private readonly configuration: Configuration;
+
+    private filesystem: Filesystem;
 
     private authenticator?: Authenticator<AuthenticationInput>;
 
@@ -355,6 +359,7 @@ export class Cli {
     private getAuthenticator(): Authenticator<AuthenticationInput> {
         if (this.authenticator === undefined) {
             this.authenticator = new TokenFileAuthenticator({
+                filesystem: this.getFileSystem(),
                 filePath: join(this.configuration.directories.config, 'token'),
                 authenticator: this.createAuthenticator(),
             });
@@ -418,6 +423,7 @@ export class Cli {
         return [
             new PlugNextSdk({
                 project: project,
+                filesystem: this.getFileSystem(),
                 linter: linter,
                 api: {
                     user: this.getUserApi(),
@@ -427,6 +433,7 @@ export class Cli {
                 codemod: {
                     middleware: new LintCode(
                         new TransformFile(
+                            this.getFileSystem(),
                             new ParseCode({
                                 languages: ['typescript', 'jsx'],
                                 codemod: new ConfigureMiddleware({
@@ -445,6 +452,7 @@ export class Cli {
                     ),
                     appRouterProvider: new LintCode(
                         new TransformFile(
+                            this.getFileSystem(),
                             new ParseCode({
                                 languages: ['typescript', 'jsx'],
                                 codemod: new AddWrapper({
@@ -469,6 +477,7 @@ export class Cli {
                     ),
                     pageRouterProvider: new LintCode(
                         new TransformFile(
+                            this.getFileSystem(),
                             new ParseCode({
                                 languages: ['typescript', 'jsx'],
                                 codemod: new AddWrapper({
@@ -495,6 +504,7 @@ export class Cli {
             }),
             new PlugReactSdk({
                 project: project,
+                filesystem: this.getFileSystem(),
                 linter: linter,
                 api: {
                     workspace: this.getWorkspaceApi(),
@@ -502,6 +512,7 @@ export class Cli {
                 codemod: {
                     provider: new LintCode(
                         new TransformFile(
+                            this.getFileSystem(),
                             new ParseCode({
                                 languages: ['typescript', 'jsx'],
                                 codemod: new AddWrapper({
@@ -536,6 +547,7 @@ export class Cli {
             }),
             new PlugJsSdk({
                 project: project,
+                filesystem: this.getFileSystem(),
                 linter: linter,
                 workspaceApi: this.getWorkspaceApi(),
             }),
@@ -544,6 +556,7 @@ export class Cli {
 
     private createJavaScriptProject(): JavaScriptProject {
         return new NodeProject({
+            filesystem: this.getFileSystem(),
             directory: this.configuration.directories.current,
         });
     }
@@ -574,7 +587,10 @@ export class Cli {
         if (this.configurationManager === undefined) {
             const output = this.getOutput();
             const manager = new ConfigurationFileManager({
-                file: new JsonFileConfiguration(this.configuration.directories.current),
+                file: new JsonFileConfiguration(
+                    this.getFileSystem(),
+                    this.configuration.directories.current,
+                ),
                 output: output,
                 api: {
                     user: this.getUserApi(),
@@ -670,6 +686,16 @@ export class Cli {
         }
 
         return this.authenticationListener;
+    }
+
+    public getFileSystem(): Filesystem {
+        if (this.filesystem === undefined) {
+            this.filesystem = new LocalFilesystem({
+                encoding: 'utf-8',
+            });
+        }
+
+        return this.filesystem;
     }
 
     private async execute<I extends CommandInput>(command: Command<I>, input: I): Promise<void> {

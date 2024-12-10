@@ -1,10 +1,10 @@
 import {join, relative} from 'path';
-import {readFile, writeFile} from 'fs/promises';
 import {z} from 'zod';
 import {Configuration, ConfigurationError} from '@/application/project/configuration/configuration';
 import {Version} from '@/application/project/version';
 import {ConfigurationFile} from '@/application/project/configuration/file/configurationFile';
 import {JsonObjectNode, JsonParser} from '@/infrastructure/json';
+import {Filesystem} from '@/application/filesystem';
 
 const identifierSchema = z.string().regex(
     /^[A-Za-z]+(-?[A-Za-z0-9]+)*$/,
@@ -59,9 +59,12 @@ type LoadedFile = {
 };
 
 export class JsonFileConfiguration implements ConfigurationFile {
+    private readonly filesystem: Filesystem;
+
     private readonly projectDirectory: string;
 
-    public constructor(projectDirectory: string) {
+    public constructor(filesystem: Filesystem, projectDirectory: string) {
+        this.filesystem = filesystem;
         this.projectDirectory = projectDirectory;
     }
 
@@ -117,7 +120,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
         });
 
         try {
-            await writeFile(file.path, json, 'utf8');
+            await this.filesystem.writeFile(file.path, json, {overwrite: true});
         } catch {
             throw new Error(`Unable to write configuration file ${file.path}.`);
         }
@@ -131,7 +134,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
         };
 
         try {
-            file.source = await readFile(file.path, 'utf8');
+            file.source = await this.filesystem.readFile(file.path);
             file.configuration = JSON.parse(file.source);
         } catch {
             return file;

@@ -12,6 +12,7 @@ import {EnvFile} from '@/application/project/envFile';
 import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {PlugReactExampleGenerator} from '@/application/project/example/slot/plugReactExampleGenerator';
 import {Linter} from '@/application/project/linter';
+import {Filesystem} from '@/application/filesystem';
 
 type ApiConfiguration = {
     workspace: WorkspaceApi,
@@ -28,6 +29,7 @@ type Bundlers = {
 
 export type Configuration = {
     project: JavaScriptProject,
+    filesystem: Filesystem,
     api: ApiConfiguration,
     linter: Linter,
     codemod: CodemodConfiguration,
@@ -63,6 +65,7 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
     public constructor(config: Configuration) {
         super({
             project: config.project,
+            filesystem: config.filesystem,
             linter: config.linter,
             workspaceApi: config.api.workspace,
         });
@@ -160,8 +163,8 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
                 ? undefined
                 : {
                     property: envProperty,
-                    productionFile: new EnvFile(join(this.project.getRootPath(), '.env.production')),
-                    developmentFile: new EnvFile(join(this.project.getRootPath(), '.env.development')),
+                    productionFile: new EnvFile(this.filesystem, join(this.project.getRootPath(), '.env.production')),
+                    developmentFile: new EnvFile(this.filesystem, join(this.project.getRootPath(), '.env.development')),
                 },
         };
     }
