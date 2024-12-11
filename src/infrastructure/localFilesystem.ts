@@ -2,12 +2,18 @@ import {
     mkdir,
     readFile,
     writeFile,
+    rm,
     lstat,
     realpath,
-    unlink,
     cp,
 } from 'fs/promises';
-import {DirectoryCopyOptions, DirectoryCreationOptions, Filesystem, FileWritingOptions} from '@/application/filesystem';
+import {
+    DirectoryCopyOptions,
+    DirectoryCreationOptions,
+    DeletionOptions,
+    Filesystem,
+    FileWritingOptions,
+} from '@/application/filesystem';
 
 export type DefaultOptions = {
     encoding: BufferEncoding,
@@ -50,8 +56,16 @@ export class LocalFilesystem implements Filesystem {
         }
     }
 
-    public unlink(path: string): Promise<void> {
-        return unlink(path);
+    public async isDirectory(path: string): Promise<boolean> {
+        try {
+            return (await lstat(path)).isDirectory();
+        } catch (error) {
+            if (error.code === 'ENOENT') {
+                return false;
+            }
+
+            throw error;
+        }
     }
 
     public readFile(path: string): Promise<string> {
@@ -71,9 +85,17 @@ export class LocalFilesystem implements Filesystem {
         });
     }
 
+    public delete(path: string, options?: DeletionOptions): Promise<void> {
+        return rm(path, {
+            recursive: options?.recursive,
+            force: true,
+        });
+    }
+
     public copyDirectory(source: string, destination: string, options?: DirectoryCopyOptions): Promise<void> {
         return cp(source, destination, {
             recursive: options?.recursive,
+            force: options?.overwrite,
         });
     }
 }

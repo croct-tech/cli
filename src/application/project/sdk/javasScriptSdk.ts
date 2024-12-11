@@ -29,6 +29,7 @@ export type Configuration = {
 };
 
 type VersionedContent = {
+    slot: string,
     version: number,
     list: LocalizedContent[],
 };
@@ -237,7 +238,7 @@ export abstract class JavaScriptSdk implements Sdk {
                 const versions = constraint.getVersions();
 
                 return versions.map(
-                    (version): Promise<VersionedContent|null> => this.workspaceApi
+                    version => this.workspaceApi
                         .getSlotStaticContent(
                             {
                                 organizationSlug: configuration.organization,
@@ -248,6 +249,7 @@ export abstract class JavaScriptSdk implements Sdk {
                         )
                         .then(
                             (content): VersionedContent => ({
+                                slot: slot,
                                 version: version,
                                 list: content,
                             }),
@@ -258,29 +260,22 @@ export abstract class JavaScriptSdk implements Sdk {
 
         const directoryPath = join(packageInfo.path, 'slot');
 
-        // Create the directory if it does not exist
-        await this.filesystem
-            .createDirectory(directoryPath)
-            .catch(() => {});
+        await this.filesystem.delete(directoryPath, {recursive: true});
+        await this.filesystem.createDirectory(directoryPath);
 
         const indexes: Record<string, string[]> = {};
 
-        for (let index = 0; index < slots.length; index++) {
-            const [slot] = slots[index];
-            const versionedContent = contentList[index];
-
-            if (versionedContent === null) {
-                continue;
-            }
-
+        for (const versionedContent of contentList) {
             for (const {locale, content} of versionedContent.list) {
-                const baseName = `${slot}@${versionedContent.version}`;
+                const baseName = `${versionedContent.slot}@${versionedContent.version}`;
 
                 indexes[locale] = [...indexes[locale] ?? [], baseName];
 
-                await this.filesystem
-                    .createDirectory(join(directoryPath, locale), {recursive: true})
-                    .catch(() => {});
+                const localeDirectory = join(directoryPath, locale);
+
+                if (!await this.filesystem.isDirectory(localeDirectory)) {
+                    await this.filesystem.createDirectory(join(directoryPath, locale), {recursive: true});
+                }
 
                 await this.filesystem.writeFile(
                     join(directoryPath, `${locale}/${baseName}.json`),
@@ -516,8 +511,7 @@ export abstract class JavaScriptSdk implements Sdk {
             // to avoid conflicts with other projects.
             const realPath = await this.filesystem.getRealPath(packageInfo.path);
 
-            await this.filesystem.unlink(packageInfo.path);
-
+            await this.filesystem.delete(packageInfo.path);
             await this.filesystem.copyDirectory(realPath, packageInfo.path, {recursive: true});
         }
 

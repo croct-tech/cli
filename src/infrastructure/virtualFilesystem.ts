@@ -1,4 +1,10 @@
-import {DirectoryCopyOptions, DirectoryCreationOptions, Filesystem, FileWritingOptions} from '@/application/filesystem';
+import {
+    DeletionOptions,
+    DirectoryCopyOptions,
+    DirectoryCreationOptions,
+    Filesystem,
+    FileWritingOptions,
+} from '@/application/filesystem';
 
 type FilesystemNodeMap = {
     file: {
@@ -49,11 +55,19 @@ export class VirtualFilesystem implements Filesystem {
         return Promise.resolve(this.getNode(path)?.type === 'link');
     }
 
-    public unlink(path: string): Promise<void> {
-        const directory = this.getParentNode(path);
+    public isDirectory(path: string): Promise<boolean> {
+        return Promise.resolve(this.getNode(path)?.type === 'directory');
+    }
 
-        if (directory !== null) {
-            delete directory.files[path.split('/').pop() as string];
+    public delete(path: string, options?: DeletionOptions): Promise<void> {
+        const node = this.getParentNode(path);
+
+        if (node !== null) {
+            if (Object.keys(node.files).length > 0 && options?.recursive !== true) {
+                return Promise.reject(new Error('Directory not empty'));
+            }
+
+            delete node.files[path.split('/').pop() as string];
         }
 
         return Promise.resolve();
@@ -78,7 +92,7 @@ export class VirtualFilesystem implements Filesystem {
 
         const fileName = path.split('/').pop() as string;
 
-        if (options?.overwrite !== true && directory.files[fileName] !== undefined) {
+        if (options?.overwrite !== true && fileName in directory.files) {
             return Promise.reject(new Error('File already exists'));
         }
 
@@ -130,32 +144,31 @@ export class VirtualFilesystem implements Filesystem {
     }
 
     private createDirectoryNode(path: string, options?: DirectoryCreationOptions): FilesystemNode<'directory'> {
-        const parts = path.split('/');
-
+        const segments = path.split('/');
         const node: FilesystemNode<'directory'> = this.root;
 
-        for (let i = 0; i < parts.length; i++) {
-            const part = parts[i];
+        for (let i = 0; i < segments.length; i++) {
+            const segment = segments[i];
 
             if (node === null || node.type !== 'directory') {
                 throw new Error('Directory not found');
             }
 
-            if (node.files[part] !== undefined) {
-                const file = node.files[part];
+            if (segment in node.files) {
+                const file = node.files[segment];
 
                 if (file.type !== 'directory') {
-                    throw new Error(`File ${parts.slice(0, i).join('/')} already exists`);
+                    throw new Error(`File ${segments.slice(0, i).join('/')} already exists`);
                 }
 
                 continue;
             }
 
             if (options?.recursive !== true) {
-                throw new Error(`Directory ${parts.slice(0, i).join('/')} not found`);
+                throw new Error(`Directory ${segments.slice(0, i).join('/')} not found`);
             }
 
-            node.files[part] = {
+            node.files[segment] = {
                 type: 'directory',
                 files: {},
             };
@@ -181,18 +194,16 @@ export class VirtualFilesystem implements Filesystem {
     }
 
     private getNode(path: string): FilesystemNode | null {
-        const parts = path.split('/');
+        const segments = path.split('/');
 
-        let node: FilesystemNode = this.root;
+        const node: FilesystemNode = this.root;
 
-        for (const part of parts) {
+        for (const segment of segments) {
             if (node.type !== 'directory') {
                 return null;
             }
 
-            node = node.files[part];
-
-            if (node === undefined) {
+            if (!(segment in node.files)) {
                 return null;
             }
         }
