@@ -372,15 +372,7 @@ export abstract class JsonStructureNode extends JsonValueNode {
             value: '\n',
         });
 
-        if (manipulator.matchesToken(JsonTokenType.NEWLINE)) {
-            // Multiple new lines are not considered equivalent
-            // to a single new line. So, remove the existing one
-            // and insert a single new line.
-            manipulator.remove();
-            manipulator.insert(newLine);
-        } else {
-            manipulator.token(newLine, optional);
-        }
+        manipulator.token(newLine, optional);
 
         if (manipulator.matchesToken(JsonTokenType.WHITESPACE)) {
             manipulator.next();

@@ -51,7 +51,7 @@ export class JsonLexer implements Iterable<JsonToken> {
         },
         {
             type: JsonTokenType.NEWLINE,
-            pattern: /^(\r?\n)+/,
+            pattern: /^(\r?\n)/,
         },
         {
             type: JsonTokenType.WHITESPACE,

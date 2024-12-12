@@ -1728,7 +1728,7 @@ describe('Functional test', () => {
             },
         },
         {
-            description: 'add a property to an empty object using the specified indentation',
+            description: 'add a property to an empty array using the specified indentation',
             // language=JSON
             input: multiline`
             [
@@ -1750,7 +1750,7 @@ describe('Functional test', () => {
             },
         },
         {
-            description: 'collapse multiple lines adding a property to an empty object',
+            description: 'preserve trailing blank lines when adding a property to an empty object',
             // language=JSON
             input: multiline`
             {
@@ -1761,6 +1761,7 @@ describe('Functional test', () => {
             output: multiline`
             {
             "foo": 1
+
             }`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
@@ -1768,7 +1769,7 @@ describe('Functional test', () => {
             },
         },
         {
-            description: 'collapse multiple lines adding a property to an empty array',
+            description: 'preserve trailing blank lines when adding an element to an empty array',
             // language=JSON
             input: multiline`
             [
@@ -1779,6 +1780,7 @@ describe('Functional test', () => {
             output: multiline`
             [
             1
+
             ]`,
             type: JsonArrayNode,
             mutation: (node: JsonArrayNode): void => {
@@ -1786,7 +1788,7 @@ describe('Functional test', () => {
             },
         },
         {
-            description: 'collapse multiple lines with partial indentation adding a property to an empty object',
+            description: 'preserve multiple lines with partial indentation adding a property to an empty object',
             // language=JSON
             input: multiline`
             {
@@ -1797,6 +1799,7 @@ describe('Functional test', () => {
             output: multiline`
             {
               "foo": 1
+            
             }`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
@@ -1804,7 +1807,7 @@ describe('Functional test', () => {
             },
         },
         {
-            description: 'collapse multiple lines with partial indentation adding a property to an empty array',
+            description: 'preserve multiple lines with partial indentation adding a property to an empty array',
             // language=JSON
             input: multiline`
             [
@@ -1815,6 +1818,7 @@ describe('Functional test', () => {
             output: multiline`
             [
               1
+            
             ]`,
             type: JsonArrayNode,
             mutation: (node: JsonArrayNode): void => {
@@ -1857,6 +1861,36 @@ describe('Functional test', () => {
             type: JsonArrayNode,
             mutation: (node: JsonArrayNode): void => {
                 node.push(1);
+            },
+        },
+        {
+            description: 'preserve empty lines',
+            // language=JSON
+            input: multiline`
+            {
+              "compilerOptions": {
+                "skipLibCheck": true,
+            
+                "moduleResolution": "bundler",
+            
+                "strict": true
+              },
+              "include": ["src"]
+            }`,
+            // language=JSON
+            output: multiline`
+            {
+              "compilerOptions": {
+                "skipLibCheck": true,
+            
+                "moduleResolution": "bundler",
+            
+                "strict": true
+              },
+              "include": ["src"]
+            }`,
+            type: JsonObjectNode,
+            mutation: (): void => {
             },
         },
     ])('should $description', ({input, output, type, mutation, format}) => {
