@@ -46,9 +46,11 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
         } catch (error) {
             if ((error instanceof Error) && 'code' in error && error.code !== 'ENOENT') {
                 throw new CliError(
-                    `Failed to logout, check file permissions for ${this.filePath}`,
+                    'Failed to delete token file.',
                     {
                         code: CliErrorCode.OTHER,
+                        suggestions: ['Try to delete the file manually'],
+                        details: [`Token file: ${this.filePath}`],
                         cause: error,
                     },
                 );
@@ -64,9 +66,14 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
             await this.filesystem.writeFile(this.filePath, token, {overwrite: true});
         } catch (cause) {
             throw new CliError(
-                `Failed to save token, check file permissions for ${this.filePath}`,
+                'Failed to save token to file.',
                 {
                     code: CliErrorCode.OTHER,
+                    suggestions: [
+                        'If the file exists, try to delete it manually',
+                        'Check the permissions of the directory',
+                    ],
+                    details: [`Token file: ${this.filePath}`],
                     cause: cause,
                 },
             );
