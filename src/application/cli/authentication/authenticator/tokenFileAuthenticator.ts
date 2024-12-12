@@ -62,7 +62,10 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
         try {
             const directory = dirname(this.filePath);
 
-            await this.filesystem.createDirectory(directory, {recursive: true});
+            if (!await this.filesystem.exists(directory)) {
+                await this.filesystem.createDirectory(directory, {recursive: true});
+            }
+
             await this.filesystem.writeFile(this.filePath, token, {overwrite: true});
         } catch (cause) {
             throw new CliError(
