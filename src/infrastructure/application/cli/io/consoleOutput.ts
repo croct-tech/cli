@@ -180,7 +180,7 @@ export class ConsoleOutput implements Output {
                 .join('\n');
         }
 
-        if (error.code !== CliErrorCode.OTHER) {
+        if (error.code === CliErrorCode.OTHER) {
             message += `\n\n${chalk.bold('Cause:')}\n`;
             message += `${formatCause(error.help.cause)}\n`;
 
