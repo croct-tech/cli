@@ -7,6 +7,7 @@ import {
     realpath,
     cp,
 } from 'fs/promises';
+import {isAbsolute, join} from 'path';
 import {
     DirectoryCopyOptions,
     DirectoryCreationOptions,
@@ -14,7 +15,6 @@ import {
     Filesystem,
     FileWritingOptions,
 } from '@/application/filesystem/filesystem';
-import {isAbsolute, join} from "path";
 
 export type Configuration = {
     currentDirectory: string,
@@ -83,20 +83,20 @@ export class LocalFilesystem implements Filesystem {
 
     public async createDirectory(path: string, options?: DirectoryCreationOptions): Promise<void> {
         await mkdir(this.resolvePath(path), {
-            recursive: options?.recursive,
+            recursive: options?.recursive ?? false,
         });
     }
 
     public delete(path: string, options?: DeletionOptions): Promise<void> {
         return rm(this.resolvePath(path), {
-            recursive: options?.recursive,
+            recursive: options?.recursive ?? false,
             force: true,
         });
     }
 
     public copyDirectory(source: string, destination: string, options?: DirectoryCopyOptions): Promise<void> {
         return cp(this.resolvePath(source), this.resolvePath(destination), {
-            recursive: options?.recursive,
+            recursive: options?.recursive ?? false,
             force: options?.overwrite,
         });
     }

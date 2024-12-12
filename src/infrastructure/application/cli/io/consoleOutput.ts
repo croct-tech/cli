@@ -9,6 +9,7 @@ import {InteractiveTaskMonitor} from '@/infrastructure/application/cli/io/intera
 import {format} from '@/infrastructure/application/cli/io/formatting';
 import {TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
 import {NonInteractiveTaskMonitor} from '@/infrastructure/application/cli/io/nonInteractiveTaskMonitor';
+import {formatCause} from '@/application/error';
 
 export type ExitCallback = () => never;
 
@@ -163,17 +164,23 @@ export class ConsoleOutput implements Output {
     private static formatErrorDetails(error: any): string {
         let message = '';
 
-        const title = `\n\n${chalk.bold('Details:')}\n`;
-
         if (error instanceof CliError && error.help.details !== undefined) {
-            message += title;
+            message += `\n\n${chalk.bold('Details:')}\n`;
             message += error.help
                 .details
                 .map(detail => ` • ${format(detail)}`)
                 .join('\n');
-        } else if (error instanceof Error && (!(error instanceof CliError) || error.code === CliErrorCode.OTHER)) {
-            message += title;
-            message += error.stack ?? error.message;
+        }
+
+        if (!(error instanceof CliError) || error.code === CliErrorCode.OTHER) {
+            if (error.help.cause !== undefined) {
+                message += `\n\n${chalk.bold('Cause:')}\n`;
+                message += `${formatCause(error.help.cause)}\n`;
+            }
+
+            if (error.stack !== undefined) {
+                message += error.stack;
+            }
         }
 
         return message;
