@@ -1,12 +1,15 @@
 import {SourceLocation} from './location';
 
 export enum JsonTokenType {
+    IDENTIFIER = 'IDENTIFIER',
     STRING = 'STRING',
     NUMBER = 'NUMBER',
     BOOLEAN = 'BOOLEAN',
     NULL = 'NULL',
     COLON = 'COLON',
     COMMA = 'COMMA',
+    LINE_COMMENT = 'LINE_COMMENT',
+    BLOCK_COMMENT = 'BLOCK_COMMENT',
     BRACE_LEFT = 'BRACE_LEFT',
     BRACE_RIGHT = 'BRACE_RIGHT',
     BRACKET_LEFT = 'BRACKET_LEFT',
@@ -34,3 +37,9 @@ export type JsonToken<T extends JsonTokenType = JsonTokenType> = {
     readonly value: string,
     readonly location: SourceLocation,
 };
+
+export namespace JsonToken {
+    export function isType<T extends JsonTokenType>(token: JsonToken, type: T): token is JsonToken<T> {
+        return token.type === type;
+    }
+}

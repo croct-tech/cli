@@ -6,6 +6,8 @@ import {JsonPropertyNode} from './propertyNode';
 import {JsonCompositeDefinition, JsonCompositeNode, PartialJsonCompositeDefinition} from './compositeNode';
 import {JsonPrimitiveNode} from '@/infrastructure/json/node/primitiveNode';
 import {JsonValueFactory} from '@/infrastructure/json/node/factory';
+import {JsonTokenType} from '@/infrastructure/json';
+import {JsonIdentifierNode} from '@/infrastructure/json/node/identifierNode';
 
 export interface JsonObjectDefinition extends JsonCompositeDefinition {
     readonly properties: readonly JsonPropertyNode[];
@@ -113,7 +115,10 @@ export class JsonObjectNode extends JsonStructureNode implements JsonCompositeDe
         return [...this.propertyNodes];
     }
 
-    public set(name: string, value: JsonValue|JsonValueNode): void {
+    public set(
+        name: string|JsonPrimitiveNode<JsonTokenType.STRING>|JsonIdentifierNode,
+        value: JsonValue|JsonValueNode,
+    ): void {
         const index = this.propertyNodes.findIndex(current => current.key.toJSON() === name);
 
         if (index >= 0) {
@@ -124,7 +129,7 @@ export class JsonObjectNode extends JsonStructureNode implements JsonCompositeDe
 
         this.propertyNodes.push(
             new JsonPropertyNode({
-                key: JsonPrimitiveNode.of(name),
+                key: typeof name === 'string' ? JsonPrimitiveNode.of(name) : name,
                 value: JsonValueFactory.create(value),
             }),
         );

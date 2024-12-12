@@ -1,8 +1,225 @@
 import {JsonValue} from '@croct/json';
 import {JsonParser} from './parser';
 import {Formatting, JsonArrayNode, JsonObjectNode, JsonValueNode} from './node';
+import {JsonIdentifierNode} from '@/infrastructure/json/node/identifierNode';
 
 describe('Functional test', () => {
+    type ParseScenario = {
+        input: string,
+        expected: JsonValue,
+    };
+
+    it.each<ParseScenario>([
+        {
+            input: 'Infinity',
+            expected: Infinity,
+        },
+        {
+            input: '+Infinity',
+            expected: Infinity,
+        },
+        {
+            input: '-Infinity',
+            expected: -Infinity,
+        },
+        {
+            input: 'NaN',
+            expected: NaN,
+        },
+        {
+            input: '+NaN',
+            expected: NaN,
+        },
+        {
+            input: '-NaN',
+            expected: NaN,
+        },
+        {
+            input: '0x123',
+            expected: 291,
+        },
+        {
+            input: '+0x123',
+            expected: 291,
+        },
+        {
+            input: '-0x123',
+            expected: -291,
+        },
+        {
+            input: '.123',
+            expected: 0.123,
+        },
+        {
+            input: '+.123',
+            expected: 0.123,
+        },
+        {
+            input: '-.123',
+            expected: -0.123,
+        },
+        {
+            input: '123.',
+            expected: 123,
+        },
+        {
+            input: '+123.',
+            expected: 123,
+        },
+        {
+            input: '-123.',
+            expected: -123,
+        },
+        {
+            input: '123e4',
+            expected: 123e4,
+        },
+        {
+            input: '+123e4',
+            expected: 123e4,
+        },
+        {
+            input: '-123e4',
+            expected: -123e4,
+        },
+        {
+            input: '123e+4',
+            expected: 123e4,
+        },
+        {
+            input: '-123e+4',
+            expected: -123e4,
+        },
+        {
+            input: '123e-4',
+            expected: 123e-4,
+        },
+        {
+            input: '-123e-4',
+            expected: -123e-4,
+        },
+        {
+            input: '.123e4',
+            expected: 0.123e4,
+        },
+        {
+            input: '+.123e4',
+            expected: 0.123e4,
+        },
+        {
+            input: '-.123e4',
+            expected: -0.123e4,
+        },
+        {
+            input: '.123e+4',
+            expected: 0.123e4,
+        },
+        {
+            input: '-.123e+4',
+            expected: -0.123e4,
+        },
+        {
+            input: '.123e-4',
+            expected: 0.123e-4,
+        },
+        {
+            input: '-.123e-4',
+            expected: -0.123e-4,
+        },
+        {
+            input: '123.e4',
+            expected: 123e4,
+        },
+        {
+            input: '+123.e4',
+            expected: 123e4,
+        },
+        {
+            input: '-123.e4',
+            expected: -123e4,
+        },
+        {
+            input: '123.e+4',
+            expected: 123e4,
+        },
+        {
+            input: '-123.e+4',
+            expected: -123e4,
+        },
+        {
+            input: '123.e-4',
+            expected: 123e-4,
+        },
+        {
+            input: '-123.e-4',
+            expected: -123e-4,
+        },
+        {
+            // language=JSON5
+            input: multiline`
+            {
+              foo: "bar",
+              "baz": 1,
+              'qux': true,
+            }`,
+            expected: {
+                foo: 'bar',
+                baz: 1,
+                qux: true,
+            },
+        },
+        {
+            // language=JSON5
+            input: multiline`
+            'first line, \\
+            second line, \\
+            third line'`,
+            expected: 'first line, second line, third line',
+        },
+        {
+            // language=JSON5
+            input: multiline`
+            '\\'first line\\', \\
+            \\'second line\\', \\
+            \\'third line\\''`,
+            expected: "'first line', 'second line', 'third line'",
+        },
+        {
+            // language=JSON5
+            input: multiline`
+            "first line, \\
+            second line, \\
+            third line"`,
+            expected: 'first line, second line, third line',
+        },
+        {
+            // language=JSON5
+            input: multiline`
+            "\\"first line\\", \\
+            \\"second line\\", \\
+            \\"third line\\""`,
+            expected: '"first line", "second line", "third line"',
+        },
+        {
+            // language=JSON5
+            input: multiline`
+            // First line
+            [
+              // Second line
+              1,
+              // Third line
+              2,
+            ]`,
+            expected: [1, 2],
+        },
+    ])('should parse $input', ({input, expected}) => {
+        const parser = new JsonParser(input);
+        const node = parser.parseValue();
+
+        expect(node.toJSON()).toEqual(expected);
+        expect(node.toString()).toBe(input);
+    });
+
     it.each(derive([
         1,
         null,
@@ -1893,6 +2110,90 @@ describe('Functional test', () => {
             mutation: (): void => {
             },
         },
+        {
+            description: 'preserve identifiers',
+            // language=JSON5
+            input: multiline`
+            {
+              foo: 1
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              foo: 1,
+              bar: 2
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set(JsonIdentifierNode.of('bar'), 2);
+            },
+        },
+        {
+            description: 'preserve trailing commas',
+            // language=JSON5
+            input: multiline`
+            {
+              foo: 1,
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              foo: 1,
+              bar: 2,
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set(JsonIdentifierNode.of('bar'), 2);
+            },
+        },
+        {
+            description: 'preserve hexadecimal number representation',
+            // language=JSON5
+            input: multiline`
+            {
+              foo: 0x1
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              foo: 0x1
+            }`,
+            type: JsonObjectNode,
+            mutation: (): void => {
+            },
+        },
+        {
+            description: 'preserve infinity',
+            // language=JSON5
+            input: multiline`
+            {
+              foo: Infinity
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              foo: Infinity
+            }`,
+            type: JsonObjectNode,
+            mutation: (): void => {
+            },
+        },
+        {
+            description: 'preserve not-a-number',
+            // language=JSON5
+            input: multiline`
+            {
+              foo: NaN
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              foo: NaN
+            }`,
+            type: JsonObjectNode,
+            mutation: (): void => {
+            },
+        },
     ])('should $description', ({input, output, type, mutation, format}) => {
         const node = JsonParser.parse(input, type);
 
@@ -1903,10 +2204,14 @@ describe('Functional test', () => {
 
     function derive(scenarios: JsonValue[]): string[] {
         return scenarios.flatMap(
-            value => [
-                JSON.stringify(value),
-                JSON.stringify(value, null, 2),
-            ],
+            value => (
+                typeof value === 'string'
+                    ? [value]
+                    : [
+                        JSON.stringify(value),
+                        JSON.stringify(value, null, 2),
+                    ]
+            ),
         );
     }
 

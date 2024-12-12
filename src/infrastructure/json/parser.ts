@@ -2,6 +2,7 @@ import {JsonLexer} from './lexer';
 import {JsonArrayNode, JsonNode, JsonObjectNode, JsonPrimitiveNode, JsonTokenNode, JsonValueNode} from './node';
 import {JsonToken, JsonTokenType} from './token';
 import {JsonPropertyNode} from '@/infrastructure/json/node/propertyNode';
+import {JsonIdentifierNode} from '@/infrastructure/json/node/identifierNode';
 
 export class JsonParser {
     private readonly lexer: JsonLexer;
@@ -41,14 +42,14 @@ export class JsonParser {
     private parseRoot(): JsonValueNode {
         this.lexer.next();
 
-        const leadingSpaces = this.lexer.skipSpace();
+        const leadingTokens = this.lexer.skipInsignificant();
 
         const node = this.parseNext();
 
-        const trailingSpaces = this.lexer.skipSpace();
+        const trailingTokens = this.lexer.skipInsignificant();
 
-        node.children.unshift(...JsonParser.createChildren(leadingSpaces));
-        node.children.push(...JsonParser.createChildren(trailingSpaces));
+        node.children.unshift(...JsonParser.createChildren(leadingTokens));
+        node.children.push(...JsonParser.createChildren(trailingTokens));
 
         if (!this.lexer.isEof()) {
             const token = this.lexer.peek();
@@ -70,11 +71,17 @@ export class JsonParser {
             case JsonTokenType.BRACKET_LEFT:
                 return this.parseArray();
 
-            case JsonTokenType.STRING:
             case JsonTokenType.NUMBER:
+                return this.parseNumber();
+
+            case JsonTokenType.STRING:
+                return this.parseString();
+
             case JsonTokenType.BOOLEAN:
+                return this.parseBoolean();
+
             case JsonTokenType.NULL:
-                return this.parsePrimitive();
+                return this.parseNull();
 
             default: {
                 const position = token.location.start;
@@ -84,19 +91,98 @@ export class JsonParser {
         }
     }
 
-    private parsePrimitive(): JsonPrimitiveNode {
-        const token = this.lexer.consume(
-            JsonTokenType.STRING,
-            JsonTokenType.NUMBER,
-            JsonTokenType.BOOLEAN,
-            JsonTokenType.NULL,
-        );
+    private parseNumber(): JsonPrimitiveNode<JsonTokenType.NUMBER> {
+        const token = this.lexer.consume(JsonTokenType.NUMBER);
+        const tokenNode = new JsonTokenNode(token);
+
+        return new JsonPrimitiveNode({
+            token: tokenNode,
+            value: this.parseNumberValue(token),
+            children: [tokenNode],
+            location: token.location,
+        });
+    }
+
+    private parseNumberValue(token: JsonToken<JsonTokenType.NUMBER>): number {
+        let {value} = token;
+
+        let sign = 1;
+
+        if (value.startsWith('+')) {
+            value = value.slice(1);
+        } else if (value.startsWith('-')) {
+            sign = -1;
+            value = value.slice(1);
+        }
+
+        if (value === 'Infinity') {
+            return sign * Infinity;
+        }
+
+        if (value === 'NaN') {
+            return NaN;
+        }
+
+        if (value.startsWith('.')) {
+            value = `0${value}`;
+        } else {
+            value = value.replace(/\.(?!\d)/, '');
+        }
+
+        if (value.startsWith('0x') || value.startsWith('0X')) {
+            return sign * Number.parseInt(value, 16);
+        }
+
+        return sign * JSON.parse(value);
+    }
+
+    private parseString(): JsonPrimitiveNode<JsonTokenType.STRING> {
+        const token = this.lexer.consume(JsonTokenType.STRING);
+
+        let {value} = token;
+
+        if (value.startsWith("'")) {
+            value = value.slice(1, -1)
+                // Unescape single quotes and escape double quotes
+                .replace(
+                    /((?:^|[^\\])(?:\\\\)*)\\(["'])/g,
+                    (_, preceding, quote) => `${preceding}${quote === '"' ? '\\"' : "'"}`,
+                );
+
+            value = `"${value}"`;
+        }
+
+        value = value.replace(/\\(?:\r\n|\r|\n|\u2028|\u2029)/gu, '');
 
         const tokenNode = new JsonTokenNode(token);
 
         return new JsonPrimitiveNode({
             token: tokenNode,
-            value: JSON.parse(token.value),
+            value: JSON.parse(value),
+            children: [tokenNode],
+            location: token.location,
+        });
+    }
+
+    private parseNull(): JsonPrimitiveNode<JsonTokenType.NULL> {
+        const token = this.lexer.consume(JsonTokenType.NULL);
+        const tokenNode = new JsonTokenNode(token);
+
+        return new JsonPrimitiveNode({
+            token: tokenNode,
+            value: null,
+            children: [tokenNode],
+            location: token.location,
+        });
+    }
+
+    private parseBoolean(): JsonPrimitiveNode<JsonTokenType.BOOLEAN> {
+        const token = this.lexer.consume(JsonTokenType.BOOLEAN);
+        const tokenNode = new JsonTokenNode(token);
+
+        return new JsonPrimitiveNode({
+            token: tokenNode,
+            value: token.value === 'true',
             children: [tokenNode],
             location: token.location,
         });
@@ -105,7 +191,7 @@ export class JsonParser {
     private parseArray(): JsonArrayNode {
         const children: Array<JsonNode|JsonToken> = [
             this.lexer.consume(JsonTokenType.BRACKET_LEFT),
-            ...this.lexer.skipSpace(),
+            ...this.lexer.skipInsignificant(),
         ];
 
         const elements: JsonValueNode[] = [];
@@ -115,10 +201,10 @@ export class JsonParser {
 
             elements.push(element);
 
-            children.push(element, ...this.lexer.skipSpace());
+            children.push(element, ...this.lexer.skipInsignificant());
 
             if (!this.lexer.matches(JsonTokenType.BRACKET_RIGHT)) {
-                children.push(this.lexer.consume(JsonTokenType.COMMA), ...this.lexer.skipSpace());
+                children.push(this.lexer.consume(JsonTokenType.COMMA), ...this.lexer.skipInsignificant());
             }
         }
 
@@ -137,7 +223,7 @@ export class JsonParser {
     private parseObject(): JsonObjectNode {
         const children: Array<JsonNode|JsonToken> = [
             this.lexer.consume(JsonTokenType.BRACE_LEFT),
-            ...this.lexer.skipSpace(),
+            ...this.lexer.skipInsignificant(),
         ];
 
         const properties: JsonPropertyNode[] = [];
@@ -147,10 +233,10 @@ export class JsonParser {
 
             properties.push(property);
 
-            children.push(property, ...this.lexer.skipSpace());
+            children.push(property, ...this.lexer.skipInsignificant());
 
             if (!this.lexer.matches(JsonTokenType.BRACE_RIGHT)) {
-                children.push(this.lexer.consume(JsonTokenType.COMMA), ...this.lexer.skipSpace());
+                children.push(this.lexer.consume(JsonTokenType.COMMA), ...this.lexer.skipInsignificant());
             }
         }
 
@@ -168,21 +254,18 @@ export class JsonParser {
 
     private parseObjectProperty(): JsonPropertyNode {
         const children: Array<JsonNode|JsonToken> = [];
-        const keyToken = this.lexer.consume(JsonTokenType.STRING);
-        const keyTokenNode = new JsonTokenNode(keyToken);
 
-        const key = new JsonPrimitiveNode<JsonTokenType.STRING>({
-            token: keyTokenNode,
-            value: JSON.parse(keyToken.value),
-            children: [keyTokenNode],
-            location: keyToken.location,
-        });
+        this.lexer.expect(JsonTokenType.STRING, JsonTokenType.IDENTIFIER);
+
+        const key = this.lexer.matches(JsonTokenType.STRING)
+            ? this.parseString()
+            : this.parseIdentifier();
 
         children.push(
             key,
-            ...this.lexer.skipSpace(),
+            ...this.lexer.skipInsignificant(),
             this.lexer.consume(JsonTokenType.COLON),
-            ...this.lexer.skipSpace(),
+            ...this.lexer.skipInsignificant(),
         );
 
         const value = this.parseNext();
@@ -197,6 +280,17 @@ export class JsonParser {
                 start: children[0].location.start,
                 end: children[children.length - 1].location.end,
             },
+        });
+    }
+
+    private parseIdentifier(): JsonIdentifierNode {
+        const token = this.lexer.consume(JsonTokenType.IDENTIFIER);
+        const tokenNode = new JsonTokenNode(token);
+
+        return new JsonIdentifierNode({
+            token: tokenNode,
+            children: [tokenNode],
+            location: token.location,
         });
     }
 

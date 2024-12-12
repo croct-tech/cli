@@ -5,16 +5,17 @@ import {JsonTokenNode} from '@/infrastructure/json/node/tokenNode';
 import {JsonTokenType} from '@/infrastructure/json/token';
 import {JsonCompositeDefinition, JsonCompositeNode, PartialJsonCompositeDefinition} from './compositeNode';
 import {NodeManipulator} from '@/infrastructure/json/manipulator';
-import {JsonPrimitiveNode} from './primitiveNode';
 import {JsonValueFactory} from '@/infrastructure/json/node/factory';
+import {JsonPrimitiveNode} from '@/infrastructure/json';
+import {JsonIdentifierNode} from '@/infrastructure/json/node/identifierNode';
 
 export interface JsonPropertyDefinition extends JsonCompositeDefinition {
-    readonly key: JsonPrimitiveNode<JsonTokenType.STRING>;
+    readonly key: JsonPrimitiveNode<JsonTokenType.STRING>|JsonIdentifierNode;
     value: JsonValueNode;
 }
 
 export class JsonPropertyNode extends JsonCompositeNode implements JsonPropertyDefinition {
-    public readonly key: JsonPrimitiveNode<JsonTokenType.STRING>;
+    public readonly key: JsonPrimitiveNode<JsonTokenType.STRING>|JsonIdentifierNode;
 
     public value: JsonValueNode;
 

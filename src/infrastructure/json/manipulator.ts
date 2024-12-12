@@ -11,7 +11,9 @@ export namespace NodeMatcher {
 
     export const NONE: NodeMatcher = () => false;
 
-    export const SPACE: NodeMatcher = node => WHITESPACE(node) || NEWLINE(node);
+    export const INSIGNIFICANT: NodeMatcher = node => SPACE(node) || COMMENT(node);
+
+    export const SPACE: NodeMatcher = node => WHITESPACE(node) || NEWLINE(node) || COMMENT(node);
 
     export const WHITESPACE: NodeMatcher = node => (
         node instanceof JsonTokenNode
@@ -21,6 +23,11 @@ export namespace NodeMatcher {
     export const NEWLINE: NodeMatcher = node => (
         node instanceof JsonTokenNode
         && node.type === JsonTokenType.NEWLINE
+    );
+
+    export const COMMENT: NodeMatcher = node => (
+        node instanceof JsonTokenNode
+        && (node.type === JsonTokenType.LINE_COMMENT || node.type === JsonTokenType.BLOCK_COMMENT)
     );
 }
 
@@ -107,7 +114,7 @@ export class NodeManipulator {
         return this.findNext(matcher, skipped) >= 0;
     }
 
-    public findNext(matcher: NodeMatcher, skipper: NodeMatcher = NodeMatcher.SPACE): number {
+    public findNext(matcher: NodeMatcher, skipper: NodeMatcher = NodeMatcher.INSIGNIFICANT): number {
         let matchIndex = -1;
         const previousPosition = this.index;
 
@@ -195,7 +202,7 @@ export class NodeManipulator {
                 return true;
             }
 
-            if (!(node instanceof JsonTokenNode) || !NodeMatcher.SPACE(node)) {
+            if (!(node instanceof JsonTokenNode) || !NodeMatcher.INSIGNIFICANT(node)) {
                 this.remove();
 
                 fixing = true;
@@ -312,7 +319,7 @@ export class NodeManipulator {
     }
 
     private accommodate(node: JsonNode): void {
-        if (NodeMatcher.SPACE(node)) {
+        if (NodeMatcher.INSIGNIFICANT(node)) {
             this.insert(node);
 
             return;
@@ -350,8 +357,8 @@ export class NodeManipulator {
 
     private static getSkippableNodes(nodes: JsonNode[]): NodeMatcher {
         for (const node of nodes) {
-            if (!(node instanceof JsonTokenNode) || !NodeMatcher.SPACE(node.type)) {
-                return NodeMatcher.SPACE;
+            if (!(node instanceof JsonTokenNode) || !NodeMatcher.INSIGNIFICANT(node.type)) {
+                return NodeMatcher.INSIGNIFICANT;
             }
         }
 

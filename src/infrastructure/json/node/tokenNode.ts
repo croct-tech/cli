@@ -16,6 +16,10 @@ export class JsonTokenNode<T extends JsonTokenType = JsonTokenType> extends Json
         this.value = definition.value;
     }
 
+    public isType<K extends JsonTokenType>(type: K): this is JsonTokenNode<K> {
+        return JsonToken.isType(this, type);
+    }
+
     public clone(): JsonNode {
         return new JsonTokenNode({
             type: this.type,

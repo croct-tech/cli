@@ -45,7 +45,6 @@
     "ci-info": "^4.1.0",
     "cli-cursor": "^5.0.0",
     "commander": "^12.1.0",
-    "identifier-regex": "^1.0.0",
     "is-unicode-supported": "^2.1.0",
     "json5": "^2.2.3",
     "minimatch": "^10.0.1",

@@ -125,6 +125,8 @@ export abstract class JsonStructureNode extends JsonValueNode {
             trailingIndentation: blockTrailingIndentation = false,
         } = formatting[delimiter] ?? {};
 
+        const trailingSeparator = this.hasTrailingSeparator();
+
         let previousMatched = false;
 
         for (let index = 0; index < count; index++) {
@@ -173,6 +175,15 @@ export abstract class JsonStructureNode extends JsonValueNode {
                 manipulator.node(item);
             }
 
+            if (index < count - 1 || trailingSeparator) {
+                manipulator.node(
+                    new JsonTokenNode({
+                        type: JsonTokenType.COMMA,
+                        value: ',',
+                    }),
+                );
+            }
+
             if (index === count - 1) {
                 if (blockTrailingIndentation) {
                     this.indent(manipulator, {
@@ -180,38 +191,45 @@ export abstract class JsonStructureNode extends JsonValueNode {
                         indentationLevel: indentationLevel - 1,
                     });
                 }
-            } else {
-                manipulator.node(
-                    new JsonTokenNode({
-                        type: JsonTokenType.COMMA,
-                        value: ',',
-                    }),
-                );
-
-                if (
-                    ((indentationSize === 0 || !entryIndentation) && commaSpacing)
+            } else if (
+                ((indentationSize === 0 || !entryIndentation) && commaSpacing)
                     && (
                         !manipulator.matchesNext(NodeMatcher.SPACE)
                         || manipulator.matchesNext(node => endToken.isEquivalent(node))
                     )
-                ) {
-                    manipulator.token(
-                        new JsonTokenNode({
-                            type: JsonTokenType.WHITESPACE,
-                            value: ' ',
-                        }),
-                        manipulator.matchesNext(
-                            node => list[index + 1].isEquivalent(node),
-                            NodeMatcher.SPACE,
-                        ),
-                    );
-                }
+            ) {
+                manipulator.token(
+                    new JsonTokenNode({
+                        type: JsonTokenType.WHITESPACE,
+                        value: ' ',
+                    }),
+                    manipulator.matchesNext(
+                        node => list[index + 1].isEquivalent(node),
+                        NodeMatcher.SPACE,
+                    ),
+                );
             }
         }
 
         manipulator.token(endToken);
 
         manipulator.end();
+    }
+
+    private hasTrailingSeparator(): boolean {
+        for (let index = this.children.length - 1; index >= 0; index--) {
+            const node = this.children[index];
+
+            if (node instanceof JsonCompositeNode) {
+                break;
+            }
+
+            if (node instanceof JsonTokenNode && node.isType(JsonTokenType.COMMA)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected abstract getList(): JsonCompositeNode[];

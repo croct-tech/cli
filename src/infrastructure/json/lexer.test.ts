@@ -259,6 +259,43 @@ describe('Lexer', () => {
             ],
         },
         {
+            input: '+42',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: '+42',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 3,
+                            line: 1,
+                            column: 4,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 3,
+                            line: 1,
+                            column: 4,
+                        },
+                        end: {
+                            index: 3,
+                            line: 1,
+                            column: 4,
+                        },
+                    },
+                },
+            ],
+        },
+        {
             input: '-42',
             tokens: [
                 {
@@ -808,6 +845,598 @@ describe('Lexer', () => {
                             index: 7,
                             line: 1,
                             column: 8,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: '.124',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: '.124',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                        end: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: '+.124',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: '+.124',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: '-.124',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: '-.124',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: '123.',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: '123.',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                        end: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: '+123.',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: '+123.',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: '-123.',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: '-123.',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: '0x2A',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: '0x2A',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                        end: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: '0X2A',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: '0X2A',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                        end: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: '-0x2A',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: '-0x2A',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: '-0X2A',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: '-0X2A',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: '+0x2A',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: '+0x2A',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: '+0X2A',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: '+0X2A',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: 'Infinity',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: 'Infinity',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 8,
+                            line: 1,
+                            column: 9,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 8,
+                            line: 1,
+                            column: 9,
+                        },
+                        end: {
+                            index: 8,
+                            line: 1,
+                            column: 9,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: '+Infinity',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: '+Infinity',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 9,
+                            line: 1,
+                            column: 10,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 9,
+                            line: 1,
+                            column: 10,
+                        },
+                        end: {
+                            index: 9,
+                            line: 1,
+                            column: 10,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: '-Infinity',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: '-Infinity',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 9,
+                            line: 1,
+                            column: 10,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 9,
+                            line: 1,
+                            column: 10,
+                        },
+                        end: {
+                            index: 9,
+                            line: 1,
+                            column: 10,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: 'NaN',
+            tokens: [
+                {
+                    type: JsonTokenType.NUMBER,
+                    value: 'NaN',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 3,
+                            line: 1,
+                            column: 4,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 3,
+                            line: 1,
+                            column: 4,
+                        },
+                        end: {
+                            index: 3,
+                            line: 1,
+                            column: 4,
                         },
                     },
                 },

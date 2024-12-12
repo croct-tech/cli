@@ -6,6 +6,62 @@ type TokenPattern = {
     pattern: RegExp|string,
 };
 
+// https://262.ecma-international.org/14.0/#sec-keywords-and-reserved-words
+// 14 is ES2023
+const identifiers = [
+    // Keywords
+    'await',
+    'break',
+    'case',
+    'catch',
+    'class',
+    'const',
+    'continue',
+    'debugger',
+    'default',
+    'delete',
+    'do',
+    'else',
+    'enum',
+    'export',
+    'extends',
+    'false',
+    'finally',
+    'for',
+    'function',
+    'if',
+    'import',
+    'in',
+    'instanceof',
+    'new',
+    'null',
+    'return',
+    'super',
+    'switch',
+    'this',
+    'throw',
+    'true',
+    'try',
+    'typeof',
+    'var',
+    'void',
+    'while',
+    'with',
+    'yield',
+
+    // Future reserved keywords
+    'implements',
+    'interface',
+    'package',
+    'private',
+    'protected',
+    'public',
+
+    // Not keywords, but still restricted
+    'arguments',
+    'eval',
+];
+
 export class JsonLexer implements Iterable<JsonToken> {
     // Sorted by precedence
     private static PATTERNS: TokenPattern[] = [
@@ -27,11 +83,15 @@ export class JsonLexer implements Iterable<JsonToken> {
         },
         {
             type: JsonTokenType.STRING,
-            pattern: /^"(?:[^"\\]|\\.)*"/,
+            pattern: /^"(?:[^"\r\n\u2028\u2029\\]|\\(?:.|\r\n|\r|\n|\u2028|\u2029))*"/u,
+        },
+        {
+            type: JsonTokenType.STRING,
+            pattern: /^'(?:[^'\r\n\u2028\u2029\\]|\\(?:.|\r\n|\r|\n|\u2028|\u2029))*'/u,
         },
         {
             type: JsonTokenType.NUMBER,
-            pattern: /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/,
+            pattern: /^[-+]?(?:NaN|Infinity|0[xX][\da-fA-F]+|(?:(?:0|[1-9]\d*)(?:\.\d*)?|\.\d*)(?:[eE][+-]?\d+)?)/,
         },
         {
             type: JsonTokenType.BOOLEAN,
@@ -42,6 +102,13 @@ export class JsonLexer implements Iterable<JsonToken> {
             pattern: 'null',
         },
         {
+            type: JsonTokenType.IDENTIFIER,
+            pattern: new RegExp(
+                `^(?!${identifiers.join('|')})[$_\\p{ID_Start}][$_\\u200C\\u200D\\p{ID_Continue}]*`,
+                'u',
+            ),
+        },
+        {
             type: JsonTokenType.COLON,
             pattern: ':',
         },
@@ -50,12 +117,20 @@ export class JsonLexer implements Iterable<JsonToken> {
             pattern: ',',
         },
         {
+            type: JsonTokenType.LINE_COMMENT,
+            pattern: /^\/\/.*/,
+        },
+        {
+            type: JsonTokenType.BLOCK_COMMENT,
+            pattern: /^\/\*[\s\S]*?\*\//,
+        },
+        {
             type: JsonTokenType.NEWLINE,
             pattern: /^(\r?\n)/,
         },
         {
             type: JsonTokenType.WHITESPACE,
-            pattern: /^[ \t\f\r]+/,
+            pattern: /^[ \r\t\v\f\u00A0\u2028\u2029\uFEFF\u1680\u2000-\u200A\u202F\u205F\u3000]+/,
         },
     ];
 
@@ -91,8 +166,13 @@ export class JsonLexer implements Iterable<JsonToken> {
         };
     }
 
-    public skipSpace(): JsonToken[] {
-        return this.skip(JsonTokenType.WHITESPACE, JsonTokenType.NEWLINE);
+    public skipInsignificant(): JsonToken[] {
+        return this.skip(
+            JsonTokenType.WHITESPACE,
+            JsonTokenType.NEWLINE,
+            JsonTokenType.LINE_COMMENT,
+            JsonTokenType.BLOCK_COMMENT,
+        );
     }
 
     public skip(...types: JsonTokenType[]): JsonToken[] {
