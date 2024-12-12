@@ -2345,6 +2345,59 @@ describe('Lexer', () => {
                 },
             ],
         },
+        {
+            input: '\n\n',
+            tokens: [
+                {
+                    type: JsonTokenType.NEWLINE,
+                    value: '\n',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 1,
+                            line: 2,
+                            column: 1,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.NEWLINE,
+                    value: '\n',
+                    location: {
+                        start: {
+                            index: 1,
+                            line: 2,
+                            column: 1,
+                        },
+                        end: {
+                            index: 2,
+                            line: 3,
+                            column: 1,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 2,
+                            line: 3,
+                            column: 1,
+                        },
+                        end: {
+                            index: 2,
+                            line: 3,
+                            column: 1,
+                        },
+                    },
+                },
+            ],
+        },
     ])('should tokenize $input', ({input, tokens}) => {
         const result = JsonLexer.tokenize(input);
 
