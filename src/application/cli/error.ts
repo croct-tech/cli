@@ -25,11 +25,11 @@ export class CliError extends Error {
 
     public readonly code: CliErrorCode;
 
-    public constructor(message: string, troubleshooting: CliHelp = {}) {
+    public constructor(message: string, help: CliHelp = {}) {
         super(message);
 
-        this.help = troubleshooting;
-        this.code = troubleshooting.code ?? CliErrorCode.OTHER;
+        this.help = help;
+        this.code = help.code ?? CliErrorCode.OTHER;
 
         Object.setPrototypeOf(this, CliError.prototype);
     }

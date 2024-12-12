@@ -162,9 +162,17 @@ export class ConsoleOutput implements Output {
     }
 
     private static formatErrorDetails(error: any): string {
+        if (!(error instanceof CliError)) {
+            if (error.stack !== undefined) {
+                return `\n\n${chalk.bold('Caused by:')}\n${error.stack}`;
+            }
+
+            return '';
+        }
+
         let message = '';
 
-        if (error instanceof CliError && error.help.details !== undefined) {
+        if (error.help.details !== undefined) {
             message += `\n\n${chalk.bold('Details:')}\n`;
             message += error.help
                 .details
@@ -172,14 +180,12 @@ export class ConsoleOutput implements Output {
                 .join('\n');
         }
 
-        if (!(error instanceof CliError) || error.code === CliErrorCode.OTHER) {
-            if (error instanceof CliError && error.help.cause !== undefined) {
-                message += `\n\n${chalk.bold('Cause:')}\n`;
-                message += `${formatCause(error.help.cause)}\n`;
-            }
+        if (error.code !== CliErrorCode.OTHER) {
+            message += `\n\n${chalk.bold('Cause:')}\n`;
+            message += `${formatCause(error.help.cause)}\n`;
 
             if (error.stack !== undefined) {
-                message += error.stack;
+                message += `\n${error.stack}`;
             }
         }
 
