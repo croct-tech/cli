@@ -155,7 +155,8 @@ export class NodeProjectManager implements JavaScriptProjectManager {
 
                 for (const aliasPath of aliasPaths) {
                     const cleanAliasPath = aliasPath.replace(/\*$/, ''); // Remove wildcard from alias path
-                    const aliasBasePath = join(config.baseUrl, cleanAliasPath).replace(/\\/g, '/');
+                    const aliasBasePath = join(config.baseUrl, cleanAliasPath)
+                        .replace(/\\/g, '/');
 
                     // Check if the file path starts with the alias base path
                     if (absoluteFilePath.startsWith(aliasBasePath)) {

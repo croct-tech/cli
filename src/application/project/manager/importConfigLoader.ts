@@ -1,4 +1,4 @@
-import {dirname, join, relative} from 'path';
+import {dirname, isAbsolute, join, relative} from 'path';
 import {z} from 'zod';
 import Json5 from 'json5';
 import {Filesystem} from '@/application/filesystem/filesystem';
@@ -54,17 +54,20 @@ export class ImportConfigLoader {
 
     public async load(directory: string, options: Options = {}): Promise<ImportConfig | null> {
         const {fileNames = ['tsconfig.json']} = options;
-        const path = await this.locateConfig(directory, fileNames, true);
+        const rootDirectory = await this.filesystem.getRealPath(directory);
+        const configPath = await this.locateConfig(directory, fileNames, true);
 
-        if (path === null) {
+        if (configPath === null) {
             return null;
         }
 
         const config = await this.resolveConfig({
-            rootDirectory: directory,
-            configPath: path,
+            rootDirectory: rootDirectory,
+            configPath: configPath,
             fileNames: fileNames,
-            targetDirectories: options.sourcePaths ?? [],
+            targetDirectories: (options.sourcePaths ?? []).map((sourcePath) => (
+                isAbsolute(sourcePath) ? sourcePath : join(rootDirectory, sourcePath)
+            )),
         });
 
         if (config === null) {
@@ -74,7 +77,7 @@ export class ImportConfigLoader {
         return {
             rootConfigPath: config.rootConfigPath,
             matchedConfigPath: config.matchedConfigPath,
-            baseUrl: join(directory, config.compilerOptions?.baseUrl ?? ''),
+            baseUrl: join(dirname(config.matchedConfigPath), config.compilerOptions?.baseUrl ?? '.'),
             paths: config.compilerOptions?.paths ?? {},
         };
     }
@@ -124,17 +127,18 @@ export class ImportConfigLoader {
             const {references: _, ...parentConfig} = config;
 
             for (const reference of config.references) {
-                const referencePath = reference.path.endsWith('.json')
-                    ? join(dirname(configPath), reference.path)
-                    : await this.locateConfig(reference.path, fileNames);
+                const referencePath = join(dirname(configPath), reference.path);
+                const resolvedReferencePath = referencePath.endsWith('.json')
+                    ? referencePath
+                    : await this.locateConfig(referencePath, fileNames);
 
-                if (referencePath === null) {
+                if (resolvedReferencePath === null) {
                     continue;
                 }
 
                 const referenceConfig = await this.resolveConfig({
                     ...resolution,
-                    configPath: referencePath,
+                    configPath: resolvedReferencePath,
                 });
 
                 if (referenceConfig?.include === undefined) {
@@ -142,14 +146,12 @@ export class ImportConfigLoader {
                 }
 
                 for (const targetDirectory of targetDirectories) {
-                    const relativeTargetDirectory = join('./', relative(
-                        dirname(referencePath),
-                        join(rootDirectory, targetDirectory),
-                    ));
+                    const relativeTargetDirectory = join(
+                        './',
+                        relative(dirname(resolvedReferencePath), targetDirectory)
+                    );
 
                     for (const include of referenceConfig.include) {
-                        console.log(include, relativeTargetDirectory);
-
                         let minimatch = new Minimatch(include, {
                             partial: true,
                             magicalBraces: true,

@@ -1,4 +1,4 @@
-import {dirname, join, relative} from 'path';
+import {dirname, isAbsolute, join, relative} from 'path';
 import {Installation, Sdk} from '@/application/project/sdk/sdk';
 import {PackageInfo} from '@/application/project/manager/projectManager';
 import {ApplicationPlatform, Slot} from '@/application/model/entities';
@@ -107,9 +107,9 @@ export abstract class JavaScriptSdk implements Sdk {
                 applications: {
                     ...installation.configuration.applications,
                     ...configuration.applications,
-                }
+                },
             },
-        }
+        };
 
         const tasks: Task[] = [];
 
@@ -432,8 +432,9 @@ export abstract class JavaScriptSdk implements Sdk {
         }
 
         const projectDirectory = this.projectManager.getRootPath();
+        const relativeConfigPath = relative(projectDirectory, configPath);
 
-        if (!configPath.startsWith(projectDirectory)) {
+        if (relativeConfigPath.length === 0 || relativeConfigPath.startsWith('..') || isAbsolute(relativeConfigPath)) {
             const relativePath = relative(projectDirectory, configPath);
 
             throw new Error(`TypeScript configuration is outside the project directory: \`${relativePath}\``);
@@ -443,7 +444,7 @@ export abstract class JavaScriptSdk implements Sdk {
             throw new Error(`Package ${JavaScriptSdk.CONTENT_PACKAGE} is not installed`);
         }
 
-        const typeFile = relative(this.projectManager.getRootPath(), JavaScriptSdk.getTypeFile(packageInfo.path));
+        const typeFile = relative(dirname(configPath), JavaScriptSdk.getTypeFile(packageInfo.path));
         const config = JsonParser.parse(await this.filesystem.readFile(configPath), JsonObjectNode);
 
         if (config.has('files')) {

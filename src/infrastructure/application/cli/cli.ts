@@ -696,7 +696,8 @@ export class Cli {
     public getFileSystem(): Filesystem {
         if (this.filesystem === undefined) {
             this.filesystem = new LocalFilesystem({
-                encoding: 'utf-8',
+                currentDirectory: this.configuration.directories.current,
+                defaultEncoding: 'utf-8',
             });
         }
 
