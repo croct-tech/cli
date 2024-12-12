@@ -113,13 +113,30 @@ export class InitCommand implements Command<InitInput> {
             input.devApplication,
         );
 
-        const prodApplication = await this.getApplication(
-            {
-                ...applicationOptions,
-                environment: ApplicationEnvironment.PRODUCTION,
-            },
-            input.prodApplication,
-        );
+        let applicationIds: ResolvedConfiguration['applications'] = {
+            development: devApplication.slug,
+            developmentId: devApplication.id,
+            developmentPublicId: devApplication.publicId,
+        };
+
+        const defaultWebsite = workspace.website ?? organization.website ?? undefined;
+
+        if (defaultWebsite !== undefined && new URL(defaultWebsite).hostname !== 'localhost') {
+            const prodApplication = await this.getApplication(
+                {
+                    ...applicationOptions,
+                    environment: ApplicationEnvironment.PRODUCTION,
+                },
+                input.prodApplication,
+            );
+
+            applicationIds = {
+                ...applicationIds,
+                production: prodApplication.slug,
+                productionId: prodApplication.id,
+                productionPublicId: prodApplication.publicId,
+            };
+        }
 
         await configurationManager.update(
             await this.configure(sdk, {
@@ -127,14 +144,7 @@ export class InitCommand implements Command<InitInput> {
                 organizationId: organization.id,
                 workspace: workspace.slug,
                 workspaceId: workspace.id,
-                applications: {
-                    production: prodApplication.slug,
-                    productionId: prodApplication.id,
-                    productionPublicId: prodApplication.publicId,
-                    development: devApplication.slug,
-                    developmentId: devApplication.id,
-                    developmentPublicId: devApplication.publicId,
-                },
+                applications: applicationIds,
                 defaultLocale: workspace.defaultLocale,
                 locales: workspace.locales,
                 slots: {},

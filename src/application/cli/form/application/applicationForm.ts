@@ -94,11 +94,12 @@ export class ApplicationForm implements Form<Application, ApplicationOptions> {
 
         const defaultWebsite = workspace.website ?? organization.website ?? undefined;
 
-        const website = customized || defaultWebsite === undefined
+        const website = customized || !ApplicationForm.isValidProductionUrl(defaultWebsite)
             ? await UrlInput.prompt({
                 input: input,
                 label: 'Application website',
                 default: defaultWebsite,
+                validate: ApplicationForm.isValidProductionUrl,
             })
             : defaultWebsite;
 
@@ -121,6 +122,10 @@ export class ApplicationForm implements Form<Application, ApplicationOptions> {
         } finally {
             notifier.stop();
         }
+    }
+
+    private static isValidProductionUrl(url?: string): url is string {
+        return url !== undefined && new URL(url).hostname !== 'localhost';
     }
 
     private static formatSelection(application: Application): string {

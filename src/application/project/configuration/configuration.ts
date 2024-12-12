@@ -3,7 +3,7 @@ export type Configuration = {
     workspace: string,
     applications: {
         development: string,
-        production: string,
+        production?: string,
     },
     defaultLocale: string,
     locales: string[],
@@ -15,15 +15,28 @@ export type Configuration = {
     },
 };
 
-export type ResolvedConfiguration = Configuration & {
+type DevelopmentApplicationIds = {
+    development: string,
+    developmentId: string,
+    developmentPublicId: string,
+};
+
+type ProductionApplicationIds = {
+    production: string,
+    productionId: string,
+    productionPublicId: string,
+} | {
+    production?: undefined,
+    productionId?: undefined,
+    productionPublicId?: undefined,
+};
+
+type ApplicationIds = DevelopmentApplicationIds & ProductionApplicationIds;
+
+export type ResolvedConfiguration = Omit<Configuration, 'applications'> & {
     organizationId: string,
     workspaceId: string,
-    applications: Configuration['applications'] & {
-        developmentId: string,
-        developmentPublicId: string,
-        productionId: string,
-        productionPublicId: string,
-    },
+    applications: ApplicationIds,
 };
 
 export class ConfigurationError extends Error {

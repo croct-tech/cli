@@ -348,9 +348,11 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
                 plan.developmentFile.setVariables({
                     [NextEnvVar.APP_ID]: applications.developmentPublicId,
                 }),
-                plan.productionFile.setVariables({
-                    [NextEnvVar.APP_ID]: applications.productionPublicId,
-                }),
+                applications.productionPublicId === undefined
+                    ? Promise.resolve()
+                    : plan.productionFile.setVariables({
+                        [NextEnvVar.APP_ID]: applications.productionPublicId,
+                    }),
             ]);
         }
     }

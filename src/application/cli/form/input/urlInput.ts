@@ -5,6 +5,7 @@ export type Configuration = {
     input: Input,
     label: string,
     default?: string,
+    validate?: (value: string) => boolean | string,
 };
 
 export class UrlInput implements Form<string> {
@@ -19,7 +20,7 @@ export class UrlInput implements Form<string> {
     }
 
     public handle(): Promise<string> {
-        const {input} = this.config;
+        const {input, validate} = this.config;
 
         return input.prompt({
             message: this.config.label,
@@ -27,6 +28,10 @@ export class UrlInput implements Form<string> {
             validate: value => {
                 if (!URL.canParse(value)) {
                     return 'Invalid URL';
+                }
+
+                if (validate !== undefined) {
+                    return validate(value);
                 }
 
                 return true;

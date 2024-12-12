@@ -6,13 +6,14 @@ import {WorkspaceApi} from '@/application/api/workspace';
 import {Codemod} from '@/application/project/sdk/code/codemod';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {formatMessage} from '@/application/error';
-import type {WrapperOptions} from '@/application/project/sdk/code/jsx/addWrapper';
+import {PropertyType, WrapperOptions} from '@/application/project/sdk/code/jsx/addWrapper';
 import {EnvFile} from '@/application/project/envFile';
 import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {PlugReactExampleGenerator} from '@/application/project/example/slot/plugReactExampleGenerator';
 import {Linter} from '@/application/project/linter';
 import {Filesystem} from '@/application/filesystem/filesystem';
 import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
+import {ResolvedConfiguration} from '@/application/project/configuration/configuration';
 
 type ApiConfiguration = {
     workspace: WorkspaceApi,
@@ -192,7 +193,9 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
 
                         await Promise.all([
                             developmentFile.setVariable(variable, applications.developmentPublicId),
-                            productionFile.setVariable(variable, applications.productionPublicId),
+                            applications.productionPublicId === undefined
+                                ? Promise.resolve()
+                                : productionFile.setVariable(variable, applications.productionPublicId),
                         ]);
 
                         notifier.confirm('Environment variables updated');
@@ -217,33 +220,7 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
 
                         await this.installProvider(providerFile, {
                             props: {
-                                appId: projectEnv === undefined
-                                    ? {
-                                        type: 'ternary',
-                                        condition: {
-                                            operator: '===',
-                                            left: {
-                                                type: 'reference',
-                                                path: ['process', 'env', 'NODE_ENV'],
-                                            },
-                                            right: {
-                                                type: 'literal',
-                                                value: 'production',
-                                            },
-                                        },
-                                        consequent: {
-                                            type: 'literal',
-                                            value: applications.productionPublicId,
-                                        },
-                                        alternate: {
-                                            type: 'literal',
-                                            value: applications.developmentPublicId,
-                                        },
-                                    }
-                                    : {
-                                        type: 'reference',
-                                        path: projectEnv.property.split('.'),
-                                    },
+                                appId: PlugReactSdk.getAppIdProperty(applications, projectEnv?.property),
                             },
                         });
 
@@ -272,5 +249,44 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
         }
 
         return null;
+    }
+
+    private static getAppIdProperty(applicationIds: ResolvedConfiguration['applications'], env?: string): PropertyType {
+        if (env === undefined) {
+            return {
+                type: 'literal',
+                value: applicationIds.developmentPublicId,
+            };
+        }
+
+        if (applicationIds.productionPublicId === undefined) {
+            return {
+                type: 'literal',
+                value: applicationIds.developmentPublicId,
+            };
+        }
+
+        return {
+            type: 'ternary',
+            condition: {
+                operator: '===',
+                left: {
+                    type: 'reference',
+                    path: ['process', 'env', 'NODE_ENV'],
+                },
+                right: {
+                    type: 'literal',
+                    value: 'production',
+                },
+            },
+            consequent: {
+                type: 'literal',
+                value: applicationIds.productionPublicId,
+            },
+            alternate: {
+                type: 'literal',
+                value: applicationIds.developmentPublicId,
+            },
+        };
     }
 }

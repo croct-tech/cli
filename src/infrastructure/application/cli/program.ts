@@ -79,7 +79,7 @@ function createProgram(interactive: boolean, cli?: Cli): typeof program {
         .addOption(interactive ? organizationOption : organizationOption.makeOptionMandatory())
         .addOption(interactive ? workspaceOption : workspaceOption.makeOptionMandatory())
         .addOption(interactive ? devApplicationOption : devApplicationOption.makeOptionMandatory())
-        .addOption(interactive ? prodApplicationOption : prodApplicationOption.makeOptionMandatory())
+        .addOption(prodApplicationOption)
         .action(async options => {
             await cli?.init({
                 override: options.override,

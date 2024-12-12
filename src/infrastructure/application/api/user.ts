@@ -178,11 +178,10 @@ export class GraphqlUserApi implements UserApi {
         const owner = await this.getUser();
         const name = `${owner.firstName} ${owner.lastName ?? ''}`.trim();
 
-        if (website.origin.toLowerCase() === 'localhost') {
+        if (website.hostname.toLowerCase() === 'localhost') {
             return {
                 locale: setup.locale,
                 timeZone: setup.timeZone,
-                email: owner.email,
                 acceptedTerms: true,
                 organization: {
                     website: website.origin,

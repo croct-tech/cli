@@ -97,11 +97,13 @@ export class ConfigurationFileManager implements ConfigurationManager {
                 workspaceSlug: workspace.slug,
                 applicationSlug: configuration.applications.development,
             }),
-            api.workspace.getApplication({
-                organizationSlug: organization.slug,
-                workspaceSlug: workspace.slug,
-                applicationSlug: configuration.applications.production,
-            }),
+            configuration.applications.production !== undefined
+                ? api.workspace.getApplication({
+                    organizationSlug: organization.slug,
+                    workspaceSlug: workspace.slug,
+                    applicationSlug: configuration.applications.production,
+                })
+                : Promise.resolve(null),
         ]);
 
         if (developmentApplication === null) {
@@ -113,7 +115,7 @@ export class ConfigurationFileManager implements ConfigurationManager {
             });
         }
 
-        if (productionApplication === null) {
+        if (productionApplication === null && configuration.applications.production !== undefined) {
             throw new CliError('Project\'s production application not found.', {
                 suggestions: [
                     'Check if you have access to the application',
@@ -122,17 +124,26 @@ export class ConfigurationFileManager implements ConfigurationManager {
             });
         }
 
+        let applicationIds: ResolvedConfiguration['applications'] = {
+            development: developmentApplication.id,
+            developmentId: developmentApplication.id,
+            developmentPublicId: developmentApplication.publicId,
+        };
+
+        if ('production' in configuration.applications && productionApplication !== null) {
+            applicationIds = {
+                ...applicationIds,
+                production: productionApplication.id,
+                productionId: productionApplication.id,
+                productionPublicId: productionApplication.publicId,
+            };
+        }
+
         return {
             ...configuration,
             organizationId: organization.id,
             workspaceId: workspace.id,
-            applications: {
-                ...configuration.applications,
-                developmentId: developmentApplication.id,
-                developmentPublicId: developmentApplication.publicId,
-                productionId: productionApplication.id,
-                productionPublicId: productionApplication.publicId,
-            },
+            applications: applicationIds,
         };
     }
 }

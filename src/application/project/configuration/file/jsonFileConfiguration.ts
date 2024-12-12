@@ -37,7 +37,7 @@ const ConfigurationSchema = z.object({
     workspace: identifierSchema,
     applications: z.object({
         development: identifierSchema,
-        production: identifierSchema,
+        production: identifierSchema.optional(),
     }),
     locales: z.array(localeSchema),
     defaultLocale: localeSchema,

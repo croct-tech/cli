@@ -33,7 +33,7 @@ type PropertyTypes = {
     },
 };
 
-type PropertyType = {
+export type PropertyType = {
     [K in keyof PropertyTypes]: PropertyTypes[K] & {type: K}
 }[keyof PropertyTypes];
 

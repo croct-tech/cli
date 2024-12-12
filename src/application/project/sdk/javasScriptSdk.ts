@@ -104,10 +104,7 @@ export abstract class JavaScriptSdk implements Sdk {
             configuration: {
                 ...installation.configuration,
                 ...configuration,
-                applications: {
-                    ...installation.configuration.applications,
-                    ...configuration.applications,
-                },
+                applications: installation.configuration.applications,
             },
         };
 

@@ -11,7 +11,7 @@ export type PageOptions = {
     organizationSlug: string,
     workspaceSlug: string,
     devApplicationSlug: string,
-    prodApplicationSlug: string,
+    prodApplicationSlug?: string,
     page?: string,
 };
 
@@ -43,12 +43,12 @@ export class PageForm implements Form<string, PageOptions> {
     }
 
     public async handle(options: PageOptions): Promise<string> {
-        return PageForm.resolvePath(await this.getPage(options.page), options);
+        return PageForm.resolvePath(await this.getPage(options.page, options), options);
     }
 
-    private getPage(page?: string): Promise<string> {
+    private getPage(page: string|undefined, options: PageOptions): Promise<string> {
         if (page !== undefined) {
-            const match = PageForm.findMatch(page);
+            const match = PageForm.findMatch(page, options);
 
             if (match !== null) {
                 return Promise.resolve(match);
@@ -68,7 +68,7 @@ export class PageForm implements Form<string, PageOptions> {
         });
     }
 
-    private static findMatch(page: string): string|null {
+    private static findMatch(page: string, options: PageOptions): string|null {
         if (page.startsWith('/')) {
             return page;
         }
@@ -76,7 +76,7 @@ export class PageForm implements Form<string, PageOptions> {
         let match = null;
         let max = 0.5;
 
-        for (const label of Object.keys(PageForm.SITEMAP)) {
+        for (const label of Object.keys(PageForm.getSitemap(options))) {
             const similarity = stringSimilarity(page, label);
 
             if (similarity > max) {
@@ -86,6 +86,17 @@ export class PageForm implements Form<string, PageOptions> {
         }
 
         return match;
+    }
+
+    private static getSitemap(options: PageOptions): Record<string, string> {
+        if (options.prodApplicationSlug !== undefined) {
+            return PageForm.SITEMAP;
+        }
+
+        return Object.fromEntries(
+            Object.entries(PageForm.SITEMAP)
+                .filter(([, path]) => !path.includes(':prod-application')),
+        );
     }
 
     private static resolvePath(path: string, options: PageOptions): string {
@@ -101,7 +112,7 @@ export class PageForm implements Form<string, PageOptions> {
                     return options.devApplicationSlug;
 
                 case 'prod-application':
-                    return options.prodApplicationSlug;
+                    return options.prodApplicationSlug ?? '';
             }
         });
     }
