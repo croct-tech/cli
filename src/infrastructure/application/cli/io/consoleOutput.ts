@@ -173,7 +173,7 @@ export class ConsoleOutput implements Output {
         }
 
         if (!(error instanceof CliError) || error.code === CliErrorCode.OTHER) {
-            if (error.help.cause !== undefined) {
+            if (error instanceof CliError && error.help.cause !== undefined) {
                 message += `\n\n${chalk.bold('Cause:')}\n`;
                 message += `${formatCause(error.help.cause)}\n`;
             }
