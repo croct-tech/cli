@@ -710,22 +710,37 @@ export class Cli {
         } catch (error) {
             const output = this.getOutput();
 
-            output.report(Cli.handleError(error));
+            const formattedError = Cli.handleError(error);
+
+            if (error instanceof Error && formattedError instanceof Error) {
+                formattedError.stack = error.stack;
+            }
+
+            output.report(formattedError);
 
             return output.exit();
         }
     }
 
     private static handleError(error: unknown): any {
-        if (error instanceof ApiError && error.isAccessDenied()) {
-            return new CliError(
-                'Your user lacks the necessary permissions to complete this operation.',
-                {
-                    code: CliErrorCode.ACCESS_DENIED,
-                    suggestions: ['Contact your organization or workspace administrator for assistance.'],
-                    cause: error,
-                },
-            );
+        if (error instanceof ApiError) {
+            if (error.isAccessDenied()) {
+                return new CliError(
+                    'Your user lacks the necessary permissions to complete this operation.',
+                    {
+                        code: CliErrorCode.ACCESS_DENIED,
+                        details: error.details.map(detail => detail.detail),
+                        suggestions: ['Contact your organization or workspace administrator for assistance.'],
+                        cause: error,
+                    },
+                );
+            }
+
+            return new CliError(error.message, {
+                code: CliErrorCode.OTHER,
+                details: error.details.map(detail => detail.detail),
+                cause: error,
+            });
         }
 
         if (error instanceof ConfigurationError) {

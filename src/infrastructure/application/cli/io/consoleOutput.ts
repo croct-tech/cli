@@ -148,7 +148,7 @@ export class ConsoleOutput implements Output {
         return titles[error.code];
     }
 
-    private static formatErrorBody(error: any): string {
+    private static formatErrorBody(error: unknown): string {
         let body = format(CliError.formatMessage(error));
 
         if (error instanceof CliError) {
@@ -161,35 +161,45 @@ export class ConsoleOutput implements Output {
         return body;
     }
 
-    private static formatErrorDetails(error: any): string {
+    private static formatErrorDetails(error: unknown): string {
         if (!(error instanceof CliError)) {
-            if (error.stack !== undefined) {
-                return `\n\n${chalk.bold('Caused by:')}\n${error.stack}`;
-            }
-
-            return '';
+            return ConsoleOutput.formatStackTrace(error);
         }
 
         let message = '';
 
-        if (error.help.details !== undefined) {
+        const {details, cause} = error.help;
+
+        if (details !== undefined) {
             message += `\n\n${chalk.bold('Details:')}\n`;
-            message += error.help
-                .details
+            message += details
                 .map(detail => ` • ${format(detail)}`)
                 .join('\n');
         }
 
         if (error.code === CliErrorCode.OTHER) {
-            message += `\n\n${chalk.bold('Cause:')}\n`;
-            message += `${formatCause(error.help.cause)}\n`;
-
-            if (error.stack !== undefined) {
-                message += `\n${error.stack}`;
+            if (cause !== undefined && error.message.toLowerCase() !== cause.message.toLowerCase()) {
+                message += `\n\n${chalk.bold('Cause:')}\n`;
+                message += `${formatCause(error.help.cause)}`;
             }
+
+            message += ConsoleOutput.formatStackTrace(error);
         }
 
         return message;
+    }
+
+    private static formatStackTrace(error: unknown): string {
+        if (!(error instanceof Error) || error.stack === undefined) {
+            return '';
+        }
+
+        const stack = error.stack
+            .split('\n')
+            .map((line => ` › ${line.trim().replace(/^at /, '')}`))
+            .slice(1);
+
+        return `\n\n${chalk.bold('Stack trace:')}\n${stack.join('\n')}`;
     }
 
     private static formatErrorSuggestions(error: CliError): string {
