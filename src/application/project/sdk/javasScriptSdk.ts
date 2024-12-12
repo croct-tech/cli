@@ -1,6 +1,6 @@
 import {dirname, join, relative} from 'path';
 import {Installation, Sdk} from '@/application/project/sdk/sdk';
-import {JavaScriptProject, PackageInfo} from '@/application/project/project';
+import {PackageInfo} from '@/application/project/manager/projectManager';
 import {ApplicationPlatform, Slot} from '@/application/model/entities';
 import {
     Configuration as ProjectConfiguration,
@@ -14,7 +14,8 @@ import {formatName} from '@/application/project/utils/formatName';
 import {ExampleFile} from '@/application/project/example/example';
 import {Linter} from '@/application/project/linter';
 import {Version} from '@/application/project/version';
-import {Filesystem} from '@/application/filesystem';
+import {Filesystem} from '@/application/filesystem/filesystem';
+import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
 
 export type InstallationPlan = {
     tasks: Task[],
@@ -22,7 +23,7 @@ export type InstallationPlan = {
 };
 
 export type Configuration = {
-    project: JavaScriptProject,
+    projectManager: JavaScriptProjectManager,
     workspaceApi: WorkspaceApi,
     linter: Linter,
     filesystem: Filesystem,
@@ -37,7 +38,7 @@ type VersionedContent = {
 export abstract class JavaScriptSdk implements Sdk {
     protected static readonly CONTENT_PACKAGE = '@croct/content';
 
-    protected readonly project: JavaScriptProject;
+    protected readonly projectManager: JavaScriptProjectManager;
 
     protected readonly workspaceApi: WorkspaceApi;
 
@@ -45,8 +46,8 @@ export abstract class JavaScriptSdk implements Sdk {
 
     protected readonly filesystem: Filesystem;
 
-    public constructor({project, linter, workspaceApi, filesystem}: Configuration) {
-        this.project = project;
+    public constructor({projectManager, linter, workspaceApi, filesystem}: Configuration) {
+        this.projectManager = projectManager;
         this.workspaceApi = workspaceApi;
         this.linter = linter;
         this.filesystem = filesystem;
@@ -57,7 +58,7 @@ export abstract class JavaScriptSdk implements Sdk {
     public abstract getPlatform(): ApplicationPlatform;
 
     public async generateSlotExample(slot: Slot, installation: Installation): Promise<void> {
-        const rootPath = this.project.getRootPath();
+        const rootPath = this.projectManager.getRootPath();
         const files: string[] = [];
 
         for (const file of await this.generateSlotExampleFiles(slot, installation)) {
@@ -80,9 +81,36 @@ export abstract class JavaScriptSdk implements Sdk {
     protected abstract generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]>;
 
     public async install(installation: Installation): Promise<ProjectConfiguration> {
-        const {input, output, configuration} = installation;
+        const {input, output} = installation;
 
         const plan = await this.getInstallationPlan(installation);
+
+        const configuration: ProjectConfiguration = {
+            ...plan.configuration,
+            paths: {
+                components: await this.resolvePath(
+                    ['components', 'Components', 'component', 'Component'],
+                    plan.configuration.paths.components,
+                ),
+                examples: await this.resolvePath(
+                    ['examples', 'Examples'],
+                    plan.configuration.paths.examples,
+                ),
+            },
+        };
+
+        const resolvedInstallation: Installation = {
+            ...installation,
+            configuration: {
+                ...installation.configuration,
+                ...configuration,
+                applications: {
+                    ...installation.configuration.applications,
+                    ...configuration.applications,
+                }
+            },
+        }
+
         const tasks: Task[] = [];
 
         tasks.push({
@@ -91,8 +119,8 @@ export abstract class JavaScriptSdk implements Sdk {
                 notifier.update('Installing dependencies');
 
                 try {
-                    await this.project.installPackage('croct', {dev: true});
-                    await this.project.installPackage([this.getPackage(), JavaScriptSdk.CONTENT_PACKAGE]);
+                    await this.projectManager.installPackage('croct', {dev: true});
+                    await this.projectManager.installPackage([this.getPackage(), JavaScriptSdk.CONTENT_PACKAGE]);
 
                     notifier.confirm('Dependencies installed');
                 } catch (error) {
@@ -108,7 +136,7 @@ export abstract class JavaScriptSdk implements Sdk {
                 title: 'Download content',
                 task: async notifier => {
                     try {
-                        await this.updateContent(installation, notifier);
+                        await this.updateContent(resolvedInstallation, notifier);
                     } catch (error) {
                         notifier.alert('Failed to download content', formatMessage(error));
                     }
@@ -116,15 +144,20 @@ export abstract class JavaScriptSdk implements Sdk {
             });
         }
 
-        if (await this.project.isTypeScriptProject()) {
+        if (await this.projectManager.isTypeScriptProject()) {
             tasks.push({
                 title: 'Generate types',
                 task: async notifier => {
                     try {
-                        await this.updateTypes(installation, notifier);
-                        await this.registerTypeFile(notifier);
+                        await this.updateTypes(resolvedInstallation, notifier);
                     } catch (error) {
                         notifier.alert('Failed to generate types', formatMessage(error));
+                    }
+
+                    try {
+                        await this.registerTypeFile(Object.values(resolvedInstallation.configuration.paths), notifier);
+                    } catch (error) {
+                        notifier.alert('Failed to register type file', formatMessage(error));
                     }
                 },
             });
@@ -162,19 +195,7 @@ export abstract class JavaScriptSdk implements Sdk {
             await output.monitor({tasks: tasks});
         }
 
-        return {
-            ...plan.configuration,
-            paths: {
-                components: await this.resolvePath(
-                    ['components', 'Components', 'component', 'Component'],
-                    plan.configuration.paths.components,
-                ),
-                examples: await this.resolvePath(
-                    ['examples', 'Examples'],
-                    plan.configuration.paths.examples,
-                ),
-            },
-        };
+        return configuration;
     }
 
     private async resolvePath(directories: string[], currentPath: string): Promise<string> {
@@ -184,7 +205,7 @@ export abstract class JavaScriptSdk implements Sdk {
 
         const parentDirs = ['lib', 'src'];
 
-        const path = await this.project.locateFile(
+        const path = await this.projectManager.locateFile(
             ...parentDirs.flatMap(dir => directories.map(directory => join(dir, directory))),
             ...directories,
             ...parentDirs,
@@ -206,7 +227,7 @@ export abstract class JavaScriptSdk implements Sdk {
     public async update(installation: Installation): Promise<void> {
         await this.updateContent(installation);
 
-        if (await this.project.isTypeScriptProject()) {
+        if (await this.projectManager.isTypeScriptProject()) {
             await this.updateTypes(installation);
         }
     }
@@ -335,7 +356,8 @@ export abstract class JavaScriptSdk implements Sdk {
         // Create the directory if it does not exist
         await this.filesystem
             .createDirectory(dirname(filePath), {recursive: true})
-            .catch(() => {});
+            .catch(() => {
+            });
 
         let module = 'export {};';
 
@@ -366,7 +388,7 @@ export abstract class JavaScriptSdk implements Sdk {
     }
 
     private async registerScript(notifier: TaskNotifier): Promise<void> {
-        const packageFile = this.project.getProjectPackagePath();
+        const packageFile = this.projectManager.getProjectPackagePath();
         const content = await this.filesystem.readFile(packageFile);
 
         const packageJson = JsonParser.parse(content, JsonObjectNode);
@@ -399,25 +421,29 @@ export abstract class JavaScriptSdk implements Sdk {
         notifier.confirm('Script registered');
     }
 
-    private async registerTypeFile(notifier: TaskNotifier): Promise<void> {
+    private async registerTypeFile(sourcePaths: string[], notifier: TaskNotifier): Promise<void> {
         const [configPath, packageInfo] = await Promise.all([
-            this.project.getTypeScriptConfigPath(),
+            this.projectManager.getTypeScriptConfigPath(sourcePaths),
             this.mountContentPackageFolder(),
         ]);
 
         if (configPath === null) {
-            notifier.alert('TypeScript configuration not found');
+            throw new Error('TypeScript configuration not found');
+        }
 
-            return;
+        const projectDirectory = this.projectManager.getRootPath();
+
+        if (!configPath.startsWith(projectDirectory)) {
+            const relativePath = relative(projectDirectory, configPath);
+
+            throw new Error(`TypeScript configuration is outside the project directory: \`${relativePath}\``);
         }
 
         if (packageInfo === null) {
-            notifier.alert(`The package ${JavaScriptSdk.CONTENT_PACKAGE} is not installed`);
-
-            return;
+            throw new Error(`Package ${JavaScriptSdk.CONTENT_PACKAGE} is not installed`);
         }
 
-        const typeFile = relative(this.project.getRootPath(), JavaScriptSdk.getTypeFile(packageInfo.path));
+        const typeFile = relative(this.projectManager.getRootPath(), JavaScriptSdk.getTypeFile(packageInfo.path));
         const config = JsonParser.parse(await this.filesystem.readFile(configPath), JsonObjectNode);
 
         if (config.has('files')) {
@@ -498,8 +524,8 @@ export abstract class JavaScriptSdk implements Sdk {
         };
     }
 
-    private async mountContentPackageFolder(): Promise<PackageInfo|null> {
-        const packageInfo = await this.project.getPackageInfo(JavaScriptSdk.CONTENT_PACKAGE);
+    private async mountContentPackageFolder(): Promise<PackageInfo | null> {
+        const packageInfo = await this.projectManager.getPackageInfo(JavaScriptSdk.CONTENT_PACKAGE);
 
         if (packageInfo === null) {
             return null;

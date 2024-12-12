@@ -1,13 +1,14 @@
 import {z} from 'zod';
-import {installPackage} from '@antfu/install-pkg';
 import {relative, join, isAbsolute} from 'path';
-import {JavaScriptProject, PackageInfo, PackageInstallationOptions} from '@/application/project/project';
-import {Filesystem} from '@/application/filesystem';
-import {ImportConfigLoader} from '@/infrastructure/project/importConfigLoader';
+import {PackageInfo, PackageInstallationOptions} from '@/application/project/manager/projectManager';
+import {Filesystem} from '@/application/filesystem/filesystem';
+import {ImportConfigLoader} from '@/application/project/manager/importConfigLoader';
+import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
 
 export type Configuration = {
     directory: string,
     filesystem: Filesystem,
+    packageInstaller: NodePackageInstaller,
     importConfigLoader: ImportConfigLoader,
 };
 
@@ -18,16 +19,21 @@ const packageSchema = z.object({
     devDependencies: z.record(z.string()).optional(),
 });
 
-export class NodeProject implements JavaScriptProject {
+export type NodePackageInstaller = Pick<JavaScriptProjectManager, 'installPackage'>;
+
+export class NodeProjectManager implements JavaScriptProjectManager {
     private readonly filesystem: Filesystem;
+
+    private readonly packageInstaller: NodePackageInstaller;
 
     private readonly importConfigLoader: ImportConfigLoader;
 
     private readonly directory: string;
 
-    public constructor({directory, filesystem, importConfigLoader}: Configuration) {
+    public constructor({directory, filesystem, importConfigLoader, packageInstaller}: Configuration) {
         this.filesystem = filesystem;
         this.directory = directory;
+        this.packageInstaller = packageInstaller;
         this.importConfigLoader = importConfigLoader;
     }
 
@@ -43,14 +49,17 @@ export class NodeProject implements JavaScriptProject {
         return this.isPackageListed('typescript');
     }
 
-    public async getTypeScriptConfigPath(): Promise<string | null> {
-        const config = await this.importConfigLoader.load(this.directory, ['tsconfig.json']);
+    public async getTypeScriptConfigPath(sourcePaths = []): Promise<string | null> {
+        const config = await this.importConfigLoader.load(this.directory, {
+            fileNames: ['tsconfig.json'],
+            sourcePaths: sourcePaths.length === 0 ? [this.directory] : sourcePaths,
+        });
 
         if (config === null) {
             return null;
         }
 
-        return config.path;
+        return config.matchedConfigPath;
     }
 
     public async readFile(...fileNames: string[]): Promise<string | null> {
@@ -121,15 +130,17 @@ export class NodeProject implements JavaScriptProject {
     }
 
     public async installPackage(packageName: string|string[], options: PackageInstallationOptions = {}): Promise<void> {
-        await installPackage(packageName, {
-            cwd: this.directory,
-            silent: true,
-            dev: options.dev,
-        });
+        await this.packageInstaller.installPackage(packageName, options);
     }
 
     public async getImportPath(filePath: string, importPath?: string): Promise<string> {
-        const config = await this.importConfigLoader.load(this.directory, ['tsconfig.json', 'jsconfig.json']);
+        const config = await this.importConfigLoader.load(this.directory, {
+            fileNames: ['tsconfig.json', 'jsconfig.json'],
+            sourcePaths: importPath === undefined
+                ? [this.directory]
+                : [join(this.directory, importPath)],
+        });
+
         const resolvedBasePath = join(this.directory, filePath);
 
         if (config !== null) {

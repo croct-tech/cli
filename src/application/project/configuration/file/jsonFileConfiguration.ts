@@ -4,7 +4,7 @@ import {Configuration, ConfigurationError} from '@/application/project/configura
 import {Version} from '@/application/project/version';
 import {ConfigurationFile} from '@/application/project/configuration/file/configurationFile';
 import {JsonObjectNode, JsonParser} from '@/infrastructure/json';
-import {Filesystem} from '@/application/filesystem';
+import {Filesystem} from '@/application/filesystem/filesystem';
 
 const identifierSchema = z.string().regex(
     /^[A-Za-z]+(-?[A-Za-z0-9]+)*$/,

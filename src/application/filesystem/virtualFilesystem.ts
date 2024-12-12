@@ -4,7 +4,7 @@ import {
     DirectoryCreationOptions,
     Filesystem,
     FileWritingOptions,
-} from '@/application/filesystem';
+} from '@/application/filesystem/filesystem';
 
 type FilesystemNodeMap = {
     file: {

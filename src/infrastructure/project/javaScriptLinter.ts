@@ -2,7 +2,7 @@ import {resolve as resolvePath} from 'path';
 import {execFile} from 'child_process';
 import {execPath} from 'node:process';
 import {Linter} from '@/application/project/linter';
-import {PackageInfo, Project} from '@/application/project/project';
+import {PackageInfo, ProjectManager} from '@/application/project/manager/projectManager';
 
 type LinterCommand = {
     executable: string,
@@ -17,17 +17,17 @@ type LinterTool = {
 
 export type Configuration = {
     tools: LinterTool[],
-    project: Project,
+    projectManager: ProjectManager,
 };
 
 export class JavaScriptLinter implements Linter {
     private readonly tools: LinterTool[];
 
-    private readonly project: Project;
+    private readonly projectManager: ProjectManager;
 
-    public constructor({tools, project}: Configuration) {
+    public constructor({tools, projectManager}: Configuration) {
         this.tools = tools;
-        this.project = project;
+        this.projectManager = projectManager;
     }
 
     public async fix(files: string[]): Promise<void> {
@@ -46,7 +46,7 @@ export class JavaScriptLinter implements Linter {
 
     private runCommand(executable: string, args: string[]): Promise<void> {
         const options = {
-            cwd: this.project.getRootPath(),
+            cwd: this.projectManager.getRootPath(),
             timeout: 5000,
             stdio: 'ignore',
         };
@@ -64,12 +64,12 @@ export class JavaScriptLinter implements Linter {
 
     private async getCommand(files: string[]): Promise<LinterCommand|null> {
         for (const liter of this.tools) {
-            if (!await this.project.isPackageListed(liter.package)) {
+            if (!await this.projectManager.isPackageListed(liter.package)) {
                 // Ensure the package is a direct dependency
                 continue;
             }
 
-            const info = await this.project.getPackageInfo(liter.package);
+            const info = await this.projectManager.getPackageInfo(liter.package);
 
             if (info === null) {
                 continue;

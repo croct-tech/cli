@@ -3,7 +3,7 @@ import {Readable, Writable} from 'stream';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput, ExitCallback} from '@/infrastructure/application/cli/io/consoleOutput';
 import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
-import {NodeProject} from '@/infrastructure/project/nodeProject';
+import {NodeProjectManager} from '@/application/project/manager/nodeProjectManager';
 import {Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {PlugJsSdk} from '@/application/project/sdk/plugJsSdk';
 import {PlugReactSdk} from '@/application/project/sdk/plugReactSdk';
@@ -15,7 +15,7 @@ import {Input} from '@/application/cli/io/input';
 import {JsonFileConfiguration} from '@/application/project/configuration/file/jsonFileConfiguration';
 import {GraphqlClient} from '@/infrastructure/graphql';
 import {FetchGraphqlClient} from '@/infrastructure/graphql/fetchGraphqlClient';
-import {JavaScriptProject, Project} from '@/application/project/project';
+import {ProjectManager} from '@/application/project/manager/projectManager';
 import {UserApi} from '@/application/api/user';
 import {OrganizationApi} from '@/application/api/organization';
 import {WorkspaceApi} from '@/application/api/workspace';
@@ -69,9 +69,11 @@ import {
 import {ApiError} from '@/application/api/error';
 import {UpgradeCommand, UpgradeInput} from '@/application/cli/command/upgrade';
 import {ConfigurationError} from '@/application/project/configuration/configuration';
-import {Filesystem} from '@/application/filesystem';
-import {LocalFilesystem} from '@/infrastructure/localFilesystem';
-import {ImportConfigLoader} from '@/infrastructure/project/importConfigLoader';
+import {Filesystem} from '@/application/filesystem/filesystem';
+import {LocalFilesystem} from '@/application/filesystem/localFilesystem';
+import {ImportConfigLoader} from '@/application/project/manager/importConfigLoader';
+import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
+import {AntfuPackageInstaller} from '@/infrastructure/project/antfuPackageInstaller';
 
 export type Configuration = {
     io: {
@@ -418,12 +420,12 @@ export class Cli {
     }
 
     private createJavaScriptSdkResolvers(): Array<SdkResolver<Sdk|null>> {
-        const project = this.createJavaScriptProject();
-        const linter = this.createJavaScriptLinter(project);
+        const projectManager = this.createJavaScriptProjectManager();
+        const linter = this.createJavaScriptLinter(projectManager);
 
         return [
             new PlugNextSdk({
-                project: project,
+                projectManager: projectManager,
                 filesystem: this.getFileSystem(),
                 linter: linter,
                 api: {
@@ -504,7 +506,7 @@ export class Cli {
                 },
             }),
             new PlugReactSdk({
-                project: project,
+                projectManager: projectManager,
                 filesystem: this.getFileSystem(),
                 linter: linter,
                 api: {
@@ -547,7 +549,7 @@ export class Cli {
                 ],
             }),
             new PlugJsSdk({
-                project: project,
+                projectManager: projectManager,
                 filesystem: this.getFileSystem(),
                 linter: linter,
                 workspaceApi: this.getWorkspaceApi(),
@@ -555,17 +557,18 @@ export class Cli {
         ];
     }
 
-    private createJavaScriptProject(): JavaScriptProject {
-        return new NodeProject({
+    private createJavaScriptProjectManager(): JavaScriptProjectManager {
+        return new NodeProjectManager({
             filesystem: this.getFileSystem(),
+            packageInstaller: new AntfuPackageInstaller(this.configuration.directories.current),
             importConfigLoader: new ImportConfigLoader(this.getFileSystem()),
             directory: this.configuration.directories.current,
         });
     }
 
-    private createJavaScriptLinter(project: Project): Linter {
+    private createJavaScriptLinter(projectManager: ProjectManager): Linter {
         return new JavaScriptLinter({
-            project: project,
+            projectManager: projectManager,
             tools: [
                 {
                     package: 'eslint',

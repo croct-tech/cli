@@ -80,10 +80,7 @@ export class InitCommand implements Command<InitInput> {
         output.break();
 
         const organization = await this.getOrganization(
-            {
-                new: input.new === 'organization',
-                default: currentConfiguration?.organization,
-            },
+            {new: input.new === 'organization'},
             input.organization,
         );
 
@@ -97,7 +94,6 @@ export class InitCommand implements Command<InitInput> {
             {
                 organization: organization,
                 new: input.new === 'workspace',
-                default: currentConfiguration?.workspace,
             },
             input.workspace,
         );
@@ -113,7 +109,6 @@ export class InitCommand implements Command<InitInput> {
             {
                 ...applicationOptions,
                 environment: ApplicationEnvironment.DEVELOPMENT,
-                default: currentConfiguration?.applications.development,
             },
             input.devApplication,
         );
@@ -122,7 +117,6 @@ export class InitCommand implements Command<InitInput> {
             {
                 ...applicationOptions,
                 environment: ApplicationEnvironment.PRODUCTION,
-                default: currentConfiguration?.applications.production,
             },
             input.prodApplication,
         );

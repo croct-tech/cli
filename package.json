@@ -47,6 +47,7 @@
     "commander": "^12.1.0",
     "is-unicode-supported": "^2.1.0",
     "json5": "^2.2.3",
+    "minimatch": "^10.0.1",
     "open": "^10.1.0",
     "package-manager-detector": "^0.2.0",
     "prompts": "^2.4.2",

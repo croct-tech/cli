@@ -1,5 +1,5 @@
 import {basename} from 'path';
-import {Filesystem} from '@/application/filesystem';
+import {Filesystem} from '@/application/filesystem/filesystem';
 
 export class EnvFile {
     private readonly filesystem: Filesystem;

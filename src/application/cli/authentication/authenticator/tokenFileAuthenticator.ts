@@ -1,7 +1,7 @@
 import {dirname} from 'path';
 import {AuthenticationInput, Authenticator} from '@/application/cli/authentication/authenticator/index';
 import {CliError, CliErrorCode} from '@/application/cli/error';
-import {Filesystem} from '@/application/filesystem';
+import {Filesystem} from '@/application/filesystem/filesystem';
 
 export type Configuration<I extends AuthenticationInput>= {
     filePath: string,
@@ -42,7 +42,7 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
         await this.authenticator.logout();
 
         try {
-            await this.filesystem.unlink(this.filePath);
+            await this.filesystem.delete(this.filePath);
         } catch (error) {
             if ((error instanceof Error) && 'code' in error && error.code !== 'ENOENT') {
                 throw new CliError(

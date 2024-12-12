@@ -1,6 +1,6 @@
 import {Codemod, CodemodError, CodemodOptions, ResultCode} from '@/application/project/sdk/code/codemod';
 import {formatCause} from '@/application/error';
-import {Filesystem} from '@/application/filesystem';
+import {Filesystem} from '@/application/filesystem/filesystem';
 
 export class TransformFile<O extends CodemodOptions> implements Codemod<string, O> {
     private readonly filesystem: Filesystem;

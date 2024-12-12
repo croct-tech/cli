@@ -2,7 +2,6 @@ import {join} from 'path';
 import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import {ApplicationPlatform, Slot} from '@/application/model/entities';
-import {JavaScriptProject} from '@/application/project/project';
 import {WorkspaceApi} from '@/application/api/workspace';
 import {Codemod} from '@/application/project/sdk/code/codemod';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
@@ -12,7 +11,8 @@ import {EnvFile} from '@/application/project/envFile';
 import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {PlugReactExampleGenerator} from '@/application/project/example/slot/plugReactExampleGenerator';
 import {Linter} from '@/application/project/linter';
-import {Filesystem} from '@/application/filesystem';
+import {Filesystem} from '@/application/filesystem/filesystem';
+import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
 
 type ApiConfiguration = {
     workspace: WorkspaceApi,
@@ -28,7 +28,7 @@ type Bundlers = {
 };
 
 export type Configuration = {
-    project: JavaScriptProject,
+    projectManager: JavaScriptProjectManager,
     filesystem: Filesystem,
     api: ApiConfiguration,
     linter: Linter,
@@ -64,7 +64,7 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
 
     public constructor(config: Configuration) {
         super({
-            project: config.project,
+            projectManager: config.projectManager,
             filesystem: config.filesystem,
             linter: config.linter,
             workspaceApi: config.api.workspace,
@@ -88,21 +88,21 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
         }
 
         const hints = await Promise.all([
-            this.project.isPackageListed(this.getPackage()),
-            this.project.isPackageListed('react'),
+            this.projectManager.isPackageListed(this.getPackage()),
+            this.projectManager.isPackageListed('react'),
         ]);
 
         return hints.some(Boolean) ? this : null;
     }
 
     protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
-        const componentsImportPath = await this.project.getImportPath(
+        const componentsImportPath = await this.projectManager.getImportPath(
             installation.configuration.paths.components,
             installation.configuration.paths.examples,
         );
 
         const generator = new PlugReactExampleGenerator({
-            language: await this.project.isTypeScriptProject()
+            language: await this.projectManager.isTypeScriptProject()
                 ? CodeLanguage.TYPESCRIPT_XML
                 : CodeLanguage.JAVASCRIPT_XML,
             code: {
@@ -147,13 +147,13 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
         const envProperty = await this.getEnvVarProperty();
 
         return {
-            typescript: await this.project.isTypeScriptProject(),
+            typescript: await this.projectManager.isTypeScriptProject(),
             sourceDirectory: sourceDirectory,
             sdk: {
                 package: this.getPackage(),
             },
             provider: {
-                file: await this.project.locateFile(
+                file: await this.projectManager.locateFile(
                     ...['App', 'main', 'index']
                         .flatMap(name => ['js', 'jsx', 'ts', 'tsx'].map(ext => `${name}.${ext}`))
                         .map(file => join(sourceDirectory, file)),
@@ -163,8 +163,14 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
                 ? undefined
                 : {
                     property: envProperty,
-                    productionFile: new EnvFile(this.filesystem, join(this.project.getRootPath(), '.env.production')),
-                    developmentFile: new EnvFile(this.filesystem, join(this.project.getRootPath(), '.env.development')),
+                    productionFile: new EnvFile(
+                        this.filesystem,
+                        join(this.projectManager.getRootPath(), '.env.production'),
+                    ),
+                    developmentFile: new EnvFile(
+                        this.filesystem,
+                        join(this.projectManager.getRootPath(), '.env.development'),
+                    ),
                 },
         };
     }
@@ -255,12 +261,12 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
     private async installProvider(file: string, options: WrapperOptions): Promise<void> {
         const codemod = this.codemod.provider;
 
-        await codemod.apply(join(this.project.getRootPath(), file), options);
+        await codemod.apply(join(this.projectManager.getRootPath(), file), options);
     }
 
     private async getEnvVarProperty(): Promise<string|null> {
         for (const bundler of this.bundlers) {
-            if (await this.project.isPackageListed(bundler.package)) {
+            if (await this.projectManager.isPackageListed(bundler.package)) {
                 return `${bundler.prefix}CROCT_APP_ID`;
             }
         }

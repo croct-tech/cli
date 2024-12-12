@@ -13,7 +13,7 @@ import {
     DeletionOptions,
     Filesystem,
     FileWritingOptions,
-} from '@/application/filesystem';
+} from '@/application/filesystem/filesystem';
 
 export type DefaultOptions = {
     encoding: BufferEncoding,
@@ -36,7 +36,7 @@ export class LocalFilesystem implements Filesystem {
 
             return true;
         } catch (error) {
-            if (error.code === 'ENOENT') {
+            if (error.code === 'ENOENT' || error.code === 'ENOTDIR') {
                 return false;
             }
 
@@ -48,7 +48,7 @@ export class LocalFilesystem implements Filesystem {
         try {
             return (await lstat(path)).isSymbolicLink();
         } catch (error) {
-            if (error.code === 'ENOENT') {
+            if (error.code === 'ENOENT' || error.code === 'ENOTDIR') {
                 return false;
             }
 

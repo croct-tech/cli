@@ -3,7 +3,6 @@ import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import {ApplicationPlatform, Slot} from '@/application/model/entities';
 import {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
-import {JavaScriptProject} from '@/application/project/project';
 import {WorkspaceApi} from '@/application/api/workspace';
 import {EnvFile} from '@/application/project/envFile';
 import {UserApi} from '@/application/api/user';
@@ -17,7 +16,8 @@ import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {NextExampleRouter, PlugNextExampleGenerator} from '@/application/project/example/slot/plugNextExampleGenerator';
 import {Linter} from '@/application/project/linter';
 import {ApiError} from '@/application/api/error';
-import {Filesystem} from '@/application/filesystem';
+import {Filesystem} from '@/application/filesystem/filesystem';
+import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
 
 type ApiConfiguration = {
     user: UserApi,
@@ -32,7 +32,7 @@ type CodemodConfiguration = {
 };
 
 export type Configuration = {
-    project: JavaScriptProject,
+    projectManager: JavaScriptProjectManager,
     filesystem: Filesystem,
     api: ApiConfiguration,
     linter: Linter,
@@ -79,7 +79,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
 
     public constructor(config: Configuration) {
         super({
-            project: config.project,
+            projectManager: config.projectManager,
             filesystem: config.filesystem,
             linter: config.linter,
             workspaceApi: config.api.workspace,
@@ -99,14 +99,14 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
 
     protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
         const router = await this.detectRouter();
-        const componentsImportPath = await this.project.getImportPath(
+        const componentsImportPath = await this.projectManager.getImportPath(
             installation.configuration.paths.components,
             installation.configuration.paths.examples,
         );
 
         const generator = new PlugNextExampleGenerator({
             router: router === 'page' ? NextExampleRouter.PAGE : NextExampleRouter.APP,
-            language: await this.project.isTypeScriptProject()
+            language: await this.projectManager.isTypeScriptProject()
                 ? CodeLanguage.TYPESCRIPT_XML
                 : CodeLanguage.JAVASCRIPT_XML,
             code: {
@@ -141,8 +141,8 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
         }
 
         const hints = await Promise.all([
-            this.project.isPackageListed(this.getPackage()),
-            this.project.isPackageListed('next'),
+            this.projectManager.isPackageListed(this.getPackage()),
+            this.projectManager.isPackageListed('next'),
         ]);
 
         return hints.some(Boolean) ? this : null;
@@ -178,7 +178,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
 
     private async getProjectInfo(): Promise<NextProjectInfo> {
         const [isTypescript, directory] = await Promise.all([
-            this.project.isTypeScriptProject(),
+            this.projectManager.isTypeScriptProject(),
             this.getPageDirectory(),
         ]);
 
@@ -191,11 +191,11 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
 
         const sdkPackage = this.getPackage();
         const [middlewareFile, providerComponentFile] = await Promise.all([
-            this.project.locateFile(
+            this.projectManager.locateFile(
                 ...['middleware.js', 'middleware.ts']
                     .map(file => join(project.sourceDirectory, file)),
             ),
-            this.project.locateFile(
+            this.projectManager.locateFile(
                 ...(project.router === 'app' ? ['app/layout.jsx', 'app/layout.tsx'] : ['_app.jsx', '_app.tsx'])
                     .map(file => join(project.sourceDirectory, file)),
             ),
@@ -209,9 +209,18 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
                 package: sdkPackage,
             },
             env: {
-                localFile: new EnvFile(this.filesystem, join(this.project.getRootPath(), '.env.local')),
-                developmentFile: new EnvFile(this.filesystem, join(this.project.getRootPath(), '.env.development')),
-                productionFile: new EnvFile(this.filesystem, join(this.project.getRootPath(), '.env.production')),
+                localFile: new EnvFile(
+                    this.filesystem,
+                    join(this.projectManager.getRootPath(), '.env.local'),
+                ),
+                developmentFile: new EnvFile(
+                    this.filesystem,
+                    join(this.projectManager.getRootPath(), '.env.development'),
+                ),
+                productionFile: new EnvFile(
+                    this.filesystem,
+                    join(this.projectManager.getRootPath(), '.env.production'),
+                ),
             },
             middleware: {
                 file: middlewareFile ?? join(project.sourceDirectory, `middleware.${extension}`),
@@ -295,7 +304,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
         path: string,
         options?: O,
     ): Promise<void> {
-        await codemod.apply(join(this.project.getRootPath(), path), options);
+        await codemod.apply(join(this.projectManager.getRootPath(), path), options);
     }
 
     private async updateEnvVariables(installation: NextInstallation): Promise<void> {
@@ -351,14 +360,14 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
     }
 
     private getPageDirectory(): Promise<string> {
-        return this.project
+        return this.projectManager
             .locateFile('app', 'src/app', 'pages', 'src/pages')
             .then(path => path ?? 'app');
     }
 
     private async getConfig(): Promise<NextConfig> {
         const searchPaths = ['js', 'mjs', 'ts', 'mts'].map(ext => `next.config.${ext}`);
-        const config = await this.project
+        const config = await this.projectManager
             .readFile(...searchPaths)
             .catch(() => null);
 

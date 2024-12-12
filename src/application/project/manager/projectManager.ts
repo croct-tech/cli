@@ -29,7 +29,7 @@ export type PackageInstallationOptions = {
     dev?: boolean,
 };
 
-export interface Project {
+export interface ProjectManager {
     /**
      * Retrieves the root directory of the project.
      *
@@ -100,37 +100,4 @@ export interface Project {
      * @returns The path of the first found file or null if none were found.
      */
     locateFile(...searchPaths: string[]): Promise<string | null>;
-}
-
-export interface JavaScriptProject extends Project {
-    /**
-     * Checks if the project is a TypeScript project.
-     *
-     * This method uses a best guess approach to determine if the project uses TypeScript.
-     *
-     * @returns A promise that resolves to true if the project is a TypeScript project, false otherwise.
-     */
-    isTypeScriptProject(): Promise<boolean>;
-
-    /**
-     * Retrieves the path to the TypeScript configuration file.
-     *
-     * This method attempts to locate the TypeScript configuration file
-     * (e.g., tsconfig.json) in the project.
-     *
-     * @returns The path to the TypeScript configuration file or null if not found.
-     */
-    getTypeScriptConfigPath(): Promise<string | null>;
-
-    /**
-     * Converts a file path to its corresponding import path.
-     *
-     * This method transforms a local file path into a path that can be used
-     * as an import statement in JavaScript or TypeScript code.
-     *
-     * @param filePath The local file path to convert.
-     * @param importPath The path from which the import is made.
-     * @returns The corresponding import path.
-     */
-    getImportPath(filePath: string, importPath?: string): Promise<string>;
 }
