@@ -9,6 +9,7 @@ export type BlockFormatting = {
     trailingIndentation?: boolean,
     leadingIndentation?: boolean,
     entryIndentation?: boolean,
+    trailingComma?: boolean,
     commaSpacing?: boolean,
     colonSpacing?: boolean,
 };
@@ -16,8 +17,15 @@ export type BlockFormatting = {
 export type Formatting = {
     indentationLevel?: number,
     indentationCharacter?: 'space' | 'tab',
-    bracket?: BlockFormatting,
-    brace?: BlockFormatting,
+    string?: {
+        quote?: 'single' | 'double',
+    },
+    property?: {
+        quote?: 'single' | 'double',
+        unquoted?: boolean,
+    },
+    array?: BlockFormatting,
+    object?: BlockFormatting,
 };
 
 export type PartialJsonNodeDefinition<T extends JsonNodeDefinition = JsonNodeDefinition> =

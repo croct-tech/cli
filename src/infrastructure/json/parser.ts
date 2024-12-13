@@ -1,8 +1,13 @@
 import {JsonLexer} from './lexer';
-import {JsonArrayNode, JsonNode, JsonObjectNode, JsonPrimitiveNode, JsonTokenNode, JsonValueNode} from './node';
 import {JsonToken, JsonTokenType} from './token';
 import {JsonPropertyNode} from '@/infrastructure/json/node/propertyNode';
 import {JsonIdentifierNode} from '@/infrastructure/json/node/identifierNode';
+import {JsonValueNode} from '@/infrastructure/json/node/valueNode';
+import {JsonPrimitiveNode} from '@/infrastructure/json/node/primitiveNode';
+import {JsonTokenNode} from '@/infrastructure/json/node/tokenNode';
+import {JsonArrayNode} from '@/infrastructure/json/node/arrayNode';
+import {JsonNode} from '@/infrastructure/json/node/node';
+import {JsonObjectNode} from '@/infrastructure/json/node/objectNode';
 
 export class JsonParser {
     private readonly lexer: JsonLexer;

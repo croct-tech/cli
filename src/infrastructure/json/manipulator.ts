@@ -1,5 +1,7 @@
-import {JsonNode, JsonTokenNode, JsonValueNode} from './node';
 import {JsonTokenType} from './token';
+import {JsonNode} from '@/infrastructure/json/node/node';
+import {JsonTokenNode} from '@/infrastructure/json/node/tokenNode';
+import {JsonValueNode} from '@/infrastructure/json/node/valueNode';
 
 export type NodeMatcher = (node: JsonNode) => boolean;
 
@@ -11,9 +13,11 @@ export namespace NodeMatcher {
 
     export const NONE: NodeMatcher = () => false;
 
+    export const SIGNIFICANT: NodeMatcher = node => !INSIGNIFICANT(node);
+
     export const INSIGNIFICANT: NodeMatcher = node => SPACE(node) || COMMENT(node);
 
-    export const SPACE: NodeMatcher = node => WHITESPACE(node) || NEWLINE(node) || COMMENT(node);
+    export const SPACE: NodeMatcher = node => WHITESPACE(node) || NEWLINE(node);
 
     export const WHITESPACE: NodeMatcher = node => (
         node instanceof JsonTokenNode
@@ -25,9 +29,16 @@ export namespace NodeMatcher {
         && node.type === JsonTokenType.NEWLINE
     );
 
-    export const COMMENT: NodeMatcher = node => (
+    export const COMMENT: NodeMatcher = node => LINE_COMMENT(node) || BLOCK_COMMENT(node);
+
+    export const LINE_COMMENT: NodeMatcher = node => (
         node instanceof JsonTokenNode
-        && (node.type === JsonTokenType.LINE_COMMENT || node.type === JsonTokenType.BLOCK_COMMENT)
+        && node.type === JsonTokenType.LINE_COMMENT
+    );
+
+    export const BLOCK_COMMENT: NodeMatcher = node => (
+        node instanceof JsonTokenNode
+        && node.type === JsonTokenType.BLOCK_COMMENT
     );
 }
 
@@ -63,6 +74,10 @@ export class NodeManipulator {
         }
 
         this.index++;
+    }
+
+    public get position(): number {
+        return this.index;
     }
 
     public seek(position: number): void {
@@ -202,7 +217,7 @@ export class NodeManipulator {
                 return true;
             }
 
-            if (!(node instanceof JsonTokenNode) || !NodeMatcher.INSIGNIFICANT(node)) {
+            if (!(node instanceof JsonTokenNode) || NodeMatcher.SIGNIFICANT(node)) {
                 this.remove();
 
                 fixing = true;
@@ -310,6 +325,18 @@ export class NodeManipulator {
             } else if (!NodeMatcher.NEWLINE(currentToken)) {
                 removalCount--;
                 this.next();
+            } else if (
+                removalCount > 0
+                // Preserve the leftmost whitespace between inline comments in the following cases:
+                && (
+                    ((NodeMatcher.BLOCK_COMMENT)(previousToken) && NodeManipulator.isLeftPadded(currentToken))
+                    // ✓ If the previous should be padded and the next is a comment
+                    || ((NodeMatcher.BLOCK_COMMENT)(currentToken) && NodeManipulator.isRightPadded(previousToken))
+                )
+            ) {
+                removalCount--;
+
+                this.next();
             }
         }
 
@@ -357,11 +384,51 @@ export class NodeManipulator {
 
     private static getSkippableNodes(nodes: JsonNode[]): NodeMatcher {
         for (const node of nodes) {
-            if (!(node instanceof JsonTokenNode) || !NodeMatcher.INSIGNIFICANT(node.type)) {
+            if (!(node instanceof JsonTokenNode) || NodeMatcher.SIGNIFICANT(node.type)) {
                 return NodeMatcher.INSIGNIFICANT;
             }
         }
 
         return NodeMatcher.NONE;
+    }
+
+    private static isLeftPadded(node?: JsonNode): boolean {
+        if (node === undefined || NodeMatcher.NEWLINE(node)) {
+            return false;
+        }
+
+        if (!(node instanceof JsonTokenNode)) {
+            return true;
+        }
+
+        switch (node.type) {
+            case JsonTokenType.BRACE_RIGHT:
+            case JsonTokenType.BRACKET_RIGHT:
+            case JsonTokenType.COLON:
+            case JsonTokenType.COMMA:
+                return false;
+
+            default:
+                return true;
+        }
+    }
+
+    private static isRightPadded(node?: JsonNode): boolean {
+        if (node === undefined || NodeMatcher.NEWLINE(node)) {
+            return false;
+        }
+
+        if (!(node instanceof JsonTokenNode)) {
+            return true;
+        }
+
+        switch (node.type) {
+            case JsonTokenType.BRACE_LEFT:
+            case JsonTokenType.BRACKET_LEFT:
+                return false;
+
+            default:
+                return true;
+        }
     }
 }

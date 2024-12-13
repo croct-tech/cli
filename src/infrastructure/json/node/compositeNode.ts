@@ -21,7 +21,7 @@ export abstract class JsonCompositeNode extends JsonNode {
 
         clone.rebuild(formatting);
 
-        return clone.children.join('');
+        return JsonCompositeNode.flatten(clone).join('');
     }
 
     public abstract clone(): JsonCompositeNode;
@@ -34,4 +34,12 @@ export abstract class JsonCompositeNode extends JsonNode {
     }
 
     public abstract rebuild(formatting?: Formatting): void;
+
+    private static flatten(node: JsonNode): JsonNode[] {
+        if (node instanceof JsonCompositeNode) {
+            return node.children.flatMap(JsonCompositeNode.flatten);
+        }
+
+        return [node];
+    }
 }

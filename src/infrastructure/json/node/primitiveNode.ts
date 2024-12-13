@@ -1,5 +1,5 @@
 import {JsonPrimitive, JsonValue} from '@croct/json';
-import {JsonNode} from './node';
+import {Formatting, JsonNode} from './node';
 import {JsonValueNode} from './valueNode';
 import {JsonCompositeDefinition, PartialJsonCompositeDefinition} from './compositeNode';
 import {NodeManipulator} from '../manipulator';
@@ -47,6 +47,16 @@ export class JsonPrimitiveNode<T extends JsonPrimitiveTokenType = JsonPrimitiveT
         return JsonValueFactory.create(value);
     }
 
+    public static ofHex(value: number): JsonNumberNode {
+        return new JsonPrimitiveNode({
+            token: new JsonTokenNode({
+                type: JsonTokenType.NUMBER,
+                value: `"0x${value.toString(16)}"`,
+            }),
+            value: value,
+        });
+    }
+
     public update(other: JsonValueNode|JsonValue): JsonValueNode {
         const node = JsonValueFactory.create(other);
 
@@ -61,8 +71,34 @@ export class JsonPrimitiveNode<T extends JsonPrimitiveTokenType = JsonPrimitiveT
         this.children.length = 0;
     }
 
-    public rebuild(): void {
-        new NodeManipulator(this.children).node(this.token).end();
+    public rebuild(formatting?: Formatting): void {
+        const manipulator = new NodeManipulator(this.children);
+
+        // eslint-disable-next-line prefer-destructuring -- Type widening
+        let token: JsonTokenNode = this.token;
+
+        if (token.isType(JsonTokenType.STRING) && manipulator.done()) {
+            const quotes = formatting?.string?.quote;
+
+            if (quotes === 'single') {
+                let value = JSON.stringify(this.value)
+                    .slice(1, -1)
+                    // Unescape double quotes
+                    .replace(/((?:^|[^\\])(?:\\\\)*)\\"/g, (_, preceding) => `${preceding}"`)
+                    // Escape single quotes
+                    .replace(/'/g, "\\'");
+
+                value = `'${value}'`;
+
+                token = new JsonTokenNode({
+                    type: JsonTokenType.STRING,
+                    value: value,
+                });
+            }
+        }
+
+        manipulator.node(token);
+        manipulator.end();
     }
 
     public clone(): JsonPrimitiveNode<T> {

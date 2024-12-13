@@ -8,6 +8,32 @@ describe('Lexer', () => {
         tokens: JsonToken[],
     };
 
+    const whitespace = [
+        '\r', // Carriage return
+        '\t', // Horizontal tab
+        '\v', // Vertical tab
+        '\f', // Form feed
+        '\u00A0', // Non-breaking space
+        '\u2028', // Line separator
+        '\u2029', // Paragraph separator
+        '\uFEFF', // Byte Order Mark (BOM)
+        '\u1680', // Ogham space mark
+        '\u2000', // En quad
+        '\u2001', // Em quad
+        '\u2002', // En space
+        '\u2003', // Em space
+        '\u2004', // Three-per-em space
+        '\u2005', // Four-per-em space
+        '\u2006', // Six-per-em space
+        '\u2007', // Figure space
+        '\u2008', // Punctuation space
+        '\u2009', // Thin space
+        '\u200A', // Hair space
+        '\u202F', // Narrow no-break space
+        '\u205F', // Medium mathematical space
+        '\u3000', // Ideographic space
+    ].join('');
+
     it.each<Scenario>([
         {
             input: '\r    {}\r\n    ',
@@ -1804,6 +1830,345 @@ describe('Lexer', () => {
             ],
         },
         {
+            input: '{foo: \'bar\'}',
+            tokens: [
+                {
+                    type: JsonTokenType.BRACE_LEFT,
+                    value: '{',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 1,
+                            line: 1,
+                            column: 2,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.IDENTIFIER,
+                    value: 'foo',
+                    location: {
+                        start: {
+                            index: 1,
+                            line: 1,
+                            column: 2,
+                        },
+                        end: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.COLON,
+                    value: ':',
+                    location: {
+                        start: {
+                            index: 4,
+                            line: 1,
+                            column: 5,
+                        },
+                        end: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.WHITESPACE,
+                    value: ' ',
+                    location: {
+                        start: {
+                            index: 5,
+                            line: 1,
+                            column: 6,
+                        },
+                        end: {
+                            index: 6,
+                            line: 1,
+                            column: 7,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.STRING,
+                    value: "'bar'",
+                    location: {
+                        start: {
+                            index: 6,
+                            line: 1,
+                            column: 7,
+                        },
+                        end: {
+                            index: 11,
+                            line: 1,
+                            column: 12,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.BRACE_RIGHT,
+                    value: '}',
+                    location: {
+                        start: {
+                            index: 11,
+                            line: 1,
+                            column: 12,
+                        },
+                        end: {
+                            index: 12,
+                            line: 1,
+                            column: 13,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 12,
+                            line: 1,
+                            column: 13,
+                        },
+                        end: {
+                            index: 12,
+                            line: 1,
+                            column: 13,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: '"first\\\nsecond\\\r\nthird"',
+            tokens: [
+                {
+                    type: JsonTokenType.STRING,
+                    value: '"first\\\nsecond\\\r\nthird"',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 23,
+                            line: 3,
+                            column: 7,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 23,
+                            line: 3,
+                            column: 7,
+                        },
+                        end: {
+                            index: 23,
+                            line: 3,
+                            column: 7,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: "'first\\\nsecond\\\r\nthird'",
+            tokens: [
+                {
+                    type: JsonTokenType.STRING,
+                    value: "'first\\\nsecond\\\r\nthird'",
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 23,
+                            line: 3,
+                            column: 7,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 23,
+                            line: 3,
+                            column: 7,
+                        },
+                        end: {
+                            index: 23,
+                            line: 3,
+                            column: 7,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: "'first\\\u2028second\\\r\nthird'",
+            tokens: [
+                {
+                    type: JsonTokenType.STRING,
+                    value: "'first\\\u2028second\\\r\nthird'",
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 23,
+                            line: 2,
+                            column: 7,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 23,
+                            line: 2,
+                            column: 7,
+                        },
+                        end: {
+                            index: 23,
+                            line: 2,
+                            column: 7,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: "'first\\\u2029second\\\r\nthird'",
+            tokens: [
+                {
+                    type: JsonTokenType.STRING,
+                    value: "'first\\\u2029second\\\r\nthird'",
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 23,
+                            line: 2,
+                            column: 7,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 23,
+                            line: 2,
+                            column: 7,
+                        },
+                        end: {
+                            index: 23,
+                            line: 2,
+                            column: 7,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: "'\uD83C\uDFBC'",
+            tokens: [
+                {
+                    type: JsonTokenType.STRING,
+                    value: "'\uD83C\uDFBC'",
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 3,
+                            line: 1,
+                            column: 4,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 3,
+                            line: 1,
+                            column: 4,
+                        },
+                        end: {
+                            index: 3,
+                            line: 1,
+                            column: 4,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: "'🤯'",
+            tokens: [
+                {
+                    type: JsonTokenType.STRING,
+                    value: "'🤯'",
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 3,
+                            line: 1,
+                            column: 4,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 3,
+                            line: 1,
+                            column: 4,
+                        },
+                        end: {
+                            index: 3,
+                            line: 1,
+                            column: 4,
+                        },
+                    },
+                },
+            ],
+        },
+        {
             input: '{\n}',
             tokens: [
                 {
@@ -3027,6 +3392,213 @@ describe('Lexer', () => {
                 },
             ],
         },
+        {
+            input: '// comment\n{}',
+            tokens: [
+                {
+                    type: JsonTokenType.LINE_COMMENT,
+                    value: '// comment',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 10,
+                            line: 1,
+                            column: 11,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.NEWLINE,
+                    value: '\n',
+                    location: {
+                        start: {
+                            index: 10,
+                            line: 1,
+                            column: 11,
+                        },
+                        end: {
+                            index: 11,
+                            line: 2,
+                            column: 1,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.BRACE_LEFT,
+                    value: '{',
+                    location: {
+                        start: {
+                            index: 11,
+                            line: 2,
+                            column: 1,
+                        },
+                        end: {
+                            index: 12,
+                            line: 2,
+                            column: 2,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.BRACE_RIGHT,
+                    value: '}',
+                    location: {
+                        start: {
+                            index: 12,
+                            line: 2,
+                            column: 2,
+                        },
+                        end: {
+                            index: 13,
+                            line: 2,
+                            column: 3,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 13,
+                            line: 2,
+                            column: 3,
+                        },
+                        end: {
+                            index: 13,
+                            line: 2,
+                            column: 3,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: '/* comment */{}',
+            tokens: [
+                {
+                    type: JsonTokenType.BLOCK_COMMENT,
+                    value: '/* comment */',
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: 13,
+                            line: 1,
+                            column: 14,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.BRACE_LEFT,
+                    value: '{',
+                    location: {
+                        start: {
+                            index: 13,
+                            line: 1,
+                            column: 14,
+                        },
+                        end: {
+                            index: 14,
+                            line: 1,
+                            column: 15,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.BRACE_RIGHT,
+                    value: '}',
+                    location: {
+                        start: {
+                            index: 14,
+                            line: 1,
+                            column: 15,
+                        },
+                        end: {
+                            index: 15,
+                            line: 1,
+                            column: 16,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: 15,
+                            line: 1,
+                            column: 16,
+                        },
+                        end: {
+                            index: 15,
+                            line: 1,
+                            column: 16,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            input: `${whitespace}true`,
+            tokens: [
+                {
+                    type: JsonTokenType.WHITESPACE,
+                    value: whitespace,
+                    location: {
+                        start: {
+                            index: 0,
+                            line: 1,
+                            column: 1,
+                        },
+                        end: {
+                            index: [...whitespace].length,
+                            line: 1,
+                            column: [...whitespace].length + 1,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.BOOLEAN,
+                    value: 'true',
+                    location: {
+                        start: {
+                            index: [...whitespace].length,
+                            line: 1,
+                            column: [...whitespace].length + 1,
+                        },
+                        end: {
+                            index: [...whitespace].length + 4,
+                            line: 1,
+                            column: [...whitespace].length + 5,
+                        },
+                    },
+                },
+                {
+                    type: JsonTokenType.EOF,
+                    value: '',
+                    location: {
+                        start: {
+                            index: [...whitespace].length + 4,
+                            line: 1,
+                            column: [...whitespace].length + 5,
+                        },
+                        end: {
+                            index: [...whitespace].length + 4,
+                            line: 1,
+                            column: [...whitespace].length + 5,
+                        },
+                    },
+                },
+            ],
+        },
     ])('should tokenize $input', ({input, tokens}) => {
         const result = JsonLexer.tokenize(input);
 
@@ -3041,14 +3613,16 @@ describe('Lexer', () => {
     });
 
     function getSliceByIndex(start: SourcePosition, end: SourcePosition, input: string): string {
-        return input.slice(start.index, end.index);
+        return [...input].slice(start.index, end.index).join('');
     }
 
     function getSliceByLineAndColum(start: SourcePosition, end: SourcePosition, input: string): string {
         let startIndex = 0;
         let endIndex = 0;
 
-        for (let index = 0, line = 1, column = 1; index <= input.length; index++) {
+        const chars = [...input];
+
+        for (let index = 0, line = 1, column = 1; index <= chars.length; index++) {
             if (line === start.line && column === start.column) {
                 startIndex = index;
             }
@@ -3059,7 +3633,7 @@ describe('Lexer', () => {
                 break;
             }
 
-            if (input[index] === '\n') {
+            if (chars[index] === '\n') {
                 line++;
                 column = 1;
             } else {
@@ -3067,6 +3641,6 @@ describe('Lexer', () => {
             }
         }
 
-        return input.slice(startIndex, endIndex);
+        return chars.slice(startIndex, endIndex).join('');
     }
 });

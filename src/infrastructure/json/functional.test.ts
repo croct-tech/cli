@@ -1,7 +1,10 @@
 import {JsonValue} from '@croct/json';
 import {JsonParser} from './parser';
-import {Formatting, JsonArrayNode, JsonObjectNode, JsonValueNode} from './node';
 import {JsonIdentifierNode} from '@/infrastructure/json/node/identifierNode';
+import {JsonObjectNode} from '@/infrastructure/json/node/objectNode';
+import {JsonArrayNode} from '@/infrastructure/json/node/arrayNode';
+import {JsonValueNode} from '@/infrastructure/json/node/valueNode';
+import {Formatting} from '@/infrastructure/json/node/node';
 
 describe('Functional test', () => {
     type ParseScenario = {
@@ -211,6 +214,10 @@ describe('Functional test', () => {
               2,
             ]`,
             expected: [1, 2],
+        },
+        {
+            input: "'\uD83C\uDFBC'",
+            expected: '🎼',
         },
     ])('should parse $input', ({input, expected}) => {
         const parser = new JsonParser(input);
@@ -424,7 +431,7 @@ describe('Functional test', () => {
                 node.set('foo', 1);
             },
             format: {
-                bracket: {
+                array: {
                     commaSpacing: true,
                     colonSpacing: true,
                 },
@@ -441,7 +448,7 @@ describe('Functional test', () => {
                 node.push(1, 2);
             },
             format: {
-                bracket: {
+                array: {
                     commaSpacing: true,
                 },
             },
@@ -460,7 +467,7 @@ describe('Functional test', () => {
                 node.set('foo', 1);
             },
             format: {
-                brace: {
+                object: {
                     indentationSize: 2,
                     leadingIndentation: true,
                     trailingIndentation: true,
@@ -482,7 +489,7 @@ describe('Functional test', () => {
                 node.push(1, 2);
             },
             format: {
-                bracket: {
+                array: {
                     indentationSize: 2,
                     entryIndentation: true,
                     trailingIndentation: true,
@@ -504,7 +511,7 @@ describe('Functional test', () => {
                 node.set('foo', 1);
             },
             format: {
-                brace: {
+                object: {
                     indentationSize: 2,
                     colonSpacing: true,
                     leadingIndentation: true,
@@ -529,13 +536,13 @@ describe('Functional test', () => {
                 node.push(1, {foo: 2});
             },
             format: {
-                brace: {
+                object: {
                     indentationSize: 2,
                     entryIndentation: true,
                     leadingIndentation: true,
                     trailingIndentation: true,
                 },
-                bracket: {
+                array: {
                     indentationSize: 2,
                     colonSpacing: true,
                     entryIndentation: true,
@@ -558,7 +565,7 @@ describe('Functional test', () => {
                 node.set('baz', 3);
             },
             format: {
-                brace: {
+                object: {
                     indentationSize: 2,
                     commaSpacing: false,
                     colonSpacing: false,
@@ -582,7 +589,7 @@ describe('Functional test', () => {
                 node.push(1, 2, 3);
             },
             format: {
-                bracket: {
+                array: {
                     indentationSize: 2,
                     commaSpacing: false,
                     entryIndentation: false,
@@ -607,7 +614,7 @@ describe('Functional test', () => {
                 node.set('baz', 3);
             },
             format: {
-                brace: {
+                object: {
                     indentationSize: 2,
                     commaSpacing: true,
                     colonSpacing: true,
@@ -631,7 +638,7 @@ describe('Functional test', () => {
                 node.push(1, 2, 3);
             },
             format: {
-                bracket: {
+                array: {
                     indentationSize: 2,
                     commaSpacing: true,
                     entryIndentation: false,
@@ -1052,7 +1059,7 @@ describe('Functional test', () => {
                 node.set('foo', 1);
             },
             format: {
-                brace: {
+                object: {
                     indentationSize: 2,
                     leadingIndentation: true,
                     trailingIndentation: false,
@@ -1072,7 +1079,7 @@ describe('Functional test', () => {
                 node.push(1);
             },
             format: {
-                bracket: {
+                array: {
                     indentationSize: 2,
                     leadingIndentation: true,
                     trailingIndentation: false,
@@ -1092,7 +1099,7 @@ describe('Functional test', () => {
                 node.set('foo', 1);
             },
             format: {
-                brace: {
+                object: {
                     indentationSize: 2,
                     leadingIndentation: false,
                     trailingIndentation: true,
@@ -1112,7 +1119,7 @@ describe('Functional test', () => {
                 node.push(1);
             },
             format: {
-                bracket: {
+                array: {
                     indentationSize: 2,
                     leadingIndentation: false,
                     trailingIndentation: true,
@@ -1401,7 +1408,8 @@ describe('Functional test', () => {
             // language=JSON
             output: multiline`
             {"foo": 1, "bar":2,
-              "baz": {}}`,
+              "baz": {
+                }}`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
                 const baz = node.get('baz', JsonObjectNode);
@@ -1456,7 +1464,8 @@ describe('Functional test', () => {
             // language=JSON
             output: multiline`
             {"foo": 1, "bar":2,
-              "baz": []}`,
+              "baz": [
+                ]}`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
                 const baz = node.get('baz', JsonArrayNode);
@@ -1939,7 +1948,7 @@ describe('Functional test', () => {
                 node.set('foo', 1);
             },
             format: {
-                brace: {
+                object: {
                     indentationSize: 2,
                 },
             },
@@ -1961,7 +1970,7 @@ describe('Functional test', () => {
                 node.push(1);
             },
             format: {
-                brace: {
+                object: {
                     indentationSize: 2,
                 },
             },
@@ -2129,21 +2138,119 @@ describe('Functional test', () => {
             },
         },
         {
-            description: 'preserve trailing commas',
+            description: 'add trailing comma to the last property if currently present',
             // language=JSON5
             input: multiline`
             {
-              foo: 1,
+              "foo": 1,
             }`,
             // language=JSON5
             output: multiline`
             {
-              foo: 1,
-              bar: 2,
+              "foo": 1,
+              "bar": 2,
             }`,
             type: JsonObjectNode,
             mutation: (node: JsonObjectNode): void => {
-                node.set(JsonIdentifierNode.of('bar'), 2);
+                node.set('bar', 2);
+            },
+        },
+        {
+            description: 'add trailing comma to the last element if currently present',
+            // language=JSON5
+            input: multiline`
+            [
+              1,
+            ]`,
+            // language=JSON5
+            output: multiline`
+            [
+              1,
+              2,
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(2);
+            },
+        },
+        {
+            description: 'not add trailing comma to the last property if not currently present',
+            // language=JSON5
+            input: multiline`
+            {
+              "foo": 1
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              "foo": 1,
+              "bar": 2
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 2);
+            },
+        },
+        {
+            description: 'not add trailing comma to the last element if not currently present',
+            // language=JSON5
+            input: multiline`
+            [
+              1
+            ]`,
+            // language=JSON5
+            output: multiline`
+            [
+              1,
+              2
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(2);
+            },
+        },
+        {
+            description: 'add trailing comma to the last property if specified',
+            // language=JSON5
+            input: multiline`
+            {
+              
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              "bar": 1,
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 1);
+            },
+            format: {
+                object: {
+                    trailingComma: true,
+                },
+            },
+        },
+        {
+            description: 'add trailing comma to the last element if specified',
+            // language=JSON5
+            input: multiline`
+            [
+              
+            ]`,
+            // language=JSON5
+            output: multiline`
+            [
+              1,
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(1);
+            },
+            format: {
+                array: {
+                    trailingComma: true,
+                },
             },
         },
         {
@@ -2192,6 +2299,648 @@ describe('Functional test', () => {
             }`,
             type: JsonObjectNode,
             mutation: (): void => {
+            },
+        },
+        {
+            description: 'preserve leading line comments',
+            // language=JSON5
+            input: multiline`
+            // Comment
+            {
+              "foo": 1
+            }`,
+            // language=JSON5
+            output: multiline`
+            // Comment
+            {
+              "foo": 1,
+              "bar": 2
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 2);
+            },
+        },
+        {
+            description: 'preserve leading line comments',
+            // language=JSON5
+            input: multiline`
+            /* 
+             * Comment
+             */
+            {
+              "foo": 1
+            }`,
+            // language=JSON5
+            output: multiline`
+            /* 
+             * Comment
+             */
+            {
+              "foo": 1,
+              "bar": 2
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 2);
+            },
+        },
+        {
+            description: 'preserve trailing line comments',
+            // language=JSON5
+            input: multiline`
+            {
+              "foo": 1
+            }
+            // Comment`,
+            // language=JSON5
+            output: multiline`
+            {
+              "foo": 1,
+              "bar": 2
+            }
+            // Comment`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 2);
+            },
+        },
+        {
+            description: 'preserve line comments after opening brace',
+            // language=JSON5
+            input: multiline`
+            {
+              // Comment
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              // Comment
+              "foo": 1
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('foo', 1);
+            },
+        },
+        {
+            description: 'preserve line comments before closing brace',
+            // language=JSON5
+            input: multiline`
+            {
+              "foo": 1
+              // Comment
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              "foo": 1,
+              // Comment
+              "bar": 2
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 2);
+            },
+        },
+        {
+            description: 'preserve comments removing properties',
+            // language=JSON5
+            input: multiline`
+            {
+              // Top
+              foo: 1, // Right
+              // Bottom
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              // Top
+              // Right
+              // Bottom
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.delete('foo');
+            },
+        },
+        {
+            description: 'preserve comments around spaces',
+            // language=JSON5
+            input: multiline`
+            {
+              // Top
+              
+              // Right
+              
+              // Bottom
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              // Top
+              
+              // Right
+              
+              // Bottom
+              "foo": 1
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('foo', 1);
+            },
+        },
+        {
+            description: 'preserve comments adding elements',
+            // language=JSON5
+            input: multiline`
+            [
+              // Top
+              
+              // Right
+              
+              // Bottom
+            ]`,
+            // language=JSON5
+            output: multiline`
+            [
+              // Top
+              
+              // Right
+              
+              // Bottom
+              1
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(1);
+            },
+        },
+        {
+            description: 'preserve comments removing elements',
+            // language=JSON5
+            input: multiline`
+            [
+              // Top
+              1, // Right
+              // Bottom
+              2
+              // End
+            ]`,
+            // language=JSON5
+            output: multiline`
+            [
+              // Top
+              // Right
+              // Bottom
+              // End
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.delete(0);
+                node.delete(0);
+            },
+        },
+        {
+            description: 'preserve comments removing and adding elements',
+            // language=JSON5
+            input: multiline`
+            [
+              // Top
+              1, // Right
+              // Bottom
+              2
+              // End
+            ]`,
+            // language=JSON5
+            output: multiline`
+            [
+              // Top
+              // Right
+              // Bottom
+              2,
+              // End
+              3
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.delete(0);
+                node.push(3);
+            },
+        },
+        {
+            description: 'break the line adding a property after a line comment',
+            // language=JSON5
+            input: multiline`
+            {"foo": 1, "bar": 2 // comment
+            }`,
+            // language=JSON5
+            output: multiline`
+            {"foo": 1, "bar": 2, // comment
+            "qux": 3
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('qux', 3);
+            },
+        },
+        {
+            description: 'not break the line adding a property after a block comment',
+            // language=JSON5
+            input: multiline`
+            {"foo": 1, "bar": 2 /* comment */
+            }`,
+            // language=JSON5
+            output: multiline`
+            {"foo": 1, "bar": 2, /* comment */ "qux": 3
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('qux', 3);
+            },
+        },
+        {
+            description: 'add a space after block comment adding a property if the comment has a trailing space',
+            // language=JSON5
+            input: multiline`
+            {"foo": 1,"bar": 2 /* comment */
+            }`,
+            // language=JSON5
+            output: multiline`
+            {"foo": 1,"bar": 2, /* comment */ "qux": 3
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('qux', 3);
+            },
+        },
+        {
+            description: 'not add a space after block comment adding a property if the comment has no trailing space',
+            // language=JSON5
+            input: multiline`
+            {"foo": 1,"bar": "foo"/* comment*/
+            }`,
+            // language=JSON5
+            output: multiline`
+            {"foo": 1,"bar": "foo",/* comment*/"qux": 3
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('qux', 3);
+            },
+        },
+        {
+            description: 'break the line adding an element after a line comment',
+            // language=JSON5
+            input: multiline`
+            [1, 2 // comment
+            ]`,
+            // language=JSON5
+            output: multiline`
+            [1, 2, // comment
+            3
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(3);
+            },
+        },
+        {
+            description: 'not break the line adding an element after a block comment',
+            // language=JSON5
+            input: multiline`
+            [1, 2 /* comment */
+            ]`,
+            // language=JSON5
+            output: multiline`
+            [1, 2, /* comment */ 3
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(3);
+            },
+        },
+        {
+            description: 'add a space after block comment adding an element the comment has a trailing space',
+            // language=JSON5
+            input: multiline`
+            [1,2 /* comment */
+            ]`,
+            // language=JSON5
+            output: multiline`
+            [1,2, /* comment */ 3
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(3);
+            },
+        },
+        {
+            description: 'not add a space after block comment adding an element if the comment has no trailing space',
+            // language=JSON5
+            input: multiline`
+            [1,"foo"/* comment*/
+            ]`,
+            // language=JSON5
+            output: multiline`
+            [1,"foo",/* comment*/3
+            ]`,
+            type: JsonArrayNode,
+            mutation: (node: JsonArrayNode): void => {
+                node.push(3);
+            },
+        },
+        {
+            description: 'use double quotes for property names',
+            // language=JSON5
+            input: multiline`
+            {
+              foo: 1,
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              foo: 1,
+              "'\\"bar\\"'": 2,
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('\'"bar"\'', 2);
+            },
+            format: {
+                property: {
+                    quote: 'double',
+                },
+            },
+        },
+        {
+            description: 'use single quotes for property names',
+            // language=JSON5
+            input: multiline`
+            {
+              
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              '"\\'bar\\'"': 2
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('"\'bar\'"', 2);
+            },
+            format: {
+                property: {
+                    quote: 'single',
+                },
+            },
+        },
+        {
+            description: 'use identifiers for valid keywords',
+            // language=JSON5
+            input: multiline`
+            {
+              foo: 1,
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              foo: 1,
+              bar: 2,
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 2);
+            },
+            format: {
+                property: {
+                    unquoted: true,
+                },
+            },
+        },
+        {
+            description: 'use single-quoted strings for invalid keywords',
+            // language=JSON5
+            input: multiline`
+            {
+              
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              'if': 2
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('if', 2);
+            },
+            format: {
+                property: {
+                    quote: 'single',
+                    unquoted: true,
+                },
+            },
+        },
+        {
+            description: 'use double-quoted strings for invalid keywords',
+            // language=JSON5
+            input: multiline`
+            {
+              foo: 1,
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              foo: 1,
+              "if": 2,
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('if', 2);
+            },
+        },
+        {
+            description: 'use single quotes for strings',
+            // language=JSON5
+            input: multiline`
+            {
+              
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              'bar': 'qux'
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 'qux');
+            },
+            format: {
+                string: {
+                    quote: 'single',
+                },
+            },
+        },
+        {
+            description: 'use double quotes for strings',
+            // language=JSON5
+            input: multiline`
+            {
+              
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              "bar": "qux"
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 'qux');
+            },
+            format: {
+                string: {
+                    quote: 'double',
+                },
+            },
+        },
+        {
+            description: 'use single quotes for property names and double quotes for strings',
+            // language=JSON5
+            input: multiline`
+            {
+              
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              'bar': "qux"
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 'qux');
+            },
+            format: {
+                property: {
+                    quote: 'single',
+                },
+                string: {
+                    quote: 'double',
+                },
+            },
+        },
+        {
+            description: 'use double quotes for property names and single quotes for strings',
+            // language=JSON5
+            input: multiline`
+            {
+              
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              "bar": 'qux'
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 'qux');
+            },
+            format: {
+                property: {
+                    quote: 'double',
+                },
+                string: {
+                    quote: 'single',
+                },
+            },
+        },
+        {
+            description: 'use single quotes for property names if other properties use single quotes',
+            // language=JSON5
+            input: multiline`
+            {
+              'foo': 'baz'
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              'foo': 'baz',
+              'bar': 'qux'
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 'qux');
+            },
+        },
+        {
+            description: 'use double quotes for property names if other properties use double quotes',
+            // language=JSON5
+            input: multiline`
+            {
+              "foo": "baz"
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              "foo": "baz",
+              "bar": "qux"
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 'qux');
+            },
+        },
+        {
+            description: 'use unquoted property names if other properties use unquoted names',
+            // language=JSON5
+            input: multiline`
+            {
+              foo: 1
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              foo: 1,
+              bar: 2
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 2);
+            },
+        },
+        {
+            description: 'use double-quoted strings if other strings use double quotes',
+            // language=JSON5
+            input: multiline`
+              {
+                'foo': "baz"
+              }`,
+            // language=JSON5
+            output: multiline`
+              {
+                'foo': "baz",
+                'bar': "qux"
+              }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 'qux');
+            },
+        },
+        {
+            description: 'use single-quoted strings if other strings use single quotes',
+            // language=JSON5
+            input: multiline`
+            {
+              "foo": 'baz'
+            }`,
+            // language=JSON5
+            output: multiline`
+            {
+              "foo": 'baz',
+              "bar": 'qux'
+            }`,
+            type: JsonObjectNode,
+            mutation: (node: JsonObjectNode): void => {
+                node.set('bar', 'qux');
             },
         },
     ])('should $description', ({input, output, type, mutation, format}) => {

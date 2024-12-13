@@ -6,16 +6,17 @@ import {JsonTokenType} from '@/infrastructure/json/token';
 import {JsonCompositeDefinition, JsonCompositeNode, PartialJsonCompositeDefinition} from './compositeNode';
 import {NodeManipulator} from '@/infrastructure/json/manipulator';
 import {JsonValueFactory} from '@/infrastructure/json/node/factory';
-import {JsonPrimitiveNode} from '@/infrastructure/json';
 import {JsonIdentifierNode} from '@/infrastructure/json/node/identifierNode';
+import {isiIdentifier} from '@/infrastructure/json/identifier';
+import {JsonPrimitiveNode} from '@/infrastructure/json/node/primitiveNode';
 
 export interface JsonPropertyDefinition extends JsonCompositeDefinition {
-    readonly key: JsonPrimitiveNode<JsonTokenType.STRING>|JsonIdentifierNode;
+    readonly key: JsonPrimitiveNode<JsonTokenType.STRING> | JsonIdentifierNode;
     value: JsonValueNode;
 }
 
 export class JsonPropertyNode extends JsonCompositeNode implements JsonPropertyDefinition {
-    public readonly key: JsonPrimitiveNode<JsonTokenType.STRING>|JsonIdentifierNode;
+    public readonly key: JsonPrimitiveNode<JsonTokenType.STRING> | JsonIdentifierNode;
 
     public value: JsonValueNode;
 
@@ -33,29 +34,43 @@ export class JsonPropertyNode extends JsonCompositeNode implements JsonPropertyD
         this.children.length = 0;
     }
 
-    public set(value: JsonValue|JsonValueNode): void {
+    public set(value: JsonValue | JsonValueNode): void {
         this.value = JsonValueFactory.create(value);
     }
 
     public rebuild(formatting?: Formatting): void {
-        this.key.rebuild();
-
         this.value.rebuild(formatting);
 
-        this.rebuildChildren(formatting);
-    }
+        const quote = formatting?.property?.quote;
+        const spaced = formatting?.object?.colonSpacing ?? false;
 
-    private rebuildChildren(formatting: Formatting = {}): void {
         const manipulator = new NodeManipulator(this.children);
-        const spaced = formatting.brace?.colonSpacing ?? false;
 
-        manipulator.node(this.key)
-            .token(
-                new JsonTokenNode({
-                    type: JsonTokenType.COLON,
-                    value: ':',
-                }),
-            );
+        let {key} = this;
+
+        if (manipulator.matches(this.key)) {
+            key.rebuild();
+        } else {
+            key = this.formatKey(formatting);
+
+            key.rebuild({
+                ...formatting,
+                string: {
+                    quote: quote === 'single' || quote === 'double'
+                        ? quote
+                        : formatting?.string?.quote,
+                },
+            });
+        }
+
+        manipulator.node(key);
+
+        manipulator.token(
+            new JsonTokenNode({
+                type: JsonTokenType.COLON,
+                value: ':',
+            }),
+        );
 
         if (spaced) {
             manipulator.token(
@@ -69,6 +84,18 @@ export class JsonPropertyNode extends JsonCompositeNode implements JsonPropertyD
 
         manipulator.node(this.value)
             .end();
+    }
+
+    private formatKey(formatting?: Formatting): JsonPrimitiveNode<JsonTokenType.STRING> | JsonIdentifierNode {
+        if (
+            this.key instanceof JsonPrimitiveNode
+            && formatting?.property?.unquoted === true
+            && isiIdentifier(this.key.value)
+        ) {
+            return JsonIdentifierNode.of(this.key.value);
+        }
+
+        return this.key;
     }
 
     public clone(): JsonPropertyNode {

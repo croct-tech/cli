@@ -20,7 +20,7 @@ export class JsonTokenNode<T extends JsonTokenType = JsonTokenType> extends Json
         return JsonToken.isType(this, type);
     }
 
-    public clone(): JsonNode {
+    public clone(): JsonTokenNode<T> {
         return new JsonTokenNode({
             type: this.type,
             value: this.value,

@@ -51,7 +51,11 @@ export class JsonArrayNode extends JsonStructureNode implements JsonArrayDefinit
     }
 
     protected getDelimiter(): StructureDelimiter {
-        return StructureDelimiter.BRACKET;
+        return StructureDelimiter.ARRAY;
+    }
+
+    protected getMaxDepth(): number {
+        return 1;
     }
 
     public get elements(): readonly JsonValueNode[] {

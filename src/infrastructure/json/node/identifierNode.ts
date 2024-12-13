@@ -6,6 +6,7 @@ import {NodeManipulator} from '../manipulator';
 import {JsonTokenNode} from './tokenNode';
 import {JsonTokenType} from '../token';
 import {JsonValueFactory} from '@/infrastructure/json/node/factory';
+import {isiIdentifier} from '@/infrastructure/json/identifier';
 
 export interface JsonIdentifierDefinition extends JsonCompositeDefinition {
     readonly token: JsonTokenNode<JsonTokenType.IDENTIFIER>;
@@ -21,6 +22,10 @@ export class JsonIdentifierNode extends JsonValueNode implements JsonIdentifierD
     }
 
     public static of(name: string): JsonIdentifierNode {
+        if (!isiIdentifier(name)) {
+            throw new Error(`Invalid identifier: ${name}`);
+        }
+
         return new JsonIdentifierNode({
             token: new JsonTokenNode({
                 type: JsonTokenType.IDENTIFIER,

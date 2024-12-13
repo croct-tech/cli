@@ -104,7 +104,11 @@ export class JsonObjectNode extends JsonStructureNode implements JsonCompositeDe
     }
 
     protected getDelimiter(): StructureDelimiter {
-        return StructureDelimiter.BRACE;
+        return StructureDelimiter.OBJECT;
+    }
+
+    protected getMaxDepth(): number {
+        return 2;
     }
 
     public has(name: string): boolean {

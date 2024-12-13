@@ -4,15 +4,22 @@ import {JsonTokenType} from '../token';
 import {JsonTokenDefinition, JsonTokenNode} from './tokenNode';
 import {NodeManipulator, NodeMatcher} from '../manipulator';
 import {JsonCompositeNode} from './compositeNode';
+import {JsonPropertyNode} from '@/infrastructure/json/node/propertyNode';
+import COMMENT = NodeMatcher.COMMENT;
+import WHITESPACE = NodeMatcher.WHITESPACE;
+import NEWLINE = NodeMatcher.NEWLINE;
+import SPACE = NodeMatcher.SPACE;
+import INSIGNIFICANT = NodeMatcher.INSIGNIFICANT;
 
 type DescendantNode = {
     depth: number,
     token: JsonTokenNode,
+    parents: JsonCompositeNode[],
 };
 
 export enum StructureDelimiter {
-    BRACE = 'brace',
-    BRACKET = 'bracket',
+    OBJECT = 'object',
+    ARRAY = 'array',
 }
 
 export namespace StructureDelimiter {
@@ -22,7 +29,7 @@ export namespace StructureDelimiter {
     };
 
     const definitions: Record<StructureDelimiter, TokenDefinition> = {
-        [StructureDelimiter.BRACE]: {
+        [StructureDelimiter.OBJECT]: {
             start: {
                 type: JsonTokenType.BRACE_LEFT,
                 value: '{',
@@ -32,7 +39,7 @@ export namespace StructureDelimiter {
                 value: '}',
             },
         },
-        [StructureDelimiter.BRACKET]: {
+        [StructureDelimiter.ARRAY]: {
             start: {
                 type: JsonTokenType.BRACKET_LEFT,
                 value: '[',
@@ -123,9 +130,8 @@ export abstract class JsonStructureNode extends JsonValueNode {
             entryIndentation = false,
             leadingIndentation: blockLeadingIndentation = false,
             trailingIndentation: blockTrailingIndentation = false,
+            trailingComma = false,
         } = formatting[delimiter] ?? {};
-
-        const trailingSeparator = this.hasTrailingSeparator();
 
         let previousMatched = false;
 
@@ -146,6 +152,10 @@ export abstract class JsonStructureNode extends JsonValueNode {
                 previousMatched = true;
             } else {
                 const currentMatched = manipulator.matches(item);
+
+                if (!currentMatched) {
+                    JsonStructureNode.skipComments(manipulator);
+                }
 
                 if (leadingIndentation) {
                     if (indentationSize > 0 && manipulator.matchesNext(node => endToken.isEquivalent(node))) {
@@ -172,10 +182,40 @@ export abstract class JsonStructureNode extends JsonValueNode {
                 }
 
                 previousMatched = currentMatched;
+
+                if (manipulator.matchesPreviousToken(JsonTokenType.LINE_COMMENT)) {
+                    manipulator.insert(
+                        new JsonTokenNode({
+                            type: JsonTokenType.NEWLINE,
+                            value: '\n',
+                        }),
+                    );
+                } else if (
+                    manipulator.position > 1
+                    && !currentMatched
+                    && manipulator.matchesPreviousToken(JsonTokenType.BLOCK_COMMENT)
+                    && !manipulator.matchesToken(JsonTokenType.WHITESPACE)
+                ) {
+                    manipulator.previous();
+
+                    const trailingSpace = manipulator.matchesPreviousToken(JsonTokenType.WHITESPACE);
+
+                    manipulator.next();
+
+                    if (trailingSpace) {
+                        manipulator.token(
+                            new JsonTokenNode({
+                                type: JsonTokenType.WHITESPACE,
+                                value: ' ',
+                            }),
+                        );
+                    }
+                }
+
                 manipulator.node(item);
             }
 
-            if (index < count - 1 || trailingSeparator) {
+            if (index < count - 1 || trailingComma) {
                 manipulator.node(
                     new JsonTokenNode({
                         type: JsonTokenType.COMMA,
@@ -195,7 +235,7 @@ export abstract class JsonStructureNode extends JsonValueNode {
                 ((indentationSize === 0 || !entryIndentation) && commaSpacing)
                     && (
                         !manipulator.matchesNext(NodeMatcher.SPACE)
-                        || manipulator.matchesNext(node => endToken.isEquivalent(node))
+                        || manipulator.matchesNext(node => endToken.isEquivalent(node), NodeMatcher.SPACE)
                     )
             ) {
                 manipulator.token(
@@ -211,40 +251,36 @@ export abstract class JsonStructureNode extends JsonValueNode {
             }
         }
 
-        manipulator.token(endToken);
+        if (count === 0) {
+            const index = manipulator.findNext(node => node.isEquivalent(endToken), NodeMatcher.ANY);
 
-        manipulator.end();
-    }
-
-    private hasTrailingSeparator(): boolean {
-        for (let index = this.children.length - 1; index >= 0; index--) {
-            const node = this.children[index];
-
-            if (node instanceof JsonCompositeNode) {
-                break;
-            }
-
-            if (node instanceof JsonTokenNode && node.isType(JsonTokenType.COMMA)) {
-                return true;
+            if (index >= 0) {
+                manipulator.dropUntil(node => node.isEquivalent(endToken));
             }
         }
 
-        return false;
+        manipulator.token(endToken);
+
+        manipulator.end();
     }
 
     protected abstract getList(): JsonCompositeNode[];
 
     protected abstract getDelimiter(): StructureDelimiter;
 
+    protected abstract getMaxDepth(): number;
+
     private detectFormatting(parent: Formatting = {}): Formatting {
         let blockStart = false;
         let lineStart = true;
-        let comma = false;
-        let colon = false;
+        let inlineComma = false;
+        let inlineColon = false;
+        let levelComma = false;
         let lineIndentationSize = 0;
         let levelIndentationSize = 0;
         let leadingIndentation: boolean | undefined;
         let trailingIndentation: boolean | undefined;
+        let trailingComma = false;
         let newLine = false;
         let immediatelyClosed = true;
         let empty = true;
@@ -252,7 +288,43 @@ export abstract class JsonStructureNode extends JsonValueNode {
         const formatting: Formatting = {};
         const blockFormatting: BlockFormatting = {};
 
-        for (const {token, depth} of JsonStructureNode.iterate(this.children, 1)) {
+        const tokens = [...JsonStructureNode.iterate(this, this.getMaxDepth())];
+
+        for (let index = 0; index < tokens.length; index++) {
+            const {token, depth, parents} = tokens[index];
+
+            switch (token.type) {
+                case JsonTokenType.IDENTIFIER:
+                    formatting.property = {
+                        ...formatting.property,
+                        unquoted: true,
+                    };
+
+                    break;
+
+                case JsonTokenType.STRING: {
+                    const grandParent = parents[parents.length - 2];
+                    const quote = token.value.startsWith("'") ? 'single' : 'double';
+
+                    if (
+                        grandParent instanceof JsonPropertyNode
+                        && grandParent.key.equals(parents[parents.length - 1])
+                    ) {
+                        formatting.property = {
+                            ...formatting.property,
+                            quote: quote,
+                        };
+                    } else {
+                        formatting.string = {
+                            ...formatting.string,
+                            quote: quote,
+                        };
+                    }
+
+                    break;
+                }
+            }
+
             if (depth === 0 && StructureDelimiter.isStartToken(token)) {
                 blockStart = true;
             } else {
@@ -261,12 +333,13 @@ export abstract class JsonStructureNode extends JsonValueNode {
                 if (depth === 0) {
                     if (blockEnd) {
                         trailingIndentation = lineStart;
+                        trailingComma = levelComma;
                     }
 
                     if (blockStart) {
-                        leadingIndentation = token.type === JsonTokenType.NEWLINE;
+                        leadingIndentation = NEWLINE(token);
 
-                        if (token.type !== JsonTokenType.WHITESPACE) {
+                        if (!WHITESPACE(token)) {
                             blockStart = false;
                         }
                     }
@@ -278,13 +351,13 @@ export abstract class JsonStructureNode extends JsonValueNode {
 
                     immediatelyClosed = false;
 
-                    if (token.type !== JsonTokenType.WHITESPACE && token.type !== JsonTokenType.NEWLINE) {
+                    if (!SPACE(token)) {
                         empty = false;
                     }
                 }
             }
 
-            if (token.type === JsonTokenType.WHITESPACE) {
+            if (WHITESPACE(token)) {
                 if (token.value.includes('\t')) {
                     formatting.indentationCharacter = 'tab';
                 }
@@ -297,29 +370,53 @@ export abstract class JsonStructureNode extends JsonValueNode {
                 }
             }
 
-            if (depth === 0 && comma) {
-                if (token.type !== JsonTokenType.NEWLINE) {
-                    blockFormatting.commaSpacing = token.type === JsonTokenType.WHITESPACE;
+            if (inlineComma && index > 0 && tokens[index - 1].depth === 0) {
+                if (!NEWLINE(token)) {
+                    blockFormatting.commaSpacing = WHITESPACE(token);
                 }
 
-                blockFormatting.entryIndentation = token.type === JsonTokenType.NEWLINE;
-                comma = false;
+                let entryIndentation = NEWLINE(token);
+
+                for (
+                    let nextIndex = index;
+                    !entryIndentation && nextIndex < tokens.length;
+                    nextIndex++
+                ) {
+                    const {token: nextToken, depth: nextDepth} = tokens[nextIndex];
+
+                    if (nextDepth === 0) {
+                        if (WHITESPACE(nextToken) || COMMENT(nextToken)) {
+                            continue;
+                        }
+
+                        if (NEWLINE(nextToken)) {
+                            entryIndentation = true;
+                        }
+                    }
+
+                    break;
+                }
+
+                blockFormatting.entryIndentation = entryIndentation;
+                inlineComma = false;
             }
 
-            if (colon) {
-                blockFormatting.colonSpacing = token.type === JsonTokenType.WHITESPACE;
-                colon = false;
+            if (inlineColon) {
+                blockFormatting.colonSpacing = WHITESPACE(token);
+                inlineColon = false;
             }
 
-            colon = token.type === JsonTokenType.COLON || (colon && token.type === JsonTokenType.WHITESPACE);
-            comma = token.type === JsonTokenType.COMMA || (comma && token.type === JsonTokenType.WHITESPACE);
-            lineStart = token.type === JsonTokenType.NEWLINE || (lineStart && token.type === JsonTokenType.WHITESPACE);
-            newLine = newLine || token.type === JsonTokenType.NEWLINE;
+            inlineColon = token.type === JsonTokenType.COLON || (inlineColon && WHITESPACE(token));
+            inlineComma = token.type === JsonTokenType.COMMA || (inlineComma && WHITESPACE(token));
+            levelComma = (depth === 0 && token.type === JsonTokenType.COMMA) || (levelComma && INSIGNIFICANT(token));
+            lineStart = NEWLINE(token) || (lineStart && WHITESPACE(token));
+            newLine = newLine || NEWLINE(token);
         }
 
         if (!immediatelyClosed) {
             if (!empty) {
                 blockFormatting.indentationSize = 0;
+                blockFormatting.trailingComma = trailingComma;
             }
 
             blockFormatting.leadingIndentation = leadingIndentation ?? false;
@@ -358,17 +455,17 @@ export abstract class JsonStructureNode extends JsonValueNode {
         return {
             ...parent,
             ...formatting,
-            brace: {
-                ...parent.bracket,
-                ...formatting.bracket,
-                ...parent.brace,
-                ...formatting.brace,
+            object: {
+                ...parent.array,
+                ...formatting.array,
+                ...parent.object,
+                ...formatting.object,
             },
-            bracket: {
-                ...parent.brace,
-                ...formatting.brace,
-                ...parent.bracket,
-                ...formatting.bracket,
+            array: {
+                ...parent.object,
+                ...formatting.object,
+                ...parent.array,
+                ...formatting.array,
             },
         };
     }
@@ -411,18 +508,29 @@ export abstract class JsonStructureNode extends JsonValueNode {
         });
     }
 
-    private static* iterate(children: JsonNode[], maxDepth: number, depth = 0): Generator<DescendantNode> {
-        for (const child of children) {
+    private static* iterate(
+        parent: JsonCompositeNode,
+        maxDepth: number,
+        parents: JsonCompositeNode[] = [],
+    ): Generator<DescendantNode> {
+        for (const child of parent.children) {
             if (child instanceof JsonTokenNode) {
                 yield {
-                    depth: depth,
+                    depth: parents.length,
                     token: child,
+                    parents: [...parents, parent],
                 };
             }
 
             if (maxDepth > 0 && child instanceof JsonCompositeNode) {
-                yield* JsonStructureNode.iterate(child.children, maxDepth - 1, depth + 1);
+                yield* JsonStructureNode.iterate(child, maxDepth - 1, [...parents, parent]);
             }
+        }
+    }
+
+    private static skipComments(manipulator: NodeManipulator): void {
+        while (manipulator.matchesNext(NodeMatcher.COMMENT, NodeMatcher.SPACE)) {
+            manipulator.next();
         }
     }
 

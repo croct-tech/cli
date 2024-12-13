@@ -1,8 +1,8 @@
 import {dirname, isAbsolute, join, relative} from 'path';
 import {z} from 'zod';
-import Json5 from 'json5';
+import {Minimatch} from 'minimatch';
 import {Filesystem} from '@/application/filesystem/filesystem';
-import {Minimatch} from "minimatch";
+import {JsonParser} from '@/infrastructure/json';
 
 type ImportConfig = {
     rootConfigPath: string,
@@ -65,9 +65,11 @@ export class ImportConfigLoader {
             rootDirectory: rootDirectory,
             configPath: configPath,
             fileNames: fileNames,
-            targetDirectories: (options.sourcePaths ?? []).map((sourcePath) => (
-                isAbsolute(sourcePath) ? sourcePath : join(rootDirectory, sourcePath)
-            )),
+            targetDirectories: (options.sourcePaths ?? []).map(
+                sourcePath => (
+                    isAbsolute(sourcePath) ? sourcePath : join(rootDirectory, sourcePath)
+                ),
+            ),
         });
 
         if (config === null) {
@@ -148,7 +150,7 @@ export class ImportConfigLoader {
                 for (const targetDirectory of targetDirectories) {
                     const relativeTargetDirectory = join(
                         './',
-                        relative(dirname(resolvedReferencePath), targetDirectory)
+                        relative(dirname(resolvedReferencePath), targetDirectory),
                     );
 
                     for (const include of referenceConfig.include) {
@@ -158,7 +160,7 @@ export class ImportConfigLoader {
                         });
 
                         if (!minimatch.hasMagic() && !include.includes('.')) {
-                            minimatch = new Minimatch(include.replace(/\/?$/, '') + '/**/*', {
+                            minimatch = new Minimatch(`${include.replace(/\/?$/, '')}/**/*`, {
                                 partial: true,
                             });
                         }
@@ -169,7 +171,7 @@ export class ImportConfigLoader {
                                     ...referenceConfig,
                                     rootConfigPath: config.rootConfigPath,
                                 },
-                                parentConfig
+                                parentConfig,
                             );
                         }
                     }
@@ -209,7 +211,7 @@ export class ImportConfigLoader {
             return {
                 rootConfigPath: filePath,
                 matchedConfigPath: filePath,
-                ...configSchema.parse(Json5.parse(content)),
+                ...configSchema.parse(JsonParser.parse(content).toJSON()),
             };
         } catch {
             return null;

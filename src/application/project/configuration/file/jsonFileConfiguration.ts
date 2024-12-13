@@ -101,7 +101,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
 
         const json = data.toString({
             indentationCharacter: 'space',
-            brace: {
+            object: {
                 indentationSize: 2,
                 leadingIndentation: true,
                 trailingIndentation: true,
@@ -109,7 +109,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
                 colonSpacing: true,
                 commaSpacing: true,
             },
-            bracket: {
+            array: {
                 indentationSize: 2,
                 entryIndentation: true,
                 leadingIndentation: true,

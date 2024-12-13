@@ -1,66 +1,11 @@
 import {JsonToken, JsonTokenType} from './token';
 import {SourcePosition} from './location';
+import {regex} from '@/infrastructure/json/identifier';
 
 type TokenPattern = {
     type: JsonTokenType,
     pattern: RegExp|string,
 };
-
-// https://262.ecma-international.org/14.0/#sec-keywords-and-reserved-words
-// 14 is ES2023
-const identifiers = [
-    // Keywords
-    'await',
-    'break',
-    'case',
-    'catch',
-    'class',
-    'const',
-    'continue',
-    'debugger',
-    'default',
-    'delete',
-    'do',
-    'else',
-    'enum',
-    'export',
-    'extends',
-    'false',
-    'finally',
-    'for',
-    'function',
-    'if',
-    'import',
-    'in',
-    'instanceof',
-    'new',
-    'null',
-    'return',
-    'super',
-    'switch',
-    'this',
-    'throw',
-    'true',
-    'try',
-    'typeof',
-    'var',
-    'void',
-    'while',
-    'with',
-    'yield',
-
-    // Future reserved keywords
-    'implements',
-    'interface',
-    'package',
-    'private',
-    'protected',
-    'public',
-
-    // Not keywords, but still restricted
-    'arguments',
-    'eval',
-];
 
 export class JsonLexer implements Iterable<JsonToken> {
     // Sorted by precedence
@@ -103,10 +48,7 @@ export class JsonLexer implements Iterable<JsonToken> {
         },
         {
             type: JsonTokenType.IDENTIFIER,
-            pattern: new RegExp(
-                `^(?!${identifiers.join('|')})[$_\\p{ID_Start}][$_\\u200C\\u200D\\p{ID_Continue}]*`,
-                'u',
-            ),
+            pattern: new RegExp(`^${regex.source}`, regex.flags),
         },
         {
             type: JsonTokenType.COLON,
@@ -275,13 +217,15 @@ export class JsonLexer implements Iterable<JsonToken> {
             column: start.column,
         } satisfies SourcePosition;
 
-        end.index += value.length;
+        end.index += [...value].length;
 
-        if (type === JsonTokenType.NEWLINE) {
-            end.column = 1;
-            end.line++;
-        } else {
-            end.column += value.length;
+        for (const char of value) {
+            if (char === '\n') {
+                end.line++;
+                end.column = 1;
+            } else {
+                end.column++;
+            }
         }
 
         return {
