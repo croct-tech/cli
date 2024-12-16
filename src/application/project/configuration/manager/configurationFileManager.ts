@@ -125,7 +125,7 @@ export class ConfigurationFileManager implements ConfigurationManager {
         }
 
         let applicationIds: ResolvedConfiguration['applications'] = {
-            development: developmentApplication.id,
+            development: developmentApplication.slug,
             developmentId: developmentApplication.id,
             developmentPublicId: developmentApplication.publicId,
         };
@@ -133,7 +133,7 @@ export class ConfigurationFileManager implements ConfigurationManager {
         if ('production' in configuration.applications && productionApplication !== null) {
             applicationIds = {
                 ...applicationIds,
-                production: productionApplication.id,
+                production: productionApplication.slug,
                 productionId: productionApplication.id,
                 productionPublicId: productionApplication.publicId,
             };

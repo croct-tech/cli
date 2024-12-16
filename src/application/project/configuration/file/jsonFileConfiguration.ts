@@ -7,7 +7,7 @@ import {JsonObjectNode, JsonParser} from '@/infrastructure/json';
 import {Filesystem} from '@/application/filesystem/filesystem';
 
 const identifierSchema = z.string().regex(
-    /^[A-Za-z]+(-?[A-Za-z0-9]+)*$/,
+    /^[a-z]+(-?[a-z0-9]+)*$/i,
     'An identifier must start with a letter and contain only letters, numbers, and hyphens.',
 );
 
@@ -156,6 +156,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
 
         if (result.error !== undefined) {
             const error = result.error.errors[0];
+
             const path = error.path.reduce(
                 (previous, segment) => {
                     if (typeof segment === 'string') {
