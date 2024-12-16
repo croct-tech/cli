@@ -1,5 +1,6 @@
 import {join, relative} from 'path';
 import {z} from 'zod';
+import {JsonValue} from '@croct/json';
 import {Configuration, ConfigurationError} from '@/application/project/configuration/configuration';
 import {Version} from '@/application/project/version';
 import {ConfigurationFile} from '@/application/project/configuration/file/configurationFile';
@@ -75,29 +76,15 @@ export class JsonFileConfiguration implements ConfigurationFile {
     public update(configuration: Configuration): Promise<void> {
         this.checkConfiguration(configuration);
 
-        return this.updateFile({
-            organization: configuration.organization,
-            workspace: configuration.workspace,
-            applications: {
-                development: configuration.applications.development,
-                production: configuration.applications.production,
-            },
-            defaultLocale: configuration.defaultLocale,
-            locales: configuration.locales,
-            slots: configuration.slots,
-            components: configuration.components,
-            paths: {
-                components: configuration.paths.components,
-                examples: configuration.paths.examples,
-            },
-        });
+        return this.updateFile(configuration);
     }
 
     private async updateFile(configuration: Configuration): Promise<void> {
+        const cleanedConfiguration = JsonFileConfiguration.clean(configuration);
         const file = await this.loadFile();
         const data = file.configuration !== null && file.source !== null
-            ? JsonParser.parse(file.source).update(configuration)
-            : JsonObjectNode.of(configuration);
+            ? JsonParser.parse(file.source).update(cleanedConfiguration)
+            : JsonObjectNode.of(cleanedConfiguration);
 
         const json = data.toString({
             indentationCharacter: 'space',
@@ -133,15 +120,19 @@ export class JsonFileConfiguration implements ConfigurationFile {
             configuration: null,
         };
 
+        let configuration: JsonValue;
+
         try {
             file.source = await this.filesystem.readFile(file.path);
-            file.configuration = JSON.parse(file.source);
+            configuration = JsonParser.parse(file.source).toJSON();
         } catch {
             return file;
         }
 
-        if (file.configuration !== null) {
-            this.checkConfiguration(file.configuration, file);
+        if (configuration !== null) {
+            this.checkConfiguration(configuration, file);
+
+            file.configuration = JsonFileConfiguration.clean(configuration);
         }
 
         return file;
@@ -151,7 +142,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
         return join(this.projectDirectory, 'croct.json');
     }
 
-    private checkConfiguration(configuration: Configuration, file?: LoadedFile): void {
+    private checkConfiguration(configuration: JsonValue, file?: LoadedFile): asserts configuration is Configuration {
         const result = ConfigurationSchema.safeParse(configuration);
 
         if (result.error !== undefined) {
@@ -173,5 +164,24 @@ export class JsonFileConfiguration implements ConfigurationFile {
                 `Violation path: ${path}`,
             ]);
         }
+    }
+
+    private static clean(configuration: Configuration): Configuration {
+        return {
+            organization: configuration.organization,
+            workspace: configuration.workspace,
+            applications: {
+                development: configuration.applications.development,
+                production: configuration.applications.production,
+            },
+            defaultLocale: configuration.defaultLocale,
+            locales: configuration.locales,
+            slots: configuration.slots,
+            components: configuration.components,
+            paths: {
+                components: configuration.paths.components,
+                examples: configuration.paths.examples,
+            },
+        };
     }
 }
