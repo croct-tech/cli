@@ -61,7 +61,9 @@ function render(message: string): string {
         italic: node => chalk.italic(node.children),
         strike: node => chalk.strikethrough(node.children),
         code: node => chalk.cyan(node.content),
-        link: node => terminalLink(node.children, node.href),
+        link: node => terminalLink(node.children, node.href, {
+            fallback: (text, url) => `${text} (${url})`,
+        }),
         image: node => unscapeMarkdown(node.source),
         paragraph: node => node.children.join('\n'),
     });

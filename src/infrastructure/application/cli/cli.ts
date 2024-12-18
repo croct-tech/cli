@@ -1,5 +1,6 @@
 import {join} from 'path';
 import {Readable, Writable} from 'stream';
+import * as process from 'node:process';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput, ExitCallback} from '@/infrastructure/application/cli/io/consoleOutput';
 import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
@@ -74,6 +75,16 @@ import {LocalFilesystem} from '@/application/filesystem/localFilesystem';
 import {ImportConfigLoader} from '@/application/project/manager/importConfigLoader';
 import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
 import {AntfuPackageInstaller} from '@/infrastructure/project/antfuPackageInstaller';
+import {FocusListener} from '@/infrastructure/application/cli/io/focusListener';
+import {EmailLinkGenerator} from '@/application/cli/email/email';
+import {FallbackProviderDetector} from '@/application/cli/email/detector/fallbackProviderDetector';
+import {DomainProviderDetector} from '@/application/cli/email/detector/domainProviderDetector';
+import {DnsProviderDetector} from '@/application/cli/email/detector/dnsProviderDetector';
+import {GoogleTemplate} from '@/application/cli/email/template/googleTemplate';
+import {ICloudTemplate} from '@/application/cli/email/template/icloudTemplate';
+import {MicrosoftTemplate} from '@/application/cli/email/template/microsoftTemplate';
+import {ProtonTemplate} from '@/application/cli/email/template/protonTemplate';
+import {YahooTemplate} from '@/application/cli/email/template/yahooTemplate';
 
 export type Configuration = {
     io: {
@@ -129,6 +140,8 @@ export class Cli {
     private authenticationListener?: AuthenticationListener;
 
     private configurationManager?: ConfigurationManager;
+
+    private emailLinkGenerator?: EmailLinkGenerator;
 
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
@@ -384,12 +397,17 @@ export class Cli {
                     output: this.getOutput(),
                     userApi: this.getUserApi(true),
                     listener: this.getAuthenticationListener(),
+                    emailLinkGenerator: {
+                        recovery: this.createEmailLinkGenerator('Forgot password'),
+                        verification: this.createEmailLinkGenerator('Welcome to Croct'),
+                    },
                 }),
                 signUp: new SignUpForm({
                     input: input,
                     output: this.getOutput(),
                     userApi: this.getUserApi(true),
                     listener: this.getAuthenticationListener(),
+                    emailLinkGenerator: this.createEmailLinkGenerator('Welcome to Croct'),
                 }),
             },
         });
@@ -683,17 +701,20 @@ export class Cli {
 
     private getAuthenticationListener(): AuthenticationListener {
         if (this.authenticationListener === undefined) {
-            this.authenticationListener = new HttpPollingListener({
-                endpoint: this.configuration.api.tokenEndpoint,
-                parameter: this.configuration.api.tokenParameter,
-                pollingInterval: 1000,
-            });
+            this.authenticationListener = new FocusListener(
+                new HttpPollingListener({
+                    endpoint: this.configuration.api.tokenEndpoint,
+                    parameter: this.configuration.api.tokenParameter,
+                    pollingInterval: 1000,
+                }),
+                process.platform,
+            );
         }
 
         return this.authenticationListener;
     }
 
-    public getFileSystem(): Filesystem {
+    private getFileSystem(): Filesystem {
         if (this.filesystem === undefined) {
             this.filesystem = new LocalFilesystem({
                 currentDirectory: this.configuration.directories.current,
@@ -702,6 +723,37 @@ export class Cli {
         }
 
         return this.filesystem;
+    }
+
+    private createEmailLinkGenerator(subject?: string): (email: string) => Promise<URL|null> {
+        const generator = this.getEmailLinkGenerator();
+
+        return email => generator.generate({
+            recipient: email,
+            sender: 'croct.com',
+            subject: subject,
+            timestamp: Math.trunc(Date.now() / 1000),
+        });
+    }
+
+    private getEmailLinkGenerator(): EmailLinkGenerator {
+        if (this.emailLinkGenerator === undefined) {
+            this.emailLinkGenerator = new EmailLinkGenerator({
+                detector: new FallbackProviderDetector(
+                    new DomainProviderDetector(),
+                    new DnsProviderDetector(),
+                ),
+                templates: {
+                    google: new GoogleTemplate(),
+                    icloud: new ICloudTemplate(),
+                    microsoft: new MicrosoftTemplate(),
+                    proton: new ProtonTemplate(),
+                    yahoo: new YahooTemplate(),
+                },
+            });
+        }
+
+        return this.emailLinkGenerator;
     }
 
     private async execute<I extends CommandInput>(command: Command<I>, input: I): Promise<void> {

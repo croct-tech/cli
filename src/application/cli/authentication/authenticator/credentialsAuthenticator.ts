@@ -96,7 +96,7 @@ export class CredentialsAuthenticator implements Authenticator<CredentialsInput>
 
         if (isRegistered) {
             if (credentials.password === undefined) {
-                output.inform('Existing user, please sign in:');
+                output.inform('Existing user, please sign in');
             }
 
             return form.signIn.handle({
@@ -105,7 +105,7 @@ export class CredentialsAuthenticator implements Authenticator<CredentialsInput>
             });
         }
 
-        output.inform('New user, please sign up:');
+        output.inform('New user, please sign up');
 
         return form.signUp.handle({email: email});
     }

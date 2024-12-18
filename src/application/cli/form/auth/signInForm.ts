@@ -7,11 +7,17 @@ import {PasswordInput} from '@/application/cli/form/input/passwordInput';
 import {AuthenticationListener, Token} from '@/application/cli/authentication/authentication';
 import {AccessDeniedReason, ApiError} from '@/application/api/error';
 
+type LinkGenerator = (email: string) => Promise<URL|null>;
+
 export type Configuration = {
     input: Input,
     output: Output,
     userApi: UserApi,
     listener: AuthenticationListener,
+    emailLinkGenerator: {
+        verification: LinkGenerator,
+        recovery: LinkGenerator,
+    },
 };
 
 export type SignInOptions = {
@@ -129,7 +135,7 @@ export class SignInForm implements Form<Token, SignInOptions> {
     }
 
     private async retryActivation(email: string): Promise<string> {
-        const {output, userApi} = this.config;
+        const {output, userApi, emailLinkGenerator: {verification: generateLink}} = this.config;
 
         const notifier = output.notify('Sending email');
 
@@ -140,13 +146,20 @@ export class SignInForm implements Form<Token, SignInOptions> {
             sessionId: sessionId,
         });
 
-        notifier.confirm(`Link sent to ${email}`);
+        notifier.confirm(`Link sent to \`${email}\``);
 
-        return this.waitToken(sessionId);
+        const link = await this.getInboxLink(generateLink, email);
+        const promise = this.waitToken(sessionId);
+
+        if (link !== null) {
+            await output.open(link);
+        }
+
+        return promise;
     }
 
     private async resetPassword(email: string): Promise<string> {
-        const {output, userApi} = this.config;
+        const {output, userApi, emailLinkGenerator: {recovery: generateLink}} = this.config;
 
         const notifier = output.notify('Sending link to reset password');
 
@@ -157,9 +170,27 @@ export class SignInForm implements Form<Token, SignInOptions> {
             sessionId: sessionId,
         });
 
-        notifier.confirm(`Link sent to ${email}`);
+        notifier.confirm(`Link sent to \`${email}\``);
 
-        return this.waitToken(sessionId);
+        const link = await this.getInboxLink(generateLink, email);
+        const promise = this.waitToken(sessionId);
+
+        if (link !== null) {
+            await output.open(link);
+        }
+
+        return promise;
+    }
+
+    private async getInboxLink(generator: LinkGenerator, email: string): Promise<string|null> {
+        const {input} = this.config;
+        const link = await generator(email);
+
+        if (link !== null && await input.confirm({message: 'Open your inbox?', default: true})) {
+            return link.toString();
+        }
+
+        return null;
     }
 
     private async waitToken(sessionId: string): Promise<string> {

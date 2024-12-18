@@ -8,11 +8,14 @@ import {PasswordInput} from '@/application/cli/form/input/passwordInput';
 import {NameInput} from '@/application/cli/form/input/nameInput';
 import {AuthenticationListener, Token} from '@/application/cli/authentication/authentication';
 
+type LinkGenerator = (email: string) => Promise<URL|null>;
+
 export type Configuration = {
     input: Input,
     output: Output,
     userApi: UserApi,
     listener: AuthenticationListener,
+    emailLinkGenerator: LinkGenerator,
 };
 
 export type SignUpOptions = {
@@ -29,6 +32,12 @@ export class SignUpForm implements Form<Token, SignUpOptions> {
 
     public async handle(options: SignUpOptions): Promise<Token> {
         const {input, output, listener, userApi} = this.config;
+
+        output.inform(
+            '*By continuing, you agree to our '
+            + '[Terms of Use](https://croct.link/terms-of-use) and '
+            + '[Privacy Policy](https://croct.link/privacy)*',
+        );
 
         const name = await NameInput.prompt({
             input: input,
@@ -76,37 +85,41 @@ export class SignUpForm implements Form<Token, SignUpOptions> {
 
         const sessionId = userApi.createSession();
 
-        return output.monitor(
-            resolve => ({
-                tasks: [
-                    {
-                        title: 'Creating account',
-                        task: async (notifier): Promise<void> => {
-                            await userApi.registerUser({
-                                sessionId: await sessionId,
-                                email: email,
-                                password: password,
-                                firstName: firstName,
-                                lastName: lastName,
-                                expertise: options.expertise ?? Expertise.ENGINEERING,
-                            });
+        let notifier = output.notify('Creating account');
 
-                            notifier.confirm('Account created, check your email for confirmation');
-                        },
-                    },
-                    {
-                        title: 'Waiting for confirmation',
-                        subtitle: 'Check your email for the confirmation link',
-                        task: async (notifier): Promise<void> => {
-                            const token = await listener.wait(await sessionId);
+        await userApi.registerUser({
+            sessionId: await sessionId,
+            email: email,
+            password: password,
+            firstName: firstName,
+            lastName: lastName,
+            expertise: options.expertise ?? Expertise.ENGINEERING,
+        });
 
-                            notifier.confirm('Account confirmed');
+        notifier.confirm(`Link to verify sent to \`${email}\``);
 
-                            resolve(token);
-                        },
-                    },
-                ],
-            }),
-        );
+        const link = await this.config
+            .emailLinkGenerator(email)
+            .then(async inboxLink => {
+                if (inboxLink !== null && await input.confirm({message: 'Open your inbox?', default: true})) {
+                    return inboxLink.toString();
+                }
+
+                return null;
+            });
+
+        notifier = output.notify('Waiting for verification');
+
+        const promise = listener.wait(await sessionId);
+
+        if (link !== null) {
+            await output.open(link);
+        }
+
+        const token = await promise;
+
+        notifier.confirm('Account activated');
+
+        return token;
     }
 }

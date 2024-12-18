@@ -57,6 +57,10 @@ export class OrganizationForm implements Form<Organization, OrganizationOptions>
 
         const timeZone = System.getTimeZone();
         const locale = System.getLocale();
+
+        output.inform('Setting up a new organization');
+        output.inform('*By continuing, you agree to our [Terms of Service](https://croct.link/terms-of-service)*');
+
         const website = await UrlInput.prompt({
             input: input,
             label: 'Organization website',
