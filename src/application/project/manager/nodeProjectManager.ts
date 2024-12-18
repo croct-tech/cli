@@ -1,5 +1,4 @@
 import {z} from 'zod';
-import {relative, join, isAbsolute} from 'path';
 import {PackageInfo, PackageInstallationOptions} from '@/application/project/manager/projectManager';
 import {Filesystem} from '@/application/filesystem/filesystem';
 import {ImportConfigLoader} from '@/application/project/manager/importConfigLoader';
@@ -17,6 +16,7 @@ const packageSchema = z.object({
     version: z.string().optional(),
     dependencies: z.record(z.string()).optional(),
     devDependencies: z.record(z.string()).optional(),
+    bin: z.record(z.string()).optional(),
 });
 
 export type NodePackageInstaller = Pick<JavaScriptProjectManager, 'installPackage'>;
@@ -42,7 +42,7 @@ export class NodeProjectManager implements JavaScriptProjectManager {
     }
 
     public getProjectPackagePath(): string {
-        return join(this.directory, 'package.json');
+        return this.filesystem.joinPaths(this.directory, 'package.json');
     }
 
     public isTypeScriptProject(): Promise<boolean> {
@@ -69,18 +69,18 @@ export class NodeProjectManager implements JavaScriptProjectManager {
             return null;
         }
 
-        return this.filesystem.readFile(join(this.getRootPath(), filePath));
+        return this.filesystem.readFile(this.filesystem.joinPaths(this.getRootPath(), filePath));
     }
 
     public async locateFile(...fileNames: string[]): Promise<string | null> {
         const directory = this.getRootPath();
 
         for (const filename of fileNames) {
-            if (isAbsolute(filename)) {
+            if (this.filesystem.isAbsolute(filename)) {
                 throw new Error('The file path must be relative');
             }
 
-            const fullPath = join(directory, filename);
+            const fullPath = this.filesystem.joinPaths(directory, filename);
 
             if (await this.filesystem.exists(fullPath)) {
                 return filename;
@@ -102,8 +102,8 @@ export class NodeProjectManager implements JavaScriptProjectManager {
     }
 
     public async getPackageInfo(packageName: string): Promise<PackageInfo|null> {
-        const directory = join(this.directory, 'node_modules', packageName);
-        const info = await this.getPackageJson(join(directory, 'package.json'));
+        const directory = this.filesystem.joinPaths(this.directory, 'node_modules', packageName);
+        const info = await this.getPackageJson(this.filesystem.joinPaths(directory, 'package.json'));
 
         if (info === null) {
             return null;
@@ -112,7 +112,7 @@ export class NodeProjectManager implements JavaScriptProjectManager {
         return {
             name: info.name,
             version: info.version ?? null,
-            path: directory,
+            directory: directory,
             metadata: info,
         };
     }
@@ -138,34 +138,34 @@ export class NodeProjectManager implements JavaScriptProjectManager {
             fileNames: ['tsconfig.json', 'jsconfig.json'],
             sourcePaths: importPath === undefined
                 ? [this.directory]
-                : [join(this.directory, importPath)],
+                : [this.filesystem.joinPaths(this.directory, importPath)],
         });
 
-        const resolvedBasePath = join(this.directory, filePath);
+        const resolvedBasePath = this.filesystem.joinPaths(this.directory, filePath);
 
         if (config !== null) {
-            const absoluteFilePath = resolvedBasePath.replace(/\\/g, '/');
             let longestMatchLength = 0;
 
             let currentPath: string | null = null;
 
             // Go through each alias and check if it matches the given filePath
             for (const [alias, aliasPaths] of Object.entries(config.paths)) {
-                const cleanAlias = alias.replace(/\*$/, ''); // Remove wildcard from alias
+                const cleanAlias = alias.replace(/\*$/, '')
+                    .replace(/\/+/g, this.filesystem.getSeparator());
 
                 for (const aliasPath of aliasPaths) {
                     const cleanAliasPath = aliasPath.replace(/\*$/, ''); // Remove wildcard from alias path
-                    const aliasBasePath = join(config.baseUrl, cleanAliasPath)
-                        .replace(/\\/g, '/');
+                    const aliasBasePath = this.filesystem.joinPaths(config.baseUrl, cleanAliasPath);
 
                     // Check if the file path starts with the alias base path
-                    if (absoluteFilePath.startsWith(aliasBasePath)) {
+                    if (resolvedBasePath.startsWith(aliasBasePath)) {
                         const aliasMatchLength = cleanAliasPath.length;
 
                         if (aliasMatchLength > longestMatchLength) {
                             longestMatchLength = aliasMatchLength;
 
-                            const remainder = absoluteFilePath.slice(aliasBasePath.length).replace(/^\//, '');
+                            const remainder = resolvedBasePath.slice(aliasBasePath.length)
+                                .replace(/^[\\/]+/, '');
 
                             currentPath = cleanAlias + remainder;
                         }
@@ -174,14 +174,17 @@ export class NodeProjectManager implements JavaScriptProjectManager {
             }
 
             if (currentPath !== null) {
-                return Promise.resolve(currentPath);
+                return Promise.resolve(currentPath.replace(/\\+/g, '/'));
             }
         }
 
-        const resolvedFilePath = join(resolvedBasePath, filePath);
+        const resolvedFilePath = this.filesystem.joinPaths(resolvedBasePath, filePath);
         const resolvedRelativePath = importPath === undefined
-            ? relative(this.directory, resolvedFilePath)
-            : relative(join(resolvedBasePath, importPath), resolvedFilePath);
+            ? this.filesystem.getRelativePath(this.directory, resolvedFilePath)
+            : this.filesystem.getRelativePath(
+                this.filesystem.joinPaths(resolvedBasePath, importPath),
+                resolvedFilePath,
+            );
 
         return Promise.resolve(resolvedRelativePath.replace(/\\/g, '/'));
     }

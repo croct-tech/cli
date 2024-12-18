@@ -1,3 +1,4 @@
+import {basename, dirname, isAbsolute, join, relative, sep} from 'path';
 import {
     DeletionOptions,
     DirectoryCopyOptions,
@@ -31,6 +32,33 @@ export class VirtualFilesystem implements Filesystem {
 
     public constructor(root: FilesystemNode<'directory'>) {
         this.root = {...root};
+    }
+
+    public getSeparator(): string {
+        return sep;
+    }
+
+    public joinPaths(...paths: string[]): string {
+        return join(...paths);
+    }
+
+    public getBaseName(path: string): string {
+        return basename(path);
+    }
+
+    public getDirectoryName(path: string): string {
+        return dirname(path);
+    }
+
+    public getRelativePath(from: string, to: string): string {
+        return relative(
+            from.replace(/[\\/]+/g, sep),
+            to.replace(/[\\/]+/g, sep),
+        ).replace(/[\\/]+/g, '/');
+    }
+
+    public isAbsolute(path: string): boolean {
+        return isAbsolute(path);
     }
 
     public getRealPath(path: string): Promise<string> {

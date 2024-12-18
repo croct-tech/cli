@@ -1,4 +1,3 @@
-import {dirname} from 'path';
 import {AuthenticationInput, Authenticator} from '@/application/cli/authentication/authenticator/index';
 import {CliError, CliErrorCode} from '@/application/cli/error';
 import {Filesystem} from '@/application/filesystem/filesystem';
@@ -60,7 +59,7 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
 
     private async saveToken(token: string): Promise<void> {
         try {
-            const directory = dirname(this.filePath);
+            const directory = this.filesystem.getDirectoryName(this.filePath);
 
             if (!await this.filesystem.exists(directory)) {
                 await this.filesystem.createDirectory(directory, {recursive: true});

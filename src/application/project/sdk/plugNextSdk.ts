@@ -1,4 +1,3 @@
-import {join} from 'path';
 import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import {ApplicationPlatform, Slot} from '@/application/model/entities';
@@ -115,11 +114,11 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
                 },
                 files: {
                     slot: {
-                        directory: join(installation.configuration.paths.components, '%name%'),
+                        directory: this.filesystem.joinPaths(installation.configuration.paths.components, '%name%'),
                         name: 'index',
                     },
                     page: {
-                        directory: join(installation.configuration.paths.examples, slot.slug),
+                        directory: this.filesystem.joinPaths(installation.configuration.paths.examples, slot.slug),
                         name: router === 'page' ? 'index' : 'page',
                     },
                 },
@@ -193,11 +192,11 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
         const [middlewareFile, providerComponentFile] = await Promise.all([
             this.projectManager.locateFile(
                 ...['middleware.js', 'middleware.ts']
-                    .map(file => join(project.sourceDirectory, file)),
+                    .map(file => this.filesystem.joinPaths(project.sourceDirectory, file)),
             ),
             this.projectManager.locateFile(
                 ...(project.router === 'app' ? ['app/layout.jsx', 'app/layout.tsx'] : ['_app.jsx', '_app.tsx'])
-                    .map(file => join(project.sourceDirectory, file)),
+                    .map(file => this.filesystem.joinPaths(project.sourceDirectory, file)),
             ),
         ]);
 
@@ -211,19 +210,19 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
             env: {
                 localFile: new EnvFile(
                     this.filesystem,
-                    join(this.projectManager.getRootPath(), '.env.local'),
+                    this.filesystem.joinPaths(this.projectManager.getRootPath(), '.env.local'),
                 ),
                 developmentFile: new EnvFile(
                     this.filesystem,
-                    join(this.projectManager.getRootPath(), '.env.development'),
+                    this.filesystem.joinPaths(this.projectManager.getRootPath(), '.env.development'),
                 ),
                 productionFile: new EnvFile(
                     this.filesystem,
-                    join(this.projectManager.getRootPath(), '.env.production'),
+                    this.filesystem.joinPaths(this.projectManager.getRootPath(), '.env.production'),
                 ),
             },
             middleware: {
-                file: middlewareFile ?? join(project.sourceDirectory, `middleware.${extension}`),
+                file: middlewareFile ?? this.filesystem.joinPaths(project.sourceDirectory, `middleware.${extension}`),
             },
             provider: {
                 file: providerComponentFile ?? (`${project.router === 'app' ? 'app/layout' : '_app'}.${extension}x`),
@@ -304,7 +303,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
         path: string,
         options?: O,
     ): Promise<void> {
-        await codemod.apply(join(this.projectManager.getRootPath(), path), options);
+        await codemod.apply(this.filesystem.joinPaths(this.projectManager.getRootPath(), path), options);
     }
 
     private async updateEnvVariables(installation: NextInstallation): Promise<void> {

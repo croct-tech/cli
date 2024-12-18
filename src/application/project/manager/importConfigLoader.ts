@@ -1,4 +1,3 @@
-import {dirname, isAbsolute, join, relative} from 'path';
 import {z} from 'zod';
 import {Minimatch} from 'minimatch';
 import {Filesystem} from '@/application/filesystem/filesystem';
@@ -67,7 +66,9 @@ export class ImportConfigLoader {
             fileNames: fileNames,
             targetDirectories: (options.sourcePaths ?? []).map(
                 sourcePath => (
-                    isAbsolute(sourcePath) ? sourcePath : join(rootDirectory, sourcePath)
+                    this.filesystem.isAbsolute(sourcePath)
+                        ? sourcePath
+                        : this.filesystem.joinPaths(rootDirectory, sourcePath)
                 ),
             ),
         });
@@ -79,14 +80,17 @@ export class ImportConfigLoader {
         return {
             rootConfigPath: config.rootConfigPath,
             matchedConfigPath: config.matchedConfigPath,
-            baseUrl: join(dirname(config.matchedConfigPath), config.compilerOptions?.baseUrl ?? '.'),
+            baseUrl: this.filesystem.joinPaths(
+                this.filesystem.getDirectoryName(config.matchedConfigPath),
+                config.compilerOptions?.baseUrl ?? '.',
+            ),
             paths: config.compilerOptions?.paths ?? {},
         };
     }
 
     private async locateConfig(path: string, fileNames: string[], recursive = false): Promise<string | null> {
         for (const fileName of fileNames) {
-            const filePath = join(path, fileName);
+            const filePath = this.filesystem.joinPaths(path, fileName);
 
             if (await this.filesystem.exists(filePath)) {
                 return filePath;
@@ -97,7 +101,7 @@ export class ImportConfigLoader {
             return null;
         }
 
-        const parent = dirname(path);
+        const parent = this.filesystem.getDirectoryName(path);
 
         if (parent === path) {
             return null;
@@ -111,7 +115,11 @@ export class ImportConfigLoader {
         let config = await this.parseConfig(configPath);
 
         if (config?.extends !== undefined) {
-            const parentPath = await this.locateParentConfig(rootDirectory, dirname(configPath), config.extends);
+            const parentPath = await this.locateParentConfig(
+                rootDirectory,
+                this.filesystem.getDirectoryName(configPath),
+                config.extends,
+            );
 
             if (parentPath !== null) {
                 const parentConfig = await this.resolveConfig({
@@ -129,7 +137,10 @@ export class ImportConfigLoader {
             const {references: _, ...parentConfig} = config;
 
             for (const reference of config.references) {
-                const referencePath = join(dirname(configPath), reference.path);
+                const referencePath = this.filesystem.joinPaths(
+                    this.filesystem.getDirectoryName(configPath),
+                    reference.path,
+                );
                 const resolvedReferencePath = referencePath.endsWith('.json')
                     ? referencePath
                     : await this.locateConfig(referencePath, fileNames);
@@ -148,9 +159,12 @@ export class ImportConfigLoader {
                 }
 
                 for (const targetDirectory of targetDirectories) {
-                    const relativeTargetDirectory = join(
+                    const relativeTargetDirectory = this.filesystem.joinPaths(
                         './',
-                        relative(dirname(resolvedReferencePath), targetDirectory),
+                        this.filesystem.getRelativePath(
+                            this.filesystem.getDirectoryName(resolvedReferencePath),
+                            targetDirectory,
+                        ),
                     );
 
                     for (const include of referenceConfig.include) {
@@ -189,13 +203,13 @@ export class ImportConfigLoader {
             parentPath += '.json';
         }
 
-        const relativePath = join(directory, parentPath);
+        const relativePath = this.filesystem.joinPaths(directory, parentPath);
 
         if (await this.filesystem.exists(relativePath)) {
             return relativePath;
         }
 
-        const modulePath = join(root, 'node_modules', parentPath);
+        const modulePath = this.filesystem.joinPaths(root, 'node_modules', parentPath);
 
         if (await this.filesystem.exists(modulePath)) {
             return modulePath;

@@ -1,8 +1,8 @@
-import {resolve as resolvePath} from 'path';
-import {execFile} from 'child_process';
+import {spawn} from 'child_process';
 import {execPath} from 'node:process';
 import {Linter} from '@/application/project/linter';
 import {PackageInfo, ProjectManager} from '@/application/project/manager/projectManager';
+import {Filesystem} from '@/application/filesystem/filesystem';
 
 type LinterCommand = {
     executable: string,
@@ -18,6 +18,7 @@ type LinterTool = {
 export type Configuration = {
     tools: LinterTool[],
     projectManager: ProjectManager,
+    filesystem: Filesystem,
 };
 
 export class JavaScriptLinter implements Linter {
@@ -25,9 +26,12 @@ export class JavaScriptLinter implements Linter {
 
     private readonly projectManager: ProjectManager;
 
-    public constructor({tools, projectManager}: Configuration) {
+    private readonly filesystem: Filesystem;
+
+    public constructor({tools, projectManager, filesystem}: Configuration) {
         this.tools = tools;
         this.projectManager = projectManager;
+        this.filesystem = filesystem;
     }
 
     public async fix(files: string[]): Promise<void> {
@@ -45,18 +49,20 @@ export class JavaScriptLinter implements Linter {
     }
 
     private runCommand(executable: string, args: string[]): Promise<void> {
-        const options = {
-            cwd: this.projectManager.getRootPath(),
-            timeout: 5000,
-            stdio: 'ignore',
-        };
-
         return new Promise((resolve, reject) => {
-            execFile(execPath, [executable, ...args], options, error => {
-                if (error !== null) {
-                    reject(error);
-                } else {
+            const result = spawn(execPath, [executable, ...args], {
+                cwd: this.projectManager.getRootPath(),
+                timeout: 5000,
+                stdio: 'ignore',
+            });
+
+            result.on('error', reject);
+
+            result.on('exit', code => {
+                if (code === 0) {
                     resolve();
+                } else {
+                    reject(new Error(`Failed to run linter with exit code ${code}`));
                 }
             });
         });
@@ -82,7 +88,10 @@ export class JavaScriptLinter implements Linter {
             }
 
             return {
-                executable: resolvePath(info.path, bin),
+                executable: this.filesystem.joinPaths(
+                    info.directory,
+                    bin.replace(/[\\/]/g, this.filesystem.getSeparator()),
+                ),
                 args: liter.args(files),
             };
         }

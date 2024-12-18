@@ -1,4 +1,3 @@
-import {join, relative} from 'path';
 import {z} from 'zod';
 import {JsonValue} from '@croct/json';
 import {Configuration, ConfigurationError} from '@/application/project/configuration/configuration';
@@ -139,7 +138,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
     }
 
     private getConfigurationFilePath(): string {
-        return join(this.projectDirectory, 'croct.json');
+        return this.filesystem.joinPaths(this.projectDirectory, 'croct.json');
     }
 
     private checkConfiguration(configuration: JsonValue, file?: LoadedFile): asserts configuration is Configuration {
@@ -160,7 +159,10 @@ export class JsonFileConfiguration implements ConfigurationFile {
             );
 
             throw new ConfigurationError(error.message, [
-                ...(file !== undefined ? `Configuration file: ${relative(this.projectDirectory, file.path)}` : []),
+                ...(file !== undefined
+                    ? `Configuration file: ${this.filesystem.getRelativePath(this.projectDirectory, file.path)}`
+                    : []
+                ),
                 `Violation path: ${path}`,
             ]);
         }

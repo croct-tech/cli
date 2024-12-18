@@ -1,4 +1,3 @@
-import {basename} from 'path';
 import {Filesystem} from '@/application/filesystem/filesystem';
 
 export class EnvFile {
@@ -12,7 +11,7 @@ export class EnvFile {
     }
 
     public getName(): string {
-        return basename(this.path);
+        return this.filesystem.getBaseName(this.path);
     }
 
     public exists(): Promise<boolean> {

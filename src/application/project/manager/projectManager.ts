@@ -14,7 +14,7 @@ export type PackageInfo = {
     /**
      * The path where the package is installed or located.
      */
-    path: string,
+    directory: string,
 
     /**
      * Additional metadata related to the package.

@@ -1,13 +1,13 @@
 import {
     mkdir,
-    readFile,
-    writeFile,
     rm,
     lstat,
     realpath,
     cp,
+    readFile,
+    writeFile,
 } from 'fs/promises';
-import {isAbsolute, join} from 'path';
+import {basename, dirname, isAbsolute, join, relative, sep} from 'path';
 import {
     DirectoryCopyOptions,
     DirectoryCreationOptions,
@@ -26,6 +26,26 @@ export class LocalFilesystem implements Filesystem {
 
     public constructor(configuration: Configuration) {
         this.config = configuration;
+    }
+
+    public getSeparator(): string {
+        return sep;
+    }
+
+    public joinPaths(...paths: string[]): string {
+        return join(...paths);
+    }
+
+    public getBaseName(path: string): string {
+        return basename(path);
+    }
+
+    public getRelativePath(from: string, to: string): string {
+        return relative(from, to);
+    }
+
+    public isAbsolute(path: string): boolean {
+        return isAbsolute(path);
     }
 
     public getRealPath(path: string): Promise<string> {
@@ -68,6 +88,10 @@ export class LocalFilesystem implements Filesystem {
 
             throw error;
         }
+    }
+
+    public getDirectoryName(path: string): string {
+        return dirname(path);
     }
 
     public readFile(path: string): Promise<string> {

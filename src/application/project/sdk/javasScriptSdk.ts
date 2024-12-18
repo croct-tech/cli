@@ -1,4 +1,3 @@
-import {dirname, isAbsolute, join, relative} from 'path';
 import {Installation, Sdk} from '@/application/project/sdk/sdk';
 import {PackageInfo} from '@/application/project/manager/projectManager';
 import {ApplicationPlatform, Slot} from '@/application/model/entities';
@@ -62,13 +61,13 @@ export abstract class JavaScriptSdk implements Sdk {
         const files: string[] = [];
 
         for (const file of await this.generateSlotExampleFiles(slot, installation)) {
-            const directory = join(rootPath, dirname(file.name));
+            const directory = this.filesystem.joinPaths(rootPath, this.filesystem.getDirectoryName(file.name));
 
             await this.filesystem
                 .createDirectory(directory, {recursive: true})
                 .catch(() => null);
 
-            const filePath = join(rootPath, file.name);
+            const filePath = this.filesystem.joinPaths(rootPath, file.name);
 
             await this.filesystem.writeFile(filePath, file.code, {overwrite: true});
 
@@ -203,7 +202,7 @@ export abstract class JavaScriptSdk implements Sdk {
         const parentDirs = ['lib', 'src'];
 
         const path = await this.projectManager.locateFile(
-            ...parentDirs.flatMap(dir => directories.map(directory => join(dir, directory))),
+            ...parentDirs.flatMap(dir => directories.map(directory => this.filesystem.joinPaths(dir, directory))),
             ...directories,
             ...parentDirs,
         );
@@ -213,7 +212,7 @@ export abstract class JavaScriptSdk implements Sdk {
         }
 
         if (parentDirs.includes(path)) {
-            return join(path, directories[0]);
+            return this.filesystem.joinPaths(path, directories[0]);
         }
 
         return path;
@@ -276,7 +275,7 @@ export abstract class JavaScriptSdk implements Sdk {
             }),
         );
 
-        const directoryPath = join(packageInfo.path, 'slot');
+        const directoryPath = this.filesystem.joinPaths(packageInfo.directory, 'slot');
 
         await this.filesystem.delete(directoryPath, {recursive: true});
         await this.filesystem.createDirectory(directoryPath);
@@ -289,14 +288,17 @@ export abstract class JavaScriptSdk implements Sdk {
 
                 indexes[locale] = [...indexes[locale] ?? [], baseName];
 
-                const localeDirectory = join(directoryPath, locale);
+                const localeDirectory = this.filesystem.joinPaths(directoryPath, locale);
 
                 if (!await this.filesystem.isDirectory(localeDirectory)) {
-                    await this.filesystem.createDirectory(join(directoryPath, locale), {recursive: true});
+                    await this.filesystem.createDirectory(
+                        this.filesystem.joinPaths(directoryPath, locale),
+                        {recursive: true},
+                    );
                 }
 
                 await this.filesystem.writeFile(
-                    join(directoryPath, `${locale}/${baseName}.json`),
+                    this.filesystem.joinPaths(directoryPath, locale, `${baseName}.json`),
                     JSON.stringify(content, null, 2),
                     {overwrite: true},
                 );
@@ -320,7 +322,7 @@ export abstract class JavaScriptSdk implements Sdk {
 
                 for (const extension of ['.js', '.d.ts']) {
                     await this.filesystem.writeFile(
-                        join(directoryPath, `${path}/index${extension}`),
+                        this.filesystem.joinPaths(directoryPath, path, `index${extension}`),
                         moduleCode,
                         {overwrite: true},
                     );
@@ -348,11 +350,11 @@ export abstract class JavaScriptSdk implements Sdk {
             return;
         }
 
-        const filePath = JavaScriptSdk.getTypeFile(packageInfo.path);
+        const filePath = this.getTypeFile(packageInfo.directory);
 
         // Create the directory if it does not exist
         await this.filesystem
-            .createDirectory(dirname(filePath), {recursive: true})
+            .createDirectory(this.filesystem.getDirectoryName(filePath), {recursive: true})
             .catch(() => {
             });
 
@@ -429,10 +431,14 @@ export abstract class JavaScriptSdk implements Sdk {
         }
 
         const projectDirectory = this.projectManager.getRootPath();
-        const relativeConfigPath = relative(projectDirectory, configPath);
+        const relativeConfigPath = this.filesystem.getRelativePath(projectDirectory, configPath);
 
-        if (relativeConfigPath.length === 0 || relativeConfigPath.startsWith('..') || isAbsolute(relativeConfigPath)) {
-            const relativePath = relative(projectDirectory, configPath);
+        if (
+            relativeConfigPath.length === 0
+            || relativeConfigPath.startsWith('..')
+            || this.filesystem.isAbsolute(relativeConfigPath)
+        ) {
+            const relativePath = this.filesystem.getRelativePath(projectDirectory, configPath);
 
             throw new Error(`TypeScript configuration is outside the project directory: \`${relativePath}\``);
         }
@@ -441,7 +447,11 @@ export abstract class JavaScriptSdk implements Sdk {
             throw new Error(`Package ${JavaScriptSdk.CONTENT_PACKAGE} is not installed`);
         }
 
-        const typeFile = relative(dirname(configPath), JavaScriptSdk.getTypeFile(packageInfo.path));
+        const typeFile = this.filesystem.getRelativePath(
+            this.filesystem.getDirectoryName(configPath),
+            this.getTypeFile(packageInfo.path),
+        );
+
         const config = JsonParser.parse(await this.filesystem.readFile(configPath), JsonObjectNode);
 
         if (config.has('files')) {
@@ -529,20 +539,20 @@ export abstract class JavaScriptSdk implements Sdk {
             return null;
         }
 
-        if (await this.filesystem.isSymbolicLink(packageInfo.path)) {
+        if (await this.filesystem.isSymbolicLink(packageInfo.directory)) {
             // Package managers like PNPM create symlinks to the global cache.
             // Because the content is project-specific, create a local copy of the package
             // to avoid conflicts with other projects.
-            const realPath = await this.filesystem.getRealPath(packageInfo.path);
+            const realPath = await this.filesystem.getRealPath(packageInfo.directory);
 
-            await this.filesystem.delete(packageInfo.path);
-            await this.filesystem.copyDirectory(realPath, packageInfo.path, {recursive: true});
+            await this.filesystem.delete(packageInfo.directory);
+            await this.filesystem.copyDirectory(realPath, packageInfo.directory, {recursive: true});
         }
 
         return packageInfo;
     }
 
-    private static getTypeFile(path: string): string {
-        return join(path, 'types.d.ts');
+    private getTypeFile(path: string): string {
+        return this.filesystem.joinPaths(path, 'types.d.ts');
     }
 }

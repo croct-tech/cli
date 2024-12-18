@@ -1,4 +1,3 @@
-import {join} from 'path';
 import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import {ApplicationPlatform, Slot} from '@/application/model/entities';
@@ -157,7 +156,7 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
                 file: await this.projectManager.locateFile(
                     ...['App', 'main', 'index']
                         .flatMap(name => ['js', 'jsx', 'ts', 'tsx'].map(ext => `${name}.${ext}`))
-                        .map(file => join(sourceDirectory, file)),
+                        .map(file => this.filesystem.joinPaths(sourceDirectory, file)),
                 ),
             },
             env: envProperty === null
@@ -166,11 +165,11 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
                     property: envProperty,
                     productionFile: new EnvFile(
                         this.filesystem,
-                        join(this.projectManager.getRootPath(), '.env.production'),
+                        this.filesystem.joinPaths(this.projectManager.getRootPath(), '.env.production'),
                     ),
                     developmentFile: new EnvFile(
                         this.filesystem,
-                        join(this.projectManager.getRootPath(), '.env.development'),
+                        this.filesystem.joinPaths(this.projectManager.getRootPath(), '.env.development'),
                     ),
                 },
         };
@@ -238,7 +237,7 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
     private async installProvider(file: string, options: WrapperOptions): Promise<void> {
         const codemod = this.codemod.provider;
 
-        await codemod.apply(join(this.projectManager.getRootPath(), file), options);
+        await codemod.apply(this.filesystem.joinPaths(this.projectManager.getRootPath(), file), options);
     }
 
     private async getEnvVarProperty(): Promise<string|null> {

@@ -1,4 +1,3 @@
-import {join} from 'path';
 import {Readable, Writable} from 'stream';
 import * as process from 'node:process';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
@@ -374,9 +373,11 @@ export class Cli {
 
     private getAuthenticator(): Authenticator<AuthenticationInput> {
         if (this.authenticator === undefined) {
+            const filesystem = this.getFileSystem();
+
             this.authenticator = new TokenFileAuthenticator({
-                filesystem: this.getFileSystem(),
-                filePath: join(this.configuration.directories.config, 'token'),
+                filesystem: filesystem,
+                filePath: filesystem.joinPaths(this.configuration.directories.config, 'token'),
                 authenticator: this.createAuthenticator(),
             });
         }
@@ -587,6 +588,7 @@ export class Cli {
     private createJavaScriptLinter(projectManager: ProjectManager): Linter {
         return new JavaScriptLinter({
             projectManager: projectManager,
+            filesystem: this.getFileSystem(),
             tools: [
                 {
                     package: 'eslint',
