@@ -447,10 +447,12 @@ export abstract class JavaScriptSdk implements Sdk {
             throw new Error(`Package ${JavaScriptSdk.CONTENT_PACKAGE} is not installed`);
         }
 
-        const typeFile = this.filesystem.getRelativePath(
-            this.filesystem.getDirectoryName(configPath),
-            this.getTypeFile(packageInfo.directory),
-        );
+        const typeFile = this.filesystem
+            .getRelativePath(
+                this.filesystem.getDirectoryName(configPath),
+                this.getTypeFile(packageInfo.directory),
+            )
+            .replace(/\\/g, '/');
 
         const config = JsonParser.parse(await this.filesystem.readFile(configPath), JsonObjectNode);
 
