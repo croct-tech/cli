@@ -1,3 +1,4 @@
+import {sep} from 'path';
 import {AttributeDefinition} from '@/application/project/example/content-model/definitions';
 
 export function formatLabel(name: string): string {
@@ -26,4 +27,12 @@ export function sortAttributes<T extends AttributePosition>(attributes: OrderedA
 
             return leftPosition - rightPosition;
         });
+}
+
+export function normalizePath(path: string): string {
+    if (path === '') {
+        return path;
+    }
+
+    return path.replace(/[\\/]+/g, sep);
 }

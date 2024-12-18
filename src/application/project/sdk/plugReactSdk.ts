@@ -102,19 +102,22 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
         );
 
         const generator = new PlugReactExampleGenerator({
-            language: await this.projectManager.isTypeScriptProject()
-                ? CodeLanguage.TYPESCRIPT_XML
-                : CodeLanguage.JAVASCRIPT_XML,
-            code: {
-                importPaths: {
-                    slot: componentsImportPath,
-                },
-                files: {
-                    slot: {
-                        directory: installation.configuration.paths.components,
+            filesystem: this.filesystem,
+            options: {
+                language: await this.projectManager.isTypeScriptProject()
+                    ? CodeLanguage.TYPESCRIPT_XML
+                    : CodeLanguage.JAVASCRIPT_XML,
+                code: {
+                    importPaths: {
+                        slot: componentsImportPath,
                     },
-                    page: {
-                        directory: installation.configuration.paths.examples,
+                    files: {
+                        slot: {
+                            directory: installation.configuration.paths.components,
+                        },
+                        page: {
+                            directory: installation.configuration.paths.examples,
+                        },
                     },
                 },
             },

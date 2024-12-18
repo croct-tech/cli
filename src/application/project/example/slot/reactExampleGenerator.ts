@@ -1,29 +1,32 @@
-import {join} from 'path';
 import {SlotDefinition, SlotExampleGenerator} from './slotExampleGenerator';
 import {CodeExample, CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {AttributeDefinition, ContentDefinition} from '@/application/project/example/content-model/definitions';
 import {CodeWriter} from '@/application/project/example/codeWritter';
 import {formatLabel, sortAttributes} from '@/application/project/example/utils';
+import {Filesystem} from '@/application/filesystem/filesystem';
 
-export type ReactExampleGeneratorOptions = {
-    language: CodeLanguage.JAVASCRIPT_XML | CodeLanguage.TYPESCRIPT_XML,
-    indentationSize?: number,
-    code: {
-        variables?: {
-            content?: string,
-            fallbackContent?: string,
-        },
-        importPaths: {
-            slot: string,
-        },
-        files?: {
-            slot?: {
-                directory?: string,
-                name?: string,
+export type Configuration = {
+    filesystem: Filesystem,
+    options: {
+        language: CodeLanguage.JAVASCRIPT_XML | CodeLanguage.TYPESCRIPT_XML,
+        indentationSize?: number,
+        code: {
+            variables?: {
+                content?: string,
+                fallbackContent?: string,
             },
-            page?: {
-                directory?: string,
-                name?: string,
+            importPaths: {
+                slot: string,
+            },
+            files?: {
+                slot?: {
+                    directory?: string,
+                    name?: string,
+                },
+                page?: {
+                    directory?: string,
+                    name?: string,
+                },
             },
         },
     },
@@ -44,9 +47,11 @@ type DeepRequired<T> = Required<{
 }>;
 
 export abstract class ReactExampleGenerator implements SlotExampleGenerator {
-    protected readonly options: DeepRequired<ReactExampleGeneratorOptions>;
+    protected readonly options: DeepRequired<Configuration['options']>;
 
-    public constructor(options: ReactExampleGeneratorOptions) {
+    protected readonly filesystem: Filesystem;
+
+    public constructor({filesystem, options}: Configuration) {
         this.options = {
             ...options,
             indentationSize: options.indentationSize ?? 2,
@@ -70,13 +75,15 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
                 },
             },
         };
+
+        this.filesystem = filesystem;
     }
 
     public generate(definition: SlotDefinition): CodeExample {
         const slotFile = this.generateSlotFile(definition);
         const parts = slotFile.name
             .replace(/\..+$/, '')
-            .split('/');
+            .split(/[\\/]/g);
 
         const slotFileName = parts.length > 1 && parts[parts.length - 1] === 'index'
             ? parts[parts.length - 2]
@@ -100,7 +107,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
         const fileName = pageFile.name !== '' ? pageFile.name : name;
 
         return {
-            name: join(
+            name: this.filesystem.joinPaths(
                 ReactExampleGenerator.resolveDirectoryPath(pageFile.directory, name),
                 this.addExtension(fileName),
             ),
@@ -119,7 +126,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
         const fileName = slotFile.name !== '' ? slotFile.name : name;
 
         return {
-            name: join(
+            name: this.filesystem.joinPaths(
                 ReactExampleGenerator.resolveDirectoryPath(slotFile.directory, name),
                 this.addExtension(fileName),
             ),

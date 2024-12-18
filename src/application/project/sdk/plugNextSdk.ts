@@ -104,22 +104,31 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
         );
 
         const generator = new PlugNextExampleGenerator({
-            router: router === 'page' ? NextExampleRouter.PAGE : NextExampleRouter.APP,
-            language: await this.projectManager.isTypeScriptProject()
-                ? CodeLanguage.TYPESCRIPT_XML
-                : CodeLanguage.JAVASCRIPT_XML,
-            code: {
-                importPaths: {
-                    slot: componentsImportPath,
-                },
-                files: {
-                    slot: {
-                        directory: this.filesystem.joinPaths(installation.configuration.paths.components, '%name%'),
-                        name: 'index',
+            filesystem: this.filesystem,
+            options: {
+                router: router === 'page' ? NextExampleRouter.PAGE : NextExampleRouter.APP,
+                language: await this.projectManager.isTypeScriptProject()
+                    ? CodeLanguage.TYPESCRIPT_XML
+                    : CodeLanguage.JAVASCRIPT_XML,
+                code: {
+                    importPaths: {
+                        slot: componentsImportPath,
                     },
-                    page: {
-                        directory: this.filesystem.joinPaths(installation.configuration.paths.examples, slot.slug),
-                        name: router === 'page' ? 'index' : 'page',
+                    files: {
+                        slot: {
+                            directory: this.filesystem.joinPaths(
+                                installation.configuration.paths.components,
+                                '%name%',
+                            ),
+                            name: 'index',
+                        },
+                        page: {
+                            directory: this.filesystem.joinPaths(
+                                installation.configuration.paths.examples,
+                                slot.slug,
+                            ),
+                            name: router === 'page' ? 'index' : 'page',
+                        },
                     },
                 },
             },

@@ -1,7 +1,8 @@
-import {ReactExampleGenerator, ReactExampleGeneratorOptions, SlotFile} from './reactExampleGenerator';
+import {ReactExampleGenerator, Configuration as ReactConfiguration, SlotFile} from './reactExampleGenerator';
 import {SlotDefinition} from './slotExampleGenerator';
 import {CodeWriter} from '@/application/project/example/codeWritter';
 import {CodeLanguage} from '@/application/project/example/example';
+import {Filesystem} from '@/application/filesystem/filesystem';
 
 export enum NextExampleRouter {
     PAGE = 'page',
@@ -12,7 +13,10 @@ type NextExampleOptions = {
     router: NextExampleRouter,
 };
 
-export type PlugNextExampleGeneratorOptions = ReactExampleGeneratorOptions & NextExampleOptions;
+export type Configuration = {
+    filesystem: Filesystem,
+    options: ReactConfiguration['options'] & NextExampleOptions,
+};
 
 type DeepRequired<T> = Required<{
     [P in keyof T]: T[P] extends object | undefined ? DeepRequired<Required<T[P]>> : T[P];
@@ -21,17 +25,20 @@ type DeepRequired<T> = Required<{
 export class PlugNextExampleGenerator extends ReactExampleGenerator {
     private readonly nextOptions: DeepRequired<NextExampleOptions>;
 
-    public constructor(options: PlugNextExampleGeneratorOptions) {
+    public constructor({filesystem, options}: Configuration) {
         const {router, ...rest} = options;
 
         super({
-            ...rest,
-            code: {
-                ...options.code,
-                variables: {
-                    ...options?.code?.variables,
-                    content: options.code?.variables?.content
-                        ?? (router === NextExampleRouter.APP ? 'content' : 'props'),
+            filesystem: filesystem,
+            options: {
+                ...rest,
+                code: {
+                    ...options.code,
+                    variables: {
+                        ...options?.code?.variables,
+                        content: options.code?.variables?.content
+                            ?? (router === NextExampleRouter.APP ? 'content' : 'props'),
+                    },
                 },
             },
         });

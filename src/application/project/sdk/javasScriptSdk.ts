@@ -449,7 +449,7 @@ export abstract class JavaScriptSdk implements Sdk {
 
         const typeFile = this.filesystem.getRelativePath(
             this.filesystem.getDirectoryName(configPath),
-            this.getTypeFile(packageInfo.path),
+            this.getTypeFile(packageInfo.directory),
         );
 
         const config = JsonParser.parse(await this.filesystem.readFile(configPath), JsonObjectNode);

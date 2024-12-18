@@ -1,25 +1,29 @@
-import {join, relative} from 'path';
 import {SlotDefinition, SlotExampleGenerator} from './slotExampleGenerator';
 import {CodeExample, CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {CodeWriter} from '@/application/project/example/codeWritter';
 import {formatLabel, sortAttributes} from '@/application/project/example/utils';
 import {AttributeDefinition, ContentDefinition} from '@/application/project/example/content-model/definitions';
 import {formatName} from '@/application/project/utils/formatName';
+import {Filesystem} from '@/application/filesystem/filesystem';
 
-export type JavaScriptExampleGeneratorOptions = {
-    language: CodeLanguage.JAVASCRIPT | CodeLanguage.TYPESCRIPT,
-    appId: string,
-    indentationSize?: number,
-    code?: {
-        browser?: boolean,
-        containerElementId?: string,
-        variables?: {
-            container?: string,
-            fallbackContent?: string,
-        },
-        paths?: {
-            slot?: string,
-            page?: string,
+export type Configuration = {
+    filesystem: Filesystem,
+    options: {
+        language: CodeLanguage.JAVASCRIPT | CodeLanguage.TYPESCRIPT,
+        appId: string,
+        indentationSize?: number,
+
+        code?: {
+            browser?: boolean,
+            containerElementId?: string,
+            variables?: {
+                container?: string,
+                fallbackContent?: string,
+            },
+            paths?: {
+                slot?: string,
+                page?: string,
+            },
         },
     },
 };
@@ -29,10 +33,12 @@ type DeepRequired<T> = Required<{
 }>;
 
 export class PlugJsExampleGenerator implements SlotExampleGenerator {
-    protected readonly options: DeepRequired<JavaScriptExampleGeneratorOptions>;
+    protected readonly config: DeepRequired<Configuration['options']>;
 
-    public constructor(options: JavaScriptExampleGeneratorOptions) {
-        this.options = {
+    private readonly filesystem: Filesystem;
+
+    public constructor({filesystem, options}: Configuration) {
+        this.config = {
             ...options,
             language: options.language ?? CodeLanguage.JAVASCRIPT,
             indentationSize: options.indentationSize ?? 2,
@@ -49,6 +55,8 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
                 },
             },
         };
+
+        this.filesystem = filesystem;
     }
 
     public generate(definition: SlotDefinition): CodeExample {
@@ -65,14 +73,14 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
     private generatePageFile(definition: SlotDefinition, slotFile: string): ExampleFile {
         const writer = this.createWriter();
 
-        const path = join(
-            this.options.code.paths.page,
+        const path = this.filesystem.joinPaths(
+            this.config.code.paths.page,
             `${this.addExtension(this.formatFileName(definition.id, false), CodeLanguage.HTML)}`,
         );
 
         this.writePageSnippet(
             writer,
-            relative(this.options.code.paths.page, slotFile).replace(/\\/g, '/'),
+            this.filesystem.getRelativePath(this.config.code.paths.page, slotFile).replace(/\\/g, '/'),
         );
 
         return {
@@ -93,7 +101,7 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
             .write('</head>')
             .write('<body>')
             .indent()
-            .write(`<div id="${this.options.code.containerElementId}"></div>`)
+            .write(`<div id="${this.config.code.containerElementId}"></div>`)
             .outdent()
             .write('</body>')
             .write('</html>', false);
@@ -105,23 +113,23 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
         this.writeSlotSnippet(writer, definition);
 
         return {
-            name: join(
-                this.options.code.paths.slot,
+            name: this.filesystem.joinPaths(
+                this.config.code.paths.slot,
                 `${this.addExtension(this.formatFileName(definition.id, false))}`,
             ),
-            language: this.options.language,
+            language: this.config.language,
             code: writer.toString(),
         };
     }
 
     private writeSlotSnippet(writer: CodeWriter, definition: SlotDefinition): void {
-        const {variables} = this.options.code;
+        const {variables} = this.config.code;
         const importName = formatName(`${definition.id} V${definition.version}`);
 
         writer.write('import croct from \'@croct/plug\';');
         writer.write(`import {${importName} as ${variables.fallbackContent}} from '@croct/content/slot';`);
 
-        if (this.options.language === CodeLanguage.TYPESCRIPT) {
+        if (this.config.language === CodeLanguage.TYPESCRIPT) {
             writer.write('import {SlotContent} from \'@croct/plug/slot\';');
         }
 
@@ -129,13 +137,13 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
 
         writer
             .newLine()
-            .write(`croct.plug({appId: '${this.options.appId}'});`)
+            .write(`croct.plug({appId: '${this.config.appId}'});`)
             .newLine()
             .write('document.addEventListener(\'DOMContentLoaded\', () => {')
             .indent()
-            .write(`${functionName}(document.querySelector('#${this.options.code.containerElementId}')`, false);
+            .write(`${functionName}(document.querySelector('#${this.config.code.containerElementId}')`, false);
 
-        if (this.options.language === CodeLanguage.TYPESCRIPT) {
+        if (this.config.language === CodeLanguage.TYPESCRIPT) {
             writer.append('!');
         }
 
@@ -153,19 +161,19 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
 
         functionSignature += variables.container;
 
-        if (this.options.language === CodeLanguage.TYPESCRIPT) {
+        if (this.config.language === CodeLanguage.TYPESCRIPT) {
             functionSignature += ': HTMLElement';
         }
 
         functionSignature += `, ${variables.fallbackContent}`;
 
-        if (this.options.language === CodeLanguage.TYPESCRIPT) {
+        if (this.config.language === CodeLanguage.TYPESCRIPT) {
             functionSignature += ': SlotContent';
         }
 
         functionSignature += ')';
 
-        if (this.options.language === CodeLanguage.TYPESCRIPT) {
+        if (this.config.language === CodeLanguage.TYPESCRIPT) {
             functionSignature += ': Promise<void>';
         }
 
@@ -391,7 +399,7 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
     }
 
     private createWriter(): CodeWriter {
-        return new CodeWriter(this.options.indentationSize);
+        return new CodeWriter(this.config.indentationSize);
     }
 
     private formatFileName(name: string, capitalize: boolean): string {
@@ -399,7 +407,7 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
     }
 
     private addExtension(fileName: string, language?: CodeLanguage): string {
-        return `${fileName}.${CodeLanguage.getExtension(language ?? this.options.language)}`;
+        return `${fileName}.${CodeLanguage.getExtension(language ?? this.config.language)}`;
     }
 }
 

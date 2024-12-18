@@ -23,13 +23,16 @@ export class PlugJsSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> {
 
     protected generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
         const generator = new PlugJsExampleGenerator({
-            language: CodeLanguage.JAVASCRIPT,
-            appId: installation.configuration.applications.developmentPublicId,
-            code: {
-                browser: true,
-                paths: {
-                    slot: installation.configuration.paths.examples,
-                    page: installation.configuration.paths.examples,
+            filesystem: this.filesystem,
+            options: {
+                language: CodeLanguage.JAVASCRIPT,
+                appId: installation.configuration.applications.developmentPublicId,
+                code: {
+                    browser: true,
+                    paths: {
+                        slot: installation.configuration.paths.examples,
+                        page: installation.configuration.paths.examples,
+                    },
                 },
             },
         });
