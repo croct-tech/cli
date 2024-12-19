@@ -51,10 +51,7 @@ export class VirtualFilesystem implements Filesystem {
     }
 
     public getRelativePath(from: string, to: string): string {
-        return relative(
-            from.replace(/[\\/]+/g, sep),
-            to.replace(/[\\/]+/g, sep),
-        ).replace(/[\\/]+/g, '/');
+        return relative(from, to);
     }
 
     public isAbsolute(path: string): boolean {
@@ -95,7 +92,7 @@ export class VirtualFilesystem implements Filesystem {
                 return Promise.reject(new Error('Directory not empty'));
             }
 
-            delete node.files[path.split('/').pop() as string];
+            delete node.files[path.split(this.getSeparator()).pop() as string];
         }
 
         return Promise.resolve();
@@ -118,7 +115,7 @@ export class VirtualFilesystem implements Filesystem {
             return Promise.reject(new Error('Directory not found'));
         }
 
-        const fileName = path.split('/').pop() as string;
+        const fileName = path.split(this.getSeparator()).pop() as string;
 
         if (options?.overwrite !== true && fileName in directory.files) {
             return Promise.reject(new Error('File already exists'));
@@ -163,7 +160,7 @@ export class VirtualFilesystem implements Filesystem {
             }
         }
 
-        destinationNode.files[destination.split('/').pop() as string] = {
+        destinationNode.files[destination.split(this.getSeparator()).pop() as string] = {
             type: 'directory',
             files: {...sourceNode.files},
         };
@@ -172,7 +169,8 @@ export class VirtualFilesystem implements Filesystem {
     }
 
     private createDirectoryNode(path: string, options?: DirectoryCreationOptions): FilesystemNode<'directory'> {
-        const segments = path.split('/');
+        const separator = this.getSeparator();
+        const segments = path.split(separator);
         const node: FilesystemNode<'directory'> = this.root;
 
         for (let i = 0; i < segments.length; i++) {
@@ -186,14 +184,14 @@ export class VirtualFilesystem implements Filesystem {
                 const file = node.files[segment];
 
                 if (file.type !== 'directory') {
-                    throw new Error(`File ${segments.slice(0, i).join('/')} already exists`);
+                    throw new Error(`File ${segments.slice(0, i).join(separator)} already exists`);
                 }
 
                 continue;
             }
 
             if (options?.recursive !== true) {
-                throw new Error(`Directory ${segments.slice(0, i).join('/')} not found`);
+                throw new Error(`Directory ${segments.slice(0, i).join(separator)} not found`);
             }
 
             node.files[segment] = {
@@ -206,12 +204,14 @@ export class VirtualFilesystem implements Filesystem {
     }
 
     private getParentNode(path: string): FilesystemNode<'directory'> | null {
-        if (!path.includes('/')) {
+        const separator = this.getSeparator();
+
+        if (!path.includes(separator)) {
             return this.root;
         }
 
-        const parts = path.split('/');
-        const parentPath = parts.slice(0, -1).join('/');
+        const parts = path.split(separator);
+        const parentPath = parts.slice(0, -1).join(separator);
         const directory = this.getNode(parentPath);
 
         if (directory === null || directory.type !== 'directory') {
@@ -222,7 +222,7 @@ export class VirtualFilesystem implements Filesystem {
     }
 
     private getNode(path: string): FilesystemNode | null {
-        const segments = path.split('/');
+        const segments = path.split(this.getSeparator());
 
         const node: FilesystemNode = this.root;
 
