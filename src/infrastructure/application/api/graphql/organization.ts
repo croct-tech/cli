@@ -1,9 +1,14 @@
-import {graphql} from '@/infrastructure/graphql';
 import {NewWorkspace, OrganizationApi, OrganizationPath, WorkspacePath} from '@/application/api/organization';
 import {GraphqlClient} from '@/infrastructure/graphql/client';
 import {Workspace} from '@/application/model/entities';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
 import {WorkspaceQuery} from '@/infrastructure/graphql/schema/graphql';
+import {
+    createWorkspaceMutation,
+    workspaceQuery,
+    workspaceSlugQuery,
+    workspacesQuery,
+} from '@/infrastructure/application/api/graphql/queries/workspace';
 
 type WorkspaceData = NonNullable<NonNullable<WorkspaceQuery['organization']>['workspace']>;
 
@@ -116,89 +121,3 @@ export class GraphqlOrganizationApi implements OrganizationApi {
         });
     }
 }
-
-const workspaceQuery = graphql(`
-    query Workspace($organizationSlug: ReadableId!, $workspaceSlug: ReadableId!) {
-        organization(slug: $organizationSlug) {
-            workspace(slug: $workspaceSlug) {
-                id
-                name
-                slug
-                logo
-                website
-                timeZone
-                defaultLocale
-                locales {
-                    edges {
-                        node {
-                            code
-                        }
-                    }
-                }
-            }
-        }
-    }
-`);
-
-const workspacesQuery = graphql(`
-    query Workspaces($organizationSlug: ReadableId!) {
-        organization(slug: $organizationSlug) {
-            workspaces(first: 100) {
-                edges {
-                    node {
-                        id
-                        name
-                        slug
-                        logo
-                        website
-                        timeZone
-                        defaultLocale
-                        locales {
-                            edges {
-                                node {
-                                    code
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-`);
-
-const createWorkspaceMutation = graphql(`
-    mutation CreateWorkspace($organizationId: OrganizationId!, $payload: CreateWorkspacePayload!) {
-        createWorkspace(organizationId: $organizationId, payload: $payload) {
-            id
-            name
-            slug
-            logo
-            website
-            timeZone
-            defaultLocale
-            locales {
-                edges {
-                    node {
-                        code
-                    }
-                }
-            }
-        }
-    }
-`);
-
-const workspaceSlugQuery = graphql(`
-    query FindWorkspaceSlug(
-        $organizationId: OrganizationId!
-        $slugFirstOption: ReadableId!
-        $slugSecondOption: ReadableId!
-        $slugThirdOption: ReadableId!
-    ) {
-        checkAvailability {
-            slugFirstOption: workspaceSlug(organizationId: $organizationId, slug: $slugFirstOption)
-            slugSecondOption: workspaceSlug(organizationId: $organizationId, slug: $slugSecondOption)
-            slugThirdOption: workspaceSlug(organizationId: $organizationId, slug: $slugThirdOption)
-        }
-    }
-`);

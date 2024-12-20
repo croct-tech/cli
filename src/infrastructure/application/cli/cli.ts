@@ -19,14 +19,14 @@ import {ProjectManager} from '@/application/project/manager/projectManager';
 import {UserApi} from '@/application/api/user';
 import {OrganizationApi} from '@/application/api/organization';
 import {WorkspaceApi} from '@/application/api/workspace';
-import {GraphqlUserApi} from '@/infrastructure/application/api/user';
-import {GraphqlOrganizationApi} from '@/infrastructure/application/api/organization';
-import {GraphqlWorkspaceApi} from '@/infrastructure/application/api/workspace';
+import {GraphqlUserApi} from '@/infrastructure/application/api/graphql/user';
+import {GraphqlOrganizationApi} from '@/infrastructure/application/api/graphql/organization';
+import {GraphqlWorkspaceApi} from '@/infrastructure/application/api/graphql/workspace';
 import {OrganizationForm} from '@/application/cli/form/organization/organizationForm';
 import {WorkspaceForm} from '@/application/cli/form/workspace/workspaceForm';
 import {ApplicationForm} from '@/application/cli/form/application/applicationForm';
 import {ApplicationApi} from '@/application/api/application';
-import {GraphqlApplicationApi} from '@/infrastructure/application/api/application';
+import {GraphqlApplicationApi} from '@/infrastructure/application/api/graphql/application';
 import {Authenticator} from '@/application/cli/authentication/authenticator';
 import {TokenFileAuthenticator} from '@/application/cli/authentication/authenticator/tokenFileAuthenticator';
 import {

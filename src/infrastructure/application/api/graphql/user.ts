@@ -1,12 +1,12 @@
-import {graphql, GraphqlClient} from '@/infrastructure/graphql';
+import {GraphqlClient} from '@/infrastructure/graphql';
 import {Organization, User} from '@/application/model/entities';
 import {
-    PasswordReset,
+    ActivationRetry,
     NewUser,
     OrganizationSetup,
+    PasswordReset,
     UserApi,
     UserCredentials,
-    ActivationRetry,
 } from '@/application/api/user';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
 import {
@@ -18,6 +18,21 @@ import {
     SetupOrganizationMutationVariables,
 } from '@/infrastructure/graphql/schema/graphql';
 import {generateSlug} from '@/infrastructure/application/api/utils/generateSlug';
+import {
+    organizationQuery,
+    organizationSlugQuery,
+    organizationsQuery,
+    setupOrganizationMutation,
+    websiteMetadataQuery,
+} from '@/infrastructure/application/api/graphql/queries/organization';
+import {userEmailQuery, usernameQuery, userQuery} from '@/infrastructure/application/api/graphql/queries/user';
+import {
+    createSession,
+    retryActivationMutation,
+    sendResetLink,
+    signInMutation,
+    signUpMutation,
+} from '@/infrastructure/application/api/graphql/queries/auth';
 
 type OrganizationSetupPayload = SetupOrganizationMutationVariables['payload'];
 
@@ -288,160 +303,3 @@ export class GraphqlUserApi implements UserApi {
         });
     }
 }
-
-const signInMutation = graphql(`
-    mutation SignIn($payload: SignInPayload!) {
-        signIn(payload: $payload) {
-            id
-        }
-    }
-`);
-
-const createSession = graphql(`
-    mutation CreateSession {
-        createSession
-    }
-`);
-
-const sendResetLink = graphql(`
-    mutation SendResetLink($email: String!, $sessionId: String) {
-        sendResetLink(email: $email, sessionId: $sessionId)
-    }
-`);
-
-const retryActivationMutation = graphql(`
-    mutation RetryActivation($email: String!, $sessionId: String!) {
-        retry {
-            accountActivation(sessionId: $sessionId, email: $email)
-        }
-    }
-`);
-
-const signUpMutation = graphql(`
-    mutation SignUp($payload: SignUpPayload!) {
-        signUp(payload: $payload) {
-            userId
-        }
-    }
-`);
-
-const userQuery = graphql(`
-    query User {
-        userAccount {
-            id
-            user {
-                username
-                email
-                profile {
-                    firstName
-                    lastName
-                    expertise
-                }
-            }
-        }
-    }
-`);
-
-const usernameQuery = graphql(`
-    query Username(
-        $slugFirstOption: ReadableId!
-        $slugSecondOption: ReadableId!
-        $slugThirdOption: ReadableId!
-    ) {
-        checkAvailability {
-            slugFirstOption: username(username: $slugFirstOption)
-            slugSecondOption: username(username: $slugSecondOption)
-            slugThirdOption: username(username: $slugThirdOption)
-        }
-    }
-`);
-
-const userEmailQuery = graphql(`
-    query UserEmail($email: String!) {
-        checkAvailability {
-            email(email: $email)
-        }
-    }
-`);
-
-const organizationQuery = graphql(`
-    query Organization($slug: ReadableId!) {
-        organization(slug: $slug) {
-            id
-            name
-            slug
-            type
-            website
-            logo
-            email
-        }
-    }
-`);
-
-const organizationsQuery = graphql(`
-    query Organizations {
-        organizations(first: 100) {
-            edges {
-                node {
-                    id
-                    name
-                    slug
-                    type
-                    website
-                    logo
-                    email
-                }
-            }
-        }
-    }
-`);
-
-const websiteMetadataQuery = graphql(`
-    query OrganizationMetadata($url: String!) {
-        websiteMetadata(url: $url){
-            url
-            siteName
-            domain
-            languages
-            platform
-            technologies {
-                name
-            }
-            logo {
-                data
-                height
-                width
-            }
-        }
-    }
-`);
-
-const setupOrganizationMutation = graphql(`
-    mutation SetupOrganization($payload: CreateConfiguredOrganizationPayload!) {
-        createConfiguredOrganization(payload: $payload) {
-            organization {
-                id
-                name
-                slug
-                type
-                website
-                logo
-                email
-            }
-        }
-    }
-`);
-
-const organizationSlugQuery = graphql(`
-    query FindOrganizationSlug(
-        $slugFirstOption: ReadableId!
-        $slugSecondOption: ReadableId!
-        $slugThirdOption: ReadableId!
-    ) {
-        checkAvailability {
-            slugFirstOption: organizationSlug(slug: $slugFirstOption)
-            slugSecondOption: organizationSlug(slug: $slugSecondOption)
-            slugThirdOption: organizationSlug(slug: $slugThirdOption)
-        }
-    }
-`);

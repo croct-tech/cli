@@ -1,6 +1,7 @@
-import {graphql, GraphqlClient} from '@/infrastructure/graphql';
+import {GraphqlClient} from '@/infrastructure/graphql';
 import {ApplicationApi, GeneratedApiKey, NewApiKey} from '@/application/api/application';
 import {ApiKeyPermission} from '@/infrastructure/graphql/schema/graphql';
+import {createApiKeyMutation} from '@/infrastructure/application/api/graphql/queries/application';
 
 export class GraphqlApplicationApi implements ApplicationApi {
     private readonly client: GraphqlClient;
@@ -41,16 +42,3 @@ export class GraphqlApplicationApi implements ApplicationApi {
         };
     }
 }
-
-const createApiKeyMutation = graphql(`
-    mutation CreateApiKey($applicationId: ApplicationId!, $payload: CreateApiKeyPayload!) {
-        createApiKey(applicationId: $applicationId, payload: $payload) {
-            apiKey {
-                id
-                name
-                permissions
-            }
-            apiKeyValue
-        }
-    }
-`);

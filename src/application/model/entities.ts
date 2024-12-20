@@ -1,3 +1,4 @@
+import {JsonObject} from '@croct/json';
 import {RootDefinition} from '@/application/project/example/content-model/definitions';
 
 export enum Expertise {
@@ -109,6 +110,13 @@ export type ApiKey = {
     },
 };
 
+export type Audience = {
+    id: string,
+    name: string,
+    slug: string,
+    criteria: string,
+};
+
 export type Slot = {
     id: string,
     name: string,
@@ -128,4 +136,73 @@ export type Component = {
         major: number,
         minor: number,
     },
+};
+
+export enum ExperienceStatus {
+    ACTIVE = 'ACTIVE',
+    ARCHIVED = 'ARCHIVED',
+    DRAFT = 'DRAFT',
+    PAUSED = 'PAUSED',
+    SCHEDULED = 'SCHEDULED',
+}
+
+export type LocalizedContent = {
+    locale: string,
+    content: JsonObject,
+};
+
+export type LocalizedSlotContent = Record<string, Record<string, Record<string, any>>>;
+
+export type SegmentedContent = {
+    groupId: string,
+    audiences: string[],
+    content: LocalizedSlotContent,
+};
+
+export type PersonalizedContent = {
+    default: LocalizedSlotContent,
+    segmented: SegmentedContent[],
+};
+
+export type ExperimentVariant = {
+    name: string,
+    content: PersonalizedContent,
+};
+
+export type Experience = {
+    id: string,
+    name: string,
+    priority: number,
+    status: ExperienceStatus,
+    hasExperiments: boolean,
+    experiment?: {
+        name?: string,
+        goalId?: string,
+        crossDevice?: boolean,
+        traffic?: number,
+        variants: Array<{
+            name?: string,
+            content: PersonalizedContent,
+        }>,
+    },
+    content: PersonalizedContent,
+};
+
+export enum ExperimentStatus {
+    ACTIVE = 'ACTIVE',
+    DRAFT = 'DRAFT',
+    FINISHED = 'FINISHED',
+    INDIRECTLY_PAUSED = 'INDIRECTLY_PAUSED',
+    PAUSED = 'PAUSED',
+    SCHEDULED = 'SCHEDULED'
+}
+
+export type Experiment = {
+    id: string,
+    name: string,
+    goalId?: string,
+    traffic: number,
+    crossDevice: boolean,
+    status: ExperimentStatus,
+    variants: ExperimentVariant[],
 };

@@ -1,6 +1,17 @@
-import {JsonObject} from '@croct/json';
-import {Application, Component, Slot} from '@/application/model/entities';
+import {
+    Application,
+    Audience,
+    Component,
+    Experience,
+    Experiment,
+    LocalizedContent,
+    Slot,
+} from '@/application/model/entities';
 import {WorkspacePath} from '@/application/api/organization';
+
+export type AudiencePath = WorkspacePath & {
+    audienceSlug: string,
+};
 
 export type SlotPath = WorkspacePath & {
     slotSlug: string,
@@ -17,11 +28,6 @@ export type ApplicationPath = WorkspacePath & {
 export type NewApplication = Omit<Application, 'id' | 'slug' | 'logo' | 'publicId' | 'trafficStatus'> & {
     organizationId: string,
     workspaceId: string,
-};
-
-export type LocalizedContent = {
-    locale: string,
-    content: JsonObject,
 };
 
 export enum TargetSdk {
@@ -48,7 +54,19 @@ export type ComponentCriteria = ComponentPath & {
     majorVersion?: number,
 };
 
+export type ExperiencePath = WorkspacePath & {
+    experienceId: string,
+};
+
+export type ExperimentPath = ExperiencePath & {
+    experimentId: string,
+};
+
 export interface WorkspaceApi {
+    getAudiences(path: WorkspacePath): Promise<Audience[]>;
+
+    getAudience(path: AudiencePath): Promise<Audience|null>;
+
     getSlots(path: WorkspacePath): Promise<Slot[]>;
 
     getSlot(criteria: SlotCriteria): Promise<Slot|null>;
@@ -66,4 +84,12 @@ export interface WorkspaceApi {
     getApplication(path: ApplicationPath): Promise<Application|null>;
 
     createApplication(application: NewApplication): Promise<Application>;
+
+    getExperiences(path: WorkspacePath): Promise<Experience[]>;
+
+    getExperience(path: ExperiencePath): Promise<Experience|null>;
+
+    getExperiments(path: ExperiencePath): Promise<Experiment[]>;
+
+    getExperiment(path: ExperimentPath): Promise<Experiment|null>;
 }

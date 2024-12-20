@@ -1,12 +1,12 @@
 import {Installation, Sdk} from '@/application/project/sdk/sdk';
 import {PackageInfo} from '@/application/project/manager/projectManager';
-import {ApplicationPlatform, Slot} from '@/application/model/entities';
+import {ApplicationPlatform, LocalizedContent, Slot} from '@/application/model/entities';
 import {
     Configuration as ProjectConfiguration,
     ResolvedConfiguration,
 } from '@/application/project/configuration/configuration';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
-import {LocalizedContent, TargetSdk, WorkspaceApi} from '@/application/api/workspace';
+import {TargetSdk, WorkspaceApi} from '@/application/api/workspace';
 import {formatMessage} from '@/application/error';
 import {JsonArrayNode, JsonObjectNode, JsonParser} from '@/infrastructure/json';
 import {formatName} from '@/application/project/utils/formatName';
