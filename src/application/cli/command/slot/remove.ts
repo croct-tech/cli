@@ -6,6 +6,8 @@ import {Form} from '@/application/cli/form/form';
 import {Slot} from '@/application/model/entities';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import {Configuration as ProjectConfiguration} from '@/application/project/configuration/configuration';
+import {Version} from '@/application/project/version';
 
 export type RemoveSlotInput = {
     slots?: string[],
@@ -35,11 +37,17 @@ export class RemoveSlotCommand implements Command<RemoveSlotInput> {
         const sdk = await sdkResolver.resolve();
         const configuration = await configurationManager.resolve();
 
+        const versionedSlots = input.slots === undefined
+            ? undefined
+            : RemoveSlotCommand.getVersionMap(input.slots, configuration.slots);
+
         const slots = await slotForm.handle({
             organizationSlug: configuration.organization,
             workspaceSlug: configuration.workspace,
             allowed: Object.keys(configuration.slots),
-            preselected: input.slots,
+            preselected: versionedSlots === undefined
+                ? undefined
+                : Object.keys(versionedSlots),
         });
 
         if (slots.length === 0) {
@@ -53,7 +61,21 @@ export class RemoveSlotCommand implements Command<RemoveSlotInput> {
                 ...configuration,
                 slots: Object.fromEntries(
                     Object.entries(configuration.slots)
-                        .filter(([slug]) => !slots.some(slot => slot.slug === slug)),
+                        .flatMap(([slug, version]) => {
+                            if (versionedSlots?.[slug] !== undefined) {
+                                if (versionedSlots[slug] === null) {
+                                    return [];
+                                }
+
+                                return [[slug, versionedSlots[slug].toString()]];
+                            }
+
+                            if (slots.some(slot => slot.slug === slug)) {
+                                return [];
+                            }
+
+                            return [[slug, version.toString()]];
+                        }),
                 ),
             },
         };
@@ -63,5 +85,38 @@ export class RemoveSlotCommand implements Command<RemoveSlotInput> {
         output.confirm('Configuration updated');
 
         await sdk.update(installation);
+    }
+
+    private static getVersionMap(
+        specifiers: string[],
+        slots: ProjectConfiguration['slots'],
+    ): Record<string, Version|null> {
+        return Object.fromEntries(
+            specifiers.map(versionedId => {
+                const [slug, specifier] = versionedId.split('@', 2);
+
+                if (slots[slug] === undefined || specifier === undefined) {
+                    return [slug, null];
+                }
+
+                const currentVersion = Version.parse(slots[slug]);
+
+                if (!Version.isValid(specifier)) {
+                    return [slug, currentVersion];
+                }
+
+                const specifiedVersion = Version.parse(specifier);
+
+                if (!currentVersion.intersects(specifiedVersion)) {
+                    return [slug, currentVersion];
+                }
+
+                if (!specifiedVersion.contains(currentVersion)) {
+                    return [slug, currentVersion.except(specifiedVersion)];
+                }
+
+                return [slug, null];
+            }),
+        );
     }
 }

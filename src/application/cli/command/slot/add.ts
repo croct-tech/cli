@@ -82,7 +82,7 @@ export class AddSlotCommand implements Command<AddSlotInput> {
 
         const versionedSlots = input.slots === undefined
             ? undefined
-            : AddSlotCommand.getVersionMap(input.slots);
+            : AddSlotCommand.getVersionMap(input.slots, configuration.slots);
 
         const slots = await slotForm.handle({
             organizationSlug: configuration.organization,
@@ -139,9 +139,12 @@ export class AddSlotCommand implements Command<AddSlotInput> {
         }));
     }
 
-    private static getVersionMap(slots: string[]): Record<string, Version|undefined> {
+    private static getVersionMap(
+        specifiers: string[],
+        slots: ProjectConfiguration['slots'],
+    ): Record<string, Version|undefined> {
         return Object.fromEntries(
-            slots.map(versionedId => {
+            specifiers.map(versionedId => {
                 const [slug, specifier] = versionedId.split('@', 2);
 
                 if (specifier === undefined) {
@@ -160,18 +163,35 @@ export class AddSlotCommand implements Command<AddSlotInput> {
                     );
                 }
 
-                const version = Version.parse(specifier);
+                let version = Version.parse(specifier);
 
                 if (version.getCardinality() > 5) {
                     throw new CliError(
-                        `Version range specified for slot \`${slug}\` exceeds 5 major versions.`,
+                        `The number of versions specified for slot \`${slug}\` exceeds 5 major versions.`,
                         {
                             code: CliErrorCode.INVALID_INPUT,
                             suggestions: [
-                                'Narrow down the version range to 5 major versions or less.',
+                                'Narrow down the number of versions to 5 or less.',
                             ],
                         },
                     );
+                }
+
+                if (slots[slug] !== undefined) {
+                    version = Version.parse(slots[slug]).combinedWith(version);
+
+                    if (version.getCardinality() > 5) {
+                        throw new CliError(
+                            `The cumulative number of versions for slot \`${slug}\` `
+                            + 'cannot exceed 5 major versions.',
+                            {
+                                code: CliErrorCode.INVALID_INPUT,
+                                suggestions: [
+                                    'Narrow down the number of versions to 5 or less.',
+                                ],
+                            },
+                        );
+                    }
                 }
 
                 return [slug, version];

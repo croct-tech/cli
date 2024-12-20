@@ -76,7 +76,7 @@ export class AddComponentCommand implements Command<AddComponentInput> {
 
         const versionedComponents = input.components === undefined
             ? undefined
-            : AddComponentCommand.getVersionMap(input.components);
+            : AddComponentCommand.getVersionMap(input.components, configuration.components);
 
         const components = await componentForm.handle({
             organizationSlug: configuration.organization,
@@ -126,9 +126,12 @@ export class AddComponentCommand implements Command<AddComponentInput> {
         });
     }
 
-    private static getVersionMap(components: string[]): Record<string, Version|undefined> {
+    private static getVersionMap(
+        specifiers: string[],
+        components: ProjectConfiguration['components'],
+    ): Record<string, Version|undefined> {
         return Object.fromEntries(
-            components.map<[string, Version|undefined]>(versionedId => {
+            specifiers.map<[string, Version|undefined]>(versionedId => {
                 const [slug, specifier] = versionedId.split('@', 2);
 
                 if (specifier === undefined) {
@@ -147,18 +150,35 @@ export class AddComponentCommand implements Command<AddComponentInput> {
                     );
                 }
 
-                const version = Version.parse(specifier);
+                let version = Version.parse(specifier);
 
                 if (version.getCardinality() > 5) {
                     throw new CliError(
-                        `Version range specified for component \`${slug}\` exceeds 5 major versions.`,
+                        `The number of versions specified for component \`${slug}\` exceeds 5 major versions.`,
                         {
                             code: CliErrorCode.INVALID_INPUT,
                             suggestions: [
-                                'Narrow down the version range to 5 major versions or less.',
+                                'Narrow down the number of versions to 5 or less.',
                             ],
                         },
                     );
+                }
+
+                if (components[slug] !== undefined) {
+                    version = Version.parse(components[slug]).combinedWith(version);
+
+                    if (version.getCardinality() > 5) {
+                        throw new CliError(
+                            `The cumulative number of versions for component \`${slug}\` `
+                            + 'cannot exceed 5 major versions.',
+                            {
+                                code: CliErrorCode.INVALID_INPUT,
+                                suggestions: [
+                                    'Narrow down the number of versions to 5 or less.',
+                                ],
+                            },
+                        );
+                    }
                 }
 
                 return [slug, version];

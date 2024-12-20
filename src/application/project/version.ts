@@ -134,6 +134,126 @@ export class Version {
         return versions;
     }
 
+    public intersects(other: Version): boolean {
+        if (other.isRange()) {
+            return other.intersects(this);
+        }
+
+        if (this.isRange()) {
+            if (other.isRange()) {
+                return this.getMinVersion() <= other.getMaxVersion()
+                    && other.getMinVersion() <= this.getMaxVersion();
+            }
+
+            if (other.isExact()) {
+                const version = other.getExactVersion();
+
+                return this.getMinVersion() <= version
+                    && version <= this.getMaxVersion();
+            }
+
+            const minimum = this.getMinVersion();
+            const maximum = this.getMaxVersion();
+
+            return other.getVersions().some(version => minimum <= version && version <= maximum);
+        }
+
+        const leftVersions = this.getVersions();
+        const rightVersions = other.getVersions();
+
+        if (leftVersions.length === 0 || rightVersions.length === 0) {
+            return false;
+        }
+
+        return leftVersions.some(version => rightVersions.includes(version));
+    }
+
+    public contains(other: Version): boolean {
+        if (this.isExact() && other.isExact()) {
+            return this.getExactVersion() === other.getExactVersion();
+        }
+
+        if (this.isRange()) {
+            if (other.isRange()) {
+                return this.getMinVersion() <= other.getMinVersion()
+                    && other.getMaxVersion() <= this.getMaxVersion();
+            }
+
+            if (other.isExact()) {
+                const version = other.getExactVersion();
+
+                return this.getMinVersion() <= version
+                    && version <= this.getMaxVersion();
+            }
+
+            const minimum = this.getMinVersion();
+            const maximum = this.getMaxVersion();
+
+            return other.getVersions()
+                .every(version => minimum <= version && version <= maximum);
+        }
+
+        if (!other.isSet()) {
+            return false;
+        }
+
+        const versions = this.getVersions();
+
+        return other.getVersions().every(version => versions.includes(version));
+    }
+
+    // Removes the versions specified in the other version from this version.
+    public except(other: Version): Version {
+        if (!this.intersects(other)) {
+            return this;
+        }
+
+        if (other.contains(this)) {
+            throw new Error('A version cannot be empty.');
+        }
+
+        if (this.isRange() && other.isRange()) {
+            if (this.getMinVersion() < other.getMinVersion()) {
+                return Version.between(this.getMinVersion(), other.getMinVersion() - 1);
+            }
+
+            return Version.between(other.getMaxVersion() + 1, this.getMaxVersion());
+        }
+
+        if (other.isRange()) {
+            const min = other.getMinVersion();
+            const max = other.getMaxVersion();
+
+            return Version.either(...this.getVersions().filter(version => version < min || version > max));
+        }
+
+        const excludedVersions = other.getVersions();
+
+        return Version.either(...this.getVersions().filter(version => !excludedVersions.includes(version)));
+    }
+
+    public combinedWith(other: Version): Version {
+        if (this.isExact() && other.isExact() && this.getExactVersion() === other.getExactVersion()) {
+            return this;
+        }
+
+        if (
+            this.isRange() && other.isRange()
+            // Check for adjacent ranges
+            && (
+                this.getMaxVersion() + 1 === other.getMinVersion()
+                || other.getMaxVersion() + 1 === this.getMinVersion()
+            )
+        ) {
+            return Version.between(
+                Math.min(this.getMinVersion(), other.getMinVersion()),
+                Math.max(this.getMaxVersion(), other.getMaxVersion()),
+            );
+        }
+
+        return Version.either(...this.getVersions(), ...other.getVersions());
+    }
+
     public equals(other: Version): boolean {
         if (other.min !== this.min || other.max !== this.max) {
             return false;

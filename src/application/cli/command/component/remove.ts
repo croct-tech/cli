@@ -2,11 +2,15 @@ import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
 import {SdkResolver} from '@/application/project/sdk/sdk';
-import {ResolvedConfiguration} from '@/application/project/configuration/configuration';
+import {
+    Configuration as ProjectConfiguration,
+    ResolvedConfiguration,
+} from '@/application/project/configuration/configuration';
 import {Form} from '@/application/cli/form/form';
 import {Component} from '@/application/model/entities';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import {Version} from '@/application/project/version';
 
 export type RemoveComponentInput = {
     components?: string[],
@@ -36,11 +40,17 @@ export class RemoveComponentCommand implements Command<RemoveComponentInput> {
         const sdk = await sdkResolver.resolve();
         const configuration = await configurationManager.resolve();
 
+        const versionedComponents = input.components === undefined
+            ? undefined
+            : RemoveComponentCommand.getVersionMap(input.components, configuration.components);
+
         const components = await componentForm.handle({
             organizationSlug: configuration.organization,
             workspaceSlug: configuration.workspace,
-            preselected: input.components,
             allowed: Object.keys(configuration.components),
+            preselected: versionedComponents === undefined
+                ? undefined
+                : Object.keys(versionedComponents),
         });
 
         if (components.length === 0) {
@@ -51,7 +61,21 @@ export class RemoveComponentCommand implements Command<RemoveComponentInput> {
             ...configuration,
             components: Object.fromEntries(
                 Object.entries(configuration.components)
-                    .filter(([slug]) => !components.some(component => component.slug === slug)),
+                    .flatMap(([slug, version]) => {
+                        if (versionedComponents?.[slug] !== undefined) {
+                            if (versionedComponents[slug] === null) {
+                                return [];
+                            }
+
+                            return [[slug, versionedComponents[slug].toString()]];
+                        }
+
+                        if (components.some(component => component.slug === slug)) {
+                            return [];
+                        }
+
+                        return [[slug, version.toString()]];
+                    }),
             ),
         };
 
@@ -64,5 +88,38 @@ export class RemoveComponentCommand implements Command<RemoveComponentInput> {
             output: io.output,
             configuration: updatedConfiguration,
         });
+    }
+
+    private static getVersionMap(
+        specifiers: string[],
+        components: ProjectConfiguration['components'],
+    ): Record<string, Version|null> {
+        return Object.fromEntries(
+            specifiers.map(versionedId => {
+                const [slug, specifier] = versionedId.split('@', 2);
+
+                if (components[slug] === undefined || specifier === undefined) {
+                    return [slug, null];
+                }
+
+                const currentVersion = Version.parse(components[slug]);
+
+                if (!Version.isValid(specifier)) {
+                    return [slug, currentVersion];
+                }
+
+                const specifiedVersion = Version.parse(specifier);
+
+                if (!currentVersion.intersects(specifiedVersion)) {
+                    return [slug, currentVersion];
+                }
+
+                if (!specifiedVersion.contains(currentVersion)) {
+                    return [slug, currentVersion.except(specifiedVersion)];
+                }
+
+                return [slug, null];
+            }),
+        );
     }
 }
