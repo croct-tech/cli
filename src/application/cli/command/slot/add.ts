@@ -178,7 +178,7 @@ export class AddSlotCommand implements Command<AddSlotInput> {
                 }
 
                 if (slots[slug] !== undefined) {
-                    version = Version.parse(slots[slug]).combinedWith(version);
+                    version = Version.parse(slots[slug]).with(version);
 
                     if (version.getCardinality() > 5) {
                         throw new CliError(

@@ -165,7 +165,7 @@ export class AddComponentCommand implements Command<AddComponentInput> {
                 }
 
                 if (components[slug] !== undefined) {
-                    version = Version.parse(components[slug]).combinedWith(version);
+                    version = Version.parse(components[slug]).with(version);
 
                     if (version.getCardinality() > 5) {
                         throw new CliError(

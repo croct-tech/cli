@@ -62,7 +62,7 @@ export class Version {
             return new Version([Number.parseInt(string, 10)]);
         }
 
-        const {groups} = string.match(/^((?<range>(?<min>\d+)\s*-\s*(?<max>\d+))|(?<set>\d+(\s*\|\|\s*\d+)+))$/) ?? {};
+        const {groups} = string.match(/^((?<range>(?<min>\d+)\s*-\s*(?<max>\d+))|(?<set>\d+(\s*,\s*\d+)+))$/) ?? {};
 
         if (groups === undefined) {
             throw new Error(`Invalid version pattern: ${string}`);
@@ -77,7 +77,7 @@ export class Version {
 
         return Version.either(
             ...groups.set
-                .split('||')
+                .split(',')
                 .map(version => Number.parseInt(version, 10)),
         );
     }
@@ -203,7 +203,7 @@ export class Version {
     }
 
     // Removes the versions specified in the other version from this version.
-    public except(other: Version): Version {
+    public without(other: Version): Version {
         if (!this.intersects(other)) {
             return this;
         }
@@ -257,13 +257,13 @@ export class Version {
         return Version.either(...this.getVersions().filter(version => !excludedVersions.includes(version)));
     }
 
-    public combinedWith(other: Version): Version {
+    public with(other: Version): Version {
         if (this.contains(other)) {
             return this;
         }
 
         if (other.isRange()) {
-            return other.combinedWith(this);
+            return other.with(this);
         }
 
         if (this.isRange()) {
@@ -313,7 +313,7 @@ export class Version {
 
     public toString(): string {
         if (this.isSet()) {
-            return this.versions.join(' || ');
+            return this.versions.join(', ');
         }
 
         return `${this.min} - ${this.max}`;

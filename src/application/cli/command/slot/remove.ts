@@ -112,7 +112,7 @@ export class RemoveSlotCommand implements Command<RemoveSlotInput> {
                 }
 
                 if (!specifiedVersion.contains(currentVersion)) {
-                    return [slug, currentVersion.except(specifiedVersion)];
+                    return [slug, currentVersion.without(specifiedVersion)];
                 }
 
                 return [slug, null];
