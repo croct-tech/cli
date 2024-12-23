@@ -212,12 +212,37 @@ export class Version {
             throw new Error('A version cannot be empty.');
         }
 
-        if (this.isRange() && other.isRange()) {
-            if (this.getMinVersion() < other.getMinVersion()) {
-                return Version.between(this.getMinVersion(), other.getMinVersion() - 1);
-            }
+        if (this.isRange()) {
+            if (other.isExact()) {
+                if (this.getMinVersion() === other.getExactVersion()) {
+                    return Version.between(other.getExactVersion() + 1, this.getMaxVersion());
+                }
 
-            return Version.between(other.getMaxVersion() + 1, this.getMaxVersion());
+                if (this.getMaxVersion() === other.getExactVersion()) {
+                    return Version.between(this.getMinVersion(), other.getExactVersion() - 1);
+                }
+            } else if (other.isRange()) {
+                if (this.getMinVersion() === other.getMinVersion()) {
+                    return Version.between(other.getMaxVersion() + 1, this.getMaxVersion());
+                }
+
+                if (this.getMaxVersion() === other.getMaxVersion()) {
+                    return Version.between(this.getMinVersion(), other.getMinVersion() - 1);
+                }
+            } else if (other.isSet()) {
+                const versions = other.getVersions();
+                const isSequential = versions.every((version, index) => version === other.getMinVersion() + index);
+
+                if (isSequential) {
+                    if (this.getMinVersion() === other.getMinVersion()) {
+                        return Version.between(other.getMaxVersion() + 1, this.getMaxVersion());
+                    }
+
+                    if (this.getMaxVersion() === other.getMaxVersion()) {
+                        return Version.between(this.getMinVersion(), other.getMinVersion() - 1);
+                    }
+                }
+            }
         }
 
         if (other.isRange()) {
@@ -233,22 +258,32 @@ export class Version {
     }
 
     public combinedWith(other: Version): Version {
-        if (this.isExact() && other.isExact() && this.getExactVersion() === other.getExactVersion()) {
+        if (this.contains(other)) {
             return this;
         }
 
-        if (
-            this.isRange() && other.isRange()
-            // Check for adjacent ranges
-            && (
-                this.getMaxVersion() + 1 === other.getMinVersion()
-                || other.getMaxVersion() + 1 === this.getMinVersion()
-            )
-        ) {
-            return Version.between(
-                Math.min(this.getMinVersion(), other.getMinVersion()),
-                Math.max(this.getMaxVersion(), other.getMaxVersion()),
-            );
+        if (this.isRange()) {
+            if (other.isExact()) {
+                if (this.getMaxVersion() + 1 === other.getExactVersion()) {
+                    return Version.between(this.getMinVersion(), other.getExactVersion());
+                }
+
+                if (other.getExactVersion() + 1 === this.getMinVersion()) {
+                    return Version.between(other.getExactVersion(), this.getMaxVersion());
+                }
+            } else if (other.isRange()) {
+                if (
+                    this.getMaxVersion() + 1 === other.getMinVersion()
+                    || other.getMaxVersion() + 1 === this.getMinVersion()
+                ) {
+                    return Version.between(
+                        Math.min(this.getMinVersion(), other.getMinVersion()),
+                        Math.max(this.getMaxVersion(), other.getMaxVersion()),
+                    );
+                }
+            } else if (other.isSet() && this.contains(this)) {
+                return this;
+            }
         }
 
         return Version.either(...this.getVersions(), ...other.getVersions());
