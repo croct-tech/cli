@@ -262,6 +262,10 @@ export class Version {
             return this;
         }
 
+        if (other.isRange()) {
+            return other.combinedWith(this);
+        }
+
         if (this.isRange()) {
             if (other.isExact()) {
                 if (this.getMaxVersion() + 1 === other.getExactVersion()) {
