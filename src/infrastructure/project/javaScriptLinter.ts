@@ -2,7 +2,7 @@ import {spawn} from 'child_process';
 import {execPath} from 'node:process';
 import {Linter} from '@/application/project/linter';
 import {PackageInfo, ProjectManager} from '@/application/project/manager/projectManager';
-import {Filesystem} from '@/application/filesystem/filesystem';
+import {FileSystem} from '@/application/fileSystem/fileSystem';
 
 type LinterCommand = {
     executable: string,
@@ -18,7 +18,7 @@ type LinterTool = {
 export type Configuration = {
     tools: LinterTool[],
     projectManager: ProjectManager,
-    filesystem: Filesystem,
+    fileSystem: FileSystem,
 };
 
 export class JavaScriptLinter implements Linter {
@@ -26,12 +26,12 @@ export class JavaScriptLinter implements Linter {
 
     private readonly projectManager: ProjectManager;
 
-    private readonly filesystem: Filesystem;
+    private readonly fileSystem: FileSystem;
 
-    public constructor({tools, projectManager, filesystem}: Configuration) {
+    public constructor({tools, projectManager, fileSystem}: Configuration) {
         this.tools = tools;
         this.projectManager = projectManager;
-        this.filesystem = filesystem;
+        this.fileSystem = fileSystem;
     }
 
     public async fix(files: string[]): Promise<void> {
@@ -88,9 +88,9 @@ export class JavaScriptLinter implements Linter {
             }
 
             return {
-                executable: this.filesystem.joinPaths(
+                executable: this.fileSystem.joinPaths(
                     info.directory,
-                    bin.replace(/[\\/]/g, this.filesystem.getSeparator()),
+                    this.fileSystem.normalizeSeparators(bin),
                 ),
                 args: liter.args(files),
             };

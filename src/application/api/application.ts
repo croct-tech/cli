@@ -1,4 +1,4 @@
-import {ApiKey} from '@/application/model/entities';
+import {ApiKey} from '@/application/model/application';
 
 export type NewApiKey = Omit<ApiKey, 'id'> & {
     applicationId: string,

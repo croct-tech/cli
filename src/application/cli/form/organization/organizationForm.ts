@@ -1,10 +1,10 @@
-import {Organization} from '@/application/model/entities';
 import {System} from '@/infrastructure/system';
 import {Input} from '@/application/cli/io/input';
 import {Notifier, Output} from '@/application/cli/io/output';
 import {UserApi} from '@/application/api/user';
 import {Form} from '@/application/cli/form/form';
 import {UrlInput} from '@/application/cli/form/input/urlInput';
+import {Organization} from '@/application/model/organization';
 
 export type Configuration = {
     input: Input,

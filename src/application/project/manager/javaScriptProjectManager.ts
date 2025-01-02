@@ -20,16 +20,4 @@ export interface JavaScriptProjectManager extends ProjectManager {
      * @returns The path to the TypeScript configuration file or null if not found.
      */
     getTypeScriptConfigPath(sourcePaths?: string[]): Promise<string | null>;
-
-    /**
-     * Converts a file path to its corresponding import path.
-     *
-     * This method transforms a local file path into a path that can be used
-     * as an import statement in JavaScript or TypeScript code.
-     *
-     * @param filePath The local file path to convert.
-     * @param importPath The path from which the import is made.
-     * @returns The corresponding import path.
-     */
-    getImportPath(filePath: string, importPath?: string): Promise<string>;
 }

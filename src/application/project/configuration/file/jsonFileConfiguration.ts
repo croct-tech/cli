@@ -4,7 +4,7 @@ import {Configuration, ConfigurationError} from '@/application/project/configura
 import {Version} from '@/application/project/version';
 import {ConfigurationFile} from '@/application/project/configuration/file/configurationFile';
 import {JsonObjectNode, JsonParser} from '@/infrastructure/json';
-import {Filesystem} from '@/application/filesystem/filesystem';
+import {FileSystem} from '@/application/fileSystem/fileSystem';
 
 const identifierSchema = z.string().regex(
     /^[a-z]+(-?[a-z0-9]+)*$/i,
@@ -59,12 +59,12 @@ type LoadedFile = {
 };
 
 export class JsonFileConfiguration implements ConfigurationFile {
-    private readonly filesystem: Filesystem;
+    private readonly fileSystem: FileSystem;
 
     private readonly projectDirectory: string;
 
-    public constructor(filesystem: Filesystem, projectDirectory: string) {
-        this.filesystem = filesystem;
+    public constructor(fileSystem: FileSystem, projectDirectory: string) {
+        this.fileSystem = fileSystem;
         this.projectDirectory = projectDirectory;
     }
 
@@ -72,13 +72,13 @@ export class JsonFileConfiguration implements ConfigurationFile {
         return (await this.loadFile()).configuration;
     }
 
-    public update(configuration: Configuration): Promise<void> {
+    public update(configuration: Configuration): Promise<Configuration> {
         this.checkConfiguration(configuration);
 
         return this.updateFile(configuration);
     }
 
-    private async updateFile(configuration: Configuration): Promise<void> {
+    private async updateFile(configuration: Configuration): Promise<Configuration> {
         const cleanedConfiguration = JsonFileConfiguration.clean(configuration);
         const file = await this.loadFile();
         const data = file.configuration !== null && file.source !== null
@@ -106,10 +106,12 @@ export class JsonFileConfiguration implements ConfigurationFile {
         });
 
         try {
-            await this.filesystem.writeFile(file.path, json, {overwrite: true});
+            await this.fileSystem.writeFile(file.path, json, {overwrite: true});
         } catch {
             throw new Error(`Unable to write configuration file ${file.path}.`);
         }
+
+        return cleanedConfiguration;
     }
 
     private async loadFile(): Promise<LoadedFile> {
@@ -122,7 +124,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
         let configuration: JsonValue;
 
         try {
-            file.source = await this.filesystem.readFile(file.path);
+            file.source = await this.fileSystem.readFile(file.path);
             configuration = JsonParser.parse(file.source).toJSON();
         } catch {
             return file;
@@ -138,7 +140,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
     }
 
     private getConfigurationFilePath(): string {
-        return this.filesystem.joinPaths(this.projectDirectory, 'croct.json');
+        return this.fileSystem.joinPaths(this.projectDirectory, 'croct.json');
     }
 
     private checkConfiguration(configuration: JsonValue, file?: LoadedFile): asserts configuration is Configuration {
@@ -160,7 +162,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
 
             throw new ConfigurationError(error.message, [
                 ...(file !== undefined
-                    ? `Configuration file: ${this.filesystem.getRelativePath(this.projectDirectory, file.path)}`
+                    ? `Configuration file: ${this.fileSystem.getRelativePath(this.projectDirectory, file.path)}`
                     : []
                 ),
                 `Violation path: ${path}`,

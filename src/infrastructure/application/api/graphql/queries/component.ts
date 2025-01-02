@@ -15,6 +15,14 @@ export const componentsQuery = graphql(`
                                     major
                                     minor
                                 }
+                                metadata {
+                                    directReferences
+                                    indirectReferences
+                                    referenceMetadata {
+                                        referenceName
+                                        componentId
+                                    }
+                                }
                             }
                         }
                     }
@@ -41,6 +49,14 @@ export const componentQuery = graphql(`
                         version {
                             major
                             minor
+                        }
+                        metadata {
+                            directReferences
+                            indirectReferences
+                            referenceMetadata {
+                                referenceName
+                                componentId
+                            }
                         }
                     }
                 }

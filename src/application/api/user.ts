@@ -1,4 +1,5 @@
-import {Organization, User} from '@/application/model/entities';
+import {User} from '@/application/model/user';
+import {Organization} from '@/application/model/organization';
 
 export type OrganizationSetup = {
     website: string,

@@ -45,6 +45,7 @@
     "ci-info": "^4.1.0",
     "cli-cursor": "^5.0.0",
     "commander": "^12.1.0",
+    "glob": "^11.0.0",
     "is-unicode-supported": "^2.1.0",
     "minimatch": "^10.0.1",
     "open": "^10.1.0",
@@ -52,6 +53,7 @@
     "prompts": "^2.4.2",
     "string-similarity-js": "^2.1.4",
     "strip-ansi": "^7.1.0",
+    "tar": "^7.4.3",
     "terminal-link": "^3.0.0",
     "xdg-app-paths": "^8.3.0",
     "zod": "^3.23.8"

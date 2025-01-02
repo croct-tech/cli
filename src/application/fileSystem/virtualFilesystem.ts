@@ -3,13 +3,13 @@ import {
     DeletionOptions,
     DirectoryCopyOptions,
     DirectoryCreationOptions,
-    Filesystem,
+    FileSystem,
     FileWritingOptions,
-} from '@/application/filesystem/filesystem';
+} from '@/application/fileSystem/fileSystem';
 
 type FilesystemNodeMap = {
     file: {
-        content: string,
+        content: string|Blob,
     },
     link: {
         target: string,
@@ -27,11 +27,15 @@ type FilesystemNode<T extends FilesystemNodeType = FilesystemNodeType> = {
     }
 }[T];
 
-export class VirtualFilesystem implements Filesystem {
+export class VirtualFilesystem implements FileSystem {
     private readonly root: FilesystemNode<'directory'>;
 
     public constructor(root: FilesystemNode<'directory'>) {
         this.root = {...root};
+    }
+
+    public find(pattern: string): AsyncGenerator<string, void, void> {
+        throw new Error('Method not implemented');
     }
 
     public getSeparator(): string {
@@ -54,7 +58,7 @@ export class VirtualFilesystem implements Filesystem {
         return relative(from, to);
     }
 
-    public isAbsolute(path: string): boolean {
+    public isAbsolutePath(path: string): boolean {
         return isAbsolute(path);
     }
 
@@ -108,7 +112,7 @@ export class VirtualFilesystem implements Filesystem {
         return Promise.resolve(node.content);
     }
 
-    public writeFile(path: string, content: string, options?: FileWritingOptions): Promise<void> {
+    public writeFile(path: string, data: string|Blob, options?: FileWritingOptions): Promise<void> {
         const directory = this.getParentNode(path);
 
         if (directory === null) {
@@ -123,7 +127,7 @@ export class VirtualFilesystem implements Filesystem {
 
         directory.files[fileName] = {
             type: 'file',
-            content: content,
+            content: data,
         };
 
         return Promise.resolve();

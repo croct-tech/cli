@@ -1,6 +1,5 @@
 import {NewWorkspace, OrganizationApi, OrganizationPath, WorkspacePath} from '@/application/api/organization';
 import {GraphqlClient} from '@/infrastructure/graphql/client';
-import {Workspace} from '@/application/model/entities';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
 import {WorkspaceQuery} from '@/infrastructure/graphql/schema/graphql';
 import {
@@ -9,6 +8,7 @@ import {
     workspaceSlugQuery,
     workspacesQuery,
 } from '@/infrastructure/application/api/graphql/queries/workspace';
+import {Workspace} from '@/application/model/workspace';
 
 type WorkspaceData = NonNullable<NonNullable<WorkspaceQuery['organization']>['workspace']>;
 

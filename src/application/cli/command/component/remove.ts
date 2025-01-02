@@ -7,10 +7,10 @@ import {
     ResolvedConfiguration,
 } from '@/application/project/configuration/configuration';
 import {Form} from '@/application/cli/form/form';
-import {Component} from '@/application/model/entities';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {Version} from '@/application/project/version';
+import {Component} from '@/application/model/component';
 
 export type RemoveComponentInput = {
     components?: string[],

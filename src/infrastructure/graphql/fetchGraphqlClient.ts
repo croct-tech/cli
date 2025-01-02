@@ -46,10 +46,6 @@ export class FetchGraphqlClient implements GraphqlClient {
             }),
         });
 
-        if (!response.ok) {
-            throw new ApiError('Failed to fetch GraphQL API.');
-        }
-
         return response.json().then(({data, errors}: GraphqlResponseBody<TResult>) => {
             if (errors !== undefined) {
                 throw new ApiError(errors[0].message, errors.map(({extensions}) => extensions));

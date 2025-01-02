@@ -1,21 +1,21 @@
-import {Filesystem} from '@/application/filesystem/filesystem';
+import {FileSystem} from '@/application/fileSystem/fileSystem';
 
 export class EnvFile {
-    private readonly filesystem: Filesystem;
+    private readonly fileSystem: FileSystem;
 
     private readonly path: string;
 
-    public constructor(filesystem: Filesystem, path: string) {
-        this.filesystem = filesystem;
+    public constructor(fileSystem: FileSystem, path: string) {
+        this.fileSystem = fileSystem;
         this.path = path;
     }
 
     public getName(): string {
-        return this.filesystem.getBaseName(this.path);
+        return this.fileSystem.getBaseName(this.path);
     }
 
     public exists(): Promise<boolean> {
-        return this.filesystem.exists(this.path);
+        return this.fileSystem.exists(this.path);
     }
 
     public async hasVariable(name: string): Promise<boolean> {
@@ -69,14 +69,14 @@ export class EnvFile {
     }
 
     private async write(content: string): Promise<void> {
-        await this.filesystem.writeFile(this.path, content, {
+        await this.fileSystem.writeFile(this.path, content, {
             overwrite: true,
         });
     }
 
     private async read(): Promise<string> {
         try {
-            return await this.filesystem.readFile(this.path);
+            return await this.fileSystem.readFile(this.path);
         } catch (error) {
             if (error.code !== 'ENOENT') {
                 throw error;

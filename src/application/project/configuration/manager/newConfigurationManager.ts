@@ -27,15 +27,15 @@ export class NewConfigurationManager implements ConfigurationManager {
         return this.manager.load();
     }
 
-    public update(configuration: ProjectConfiguration): Promise<void> {
-        return this.manager.update(configuration);
-    }
-
     public async resolve(): Promise<ResolvedConfiguration> {
         if (await this.load() === null) {
             await this.initializer.initialize();
         }
 
         return this.manager.resolve();
+    }
+
+    public update(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
+        return this.manager.update(configuration);
     }
 }

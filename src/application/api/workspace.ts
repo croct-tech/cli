@@ -1,13 +1,9 @@
-import {
-    Application,
-    Audience,
-    Component,
-    Experience,
-    Experiment,
-    LocalizedContent,
-    Slot,
-} from '@/application/model/entities';
 import {WorkspacePath} from '@/application/api/organization';
+import {Application} from '@/application/model/application';
+import {Audience} from '@/application/model/audience';
+import {Slot} from '@/application/model/slot';
+import {Component} from '@/application/model/component';
+import {Experience, ExperienceSummary, LocalizedContent} from '@/application/model/experience';
 
 export type AudiencePath = WorkspacePath & {
     audienceSlug: string,
@@ -58,10 +54,6 @@ export type ExperiencePath = WorkspacePath & {
     experienceId: string,
 };
 
-export type ExperimentPath = ExperiencePath & {
-    experimentId: string,
-};
-
 export interface WorkspaceApi {
     getAudiences(path: WorkspacePath): Promise<Audience[]>;
 
@@ -85,11 +77,7 @@ export interface WorkspaceApi {
 
     createApplication(application: NewApplication): Promise<Application>;
 
-    getExperiences(path: WorkspacePath): Promise<Experience[]>;
+    getExperiences(path: WorkspacePath): Promise<ExperienceSummary[]>;
 
     getExperience(path: ExperiencePath): Promise<Experience|null>;
-
-    getExperiments(path: ExperiencePath): Promise<Experiment[]>;
-
-    getExperiment(path: ExperimentPath): Promise<Experiment|null>;
 }

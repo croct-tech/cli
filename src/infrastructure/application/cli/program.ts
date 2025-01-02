@@ -1,23 +1,27 @@
-import {Command, Option} from '@commander-js/extra-typings';
+import {Command, InvalidArgumentError, Option} from '@commander-js/extra-typings';
 import XDGAppPaths from 'xdg-app-paths';
 import * as process from 'node:process';
 import {resolve} from 'path';
 import ci from 'ci-info';
+import {JsonPrimitive} from '@croct/json';
 import {Cli} from '@/infrastructure/application/cli/cli';
 import {Resource} from '@/application/cli/command/init';
+import {OptionMap} from '@/application/model/manifest';
 
 process.on('SIGINT', () => process.exit(0));
 process.on('SIGTERM', () => process.exit(0));
 
 const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a.run.app';
 
-function createProgram(interactive: boolean, cli?: Cli): typeof program {
+function createProgram(interactive: boolean, templateOptions?: OptionMap, cli?: Cli): typeof program {
     const program = new Command()
         .name('croct')
         .description('Manage your Croct projects.')
         .version('0.0.1', '-v, --version', 'Display the version number')
         .option('-d, --cwd <path>', 'The working directory')
         .option('-n, --no-interaction', 'Disable interaction mode')
+        .helpOption(cli !== undefined)
+        .helpCommand(cli !== undefined)
         .addOption(
             new Option('-q, --quiet', 'Disable output messages')
                 .default(false)
@@ -172,13 +176,77 @@ function createProgram(interactive: boolean, cli?: Cli): typeof program {
             });
         });
 
+    const createCommand = program.command('create')
+        .description('Create a resource in your project.');
+
+    createCommand.command('template')
+        .description('Export a template from your project.')
+        .action(async () => {
+            await cli?.createTemplate({});
+        });
+
+    const importCommand = program.command('import')
+        .enablePositionalOptions(cli === undefined)
+        .description('Import a resource into your project.');
+
+    const optionNames: Record<string, string> = {};
+
+    const templateCommand = importCommand.command('template')
+        .argument('template', 'The path to the template')
+        .description('Import a template into your project.')
+        .passThroughOptions(cli === undefined)
+        .allowUnknownOption(cli === undefined)
+        .action(async (template, options) => {
+            await cli?.importTemplate({
+                template: template,
+                options: Object.fromEntries(
+                    Object.entries(options)
+                        .map(([key, value]) => [optionNames[key], value as JsonPrimitive]),
+                ),
+            });
+        });
+
+    for (const [name, definition] of Object.entries(templateOptions ?? {})) {
+        const usage = `--${name}${definition.type !== 'boolean' ? ' <value>' : ''}`;
+
+        const option = new Option(usage, definition.description)
+            .default(definition.default)
+            .makeOptionMandatory(definition.required === true);
+
+        switch (definition.type) {
+            case 'string':
+                if (definition.choices !== undefined && definition.choices.length > 0) {
+                    option.choices(definition.choices);
+                }
+
+                break;
+
+            case 'number':
+                option.argParser(value => {
+                    const parsedValue = Number.parseFloat(value);
+
+                    if (Number.isNaN(parsedValue)) {
+                        throw new InvalidArgumentError('The value must be a number.');
+                    }
+
+                    return value;
+                });
+        }
+
+        optionNames[option.attributeName()] = name;
+
+        templateCommand.addOption(option);
+    }
+
     return program;
 }
 
 (async function main(): Promise<void> {
-    const options = createProgram(true)
-        .parse()
-        .opts();
+    const parsedInput = createProgram(true)
+        .parse();
+
+    const {args} = parsedInput;
+    const options = parsedInput.opts();
 
     const cli = new Cli({
         io: {
@@ -203,7 +271,13 @@ function createProgram(interactive: boolean, cli?: Cli): typeof program {
         exitCallback: () => process.exit(1),
     });
 
-    const program = createProgram(options.interaction, cli);
+    const program = createProgram(
+        options.interaction,
+        args[0] === 'import' && args[1] === 'template' && args[2] !== undefined
+            ? await cli.getTemplateOptions(args[2])
+            : undefined,
+        cli,
+    );
 
     await program.parseAsync();
 }());

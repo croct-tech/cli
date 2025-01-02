@@ -3,7 +3,6 @@ import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
 import {SdkResolver} from '@/application/project/sdk/sdk';
 import {Form} from '@/application/cli/form/form';
-import {Component, Slot} from '@/application/model/entities';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {CliError, CliErrorCode} from '@/application/cli/error';
@@ -13,6 +12,8 @@ import {
 } from '@/application/project/configuration/configuration';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
 import {Version} from '@/application/project/version';
+import {Slot} from '@/application/model/slot';
+import {Component} from '@/application/model/component';
 
 export type UpgradeInput = {
     slots?: string[],

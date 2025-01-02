@@ -4,10 +4,10 @@ import {CodeWriter} from '@/application/project/example/codeWritter';
 import {formatLabel, sortAttributes} from '@/application/project/example/utils';
 import {AttributeDefinition, ContentDefinition} from '@/application/project/example/content-model/definitions';
 import {formatName} from '@/application/project/utils/formatName';
-import {Filesystem} from '@/application/filesystem/filesystem';
+import {FileSystem} from '@/application/fileSystem/fileSystem';
 
 export type Configuration = {
-    filesystem: Filesystem,
+    fileSystem: FileSystem,
     options: {
         language: CodeLanguage.JAVASCRIPT | CodeLanguage.TYPESCRIPT,
         appId: string,
@@ -35,9 +35,9 @@ type DeepRequired<T> = Required<{
 export class PlugJsExampleGenerator implements SlotExampleGenerator {
     protected readonly config: DeepRequired<Configuration['options']>;
 
-    private readonly filesystem: Filesystem;
+    private readonly fileSystem: FileSystem;
 
-    public constructor({filesystem, options}: Configuration) {
+    public constructor({fileSystem, options}: Configuration) {
         this.config = {
             ...options,
             language: options.language ?? CodeLanguage.JAVASCRIPT,
@@ -56,7 +56,7 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
             },
         };
 
-        this.filesystem = filesystem;
+        this.fileSystem = fileSystem;
     }
 
     public generate(definition: SlotDefinition): CodeExample {
@@ -73,14 +73,14 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
     private generatePageFile(definition: SlotDefinition, slotFile: string): ExampleFile {
         const writer = this.createWriter();
 
-        const path = this.filesystem.joinPaths(
+        const path = this.fileSystem.joinPaths(
             this.config.code.paths.page,
             `${this.addExtension(this.formatFileName(definition.id, false), CodeLanguage.HTML)}`,
         );
 
         this.writePageSnippet(
             writer,
-            this.filesystem.getRelativePath(this.config.code.paths.page, slotFile).replace(/\\/g, '/'),
+            this.fileSystem.getRelativePath(this.config.code.paths.page, slotFile).replace(/\\/g, '/'),
         );
 
         return {
@@ -113,7 +113,7 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
         this.writeSlotSnippet(writer, definition);
 
         return {
-            name: this.filesystem.joinPaths(
+            name: this.fileSystem.joinPaths(
                 this.config.code.paths.slot,
                 `${this.addExtension(this.formatFileName(definition.id, false))}`,
             ),

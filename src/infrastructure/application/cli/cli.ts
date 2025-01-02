@@ -48,7 +48,6 @@ import {CreateLayoutComponent} from '@/application/project/sdk/code/nextjs/creat
 import {CreateAppComponent} from '@/application/project/sdk/code/nextjs/createAppComponent';
 import {JavaScriptLinter} from '@/infrastructure/project/javaScriptLinter';
 import {SdkDetector} from '@/application/cli/sdkDetector';
-import {ConfigurationFileManager} from '@/application/project/configuration/manager/configurationFileManager';
 import {AddSlotCommand, AddSlotInput} from '@/application/cli/command/slot/add';
 import {SlotForm} from '@/application/cli/form/workspace/slotForm';
 import {AddComponentCommand, AddComponentInput} from '@/application/cli/command/component/add';
@@ -69,8 +68,8 @@ import {
 import {ApiError} from '@/application/api/error';
 import {UpgradeCommand, UpgradeInput} from '@/application/cli/command/upgrade';
 import {ConfigurationError} from '@/application/project/configuration/configuration';
-import {Filesystem} from '@/application/filesystem/filesystem';
-import {LocalFilesystem} from '@/application/filesystem/localFilesystem';
+import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {LocalFilesystem} from '@/application/fileSystem/localFilesystem';
 import {ImportConfigLoader} from '@/application/project/manager/importConfigLoader';
 import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
 import {AntfuPackageInstaller} from '@/infrastructure/project/antfuPackageInstaller';
@@ -84,6 +83,28 @@ import {ICloudTemplate} from '@/application/cli/email/template/icloudTemplate';
 import {MicrosoftTemplate} from '@/application/cli/email/template/microsoftTemplate';
 import {ProtonTemplate} from '@/application/cli/email/template/protonTemplate';
 import {YahooTemplate} from '@/application/cli/email/template/yahooTemplate';
+import {CreateTemplateCommand, CreateTemplateInput} from '@/application/cli/command/template/create';
+import {TemplateForm} from '@/application/cli/form/workspace/templateForm';
+import {ExperienceForm} from '@/application/cli/form/workspace/experienceForm';
+import {AudienceForm} from '@/application/cli/form/workspace/audienceForm';
+import {ImportTemplateCommand, ImportTemplateInput} from '@/application/cli/command/template/import';
+import {DownloadSource} from '@/application/cli/action/downloadSource';
+import {ActionRunner} from '@/application/cli/action/runner';
+import {ResolveImportFile} from '@/application/cli/action/resolveImport';
+import {AddDependency} from '@/application/cli/action/addDependency';
+import {LocateFile} from '@/application/cli/action/locateFile';
+import {ReplaceFileContent} from '@/application/cli/action/replaceFileContent';
+import {GithubDownloader} from '@/application/cli/download/githubDownloader';
+import {OptionMap} from '@/application/model/manifest';
+import {Define} from '@/application/cli/action/define';
+import {AddSlot} from '@/application/cli/action/addSlot';
+import {AddComponent} from '@/application/cli/action/addComponent';
+import {Try} from '@/application/cli/action/try';
+import {ActionMap} from '@/application/cli/action/action';
+import {LazyAction} from '@/application/cli/action/lazyAction';
+import {CachedConfigurationManager} from '@/application/project/configuration/manager/cachedConfigurationManager';
+import {ConfigurationFileManager} from '@/application/project/configuration/manager/configurationFileManager';
+import {CachedSdkResolver} from '@/application/project/sdk/cachedSdkResolver';
 
 export type Configuration = {
     io: {
@@ -116,7 +137,7 @@ type AuthenticationInput = MultiAuthenticationInput<AuthenticationMethods>;
 export class Cli {
     private readonly configuration: Configuration;
 
-    private filesystem: Filesystem;
+    private fileSystem: FileSystem;
 
     private authenticator?: Authenticator<AuthenticationInput>;
 
@@ -304,6 +325,76 @@ export class Cli {
         );
     }
 
+    public createTemplate(input: CreateTemplateInput): Promise<void> {
+        return this.execute(
+            new CreateTemplateCommand({
+                configurationManager: this.getConfigurationManager(),
+                templateForm: new TemplateForm({
+                    input: this.getFormInput(),
+                    form: {
+                        component: new ComponentForm({
+                            input: this.getFormInput(),
+                            output: this.getOutput(),
+                            workspaceApi: this.getWorkspaceApi(),
+                        }),
+                        slot: new SlotForm({
+                            input: this.getFormInput(),
+                            output: this.getOutput(),
+                            workspaceApi: this.getWorkspaceApi(),
+                        }),
+                        experience: new ExperienceForm({
+                            input: this.getFormInput(),
+                            output: this.getOutput(),
+                            workspaceApi: this.getWorkspaceApi(),
+                        }),
+                        audience: new AudienceForm({
+                            input: this.getFormInput(),
+                            output: this.getOutput(),
+                            workspaceApi: this.getWorkspaceApi(),
+                        }),
+                    },
+                }),
+                io: {
+                    input: this.getInput(),
+                    output: this.getOutput(),
+                },
+            }),
+            input,
+        );
+    }
+
+    public importTemplate(input: ImportTemplateInput): Promise<void> {
+        const command = this.getImportTemplateCommand();
+
+        return this.execute(command, input);
+    }
+
+    public async getTemplateOptions(template: string): Promise<OptionMap> {
+        const command = this.getImportTemplateCommand();
+        const output = this.getOutput();
+
+        const notifier = output.notify('Loading template...');
+
+        try {
+            return await command.getOptions(template);
+        } finally {
+            notifier.stop();
+        }
+    }
+
+    private getImportTemplateCommand(): ImportTemplateCommand {
+        return new ImportTemplateCommand({
+            fileSystem: this.getFileSystem(),
+            actionRunner: this.getActionRunner(),
+            configurationManager: this.getConfigurationManager(),
+            sdkResolver: this.getSdkResolver(),
+            io: {
+                input: this.getInput(),
+                output: this.getOutput(),
+            },
+        });
+    }
+
     public login(input: LoginInput<AuthenticationInput>): Promise<void> {
         return this.execute(new LoginCommand({authenticator: this.getAuthenticator()}), input);
     }
@@ -337,12 +428,16 @@ export class Cli {
     }
 
     private getFormInput(): Input {
-        return this.getInput() ?? new NonInteractiveInput({
+        return this.getInput() ?? this.getNonInteractiveInput();
+    }
+
+    private getNonInteractiveInput(): Input {
+        return new NonInteractiveInput({
             message: 'Input is not available in non-interactive mode.',
         });
     }
 
-    private getInput(): Input|undefined {
+    private getInput(): Input | undefined {
         if (this.input === undefined && this.configuration.interactive) {
             const output = this.getOutput();
 
@@ -358,6 +453,15 @@ export class Cli {
         return this.input;
     }
 
+    private getNonInteractiveOutput(quiet = false): ConsoleOutput {
+        return new ConsoleOutput({
+            output: this.configuration.io.output,
+            interactive: false,
+            quiet: quiet,
+            onExit: this.configuration.exitCallback,
+        });
+    }
+
     private getOutput(): ConsoleOutput {
         if (this.output === undefined) {
             this.output = new ConsoleOutput({
@@ -371,13 +475,90 @@ export class Cli {
         return this.output;
     }
 
+    private getActionRunner(): ActionRunner {
+        const fileSystem = this.getFileSystem();
+        const projectManager = this.createJavaScriptProjectManager();
+        const actions: ActionMap = {
+            try: new LazyAction(() => new Try(actions)),
+            define: new Define(),
+            'download-source': new DownloadSource({
+                fileSystem: fileSystem,
+                downloader: new GithubDownloader(fileSystem),
+            }),
+            'resolve-import': new ResolveImportFile({
+                importResolver: (target, source) => projectManager.getImportPath(target, source),
+            }),
+            'add-dependency': new AddDependency({
+                installer: (dependencies, development) => projectManager.installPackage(dependencies, {
+                    dev: development,
+                }),
+            }),
+            'locate-file': new LocateFile({
+                fileSystem: fileSystem,
+            }),
+            'replace-file-content': new ReplaceFileContent({
+                fileSystem: fileSystem,
+            }),
+            'add-slot': new AddSlot({
+                installer: (slots, example): Promise<void> => {
+                    const output = this.getNonInteractiveOutput(true);
+
+                    return this.execute(
+                        new AddSlotCommand({
+                            sdkResolver: this.getSdkResolver(),
+                            configurationManager: this.getConfigurationManager(),
+                            workspaceApi: this.getWorkspaceApi(),
+                            slotForm: new SlotForm({
+                                input: this.getNonInteractiveInput(),
+                                output: output,
+                                workspaceApi: this.getWorkspaceApi(),
+                            }),
+                            io: {
+                                output: output,
+                            },
+                        }),
+                        {
+                            slots: slots,
+                            example: example,
+                        },
+                    );
+                },
+            }),
+            'add-component': new AddComponent({
+                installer: (components): Promise<void> => {
+                    const output = this.getNonInteractiveOutput(true);
+
+                    return this.execute(
+                        new AddComponentCommand({
+                            sdkResolver: this.getSdkResolver(),
+                            configurationManager: this.getConfigurationManager(),
+                            componentForm: new ComponentForm({
+                                input: this.getNonInteractiveInput(),
+                                output: output,
+                                workspaceApi: this.getWorkspaceApi(),
+                            }),
+                            io: {
+                                output: output,
+                            },
+                        }),
+                        {
+                            components: components,
+                        },
+                    );
+                },
+            }),
+        };
+
+        return new ActionRunner(actions);
+    }
+
     private getAuthenticator(): Authenticator<AuthenticationInput> {
         if (this.authenticator === undefined) {
-            const filesystem = this.getFileSystem();
+            const fileSystem = this.getFileSystem();
 
             this.authenticator = new TokenFileAuthenticator({
-                filesystem: filesystem,
-                filePath: filesystem.joinPaths(this.configuration.directories.config, 'token'),
+                fileSystem: fileSystem,
+                filePath: fileSystem.joinPaths(this.configuration.directories.config, 'token'),
                 authenticator: this.createAuthenticator(),
             });
         }
@@ -430,22 +611,24 @@ export class Cli {
 
     private getSdkResolver(): SdkResolver {
         if (this.sdkResolver === undefined) {
-            this.sdkResolver = new SdkDetector({
-                resolvers: this.createJavaScriptSdkResolvers(),
-            });
+            this.sdkResolver = new CachedSdkResolver(
+                new SdkDetector({
+                    resolvers: this.createJavaScriptSdkResolvers(),
+                }),
+            );
         }
 
         return this.sdkResolver;
     }
 
-    private createJavaScriptSdkResolvers(): Array<SdkResolver<Sdk|null>> {
+    private createJavaScriptSdkResolvers(): Array<SdkResolver<Sdk | null>> {
         const projectManager = this.createJavaScriptProjectManager();
         const linter = this.createJavaScriptLinter(projectManager);
 
         return [
             new PlugNextSdk({
                 projectManager: projectManager,
-                filesystem: this.getFileSystem(),
+                fileSystem: this.getFileSystem(),
                 linter: linter,
                 api: {
                     user: this.getUserApi(),
@@ -526,7 +709,7 @@ export class Cli {
             }),
             new PlugReactSdk({
                 projectManager: projectManager,
-                filesystem: this.getFileSystem(),
+                fileSystem: this.getFileSystem(),
                 linter: linter,
                 api: {
                     workspace: this.getWorkspaceApi(),
@@ -569,7 +752,7 @@ export class Cli {
             }),
             new PlugJsSdk({
                 projectManager: projectManager,
-                filesystem: this.getFileSystem(),
+                fileSystem: this.getFileSystem(),
                 linter: linter,
                 workspaceApi: this.getWorkspaceApi(),
             }),
@@ -578,7 +761,7 @@ export class Cli {
 
     private createJavaScriptProjectManager(): JavaScriptProjectManager {
         return new NodeProjectManager({
-            filesystem: this.getFileSystem(),
+            fileSystem: this.getFileSystem(),
             packageInstaller: new AntfuPackageInstaller(this.configuration.directories.current),
             importConfigLoader: new ImportConfigLoader(this.getFileSystem()),
             directory: this.configuration.directories.current,
@@ -588,7 +771,7 @@ export class Cli {
     private createJavaScriptLinter(projectManager: ProjectManager): Linter {
         return new JavaScriptLinter({
             projectManager: projectManager,
-            filesystem: this.getFileSystem(),
+            fileSystem: this.getFileSystem(),
             tools: [
                 {
                     package: 'eslint',
@@ -624,17 +807,19 @@ export class Cli {
                 },
             });
 
-            this.configurationManager = this.configuration.interactive
-                ? new NewConfigurationManager({
-                    manager: manager,
-                    initializer: {
-                        initialize: async (): Promise<void> => {
-                            await this.init({});
-                            output.break();
+            this.configurationManager = new CachedConfigurationManager(
+                this.configuration.interactive
+                    ? new NewConfigurationManager({
+                        manager: manager,
+                        initializer: {
+                            initialize: async (): Promise<void> => {
+                                await this.init({});
+                                output.break();
+                            },
                         },
-                    },
-                })
-                : manager;
+                    })
+                    : manager,
+            );
         }
 
         return this.configurationManager;
@@ -716,18 +901,18 @@ export class Cli {
         return this.authenticationListener;
     }
 
-    private getFileSystem(): Filesystem {
-        if (this.filesystem === undefined) {
-            this.filesystem = new LocalFilesystem({
+    private getFileSystem(): FileSystem {
+        if (this.fileSystem === undefined) {
+            this.fileSystem = new LocalFilesystem({
                 currentDirectory: this.configuration.directories.current,
                 defaultEncoding: 'utf-8',
             });
         }
 
-        return this.filesystem;
+        return this.fileSystem;
     }
 
-    private createEmailLinkGenerator(subject?: string): (email: string) => Promise<URL|null> {
+    private createEmailLinkGenerator(subject?: string): (email: string) => Promise<URL | null> {
         const generator = this.getEmailLinkGenerator();
 
         return email => generator.generate({

@@ -1137,6 +1137,8 @@ type ExperienceSettings {
 }
 
 type ExperienceSlot {
+  slot: Slot
+  slotContent: SlotContent
   slotId: SlotId!
   version: Version!
 }
@@ -2789,7 +2791,7 @@ type Version {
 }
 
 input VersionSpecifier {
-  id: String!
+  id: ReadableId!
   version: String!
 }
 

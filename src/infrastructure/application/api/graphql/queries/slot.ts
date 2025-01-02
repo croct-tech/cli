@@ -11,6 +11,23 @@ export const slotsQuery = graphql(`
                             customId
                             name
                             content {
+                                component {
+                                    customId
+                                    definition {
+                                        version {
+                                            major
+                                            minor
+                                        }
+                                        metadata {
+                                            directReferences
+                                            indirectReferences
+                                            referenceMetadata {
+                                                referenceName
+                                                componentId
+                                            }
+                                        }
+                                    }
+                                }
                                 version {
                                     major
                                     minor
@@ -41,6 +58,23 @@ export const slotQuery = graphql(`
                     customId
                     name
                     content(majorVersion: $majorVersion) {
+                        component {
+                            customId
+                            definition {
+                                version {
+                                    major
+                                    minor
+                                }
+                                metadata {
+                                    directReferences
+                                    indirectReferences
+                                    referenceMetadata {
+                                        referenceName
+                                        componentId
+                                    }
+                                }
+                            }
+                        }
                         version {
                             major
                             minor

@@ -4,24 +4,12 @@ import {
     AudiencePath,
     ComponentCriteria,
     ExperiencePath,
-    ExperimentPath,
     NewApplication,
     SlotCriteria,
     SlotPath,
     TargetTyping,
     WorkspaceApi,
 } from '@/application/api/workspace';
-import {
-    Application,
-    ApplicationEnvironment,
-    Audience,
-    Component,
-    Experience,
-    Experiment,
-    LocalizedContent,
-    LocalizedSlotContent,
-    Slot,
-} from '@/application/model/entities';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
 import {WorkspacePath} from '@/application/api/organization';
 import {
@@ -29,7 +17,7 @@ import {
     AudienceQuery,
     ComponentQuery,
     ExperienceQuery,
-    ExperimentQuery,
+    ExperiencesQuery,
     SlotQuery,
 } from '@/infrastructure/graphql/schema/graphql';
 import {audienceQuery, audiencesQuery} from '@/infrastructure/application/api/graphql/queries/audience';
@@ -42,8 +30,12 @@ import {
 } from '@/infrastructure/application/api/graphql/queries/application';
 import {componentQuery, componentsQuery} from '@/infrastructure/application/api/graphql/queries/component';
 import {experienceQuery, experiencesQuery} from '@/infrastructure/application/api/graphql/queries/experience';
-import {experimentQuery, experimentsQuery} from '@/infrastructure/application/api/graphql/queries/experiment';
 import {generateTypingMutation} from '@/infrastructure/application/api/graphql/queries/typing';
+import {Application, ApplicationEnvironment} from '@/application/model/application';
+import {Audience} from '@/application/model/audience';
+import {Slot} from '@/application/model/slot';
+import {Component} from '@/application/model/component';
+import {Experience, ExperienceSummary, LocalizedContent, LocalizedSlotContent} from '@/application/model/experience';
 
 type ApplicationData = NonNullable<
     NonNullable<NonNullable<ApplicationQuery['organization']>['workspace']>['application']
@@ -63,12 +55,14 @@ type ExperienceData = NonNullable<
     NonNullable<NonNullable<ExperienceQuery['organization']>['workspace']>['experience']
 >;
 
-type ExperimentData = NonNullable<
+type ExperienceSummaryData = NonNullable<
+    NonNullable<
         NonNullable<
-        NonNullable<
-            NonNullable<ExperimentQuery['organization']>['workspace']
-        >['experience']
-    >['experiment']
+            NonNullable<
+                NonNullable<ExperiencesQuery['organization']
+            >['workspace']
+        >['experiences']['edges']>[0]
+    >['node']
 >;
 
 type LocalizedContentData = NonNullable<
@@ -256,6 +250,8 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
     }
 
     private static normalizeComponent(data: ComponentData): Component {
+        const {metadata: {directReferences, indirectReferences, referenceMetadata}} = data.definition;
+
         return {
             id: data.id,
             name: data.name,
@@ -263,6 +259,18 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
             version: {
                 major: data.definition.version.major,
                 minor: data.definition.version.minor,
+            },
+            metadata: {
+                directReferences: directReferences.map(
+                    reference => referenceMetadata.find(
+                        ({componentId}) => componentId === reference,
+                    )?.referenceName ?? reference,
+                ),
+                indirectReferences: indirectReferences.map(
+                    reference => referenceMetadata.find(
+                        ({componentId}) => componentId === reference,
+                    )?.referenceName ?? reference,
+                ),
             },
         };
     }
@@ -304,10 +312,38 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
     }
 
     private static normalizeSlot(data: SlotData): Slot {
+        const {component = null} = data.content;
+        const metadata = component?.definition.metadata ?? null;
+
         return {
             id: data.id,
             name: data.name,
             slug: data.customId,
+            ...(
+                component !== null && metadata !== null
+                    ? {
+                        component: {
+                            slug: component.customId,
+                            version: {
+                                major: component.definition.version.major,
+                                minor: component.definition.version.minor,
+                            },
+                            metadata: {
+                                directReferences: metadata.directReferences.map(
+                                    reference => metadata.referenceMetadata.find(
+                                        ({componentId}) => componentId === reference,
+                                    )?.referenceName ?? reference,
+                                ),
+                                indirectReferences: metadata.indirectReferences.map(
+                                    reference => metadata.referenceMetadata.find(
+                                        ({componentId}) => componentId === reference,
+                                    )?.referenceName ?? reference,
+                                ),
+                            },
+                        },
+                    }
+                    : {}
+            ),
             version: {
                 major: data.content.version.major,
                 minor: data.content.version.minor,
@@ -347,74 +383,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         return data.generateTyping;
     }
 
-    public async getExperiments(path: ExperiencePath): Promise<Experiment[]> {
-        const {data} = await this.client.execute(experimentsQuery, {
-            organizationSlug: path.organizationSlug,
-            workspaceSlug: path.workspaceSlug,
-            experienceId: path.experienceId,
-        });
-
-        const edges = data.organization?.workspace?.experience?.experiments.edges ?? [];
-
-        return edges.flatMap((edge): Experiment[] => {
-            const node = edge?.node ?? null;
-
-            if (node === null) {
-                return [];
-            }
-
-            return [GraphqlWorkspaceApi.normalizeExperiment(node)];
-        });
-    }
-
-    public async getExperiment(path: ExperimentPath): Promise<Experiment|null> {
-        const {data} = await this.client.execute(experimentQuery, {
-            organizationSlug: path.organizationSlug,
-            workspaceSlug: path.workspaceSlug,
-            experienceId: path.experienceId,
-            experimentId: path.experimentId,
-        });
-
-        const node = data.organization?.workspace?.experience?.experiment ?? null;
-
-        if (node === null) {
-            return null;
-        }
-
-        return GraphqlWorkspaceApi.normalizeExperiment(node);
-    }
-
-    private static normalizeExperiment(data: ExperimentData): Experiment {
-        return {
-            id: data.id,
-            name: data.name,
-            crossDevice: data.crossDevice,
-            ...(data.goalId !== null ? {goalId: data.goalId} : {}),
-            traffic: data.traffic,
-            status: data.status as any,
-            variants: data.variants.map(
-                variant => ({
-                    name: variant.name,
-                    content: {
-                        default: GraphqlWorkspaceApi.normalizeLocalizedContent(
-                            variant.content.default.contents,
-                        ),
-                        segmented: variant.content
-                            .segmented
-                            .map(
-                                content => ({
-                                    groupId: content.groupId,
-                                    audiences: content.audiences.map(audience => audience.audienceId),
-                                    content: GraphqlWorkspaceApi.normalizeLocalizedContent(content.contents),
-                                }),
-                            ),
-                    },
-                }),
-            ),
-        };
-    }
-
-    public async getExperiences(path: WorkspacePath): Promise<Experience[]> {
+    public async getExperiences(path: WorkspacePath): Promise<ExperienceSummary[]> {
         const {data} = await this.client.execute(experiencesQuery, {
             organizationSlug: path.organizationSlug,
             workspaceSlug: path.workspaceSlug,
@@ -422,14 +391,14 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
 
         const edges = data.organization?.workspace?.experiences.edges ?? [];
 
-        return edges.flatMap((edge): Experience[] => {
+        return edges.flatMap((edge): ExperienceSummary[] => {
             const node = edge?.node ?? null;
 
             if (node === null) {
                 return [];
             }
 
-            return [GraphqlWorkspaceApi.normalizeExperience(node)];
+            return [GraphqlWorkspaceApi.normalizeExperienceSummary(node)];
         });
     }
 
@@ -449,8 +418,33 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         return GraphqlWorkspaceApi.normalizeExperience(node);
     }
 
+    private static normalizeExperienceSummary(data: ExperienceSummaryData): ExperienceSummary {
+        const audiences = data.settings?.audiences ?? data.draft?.audiences ?? [];
+        const slots = data.settings?.slots ?? data.draft?.slots ?? [];
+        const experiment = data.currentExperiment?.name ?? data.draft?.experiment?.name ?? null;
+
+        return {
+            id: data.id,
+            name: data.name,
+            priority: data.priority ?? data.draft?.priority ?? 0,
+            status: data.status as any,
+            audiences: audiences.map(audience => audience.customId),
+            slots: slots.flatMap(({slot = null}) => (slot === null ? [] : [slot.customId])),
+            ...(experiment !== null
+                ? {
+                    experiment: {
+                        name: experiment,
+                    },
+                }
+                : {}
+            ),
+        };
+    }
+
     private static normalizeExperience(data: ExperienceData): Experience {
-        const experiment = data.draft?.experiment ?? null;
+        const audiences = data.settings?.audiences ?? data.draft?.audiences ?? [];
+        const slots = data.settings?.slots ?? data.draft?.slots ?? [];
+        const experiment = data.currentExperiment ?? data.draft?.experiment ?? null;
         const {name = null, goalId = null, crossDevice = null, traffic = null} = experiment ?? {};
 
         return {
@@ -459,6 +453,8 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
             priority: data.priority ?? data.draft?.priority ?? 0,
             status: data.status as any,
             hasExperiments: data.hasExperiments,
+            audiences: audiences.map(audience => audience.customId),
+            slots: slots.flatMap(({slot = null}) => (slot === null ? [] : [slot.customId])),
             ...(experiment !== null
                 ? {
                     experiment: {
@@ -502,7 +498,9 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                 segmented: (data.settings?.content.segmented ?? data.draft?.content?.segmented ?? []).map(
                     content => ({
                         groupId: content.groupId,
-                        audiences: content.audiences.map(audience => audience.audienceId),
+                        audiences: content.audiences.map(
+                            ({audienceId}) => audiences.find(({id}) => id === audienceId)?.customId ?? audienceId,
+                        ),
                         content: GraphqlWorkspaceApi.normalizeLocalizedContent(content.contents),
                     }),
                 ),

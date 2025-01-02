@@ -1,7 +1,8 @@
-import {ApplicationPlatform, Slot} from '@/application/model/entities';
 import {Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
 import {Configuration, ResolvedConfiguration} from '@/application/project/configuration/configuration';
+import {ApplicationPlatform} from '@/application/model/application';
+import {Slot} from '@/application/model/slot';
 
 export type Installation = {
     input?: Input,

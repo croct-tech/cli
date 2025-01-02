@@ -1,5 +1,5 @@
 type Link = {
-    link: string,
+    url: string,
     description: string,
 };
 

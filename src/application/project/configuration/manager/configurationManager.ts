@@ -5,5 +5,5 @@ export interface ConfigurationManager {
 
     resolve(): Promise<ResolvedConfiguration>;
 
-    update(configuration: Configuration): Promise<void>;
+    update(configuration: Configuration): Promise<Configuration>;
 }

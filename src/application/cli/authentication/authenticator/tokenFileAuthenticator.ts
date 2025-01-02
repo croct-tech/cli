@@ -1,11 +1,11 @@
 import {AuthenticationInput, Authenticator} from '@/application/cli/authentication/authenticator/index';
 import {CliError, CliErrorCode} from '@/application/cli/error';
-import {Filesystem} from '@/application/filesystem/filesystem';
+import {FileSystem} from '@/application/fileSystem/fileSystem';
 
 export type Configuration<I extends AuthenticationInput>= {
     filePath: string,
     authenticator: Authenticator<I>,
-    filesystem: Filesystem,
+    fileSystem: FileSystem,
 };
 
 export class TokenFileAuthenticator<I extends AuthenticationInput> implements Authenticator<I> {
@@ -13,17 +13,17 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
 
     private readonly authenticator: Authenticator<I>;
 
-    private readonly filesystem: Filesystem;
+    private readonly fileSystem: FileSystem;
 
-    public constructor({filePath, authenticator, filesystem}: Configuration<I>) {
+    public constructor({filePath, authenticator, fileSystem}: Configuration<I>) {
         this.filePath = filePath;
         this.authenticator = authenticator;
-        this.filesystem = filesystem;
+        this.fileSystem = fileSystem;
     }
 
     public async getToken(): Promise<string|null> {
         try {
-            return await this.filesystem.readFile(this.filePath);
+            return await this.fileSystem.readFile(this.filePath);
         } catch {
             return this.authenticator.getToken();
         }
@@ -41,7 +41,7 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
         await this.authenticator.logout();
 
         try {
-            await this.filesystem.delete(this.filePath);
+            await this.fileSystem.delete(this.filePath);
         } catch (error) {
             if ((error instanceof Error) && 'code' in error && error.code !== 'ENOENT') {
                 throw new CliError(
@@ -59,13 +59,13 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
 
     private async saveToken(token: string): Promise<void> {
         try {
-            const directory = this.filesystem.getDirectoryName(this.filePath);
+            const directory = this.fileSystem.getDirectoryName(this.filePath);
 
-            if (!await this.filesystem.exists(directory)) {
-                await this.filesystem.createDirectory(directory, {recursive: true});
+            if (!await this.fileSystem.exists(directory)) {
+                await this.fileSystem.createDirectory(directory, {recursive: true});
             }
 
-            await this.filesystem.writeFile(this.filePath, token, {overwrite: true});
+            await this.fileSystem.writeFile(this.filePath, token, {overwrite: true});
         } catch (cause) {
             throw new CliError(
                 'Failed to save token to file.',

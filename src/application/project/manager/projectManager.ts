@@ -100,4 +100,16 @@ export interface ProjectManager {
      * @returns The path of the first found file or null if none were found.
      */
     locateFile(...searchPaths: string[]): Promise<string | null>;
+
+    /**
+     * Converts a file path to its corresponding import path.
+     *
+     * This method transforms a local file path into a path that can be used
+     * as an import statement in JavaScript or TypeScript code.
+     *
+     * @param filePath The local file path to convert.
+     * @param importPath The path from which the import is made.
+     * @returns The corresponding import path.
+     */
+    getImportPath(filePath: string, importPath?: string): Promise<string>;
 }

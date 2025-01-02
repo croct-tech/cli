@@ -1,6 +1,5 @@
 import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
-import {ApplicationPlatform, Slot} from '@/application/model/entities';
 import {WorkspaceApi} from '@/application/api/workspace';
 import {Codemod} from '@/application/project/sdk/code/codemod';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
@@ -10,9 +9,11 @@ import {EnvFile} from '@/application/project/envFile';
 import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {PlugReactExampleGenerator} from '@/application/project/example/slot/plugReactExampleGenerator';
 import {Linter} from '@/application/project/linter';
-import {Filesystem} from '@/application/filesystem/filesystem';
+import {FileSystem} from '@/application/fileSystem/fileSystem';
 import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
 import {ResolvedConfiguration} from '@/application/project/configuration/configuration';
+import {ApplicationPlatform} from '@/application/model/application';
+import {Slot} from '@/application/model/slot';
 
 type ApiConfiguration = {
     workspace: WorkspaceApi,
@@ -29,7 +30,7 @@ type Bundlers = {
 
 export type Configuration = {
     projectManager: JavaScriptProjectManager,
-    filesystem: Filesystem,
+    fileSystem: FileSystem,
     api: ApiConfiguration,
     linter: Linter,
     codemod: CodemodConfiguration,
@@ -65,7 +66,7 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
     public constructor(config: Configuration) {
         super({
             projectManager: config.projectManager,
-            filesystem: config.filesystem,
+            fileSystem: config.fileSystem,
             linter: config.linter,
             workspaceApi: config.api.workspace,
         });
@@ -102,7 +103,7 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
         );
 
         const generator = new PlugReactExampleGenerator({
-            filesystem: this.filesystem,
+            fileSystem: this.fileSystem,
             options: {
                 language: await this.projectManager.isTypeScriptProject()
                     ? CodeLanguage.TYPESCRIPT_XML
@@ -159,7 +160,7 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
                 file: await this.projectManager.locateFile(
                     ...['App', 'main', 'index']
                         .flatMap(name => ['js', 'jsx', 'ts', 'tsx'].map(ext => `${name}.${ext}`))
-                        .map(file => this.filesystem.joinPaths(sourceDirectory, file)),
+                        .map(file => this.fileSystem.joinPaths(sourceDirectory, file)),
                 ),
             },
             env: envProperty === null
@@ -167,12 +168,12 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
                 : {
                     property: envProperty,
                     productionFile: new EnvFile(
-                        this.filesystem,
-                        this.filesystem.joinPaths(this.projectManager.getRootPath(), '.env.production'),
+                        this.fileSystem,
+                        this.fileSystem.joinPaths(this.projectManager.getRootPath(), '.env.production'),
                     ),
                     developmentFile: new EnvFile(
-                        this.filesystem,
-                        this.filesystem.joinPaths(this.projectManager.getRootPath(), '.env.development'),
+                        this.fileSystem,
+                        this.fileSystem.joinPaths(this.projectManager.getRootPath(), '.env.development'),
                     ),
                 },
         };
@@ -240,7 +241,7 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
     private async installProvider(file: string, options: WrapperOptions): Promise<void> {
         const codemod = this.codemod.provider;
 
-        await codemod.apply(this.filesystem.joinPaths(this.projectManager.getRootPath(), file), options);
+        await codemod.apply(this.fileSystem.joinPaths(this.projectManager.getRootPath(), file), options);
     }
 
     private async getEnvVarProperty(): Promise<string|null> {

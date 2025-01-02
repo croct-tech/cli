@@ -228,7 +228,7 @@ export class ConsoleOutput implements Output {
             case CliErrorCode.PRECONDITION:
                 usefulLinks.push({
                     description: 'Documentation',
-                    link: 'https://docs.croct.io/sdk/cli',
+                    url: 'https://docs.croct.io/sdk/cli',
                 });
 
                 break;
@@ -239,7 +239,7 @@ export class ConsoleOutput implements Output {
             default:
                 usefulLinks.push({
                     description: 'Report this issue',
-                    link: 'https://github.com/croct-tech/croct-cli/issues/new',
+                    url: 'https://github.com/croct-tech/croct-cli/issues/new',
                 });
 
                 break;
@@ -252,7 +252,7 @@ export class ConsoleOutput implements Output {
         if (usefulLinks.length > 0) {
             message += `\n\n🔗 ${chalk.bold('Useful links')}\n`;
             message += usefulLinks.map(
-                ({description, link}) => ` • ${terminalLink(description, link, {
+                ({description, url}) => ` • ${terminalLink(description, url, {
                     fallback: (text, url) => `${text}: ${url}`,
                 })}`,
             ).join('\n');

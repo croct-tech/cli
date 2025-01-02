@@ -1,5 +1,4 @@
 import {GraphqlClient} from '@/infrastructure/graphql';
-import {Organization, User} from '@/application/model/entities';
 import {
     ActivationRetry,
     NewUser,
@@ -33,6 +32,8 @@ import {
     signInMutation,
     signUpMutation,
 } from '@/infrastructure/application/api/graphql/queries/auth';
+import {User} from '@/application/model/user';
+import {Organization} from '@/application/model/organization';
 
 type OrganizationSetupPayload = SetupOrganizationMutationVariables['payload'];
 

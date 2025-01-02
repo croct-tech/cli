@@ -3,11 +3,11 @@ import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
 import {Installation, SdkResolver} from '@/application/project/sdk/sdk';
 import {Form} from '@/application/cli/form/form';
-import {Slot} from '@/application/model/entities';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {Configuration as ProjectConfiguration} from '@/application/project/configuration/configuration';
 import {Version} from '@/application/project/version';
+import {Slot} from '@/application/model/slot';
 
 export type RemoveSlotInput = {
     slots?: string[],

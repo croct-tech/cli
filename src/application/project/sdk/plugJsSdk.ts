@@ -1,8 +1,9 @@
 import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
-import {ApplicationPlatform, Slot} from '@/application/model/entities';
 import {PlugJsExampleGenerator} from '@/application/project/example/slot/plugJsExampleGenerator';
 import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
+import {ApplicationPlatform} from '@/application/model/application';
+import {Slot} from '@/application/model/slot';
 
 export class PlugJsSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> {
     public getPackage(): string {
@@ -23,7 +24,7 @@ export class PlugJsSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> {
 
     protected generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
         const generator = new PlugJsExampleGenerator({
-            filesystem: this.filesystem,
+            fileSystem: this.fileSystem,
             options: {
                 language: CodeLanguage.JAVASCRIPT,
                 appId: installation.configuration.applications.developmentPublicId,

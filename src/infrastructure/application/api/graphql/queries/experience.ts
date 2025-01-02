@@ -14,14 +14,47 @@ export const experienceQuery = graphql(`
                     priority,
                     status,
                     hasExperiments,
-                    draft {
+                    currentExperiment {
                         id,
+                        name,
+                        crossDevice,
+                        goalId,
+                        traffic,
+                        variants {
+                            name,
+                            content {
+                                default {
+                                    contents {
+                                        slotId,
+                                        content,
+                                        locale,
+                                    }
+                                },
+                                segmented {
+                                    groupId,
+                                    contents {
+                                        slotId,
+                                        content,
+                                        locale,
+                                    },
+                                    audiences {
+                                        audienceId
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    draft {
                         priority,
                         audiences {
+                            id,
                             customId,
                         },
                         slots {
-                            slotId,
+                            slot {
+                                id,
+                                customId,
+                            }
                             version {
                                 minor,
                                 major
@@ -101,9 +134,13 @@ export const experienceQuery = graphql(`
                         }
                         audiences {
                             id,
+                            customId,
                         }
                         slots {
-                            slotId,
+                            slot {
+                                id,
+                                customId,
+                            }
                             version {
                                 minor,
                                 major
@@ -127,97 +164,39 @@ export const experiencesQuery = graphql(`
                             name,
                             priority,
                             status,
-                            hasExperiments,
+                            currentExperiment {
+                                name,
+                            },
                             draft {
-                                id,
                                 priority,
                                 audiences {
+                                    id,
                                     customId,
                                 },
                                 slots {
-                                    slotId,
+                                    slot {
+                                        id,
+                                        customId,
+                                    }
                                     version {
                                         minor,
                                         major
                                     }
                                 },
-                                timeZone,
-                                content {
-                                    default {
-                                        contents {
-                                            slotId,
-                                            content,
-                                            locale,
-                                        }
-                                    },
-                                    segmented {
-                                        groupId,
-                                        contents {
-                                            slotId,
-                                            content,
-                                            locale,
-                                        },
-                                        audiences {
-                                            audienceId
-                                        }
-                                    }
-                                },
                                 experiment {
                                     name,
-                                    crossDevice,
-                                    goalId,
-                                    traffic,
-                                    variants {
-                                        name,
-                                        content {
-                                            default {
-                                                contents {
-                                                    slotId,
-                                                    content,
-                                                    locale,
-                                                }
-                                            },
-                                            segmented {
-                                                groupId,
-                                                contents {
-                                                    slotId,
-                                                    content,
-                                                    locale,
-                                                },
-                                                audiences {
-                                                    audienceId
-                                                }
-                                            }
-                                        }
-                                    }
                                 }
                             }
                             settings {
-                                content {
-                                    default {
-                                        contents {
-                                            slotId
-                                            content,
-                                            locale,
-                                        }
-                                    },
-                                    segmented {
-                                        groupId,
-                                        contents {
-                                            slotId,
-                                            content,
-                                            locale,
-                                        },
-                                        audiences {
-                                            audienceId
-                                        }
-                                    }
-                                }
                                 audiences {
-                                    id
+                                    id,
+                                    customId
                                 }
                                 slots {
-                                    slotId,
+                                    slot {
+                                        id,
+                                        customId
+                                    }
                                     version {
                                         minor,
                                         major

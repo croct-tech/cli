@@ -2,7 +2,7 @@ import {ReactExampleGenerator, Configuration as ReactConfiguration, SlotFile} fr
 import {SlotDefinition} from './slotExampleGenerator';
 import {CodeWriter} from '@/application/project/example/codeWritter';
 import {CodeLanguage} from '@/application/project/example/example';
-import {Filesystem} from '@/application/filesystem/filesystem';
+import {FileSystem} from '@/application/fileSystem/fileSystem';
 
 export enum NextExampleRouter {
     PAGE = 'page',
@@ -14,7 +14,7 @@ type NextExampleOptions = {
 };
 
 export type Configuration = {
-    filesystem: Filesystem,
+    fileSystem: FileSystem,
     options: ReactConfiguration['options'] & NextExampleOptions,
 };
 
@@ -25,11 +25,11 @@ type DeepRequired<T> = Required<{
 export class PlugNextExampleGenerator extends ReactExampleGenerator {
     private readonly nextOptions: DeepRequired<NextExampleOptions>;
 
-    public constructor({filesystem, options}: Configuration) {
+    public constructor({fileSystem, options}: Configuration) {
         const {router, ...rest} = options;
 
         super({
-            filesystem: filesystem,
+            fileSystem: fileSystem,
             options: {
                 ...rest,
                 code: {

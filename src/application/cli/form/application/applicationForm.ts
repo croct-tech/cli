@@ -1,16 +1,12 @@
-import {
-    Application,
-    ApplicationEnvironment,
-    ApplicationPlatform,
-    Organization,
-    Workspace,
-} from '@/application/model/entities';
 import {Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
 import {Form} from '@/application/cli/form/form';
 import {WorkspaceApi} from '@/application/api/workspace';
 import {NameInput} from '@/application/cli/form/input/nameInput';
 import {UrlInput} from '@/application/cli/form/input/urlInput';
+import {Organization} from '@/application/model/organization';
+import {Workspace} from '@/application/model/workspace';
+import {Application, ApplicationEnvironment, ApplicationPlatform} from '@/application/model/application';
 
 export type Configuration = {
     input: Input,

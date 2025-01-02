@@ -1,4 +1,4 @@
-import {Workspace} from '@/application/model/entities';
+import {Workspace} from '@/application/model/workspace';
 
 export type OrganizationPath = {
     organizationSlug: string,

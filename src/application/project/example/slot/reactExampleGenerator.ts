@@ -3,10 +3,10 @@ import {CodeExample, CodeLanguage, ExampleFile} from '@/application/project/exam
 import {AttributeDefinition, ContentDefinition} from '@/application/project/example/content-model/definitions';
 import {CodeWriter} from '@/application/project/example/codeWritter';
 import {formatLabel, sortAttributes} from '@/application/project/example/utils';
-import {Filesystem} from '@/application/filesystem/filesystem';
+import {FileSystem} from '@/application/fileSystem/fileSystem';
 
 export type Configuration = {
-    filesystem: Filesystem,
+    fileSystem: FileSystem,
     options: {
         language: CodeLanguage.JAVASCRIPT_XML | CodeLanguage.TYPESCRIPT_XML,
         indentationSize?: number,
@@ -49,9 +49,9 @@ type DeepRequired<T> = Required<{
 export abstract class ReactExampleGenerator implements SlotExampleGenerator {
     protected readonly options: DeepRequired<Configuration['options']>;
 
-    protected readonly filesystem: Filesystem;
+    protected readonly fileSystem: FileSystem;
 
-    public constructor({filesystem, options}: Configuration) {
+    public constructor({fileSystem, options}: Configuration) {
         this.options = {
             ...options,
             indentationSize: options.indentationSize ?? 2,
@@ -76,7 +76,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
             },
         };
 
-        this.filesystem = filesystem;
+        this.fileSystem = fileSystem;
     }
 
     public generate(definition: SlotDefinition): CodeExample {
@@ -107,7 +107,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
         const fileName = pageFile.name !== '' ? pageFile.name : name;
 
         return {
-            name: this.filesystem.joinPaths(
+            name: this.fileSystem.joinPaths(
                 ReactExampleGenerator.resolveDirectoryPath(pageFile.directory, name),
                 this.addExtension(fileName),
             ),
@@ -126,7 +126,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
         const fileName = slotFile.name !== '' ? slotFile.name : name;
 
         return {
-            name: this.filesystem.joinPaths(
+            name: this.fileSystem.joinPaths(
                 ReactExampleGenerator.resolveDirectoryPath(slotFile.directory, name),
                 this.addExtension(fileName),
             ),

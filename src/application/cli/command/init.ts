@@ -2,13 +2,6 @@ import {Command} from '@/application/cli/command/command';
 import {WorkspaceApi} from '@/application/api/workspace';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
-import {
-    Application,
-    ApplicationEnvironment,
-    ApplicationPlatform,
-    Organization,
-    Workspace,
-} from '@/application/model/entities';
 import {Sdk, SdkResolver} from '@/application/project/sdk/sdk';
 import {Configuration, ResolvedConfiguration} from '@/application/project/configuration/configuration';
 import {OrganizationOptions} from '@/application/cli/form/organization/organizationForm';
@@ -20,6 +13,9 @@ import {UserApi} from '@/application/api/user';
 import {OrganizationApi} from '@/application/api/organization';
 import {CliError, CliErrorCode} from '@/application/cli/error';
 import {ApiError} from '@/application/api/error';
+import {Organization} from '@/application/model/organization';
+import {Workspace} from '@/application/model/workspace';
+import {Application, ApplicationEnvironment, ApplicationPlatform} from '@/application/model/application';
 
 export type Resource = 'organization' | 'workspace' | 'application';
 

@@ -33,7 +33,7 @@ export class ConfigurationFileManager implements ConfigurationManager {
         return file.load();
     }
 
-    public update(configuration: ProjectConfiguration): Promise<void> {
+    public update(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
         const {file} = this.config;
 
         return file.update(configuration);

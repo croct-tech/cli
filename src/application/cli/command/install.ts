@@ -3,10 +3,10 @@ import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
 import {SdkResolver} from '@/application/project/sdk/sdk';
 import {Form} from '@/application/cli/form/form';
-import {Slot} from '@/application/model/entities';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {CliError, CliErrorCode} from '@/application/cli/error';
+import {Slot} from '@/application/model/slot';
 
 export type InstallInput = Record<string, never>;
 

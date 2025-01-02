@@ -1,8 +1,8 @@
-import {Slot} from '@/application/model/entities';
 import {Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
 import {Form} from '@/application/cli/form/form';
 import {WorkspaceApi} from '@/application/api/workspace';
+import {Slot} from '@/application/model/slot';
 
 export type Configuration = {
     input: Input,
@@ -16,6 +16,7 @@ export type SlotOptions = {
     allowed?: string[],
     preselected?: string[],
     selected?: string[],
+    selectionConfirmation?: string,
 };
 
 export class SlotForm implements Form<Slot[], SlotOptions> {
@@ -43,7 +44,15 @@ export class SlotForm implements Form<Slot[], SlotOptions> {
         const selected = options.selected ?? [];
 
         if (slots.length === 0 || (selected.length > 0 && slots.every(({slug}) => selected.includes(slug)))) {
-            return [];
+            return slots.filter(({slug}) => selected.includes(slug));
+        }
+
+        if (options.selectionConfirmation !== undefined) {
+            const confirmed = await input.confirm({message: options.selectionConfirmation});
+
+            if (!confirmed) {
+                return slots.filter(({slug}) => selected.includes(slug));
+            }
         }
 
         return input.selectMultiple({
