@@ -1,4 +1,4 @@
-import {AttributeDefinition} from '@/application/project/example/content-model/definitions';
+import {AttributeDefinition} from '@croct/content-model/definition/definition';
 
 export function formatLabel(name: string): string {
     const parts = name.split(/(?<![A-Z])(?=[A-Z])|_/);

@@ -95,7 +95,7 @@ import {AddDependency} from '@/application/cli/action/addDependency';
 import {LocateFile} from '@/application/cli/action/locateFile';
 import {ReplaceFileContent} from '@/application/cli/action/replaceFileContent';
 import {GithubDownloader} from '@/application/cli/download/githubDownloader';
-import {OptionMap} from '@/application/model/manifest';
+import {OptionMap} from '@/application/template/manifest';
 import {Define} from '@/application/cli/action/define';
 import {AddSlot} from '@/application/cli/action/addSlot';
 import {AddComponent} from '@/application/cli/action/addComponent';

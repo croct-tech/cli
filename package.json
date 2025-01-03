@@ -40,6 +40,7 @@
     "@croct/json": "^2.1.0",
     "@croct/md-lite": "^0.3.1",
     "@croct/plug": "^0.16.4",
+    "@croct/content-model": "^0.19.4",
     "boxen": "^8.0.1",
     "chalk": "^5.3.0",
     "ci-info": "^4.1.0",

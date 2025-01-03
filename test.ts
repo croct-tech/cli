@@ -1,3 +1,11 @@
-import {relative} from 'path';
+import {GithubDownloader} from '@/application/cli/download/githubDownloader';
+import {LocalFilesystem} from '@/application/fileSystem/localFilesystem';
 
-console.log(relative('\\a\\b', '\\a\\b\\c'));
+(async () => {
+    const downloader = new GithubDownloader(new LocalFilesystem({
+        currentDirectory: process.cwd(),
+        defaultEncoding: 'utf-8',
+    }));
+
+    await downloader.download(new URL('github:/marcospassos/croct-examples/magic-ui/ui/marquee/next-js/tsx'), 'tmp');
+})();

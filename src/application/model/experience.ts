@@ -1,4 +1,5 @@
 import {JsonObject} from '@croct/json';
+import {Content} from '@croct/content-model/content/content';
 
 export enum ExperienceStatus {
     ACTIVE = 'ACTIVE',
@@ -12,19 +13,26 @@ export type LocalizedContent = {
     locale: string,
     content: JsonObject,
 };
-export type LocalizedSlotContent = Record<string, Record<string, Record<string, any>>>;
+
+export type LocalizedContentMap = Record<string, Content<'structure'>>;
+
+export type SlotContentMap = Record<string, LocalizedContentMap>;
+
 export type SegmentedContent = {
     audiences: string[],
-    content: LocalizedSlotContent,
+    content: SlotContentMap,
 };
+
 export type PersonalizedContent = {
-    default: LocalizedSlotContent,
+    default: SlotContentMap,
     segmented: SegmentedContent[],
 };
+
 export type ExperimentVariant = {
     name: string,
     content: PersonalizedContent,
 };
+
 export type ExperienceSummary = {
     id: string,
     name: string,
@@ -37,6 +45,7 @@ export type ExperienceSummary = {
     audiences: string[],
     slots: string[],
 };
+
 export type Experience = {
     id: string,
     name: string,

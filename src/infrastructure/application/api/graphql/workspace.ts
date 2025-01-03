@@ -35,7 +35,7 @@ import {Application, ApplicationEnvironment} from '@/application/model/applicati
 import {Audience} from '@/application/model/audience';
 import {Slot} from '@/application/model/slot';
 import {Component} from '@/application/model/component';
-import {Experience, ExperienceSummary, LocalizedContent, LocalizedSlotContent} from '@/application/model/experience';
+import {Experience, ExperienceSummary, LocalizedContent, SlotContentMap} from '@/application/model/experience';
 
 type ApplicationData = NonNullable<
     NonNullable<NonNullable<ApplicationQuery['organization']>['workspace']>['application']
@@ -508,7 +508,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         };
     }
 
-    private static normalizeLocalizedContent(data: LocalizedContentData): LocalizedSlotContent {
+    private static normalizeLocalizedContent(data: LocalizedContentData): SlotContentMap {
         return Object.fromEntries(
             data.map(
                 content => [content.slotId, Object.fromEntries(

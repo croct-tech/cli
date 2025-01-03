@@ -1,6 +1,6 @@
+import {AttributeDefinition, ContentDefinition} from '@croct/content-model/definition/definition';
 import {SlotDefinition, SlotExampleGenerator} from './slotExampleGenerator';
 import {CodeExample, CodeLanguage, ExampleFile} from '@/application/project/example/example';
-import {AttributeDefinition, ContentDefinition} from '@/application/project/example/content-model/definitions';
 import {CodeWriter} from '@/application/project/example/codeWritter';
 import {formatLabel, sortAttributes} from '@/application/project/example/utils';
 import {FileSystem} from '@/application/fileSystem/fileSystem';

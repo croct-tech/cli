@@ -6,7 +6,7 @@ import ci from 'ci-info';
 import {JsonPrimitive} from '@croct/json';
 import {Cli} from '@/infrastructure/application/cli/cli';
 import {Resource} from '@/application/cli/command/init';
-import {OptionMap} from '@/application/model/manifest';
+import {OptionMap} from '@/application/template/manifest';
 
 process.on('SIGINT', () => process.exit(0));
 process.on('SIGTERM', () => process.exit(0));

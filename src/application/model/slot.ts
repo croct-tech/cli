@@ -1,4 +1,4 @@
-import {RootDefinition} from '@/application/project/example/content-model/definitions';
+import {RootDefinition} from '@croct/content-model/definition/definition';
 
 export type Slot = {
     id: string,

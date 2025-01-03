@@ -4,7 +4,7 @@ import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
 import {ActionRunner} from '@/application/cli/action/runner';
 import {FileSystem} from '@/application/fileSystem/fileSystem';
-import {Manifest, OptionMap} from '@/application/model/manifest';
+import {Manifest, OptionMap} from '@/application/template/manifest';
 import {ActionContext} from '@/application/cli/action/context';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {SdkResolver} from '@/application/project/sdk/sdk';
