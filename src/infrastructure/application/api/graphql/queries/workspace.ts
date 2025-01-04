@@ -85,3 +85,33 @@ export const workspaceSlugQuery = graphql(`
         }
     }
 `);
+
+export const workspaceFeaturesQuery = graphql(`
+    query WorkspaceFeatures($organizationSlug: ReadableId!, $workspaceSlug: ReadableId!) {
+        organization(slug: $organizationSlug) {
+            workspace(slug: $workspaceSlug) @nonnull {
+                quotas {
+                    audience
+                    remainingAudiences
+                    component
+                    remainingComponents
+                    slot
+                    remainingSlots,
+                    experience
+                    remainingExperiences
+                    experiment
+                    remainingExperiments
+                    dynamicAttributesPerContent
+                    audiencesPerExperience
+                }
+                capabilities {
+                    features(requiredFeatures: [
+                        EXPERIMENT,
+                        CROSS_DEVICE_EXPERIMENT,
+                        API_DATA_EXPORT
+                    ])
+                }
+            }   
+        }
+    }
+`);

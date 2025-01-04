@@ -3,6 +3,7 @@ import {
     ApplicationPath,
     AudiencePath,
     ComponentCriteria,
+    ExperienceCriteria,
     ExperiencePath,
     NewApplication,
     SlotCriteria,
@@ -18,6 +19,8 @@ import {
     ComponentQuery,
     ExperienceQuery,
     ExperiencesQuery,
+    ExperienceStatus,
+    Feature,
     SlotQuery,
 } from '@/infrastructure/graphql/schema/graphql';
 import {audienceQuery, audiencesQuery} from '@/infrastructure/application/api/graphql/queries/audience';
@@ -36,6 +39,8 @@ import {Audience} from '@/application/model/audience';
 import {Slot} from '@/application/model/slot';
 import {Component} from '@/application/model/component';
 import {Experience, ExperienceSummary, LocalizedContent, SlotContentMap} from '@/application/model/experience';
+import {WorkspaceFeatures} from '@/application/model/workspace';
+import {workspaceFeaturesQuery} from '@/infrastructure/application/api/graphql/queries/workspace';
 
 type ApplicationData = NonNullable<
     NonNullable<NonNullable<ApplicationQuery['organization']>['workspace']>['application']
@@ -80,6 +85,42 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
 
     public constructor(client: GraphqlClient) {
         this.client = client;
+    }
+
+    public async getFeatures(path: WorkspacePath): Promise<WorkspaceFeatures|null> {
+        const {data} = await this.client.execute(workspaceFeaturesQuery, {
+            organizationSlug: path.organizationSlug,
+            workspaceSlug: path.workspaceSlug,
+        });
+
+        const workspace = data.organization?.workspace ?? null;
+
+        if (workspace === null) {
+            return null;
+        }
+
+        const {quotas, capabilities: {features}} = workspace;
+
+        return {
+            quotas: {
+                audience: quotas.audience,
+                remainingAudiences: quotas.remainingAudiences,
+                component: quotas.component,
+                remainingComponents: quotas.remainingComponents,
+                slot: quotas.slot,
+                remainingSlots: quotas.remainingSlots,
+                experience: quotas.experience,
+                remainingExperiences: quotas.remainingExperiences,
+                experiment: quotas.experiment,
+                remainingExperiments: quotas.remainingExperiments,
+                dynamicAttributesPerContent: quotas.dynamicAttributesPerContent,
+                audiencesPerExperience: quotas.audiencesPerExperience,
+            },
+            features: {
+                crossDevice: features.includes(Feature.CrossDeviceExperiment),
+                dataExport: features.includes(Feature.ApiDataExport),
+            },
+        };
     }
 
     public async getApplications(path: WorkspacePath): Promise<Application[]> {
@@ -250,12 +291,16 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
     }
 
     private static normalizeComponent(data: ComponentData): Component {
-        const {metadata: {directReferences, indirectReferences, referenceMetadata}} = data.definition;
+        const {
+            definition,
+            metadata: {directReferences, indirectReferences, referenceMetadata},
+        } = data.definition;
 
         return {
             id: data.id,
             name: data.name,
             slug: data.customId,
+            definition: definition,
             version: {
                 major: data.definition.version.major,
                 minor: data.definition.version.minor,
@@ -383,10 +428,11 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         return data.generateTyping;
     }
 
-    public async getExperiences(path: WorkspacePath): Promise<ExperienceSummary[]> {
+    public async getExperiences(path: ExperienceCriteria): Promise<ExperienceSummary[]> {
         const {data} = await this.client.execute(experiencesQuery, {
             organizationSlug: path.organizationSlug,
             workspaceSlug: path.workspaceSlug,
+            status: path.status as unknown as (ExperienceStatus | ExperienceStatus[]),
         });
 
         const edges = data.organization?.workspace?.experiences.edges ?? [];

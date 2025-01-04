@@ -11,6 +11,7 @@ export const componentsQuery = graphql(`
                             customId
                             name
                             definition {
+                                definition,
                                 version {
                                     major
                                     minor
@@ -46,6 +47,7 @@ export const componentQuery = graphql(`
                     customId
                     name
                     definition(majorVersion: $majorVersion) {
+                        definition
                         version {
                             major
                             minor

@@ -154,10 +154,10 @@ export const experienceQuery = graphql(`
 `);
 
 export const experiencesQuery = graphql(`
-    query Experiences($organizationSlug: ReadableId!, $workspaceSlug: ReadableId!) {
+    query Experiences($organizationSlug: ReadableId!, $workspaceSlug: ReadableId!, $status: [ExperienceStatus!]) {
         organization(slug: $organizationSlug) {
             workspace(slug: $workspaceSlug) {
-                experiences(first: 100) {
+                experiences(first: 100, status: $status) {
                     edges {
                         node {
                             id,

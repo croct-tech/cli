@@ -3,7 +3,8 @@ import {Application} from '@/application/model/application';
 import {Audience} from '@/application/model/audience';
 import {Slot} from '@/application/model/slot';
 import {Component} from '@/application/model/component';
-import {Experience, ExperienceSummary, LocalizedContent} from '@/application/model/experience';
+import {Experience, ExperienceStatus, ExperienceSummary, LocalizedContent} from '@/application/model/experience';
+import {WorkspaceFeatures} from '@/application/model/workspace';
 
 export type AudiencePath = WorkspacePath & {
     audienceSlug: string,
@@ -54,7 +55,13 @@ export type ExperiencePath = WorkspacePath & {
     experienceId: string,
 };
 
+export type ExperienceCriteria = WorkspacePath & {
+    status?: ExperienceStatus|ExperienceStatus[],
+};
+
 export interface WorkspaceApi {
+    getFeatures(path: WorkspacePath): Promise<WorkspaceFeatures|null>;
+
     getAudiences(path: WorkspacePath): Promise<Audience[]>;
 
     getAudience(path: AudiencePath): Promise<Audience|null>;
@@ -77,7 +84,7 @@ export interface WorkspaceApi {
 
     createApplication(application: NewApplication): Promise<Application>;
 
-    getExperiences(path: WorkspacePath): Promise<ExperienceSummary[]>;
+    getExperiences(path: ExperienceCriteria): Promise<ExperienceSummary[]>;
 
     getExperience(path: ExperiencePath): Promise<Experience|null>;
 }

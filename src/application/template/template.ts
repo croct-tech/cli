@@ -4,19 +4,16 @@ import {Content} from '@croct/content-model/content/content';
 import {PersonalizedContent} from '@/application/model/experience';
 
 export type SlotDefinition = {
-    slug: string,
     name: string,
     component: string,
 };
 
 export type ComponentDefinition = {
-    slug: string,
     name: string,
     definition: RootDefinition,
 };
 
 export type AudienceDefinition = {
-    slug: string,
     name: string,
     criteria: string,
 };
@@ -41,9 +38,9 @@ export type ExperienceDefinition = {
 };
 
 export type Template = {
-    components?: ComponentDefinition[],
-    slots?: SlotDefinition[],
-    audiences?: AudienceDefinition[],
+    components?: Record<string, ComponentDefinition>,
+    slots?: Record<string, SlotDefinition>,
+    audiences?: Record<string, AudienceDefinition>,
     experiences?: ExperienceDefinition[],
 };
 

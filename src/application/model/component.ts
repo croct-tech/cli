@@ -1,3 +1,5 @@
+import {RootDefinition} from '@croct/content-model/definition/definition';
+
 export type Component = {
     id: string,
     name: string,
@@ -6,6 +8,7 @@ export type Component = {
         major: number,
         minor: number,
     },
+    definition: RootDefinition,
     metadata: {
         directReferences: string[],
         indirectReferences: string[],
