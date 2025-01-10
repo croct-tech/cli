@@ -11,15 +11,15 @@ export type Workspace = {
 
 export type WorkspaceFeatures = {
     quotas: {
-        audience: number,
+        audiences: number,
         remainingAudiences: number,
-        component: number,
+        components: number,
         remainingComponents: number,
-        slot: number,
+        slots: number,
         remainingSlots: number,
-        experience: number,
+        experiences: number,
         remainingExperiences: number,
-        experiment: number,
+        experiments: number,
         remainingExperiments: number,
         dynamicAttributesPerContent: number,
         audiencesPerExperience: number,

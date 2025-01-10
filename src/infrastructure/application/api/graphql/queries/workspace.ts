@@ -89,7 +89,7 @@ export const workspaceSlugQuery = graphql(`
 export const workspaceFeaturesQuery = graphql(`
     query WorkspaceFeatures($organizationSlug: ReadableId!, $workspaceSlug: ReadableId!) {
         organization(slug: $organizationSlug) {
-            workspace(slug: $workspaceSlug) @nonnull {
+            workspace(slug: $workspaceSlug) {
                 quotas {
                     audience
                     remainingAudiences
@@ -112,6 +112,20 @@ export const workspaceFeaturesQuery = graphql(`
                     ])
                 }
             }   
+        }
+    }
+`);
+
+export const createResourcesMutation = graphql(`
+    mutation CreateResources($workspaceId: WorkspaceId!, $payload: CreateWorkspaceResourcePayload!) {
+        createWorkspaceResources(workspaceId: $workspaceId, payload: $payload) {
+            slots
+            components
+            audiences
+            experiences {
+                id,
+                experimentId
+            }
         }
     }
 `);

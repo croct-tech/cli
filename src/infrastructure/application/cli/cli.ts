@@ -60,7 +60,7 @@ import {InstallCommand, InstallInput} from '@/application/cli/command/install';
 import {PageForm} from '@/application/cli/form/page';
 import {NonInteractiveAuthenticator} from '@/application/cli/authentication/authenticator/nonInteractiveAuthenticator';
 import {CliError, CliErrorCode} from '@/application/cli/error';
-import {NonInteractiveInput} from '@/infrastructure/application/cli/io/nonInteractiveInput';
+import {Instruction, NonInteractiveInput} from '@/infrastructure/application/cli/io/nonInteractiveInput';
 import {
     MultiAuthenticationInput,
     MultiAuthenticator,
@@ -95,8 +95,7 @@ import {AddDependency} from '@/application/cli/action/addDependency';
 import {LocateFile} from '@/application/cli/action/locateFile';
 import {ReplaceFileContent} from '@/application/cli/action/replaceFileContent';
 import {GithubDownloader} from '@/application/cli/download/githubDownloader';
-import {OptionMap} from '@/application/template/manifest';
-import {Define} from '@/application/cli/action/define';
+import {OptionMap} from '@/application/template/template';
 import {AddSlot} from '@/application/cli/action/addSlot';
 import {AddComponent} from '@/application/cli/action/addComponent';
 import {Try} from '@/application/cli/action/try';
@@ -105,6 +104,9 @@ import {LazyAction} from '@/application/cli/action/lazyAction';
 import {CachedConfigurationManager} from '@/application/project/configuration/manager/cachedConfigurationManager';
 import {ConfigurationFileManager} from '@/application/project/configuration/manager/configurationFileManager';
 import {CachedSdkResolver} from '@/application/project/sdk/cachedSdkResolver';
+import {CreateResource} from '@/application/cli/action/createResource';
+import {SlugMappingForm} from '@/application/cli/form/workspace/slugMappingForm';
+import {ResourceMatcher} from '@/application/template/resourceMatcher';
 
 export type Configuration = {
     io: {
@@ -329,6 +331,7 @@ export class Cli {
         return this.execute(
             new CreateTemplateCommand({
                 configurationManager: this.getConfigurationManager(),
+                fileSystem: this.getFileSystem(),
                 templateForm: new TemplateForm({
                     input: this.getFormInput(),
                     form: {
@@ -427,12 +430,12 @@ export class Cli {
         );
     }
 
-    private getFormInput(): Input {
-        return this.getInput() ?? this.getNonInteractiveInput();
+    private getFormInput(instruction?: Instruction): Input {
+        return this.getInput() ?? this.getNonInteractiveInput(instruction);
     }
 
-    private getNonInteractiveInput(): Input {
-        return new NonInteractiveInput({
+    private getNonInteractiveInput(instruction?: Instruction): Input {
+        return new NonInteractiveInput(instruction ?? {
             message: 'Input is not available in non-interactive mode.',
         });
     }
@@ -480,7 +483,6 @@ export class Cli {
         const projectManager = this.createJavaScriptProjectManager();
         const actions: ActionMap = {
             try: new LazyAction(() => new Try(actions)),
-            define: new Define(),
             'download-source': new DownloadSource({
                 fileSystem: fileSystem,
                 downloader: new GithubDownloader(fileSystem),
@@ -546,6 +548,24 @@ export class Cli {
                         },
                     );
                 },
+            }),
+            'create-resource': new CreateResource({
+                configurationManager: this.getConfigurationManager(),
+                matcher: new ResourceMatcher({
+                    workspaceApi: this.getWorkspaceApi(),
+                }),
+                api: {
+                    user: this.getUserApi(),
+                    workspace: this.getWorkspaceApi(),
+                    organization: this.getOrganizationApi(),
+                },
+                mappingForm: new SlugMappingForm({
+                    input: this.getFormInput({
+                        message: 'Some resource IDs are in use and interactive mode is required to assign new ones.',
+                        suggestions: ['Retry in interactive mode'],
+                    }),
+                    workspaceApi: this.getWorkspaceApi(),
+                }),
             }),
         };
 

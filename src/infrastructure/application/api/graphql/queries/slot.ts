@@ -35,6 +35,10 @@ export const slotsQuery = graphql(`
                                 componentDefinition {
                                     resolvedDefinition
                                 }
+                                default {
+                                    content
+                                    locale
+                                }
                             }
                         }
                     }
@@ -81,6 +85,10 @@ export const slotQuery = graphql(`
                         }
                         componentDefinition {
                             resolvedDefinition
+                        }
+                        default {
+                            content
+                            locale
                         }
                     }
                 }

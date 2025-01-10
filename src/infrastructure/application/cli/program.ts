@@ -6,7 +6,7 @@ import ci from 'ci-info';
 import {JsonPrimitive} from '@croct/json';
 import {Cli} from '@/infrastructure/application/cli/cli';
 import {Resource} from '@/application/cli/command/init';
-import {OptionMap} from '@/application/template/manifest';
+import {OptionMap} from '@/application/template/template';
 
 process.on('SIGINT', () => process.exit(0));
 process.on('SIGTERM', () => process.exit(0));
@@ -180,9 +180,12 @@ function createProgram(interactive: boolean, templateOptions?: OptionMap, cli?: 
         .description('Create a resource in your project.');
 
     createCommand.command('template')
+        .argument('path', 'The path to save the template')
         .description('Export a template from your project.')
-        .action(async () => {
-            await cli?.createTemplate({});
+        .action(async (path: string) => {
+            await cli?.createTemplate({
+                file: path,
+            });
         });
 
     const importCommand = program.command('import')

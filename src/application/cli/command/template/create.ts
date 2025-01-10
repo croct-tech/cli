@@ -1,14 +1,27 @@
 import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
-import {Input} from '@/application/cli/io/input';
 import {Form} from '@/application/cli/form/form';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {TemplateOptions, TemplateResources} from '@/application/cli/form/workspace/templateForm';
+import {WorkspaceResources} from '@/application/template/resources';
+import {
+    AudienceDefinition,
+    ComponentDefinition,
+    ExperienceDefinition,
+    SlotDefinition,
+} from '@/application/api/workspace';
+import {ExperienceStatus} from '@/application/model/experience';
+import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {Template} from '@/application/template/template';
+import {CliError, CliErrorCode} from '@/application/cli/error';
+import {Input} from '@/application/cli/io/input';
 
 export type CreateTemplateInput = {
+    file?: string,
 };
 
 export type CreateTemplateConfig = {
+    fileSystem: FileSystem,
     configurationManager: ConfigurationManager,
     templateForm: Form<TemplateResources, TemplateOptions>,
     io: {
@@ -25,6 +38,52 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
     }
 
     public async execute(input: CreateTemplateInput): Promise<void> {
+        const {fileSystem, io} = this.config;
+
+        const template = await this.createTemplate();
+        const templateFile = input.file ?? fileSystem.joinPaths('.', 'template.json');
+
+        try {
+            let override = false;
+
+            if (await fileSystem.exists(templateFile)) {
+                override = await (io.input?.confirm({
+                    message: `Overwrite existing file at \`${templateFile}\`?`,
+                    default: false,
+                })) ?? false;
+            }
+
+            await fileSystem.writeFile(templateFile, JSON.stringify(template, null, 2), {
+                overwrite: override,
+            });
+        } catch (error) {
+            throw new CliError('Failed to write template file', {
+                code: CliErrorCode.OTHER,
+                cause: error,
+            });
+        }
+
+        io.output.confirm(`Template created at \`${templateFile}\``);
+    }
+
+    private async createTemplate(): Promise<Template> {
+        const {io} = this.config;
+
+        const resources = await this.exportResources();
+
+        return {
+            title: (await io.input?.prompt({message: 'Enter template title'})) ?? 'My template',
+            description: (await io.input?.prompt({message: 'Enter template description'})) ?? '',
+            actions: [
+                {
+                    name: 'create-resource',
+                    resources: resources,
+                },
+            ],
+        };
+    }
+
+    private async exportResources(): Promise<WorkspaceResources> {
         const {configurationManager, templateForm: form} = this.config;
 
         const configuration = await configurationManager.resolve();
@@ -34,6 +93,78 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
             workspaceSlug: configuration.workspace,
         });
 
-        console.log(JSON.stringify(resources, null, 2));
+        const template: WorkspaceResources = {
+            audiences: Object.fromEntries(
+                resources.audiences.map<[string, AudienceDefinition]>(
+                    audience => [audience.slug, {
+                        name: audience.name,
+                        criteria: audience.criteria,
+                    }],
+                ),
+            ),
+            components: Object.fromEntries(
+                resources.components.map<[string, ComponentDefinition]>(
+                    component => [component.slug, {
+                        name: component.name,
+                        description: component.description,
+                        definition: component.definition,
+                    }],
+                ),
+            ),
+            slots: Object.fromEntries(
+                resources.slots.map<[string, SlotDefinition]>(
+                    slot => [slot.slug, {
+                        name: slot.name,
+                        component: slot.component?.slug ?? '',
+                        content: slot.content,
+                    }],
+                ),
+            ),
+            experiences: resources.experiences.map(
+                experience => {
+                    const {experiment} = experience;
+
+                    const experimentDefinition: ExperienceDefinition['experiment'] = experiment !== undefined
+                        ? {
+                            name: experiment.name ?? '',
+                            goalId: experiment.goalId,
+                            crossDevice: experiment.crossDevice,
+                            traffic: experiment.traffic ?? 1,
+                            variants: experiment.variants.map(
+                                variant => ({
+                                    name: variant.name ?? '',
+                                    content: variant.content,
+                                    baseline: variant.baseline,
+                                    allocation: variant.allocation ?? (1000 / experiment.variants.length),
+                                }),
+                            ),
+                        }
+                        : undefined;
+
+                    return {
+                        name: experience.name,
+                        draft: experience.status === ExperienceStatus.DRAFT,
+                        audiences: experience.audiences,
+                        slots: experience.slots,
+                        content: experience.content,
+                        ...(experimentDefinition !== undefined ? {experiment: experimentDefinition} : {}),
+                    };
+                },
+            ),
+        };
+
+        for (const [key, value] of Object.entries(template) as Array<[keyof WorkspaceResources, any]>) {
+            if (
+                typeof value === 'object' && value !== null
+                && (
+                    (Array.isArray(value) && value.length === 0)
+                    || Object.keys(value).length === 0
+                )
+            ) {
+                delete template[key];
+            }
+        }
+
+        return template;
     }
 }

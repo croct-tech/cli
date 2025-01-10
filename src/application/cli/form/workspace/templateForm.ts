@@ -7,7 +7,7 @@ import {ExperienceOptions} from '@/application/cli/form/workspace/experienceForm
 import {Audience} from '@/application/model/audience';
 import {Slot} from '@/application/model/slot';
 import {Component} from '@/application/model/component';
-import {Experience} from '@/application/model/experience';
+import {ExperienceDetails} from '@/application/model/experience';
 
 export type Configuration = {
     input: Input,
@@ -15,7 +15,7 @@ export type Configuration = {
         component: Form<Component[], ComponentOptions>,
         slot: Form<Slot[], SlotOptions>,
         audience: Form<Audience[], AudienceOptions>,
-        experience: Form<Experience[], ExperienceOptions>,
+        experience: Form<ExperienceDetails[], ExperienceOptions>,
     },
 };
 
@@ -28,7 +28,7 @@ export type TemplateResources = {
     components: Component[],
     slots: Slot[],
     audiences: Audience[],
-    experiences: Experience[],
+    experiences: ExperienceDetails[],
 };
 
 export class TemplateForm implements Form<TemplateResources, TemplateOptions> {
@@ -54,7 +54,7 @@ export class TemplateForm implements Form<TemplateResources, TemplateOptions> {
         const experiences = await form.experience.handle({
             organizationSlug: options.organizationSlug,
             workspaceSlug: options.workspaceSlug,
-            confirmation: 'Do you want to include other `experiences`?',
+            confirmation: 'Do you want to include experiences?',
         });
 
         if (experiences.length > 0) {
@@ -79,8 +79,8 @@ export class TemplateForm implements Form<TemplateResources, TemplateOptions> {
             workspaceSlug: options.workspaceSlug,
             selected: preselectedSlots,
             selectionConfirmation: preselectedSlots.length > 0
-                ? 'Do you want to include other `slots`?'
-                : 'Do you want to include `slots`?',
+                ? 'Do you want to include other slots?'
+                : 'Do you want to include slots?',
         });
 
         const preselectedComponents = [...new Set(template.slots.map(slot => slot.component?.slug ?? ''))];
@@ -91,8 +91,8 @@ export class TemplateForm implements Form<TemplateResources, TemplateOptions> {
             includeDependencies: true,
             selected: preselectedComponents,
             selectionConfirmation: preselectedComponents.length > 0
-                ? 'Do you want to include other `components`?'
-                : 'Do you want to include `components`?',
+                ? 'Do you want to include other components?'
+                : 'Do you want to include components?',
         });
 
         template.audiences = await form.audience.handle({
@@ -100,8 +100,8 @@ export class TemplateForm implements Form<TemplateResources, TemplateOptions> {
             workspaceSlug: options.workspaceSlug,
             selected: preselectedAudiences,
             selectionConfirmation: preselectedAudiences.length > 0
-                ? 'Do you want to include other `audiences`?'
-                : 'Do you want to include `audiences`?',
+                ? 'Do you want to include other audiences?'
+                : 'Do you want to include audiences?',
         });
 
         return template;

@@ -21,7 +21,10 @@ export const experienceQuery = graphql(`
                         goalId,
                         traffic,
                         variants {
-                            name,
+                            variantId
+                            name
+                            allocation
+                            baseline
                             content {
                                 default {
                                     contents {
@@ -87,7 +90,10 @@ export const experienceQuery = graphql(`
                             goalId,
                             traffic,
                             variants {
-                                name,
+                                variantId
+                                name
+                                allocation
+                                baseline
                                 content {
                                     default {
                                         contents {

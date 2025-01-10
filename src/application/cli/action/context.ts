@@ -1,12 +1,17 @@
-import {JsonPrimitive} from '@croct/json';
+import {JsonArray, JsonObject, JsonPrimitive} from '@croct/json';
+import {JsonPointer, JsonPointerLike} from '@croct/json-pointer';
 import {Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
 import {ActionError} from '@/application/cli/action/action';
 import {CliErrorCode} from '@/application/cli/error';
 
-export type LazyValue = () => Promise<JsonPrimitive|JsonPrimitive[]>;
+export type LazyJsonValue = () => Promise<VariableValue>;
 
-type VariableMap = Record<string, JsonPrimitive|JsonPrimitive[]|LazyValue>;
+type VariableMap = {
+    [key: string]: VariableValue,
+};
+
+export type VariableValue = JsonPrimitive | JsonArray | JsonObject | LazyJsonValue | VariableMap;
 
 export type Configuration = {
     input?: Input,
@@ -19,9 +24,9 @@ type TypeValidator<T> = (value: unknown) => value is T;
 export class ActionContext {
     public readonly input?: Input;
 
-    public readonly output: Output;
+    public readonly output?: Output;
 
-    private readonly variables: VariableMap;
+    private variables: VariableMap;
 
     public constructor(config: Configuration) {
         this.input = config.input;
@@ -30,15 +35,7 @@ export class ActionContext {
     }
 
     public getVariables(): VariableMap {
-        return {...this.variables};
-    }
-
-    public resolvePrimitive(reference: string): Promise<JsonPrimitive> {
-        return this.resolveValue(
-            reference,
-            (value): value is JsonPrimitive => ['string', 'number', 'boolean'].includes(typeof value),
-            ['string', 'number', 'boolean'],
-        );
+        return this.variables;
     }
 
     public resolveString(reference: string): Promise<string> {
@@ -122,36 +119,27 @@ export class ActionContext {
         return value;
     }
 
-    public async resolve(reference: string): Promise<JsonPrimitive|JsonPrimitive[]> {
+    public async resolve(reference: string): Promise<VariableValue> {
         const fullMatch = /\{\{(.*?)}}/.exec(reference);
 
         if (fullMatch !== null && fullMatch[0] === reference) {
             const variable = fullMatch[1].trim();
-            const value = await this.get(variable, true);
 
-            if (value === null) {
-                throw new ActionError(`Undefined placeholder variable \`${variable}\`.`, {
-                    code: CliErrorCode.INVALID_INPUT,
-                });
-            }
-
-            return value;
+            return this.get(variable);
         }
 
         const regex = /\{\{(.*?)}}/g;
-        const promises: Record<string, Promise<JsonPrimitive|JsonPrimitive[]>> = {};
+        const promises: Record<string, Promise<VariableValue>> = {};
 
         for (const match of reference.matchAll(regex)) {
             const variable = match[1].trim();
 
-            promises[variable] = this.get(variable, true);
+            promises[variable] = this.get(variable);
         }
 
         const replacements = Object.fromEntries(
             await Promise.all(
-                Object.entries(promises).map(
-                    async ([variable, promise]) => [variable, await promise],
-                ),
+                Object.entries(promises).map(async ([variable, promise]) => [variable, await promise]),
             ),
         );
 
@@ -159,44 +147,121 @@ export class ActionContext {
             const variable = placeholder.trim();
             const placeholderValue = replacements[variable];
 
-            if (placeholderValue === null) {
-                throw new ActionError(`Undefined placeholder variable \`${variable}\`.`, {
-                    code: CliErrorCode.INVALID_INPUT,
-                });
+            if (placeholderValue !== null && !['string', 'number', 'boolean'].includes(typeof placeholderValue)) {
+                throw new ActionError(
+                    `Expected placeholder variable \`${variable}\` to be null, string, number, or boolean, `
+                    + `but got ${ActionContext.getType(placeholderValue)}.`,
+                    {
+                        code: CliErrorCode.INVALID_INPUT,
+                    },
+                );
             }
 
-            return Array.isArray(placeholderValue)
-                ? placeholderValue.join(', ')
-                : `${placeholderValue}`;
+            return `${placeholderValue ?? ''}`;
         });
     }
 
-    public set(variable: string, value: JsonPrimitive|JsonPrimitive[]|LazyValue): void {
-        this.variables[variable] = value;
+    public set(variable: JsonPointerLike, value: VariableValue|LazyJsonValue): void {
+        const pointer = JsonPointer.from(variable);
+
+        if (pointer.isRoot()) {
+            throw new ActionError('Cannot set the root value.', {
+                code: CliErrorCode.INVALID_INPUT,
+            });
+        }
+
+        const parent = pointer.getParent();
+
+        if (parent.has(this.variables)) {
+            const parentValue = parent.get(this.variables);
+
+            if (typeof parentValue !== 'object' || parentValue === null || Object.isFrozen(parentValue)) {
+                throw new ActionError(
+                    `Cannot set variable \`${variable}\` because the parent value is not writable.`,
+                    {
+                        code: CliErrorCode.INVALID_INPUT,
+                    },
+                );
+            }
+        } else {
+            throw new ActionError(`Path \`${parent.toString()}\` does not exist.`, {
+                code: CliErrorCode.INVALID_INPUT,
+            });
+        }
+
+        pointer.set(this.variables, value);
     }
 
-    public get(variable: string, optional?: false): Promise<Exclude<JsonPrimitive, null>>;
+    public get(variable: JsonPointerLike, optional?: false): Promise<Exclude<VariableValue, null>>;
 
-    public get(variable: string, optional: true): Promise<JsonPrimitive>;
+    public get(variable: JsonPointerLike, optional: true): Promise<VariableValue>;
 
-    public get(variable: string, optional?: boolean): Promise<JsonPrimitive>;
+    public get(variable: JsonPointerLike, optional?: boolean): Promise<VariableValue>;
 
-    public async get(variable: string, optional: boolean = false): Promise<JsonPrimitive|JsonPrimitive[]> {
-        const value = this.variables[variable] ?? null;
+    public async get(variable: JsonPointerLike, optional: boolean = false): Promise<VariableValue> {
+        const pointer = JsonPointer.from(variable);
+
+        if (pointer.isRoot()) {
+            throw new ActionError('Cannot get the root value.', {
+                code: CliErrorCode.INVALID_INPUT,
+            });
+        }
+
+        let value = pointer.get(this.variables) ?? null;
 
         if (typeof value === 'function') {
-            this.variables[variable] = await value();
+            value = await value();
 
-            return this.get(variable, optional);
+            this.replaceValue(pointer, value);
         }
 
         if (value === null && !optional) {
-            throw new ActionError(`Variable \`${variable}\` is not defined.`, {
+            throw new ActionError(`Variable \`${value}\` is not defined.`, {
                 code: CliErrorCode.INVALID_INPUT,
             });
         }
 
         return value;
+    }
+
+    private replaceValue(pointer: JsonPointer, value: VariableValue): void {
+        let parentPointer = pointer;
+        const stack: Array<[JsonPointer, VariableValue|undefined]> = [];
+
+        while (!parentPointer.isRoot()) {
+            parentPointer = parentPointer.getParent();
+            const parentValue = parentPointer.get(this.variables);
+
+            if (!Object.isFrozen(parentValue)) {
+                break;
+            }
+
+            stack.unshift([parentPointer, parentValue]);
+        }
+
+        for (const [index, [currentPointer, currentValue]] of stack.entries()) {
+            if (currentPointer.isRoot()) {
+                this.variables = {...this.variables};
+
+                continue;
+            }
+
+            if (typeof currentValue === 'object' && currentValue !== null) {
+                const copy = Array.isArray(currentValue) ? [...currentValue] : {...currentValue};
+
+                currentPointer.set(this.variables, copy);
+
+                stack[index][1] = copy;
+            }
+        }
+
+        pointer.set(this.variables, value);
+
+        for (const [, currentValue] of stack) {
+            if (typeof currentValue === 'object' && currentValue !== null) {
+                Object.freeze(currentValue);
+            }
+        }
     }
 
     public getString(variable: string, optional?: false): Promise<string>;
@@ -268,17 +333,17 @@ export class ActionContext {
         return value;
     }
 
-    public getList(variable: string, optional?: false): Promise<JsonPrimitive[]>;
+    public getList(variable: string, optional?: false): Promise<JsonArray>;
 
-    public getList(variable: string, optional: true): Promise<JsonPrimitive[] | null>;
+    public getList(variable: string, optional: true): Promise<JsonArray|null>;
 
-    public getList(variable: string, optional?: boolean): Promise<JsonPrimitive[] | null>;
+    public getList(variable: string, optional?: boolean): Promise<JsonArray|null>;
 
-    public async getList(variable: string, optional = false): Promise<JsonPrimitive[] | null> {
+    public async getList(variable: string, optional = false): Promise<JsonArray|null> {
         const value = await this.get(variable, optional);
 
         if (value === null) {
-            return null;
+            return value;
         }
 
         if (!Array.isArray(value)) {
@@ -369,13 +434,7 @@ export class ActionContext {
         const value = await this.getList(variable, optional);
 
         if (value === null) {
-            if (optional) {
-                return null;
-            }
-
-            throw new ActionError(`Variable \`${variable}\` is not defined.`, {
-                code: CliErrorCode.INVALID_INPUT,
-            });
+            return value;
         }
 
         const list: T[] = [];

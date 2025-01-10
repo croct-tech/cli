@@ -9,7 +9,7 @@ import {InteractiveTaskMonitor} from '@/infrastructure/application/cli/io/intera
 import {format} from '@/infrastructure/application/cli/io/formatting';
 import {TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
 import {NonInteractiveTaskMonitor} from '@/infrastructure/application/cli/io/nonInteractiveTaskMonitor';
-import {formatCause} from '@/application/error';
+import {formatMessage} from '@/application/error';
 
 export type ExitCallback = () => never;
 
@@ -152,6 +152,13 @@ export class ConsoleOutput implements Output {
         let body = format(CliError.formatMessage(error));
 
         if (error instanceof CliError) {
+            const {cause} = error.help;
+
+            if (cause !== undefined && error.message.toLowerCase() !== cause.message.toLowerCase()) {
+                body += `\n\n${chalk.bold('Cause')}\n`;
+                body += `${format(formatMessage(error.help.cause))}`;
+            }
+
             body += ConsoleOutput.formatErrorSuggestions(error);
             body += ConsoleOutput.formatErrorUsefulLinks(error);
         }
@@ -171,18 +178,14 @@ export class ConsoleOutput implements Output {
         const {details, cause} = error.help;
 
         if (details !== undefined) {
-            message += `\n\n${chalk.bold('Details:')}\n`;
+            message += `\n\n${chalk.bold('Details')}\n`;
             message += details
                 .map(detail => ` • ${format(detail)}`)
                 .join('\n');
         }
 
-        if (error.code === CliErrorCode.OTHER) {
-            if (cause !== undefined && error.message.toLowerCase() !== cause.message.toLowerCase()) {
-                message += `\n\n${chalk.bold('Cause:')}\n`;
-                message += `${formatCause(error.help.cause)}`;
-            }
-
+        if (error.code === CliErrorCode.OTHER && cause instanceof Error) {
+            message += `\n\n${chalk.bold('Stack trace')}\n`;
             message += ConsoleOutput.formatStackTrace(error);
         }
 
@@ -199,7 +202,7 @@ export class ConsoleOutput implements Output {
             .map((line => ` › ${line.trim().replace(/^at /, '')}`))
             .slice(1);
 
-        return `\n\n${chalk.bold('Stack trace:')}\n${stack.join('\n')}`;
+        return `\n\n${chalk.bold('Stack trace')}\n${stack.join('\n')}`;
     }
 
     private static formatErrorSuggestions(error: CliError): string {
@@ -208,10 +211,10 @@ export class ConsoleOutput implements Output {
 
         if (suggestions !== undefined && suggestions.length > 0) {
             if (suggestions.length === 1) {
-                message += `\n\n💡 ${format(suggestions[0])}`;
+                message += `\n\n${format(suggestions[0])}`;
             } else {
-                message += `\n\n💡 ${chalk.bold('Suggestions:')}\n`;
-                message += suggestions.map(suggestion => `  • ${format(suggestion)}`)
+                message += `\n\n${chalk.bold('Suggestions')}\n`;
+                message += suggestions.map(suggestion => ` • ${format(suggestion)}`)
                     .join('\n');
             }
         }
@@ -250,10 +253,10 @@ export class ConsoleOutput implements Output {
         }
 
         if (usefulLinks.length > 0) {
-            message += `\n\n🔗 ${chalk.bold('Useful links')}\n`;
+            message += `\n\n${chalk.bold('Useful links')}\n`;
             message += usefulLinks.map(
                 ({description, url}) => ` • ${terminalLink(description, url, {
-                    fallback: (text, url) => `${text}: ${url}`,
+                    fallback: () => `${description}: ${url}`,
                 })}`,
             ).join('\n');
         }

@@ -779,6 +779,13 @@ type CreateConfiguredOrganizationResult {
   workspace: Workspace!
 }
 
+type CreateCreateWorkspaceResourceResult {
+  audiences: [AudienceId!]!
+  components: [ComponentId!]!
+  experiences: [WorkspaceResourceExperienceResult!]!
+  slots: [SlotId!]!
+}
+
 input CreateExperienceDraftPayload {
   name: String!
 }
@@ -822,6 +829,39 @@ input CreateWorkspacePayload {
   slug: ReadableId!
   timeZone: TimeZone!
   website: String
+}
+
+input CreateWorkspaceResourceExperienceInput {
+  audiences: [ReadableId!]!
+  content: WorkspaceResourcesExperienceContentInput!
+  experiment: CreateWorkspaceResourceExperimentInput
+  name: String!
+  publish: Boolean!
+  slots: [ReadableId!]!
+  validate: Boolean!
+}
+
+input CreateWorkspaceResourceExperimentInput {
+  crossDevice: Boolean!
+  goalId: String
+  name: String!
+  traffic: Int!
+  variants: [CreateWorkspaceResourceExperimentVariantInput!]!
+}
+
+input CreateWorkspaceResourceExperimentVariantInput {
+  allocation: Int!
+  baseline: Boolean!
+  content: WorkspaceResourcesExperienceContentInput!
+  id: VariantId!
+  name: String!
+}
+
+input CreateWorkspaceResourcePayload {
+  audiences: [CreateAudiencePayload!]!
+  components: [CreateComponentPayload!]!
+  experiences: [CreateWorkspaceResourceExperienceInput!]!
+  slots: [WorkspaceResourcesSlotInput!]!
 }
 
 type CurrencyNumberFormat implements NumberFormat {
@@ -1138,7 +1178,7 @@ type ExperienceSettings {
 
 type ExperienceSlot {
   slot: Slot
-  slotContent: SlotContent
+  slotContent: SlotContent!
   slotId: SlotId!
   version: Version!
 }
@@ -1615,6 +1655,7 @@ type Mutation {
   createSlot(payload: CreateSlotPayload!, workspaceId: WorkspaceId!): Slot!
   createWebApplication(payload: CreateWebApplicationPayload!, workspaceId: WorkspaceId!): WebApplication!
   createWorkspace(organizationId: OrganizationId!, payload: CreateWorkspacePayload!): Workspace!
+  createWorkspaceResources(payload: CreateWorkspaceResourcePayload!, workspaceId: WorkspaceId!): CreateCreateWorkspaceResourceResult!
   declineInvitation(invitationId: InvitationId!): Invitation!
   deleteApiKey(apiKey: ApiKeyId!, applicationId: ApplicationId!, password: String!): ID!
   deleteApplication(applicationId: ApplicationId!, password: String!): ID!
@@ -3204,6 +3245,40 @@ type WorkspaceQuotas {
   remainingLocales: Int!
   remainingSlots: Int!
   slot: Int!
+}
+
+input WorkspaceResourceContentInput {
+  content: JSONObject!
+  locale: String
+  slot: ReadableId!
+}
+
+input WorkspaceResourceExperienceDefaultContentInput {
+  contents: [WorkspaceResourceContentInput!]!
+  id: String!
+}
+
+type WorkspaceResourceExperienceResult {
+  experimentId: ExperimentId
+  id: ExperienceId!
+}
+
+input WorkspaceResourceExperienceSegmentedContentInput {
+  audiences: [ReadableId!]!
+  contents: [WorkspaceResourceContentInput!]!
+  id: String!
+}
+
+input WorkspaceResourcesExperienceContentInput {
+  default: WorkspaceResourceExperienceDefaultContentInput!
+  segmented: [WorkspaceResourceExperienceSegmentedContentInput!]!
+}
+
+input WorkspaceResourcesSlotInput {
+  component: ReadableId!
+  customId: ReadableId!
+  defaultContent: [LocalizedContentInput!]!
+  name: String!
 }
 
 enum WorkspaceRole {

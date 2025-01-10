@@ -1,12 +1,12 @@
 import {Content} from '@croct/content-model/content/content';
+import {WorkspaceResources} from '@/application/template/resources';
+import {LocalizedContentMap, PersonalizedContent, SlotContentMap} from '@/application/model/experience';
 import {
     AudienceDefinition,
     ComponentDefinition,
     ExperienceDefinition,
     SlotDefinition,
-    Template,
-} from '@/application/template/template';
-import {LocalizedContentMap, PersonalizedContent, SlotContentMap} from '@/application/model/experience';
+} from '@/application/api/workspace';
 
 export type Refactoring = {
     componentMapping: Record<string, string>,
@@ -14,44 +14,56 @@ export type Refactoring = {
     audienceMapping: Record<string, string>,
     localeMapping: Record<string, string|null>,
     maximumAudiencePerExperience: number,
-    isDynamicContentSupported: boolean,
+    dynamicAttributesPerContent: number,
+    isCrossDeviceFeatureEnabled: boolean,
 };
 
-export class TemplateRefactor {
+type ContentQuota = {
+    dynamicAttributesPerContent: number,
+};
+
+export class ResourceRefactor {
     private readonly refactoring: Refactoring;
 
     public constructor(refactoring: Refactoring) {
         this.refactoring = refactoring;
     }
 
-    public refactor(template: Template): Template {
+    public refactor(template: WorkspaceResources): WorkspaceResources {
         return {
-            components: template.components?.map(component => this.refactorComponent(component)) ?? [],
-            slots: template.slots?.map(slot => this.refactorSlot(slot)) ?? [],
-            audiences: template.audiences?.map(audience => this.refactorAudience(audience)) ?? [],
+            components: Object.fromEntries(
+                Object.entries(template.components ?? {}).map<[string, ComponentDefinition]>(
+                    ([slug, component]) => [
+                        this.refactoring.componentMapping[slug] ?? slug,
+                        component,
+                    ],
+                ),
+            ),
+            slots: Object.fromEntries(
+                Object.entries(template.slots ?? {}).map<[string, SlotDefinition]>(
+                    ([slug, slot]) => [
+                        this.refactoring.slotMapping[slug] ?? slug,
+                        this.refactorSlotContent(slot),
+                    ],
+                ),
+            ),
+            audiences: Object.fromEntries(
+                Object.entries(template.audiences ?? {}).map<[string, AudienceDefinition]>(
+                    ([slug, audience]) => [
+                        this.refactoring.audienceMapping[slug] ?? slug,
+                        audience,
+                    ],
+                ),
+            ),
             experiences: template.experiences?.map(experience => this.refactorExperience(experience)) ?? [],
         };
     }
 
-    private refactorComponent(component: ComponentDefinition): ComponentDefinition {
-        return {
-            ...component,
-            slug: this.refactoring.componentMapping[component.slug] ?? component.slug,
-        };
-    }
-
-    private refactorSlot(slot: SlotDefinition): SlotDefinition {
+    private refactorSlotContent(slot: SlotDefinition): SlotDefinition {
         return {
             ...slot,
-            slug: this.refactoring.slotMapping[slot.slug] ?? slot.slug,
             component: this.refactoring.componentMapping[slot.component] ?? slot.component,
-        };
-    }
-
-    private refactorAudience(audience: AudienceDefinition): AudienceDefinition {
-        return {
-            ...audience,
-            slug: this.refactoring.audienceMapping[audience.slug] ?? audience.slug,
+            content: this.refactorLocalizedContentMap(slot.content),
         };
     }
 
@@ -60,6 +72,13 @@ export class TemplateRefactor {
             ...experience,
             audiences: experience.audiences.map(audience => this.refactoring.audienceMapping[audience] ?? audience),
             slots: experience.slots.map(slot => this.refactoring.slotMapping[slot] ?? slot),
+            experiment: experience.experiment !== undefined
+                ? {
+                    ...experience.experiment,
+                    crossDevice: (experience.experiment.crossDevice ?? false)
+                        && this.refactoring.isCrossDeviceFeatureEnabled,
+                }
+                : undefined,
             content: this.refactorPersonalizedContent(
                 experience.content,
                 experience.audiences.slice(0, this.refactoring.maximumAudiencePerExperience),
@@ -78,6 +97,7 @@ export class TemplateRefactor {
                 }
 
                 return {
+                    id: segmentedContent.id,
                     audiences: filteredAudiences,
                     content: this.refactorSlotContentMap(segmentedContent.content),
                 };
@@ -102,26 +122,33 @@ export class TemplateRefactor {
                 ([locale, content]) => {
                     const mappedLocale = this.refactoring.localeMapping[locale];
 
-                    if (mappedLocale === null) {
+                    if (
+                        mappedLocale === null
+                        // Avoid overwriting existing content
+                        || (mappedLocale !== undefined && contentMap[mappedLocale] !== undefined)
+                    ) {
                         return [];
                     }
 
-                    return [[mappedLocale ?? locale, this.refactorContent(content)]];
+                    return [[mappedLocale ?? locale, this.refactorContent(content, {
+                        dynamicAttributesPerContent: this.refactoring.dynamicAttributesPerContent,
+                    })]];
                 },
             ),
         );
     }
 
-    private refactorContent<T extends Content>(content: T): T {
-        if (this.refactoring.isDynamicContentSupported) {
-            return content;
-        }
-
+    private refactorContent<T extends Content>(content: T, quota: ContentQuota): T {
         switch (content.type) {
             case 'boolean':
             case 'text':
             case 'number':
-                return content.value.type === 'static'
+                if (content.value.type === 'dynamic' && quota.dynamicAttributesPerContent > 0) {
+                    // eslint-disable-next-line no-param-reassign -- Must be mutated in place
+                    quota.dynamicAttributesPerContent--;
+                }
+
+                return content.value.type === 'static' || quota.dynamicAttributesPerContent > 0
                     ? content
                     : {
                         ...content,
@@ -138,7 +165,7 @@ export class TemplateRefactor {
                         Object.entries(content.attributes).map(
                             ([attributeName, attributeContent]) => [
                                 attributeName,
-                                this.refactorContent(attributeContent),
+                                this.refactorContent(attributeContent, quota),
                             ],
                         ),
                     ),
@@ -147,7 +174,7 @@ export class TemplateRefactor {
             case 'list':
                 return {
                     ...content,
-                    items: content.items.map(itemContent => this.refactorContent(itemContent)),
+                    items: content.items.map(itemContent => this.refactorContent(itemContent, quota)),
                 };
         }
     }

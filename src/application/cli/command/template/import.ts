@@ -4,8 +4,8 @@ import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
 import {ActionRunner} from '@/application/cli/action/runner';
 import {FileSystem} from '@/application/fileSystem/fileSystem';
-import {Manifest, OptionMap} from '@/application/template/manifest';
-import {ActionContext} from '@/application/cli/action/context';
+import {Template, OptionMap} from '@/application/template/template';
+import {ActionContext, VariableValue} from '@/application/cli/action/context';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {SdkResolver} from '@/application/project/sdk/sdk';
 import {ApplicationPlatform} from '@/application/model/application';
@@ -52,35 +52,43 @@ export class ImportTemplateCommand implements Command<ImportTemplateInput> {
         const context = new ActionContext({
             input: io.input,
             output: io.output,
-            variables: {
-                'project.path.example': async () => (await configurationManager.resolve()).paths.examples,
-                'project.path.component': async () => (await configurationManager.resolve()).paths.components,
-                'project.platform': async (): Promise<string> => {
-                    const sdk = await sdkResolver.resolve();
+            variables: Object.freeze({
+                project: Object.freeze({
+                    path: Object.freeze({
+                        example: async () => (await configurationManager.resolve()).paths.examples,
+                        component: async () => (await configurationManager.resolve()).paths.components,
+                    }),
+                    platform: async (): Promise<string> => {
+                        const sdk = await sdkResolver.resolve();
 
-                    return ApplicationPlatform.getName(sdk.getPlatform())
-                        .toLowerCase()
-                        .replace(/[^a-z0-9]+/g, '-');
-                },
-            },
+                        return ApplicationPlatform.getName(sdk.getPlatform())
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]+/g, '-');
+                    },
+                }),
+                input: Object.freeze(
+                    Object.fromEntries(
+                        Object.entries(options).map(
+                            ([key, value]) => [
+                                key.replace(/~/g, '~0').replace(/\//g, '~1'),
+                                typeof value === 'string'
+                                    ? (): Promise<VariableValue> => context.resolve(value)
+                                    : value,
+                            ],
+                        ),
+                    ),
+                ),
+                output: {},
+            }),
         });
-
-        for (const [key, value] of Object.entries(options)) {
-            context.set(
-                `input.${key}`,
-                typeof value === 'string'
-                    ? (): Promise<JsonPrimitive|JsonPrimitive[]> => context.resolve(value)
-                    : value,
-            );
-        }
 
         return context;
     }
 
-    private async loadManifest(template: string): Promise<Manifest> {
+    private async loadManifest(template: string): Promise<Template> {
         const {fileSystem} = this.config;
         const content = await fileSystem.readFile(template);
 
-        return JSON.parse(content) as Manifest;
+        return JSON.parse(content) as Template;
     }
 }

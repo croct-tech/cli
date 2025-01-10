@@ -1,30 +1,44 @@
-import {deepEqual} from 'fast-equals';
 import {Action} from '@/application/cli/action/action';
 import {ActionContext} from '@/application/cli/action/context';
-import {WorkspaceApi} from '@/application/api/workspace';
 import {
     AudienceDefinition,
     ComponentDefinition,
     ExperienceDefinition,
+    NewResourceIds,
     SlotDefinition,
-    Template,
-    TemplateAnalysis,
-} from '@/application/template/template';
+    WorkspaceApi,
+} from '@/application/api/workspace';
+import {WorkspaceResources, ResourcesAnalysis} from '@/application/template/resources';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {OrganizationApi} from '@/application/api/organization';
 import {CliError, CliErrorCode} from '@/application/cli/error';
 import {Workspace, WorkspaceFeatures} from '@/application/model/workspace';
 import {ResolvedConfiguration} from '@/application/project/configuration/configuration';
-import {Slot} from '@/application/model/slot';
-import {Component} from '@/application/model/component';
-import {Audience} from '@/application/model/audience';
-import {Experience, ExperienceStatus, ExperienceSummary} from '@/application/model/experience';
+import {Form} from '@/application/cli/form/form';
+import {SlugMappingOptions, SlugMapping} from '@/application/cli/form/workspace/slugMappingForm';
+import {ResourceMatches, ResourceMatcher} from '@/application/template/resourceMatcher';
+import {UserApi} from '@/application/api/user';
+import {ResourceRefactor} from '@/application/template/resourceRefactor';
 
-export type CreateResourceOptions = Template;
+export type CreateResourceOptions = {
+    resources: WorkspaceResources,
+    output?: NewResourceVariables,
+};
+
+type NewResourceVariables = {
+    audiences?: Record<string, string>,
+    components?: Record<string, string>,
+    slots?: Record<string, string>,
+    experiences?: Record<number, string>,
+    experiments?: Record<number, string>,
+};
 
 export type Configuration = {
     configurationManager: ConfigurationManager,
+    mappingForm: Form<SlugMapping, SlugMappingOptions>,
+    matcher: ResourceMatcher,
     api: {
+        user: UserApi,
         organization: OrganizationApi,
         workspace: WorkspaceApi,
     },
@@ -37,15 +51,23 @@ type MissingResources = {
     locales: Set<string>,
 };
 
-type WorkspaceInfo = Workspace & {
-    features: WorkspaceFeatures,
+type ProjectInfo = {
+    configuration: ResolvedConfiguration,
+    workspace: Workspace & WorkspaceFeatures,
 };
 
-type LazyExperience = ExperienceSummary & {
-    details: {
-        content: Promise<Experience['content'] | null>,
-        experiment: Promise<Experience['experiment'] | null>,
-    },
+type RequiredQuota = {
+    components: number,
+    slots: number,
+    audiences: number,
+    experiences: number,
+    experiments: number,
+};
+
+export type ResourceCreationPlan = {
+    resources: WorkspaceResources,
+    matches: ResourceMatches,
+    mapping: SlugMapping,
 };
 
 export class CreateResource implements Action<CreateResourceOptions> {
@@ -56,282 +78,128 @@ export class CreateResource implements Action<CreateResourceOptions> {
     }
 
     public async execute(options: CreateResourceOptions, context: ActionContext): Promise<void> {
-        const analysis = Template.analyze(options);
+        const analysis = WorkspaceResources.analyze(options.resources);
 
-        this.checkMissingResources(analysis, options);
+        this.checkMissingResources({...analysis, locales: new Set()}, options.resources);
 
-        const {configurationManager} = this.config;
+        const {configurationManager, api: {workspace: api}} = this.config;
+        const {output} = context;
+
+        const notifier = output?.notify('Analyzing resources...');
+
         const configuration = await configurationManager.resolve();
+        const projectInfo = await this.getProjectInfo(configuration);
 
-        const template = await this.updateTemplate(options, analysis, configuration);
-    }
+        const plan = await this.createPlan(options.resources, analysis, projectInfo);
 
-    private async updateTemplate(
-        template: Template,
-        analysis: TemplateAnalysis,
-        configuration: ResolvedConfiguration,
-        context: ActionContext,
-    ): Promise<Template> {
-        const {input} = context;
+        notifier?.update('Creating resources...');
 
-        if (input === undefined) {
-            throw new CliError(
-                'Some resource IDs in the template require manual resolution '
-                + 'which is not supported in non-interactive mode',
-                {
-                    code: CliErrorCode.PRECONDITION,
-                    suggestions: [
-                        'Re-run the command without the `--quiet` and `--non-interactive` options',
-                    ],
-                },
-            );
+        const newResources = await api.createResources({
+            organizationId: configuration.organizationId,
+            workspaceId: configuration.workspaceId,
+            ...plan.resources,
+        });
+
+        notifier?.stop();
+
+        if (output !== undefined) {
+            const warnings = CreateResource.getWarnings(analysis, projectInfo.workspace);
+
+            if (warnings.length > 0) {
+                output.warn('Warnings:');
+
+                for (const warning of warnings) {
+                    output.log(` - ${warning}`);
+                }
+            }
         }
 
-        const api = this.config.api.workspace;
-        const newSlots = Object.keys(template.slots ?? {});
-        const newComponents = Object.keys(template.components ?? {});
-        const newAudiences = Object.keys(template.audiences ?? {});
-
-        const [slots, components, audiences] = await Promise.all([
-            newSlots.length > 0
-                ? api.getSlots({
-                    organizationSlug: configuration.organization,
-                    workspaceSlug: configuration.workspace,
-                })
-                : new Array<Slot>(),
-            newComponents.length > 0
-                ? api.getComponents({
-                    organizationSlug: configuration.organization,
-                    workspaceSlug: configuration.workspace,
-                })
-                : new Array<Component>(),
-            newAudiences.length > 0
-                ? api.getAudiences({
-                    organizationSlug: configuration.organization,
-                    workspaceSlug: configuration.workspace,
-                })
-                : new Array<Audience>(),
-        ]);
-
-        const conflictingSlots = newSlots.filter(
-            slot => slots.some(existing => existing.slug === slot),
-        );
-
-        const conflictingComponents = newComponents.filter(
-            component => components.some(existing => existing.slug === component),
-        );
-
-        const conflictingAudiences = newAudiences.filter(
-            audience => audiences.some(existing => existing.slug === audience),
-        );
-
-        const slotMapping: Record<string, string> = {};
-        const componentMapping: Record<string, string> = {};
-        const audienceMapping: Record<string, string> = {};
-
-        for (const slot of conflictingSlots) {
+        if (options.output !== undefined) {
+            CreateResource.setVariables(options.output, plan, newResources, context);
         }
     }
 
-    private async syncTemplate(template: Template, configuration: ResolvedConfiguration): Promise<Template> {
-        const [components, slots, audiences, experiences] = await Promise.all([
-            this.getNewComponents(template.components ?? {}, configuration),
-            this.getNewSlots(template.slots ?? {}, configuration),
-            this.getNewAudiences(template.audiences ?? {}, configuration),
-            this.getNewExperiences(template.experiences ?? [], configuration),
-        ]);
+    private async createPlan(
+        resources: WorkspaceResources,
+        analysis: ResourcesAnalysis,
+        projectInfo: ProjectInfo,
+    ): Promise<ResourceCreationPlan> {
+        const {mappingForm, matcher} = this.config;
+
+        const matches = await matcher.match({
+            resources: resources,
+            workspaceSlug: projectInfo.configuration.workspace,
+            organizationSlug: projectInfo.configuration.organization,
+        });
+
+        const newAudiences = Object.entries(matches.audiences).filter(
+            (entry): entry is [string, AudienceDefinition] => !('id' in entry[1]),
+        );
+
+        const newComponents = Object.entries(matches.components).filter(
+            (entry): entry is [string, ComponentDefinition] => !('id' in entry[1]),
+        );
+
+        const newSlots = Object.entries(matches.slots).filter(
+            (entry): entry is [string, SlotDefinition] => !('id' in entry[1]),
+        );
+
+        const newExperiences = matches.experiences.filter(
+            (experience): experience is ExperienceDefinition => !('id' in experience),
+        );
+
+        const newExperiments = newExperiences.flatMap(
+            experience => (experience.experiment === undefined ? [] : [experience.experiment]),
+        );
+
+        await this.checkRequiredQuota(projectInfo, {
+            components: newComponents.length,
+            slots: newSlots.length,
+            audiences: newAudiences.length,
+            experiences: newExperiences.length,
+            experiments: newExperiments.length,
+        });
+
+        const mapping = await mappingForm.handle({
+            organizationSlug: projectInfo.configuration.organization,
+            workspaceSlug: projectInfo.configuration.workspace,
+            resources: {
+                audiences: newAudiences.map(([slug]) => slug),
+                components: newComponents.map(([slug]) => slug),
+                slots: newSlots.map(([slug]) => slug),
+            },
+        });
+
+        const localeMapping: Record<string, string> = {};
+        const {workspace} = projectInfo;
+
+        for (const locale of analysis.locales) {
+            if (!workspace.locales.includes(locale)) {
+                localeMapping[locale] = workspace.defaultLocale;
+            }
+        }
 
         return {
-            components: components,
-            slots: slots,
-            audiences: audiences,
-            experiences: experiences,
+            matches: matches,
+            mapping: mapping,
+            resources: new ResourceRefactor({
+                componentMapping: mapping.components,
+                audienceMapping: mapping.audiences,
+                slotMapping: mapping.slots,
+                dynamicAttributesPerContent: workspace.quotas.dynamicAttributesPerContent,
+                maximumAudiencePerExperience: workspace.quotas.audiencesPerExperience,
+                isCrossDeviceFeatureEnabled: workspace.features.crossDevice,
+                localeMapping: localeMapping,
+            }).refactor({
+                components: Object.fromEntries(newComponents),
+                slots: Object.fromEntries(newSlots),
+                audiences: Object.fromEntries(newAudiences),
+                experiences: newExperiences,
+            }),
         };
     }
 
-    private async getNewExperiences(
-        definitions: ExperienceDefinition[],
-        configuration: ResolvedConfiguration,
-    ): Promise<ExperienceDefinition[]> {
-        const {api: {workspace: api}} = this.config;
-
-        const summaries = await api.getExperiences({
-            organizationSlug: configuration.organization,
-            workspaceSlug: configuration.workspace,
-            status: [
-                ExperienceStatus.ACTIVE,
-                ExperienceStatus.PAUSED,
-                ExperienceStatus.DRAFT,
-            ],
-        });
-
-        const experiences = summaries.map<LazyExperience>(summary => {
-            let promise: Promise<Experience | null> | null = null;
-
-            function loadExperience(): Promise<Experience | null> {
-                if (promise === null) {
-                    promise = api.getExperience({
-                        organizationSlug: configuration.organization,
-                        workspaceSlug: configuration.workspace,
-                        experienceId: summary.id,
-                    });
-                }
-
-                return promise;
-            }
-
-            return {
-                ...summary,
-                details: {
-                    get content(): Promise<Experience['content'] | null> {
-                        return loadExperience().then(experience => experience?.content ?? null);
-                    },
-                    get experiment(): Promise<Experience['experiment'] | null> {
-                        return loadExperience().then(experience => experience?.experiment ?? null);
-                    },
-                },
-            };
-        });
-
-        const newExperiences = await Promise.all(
-            definitions.map(async definition => {
-                for (const experience of experiences) {
-                    if (await this.isSameExperience(definition, experience)) {
-                        return null;
-                    }
-                }
-
-                return definition;
-            }),
-        );
-
-        return newExperiences.filter(experience => experience !== null);
-    }
-
-    private async isSameExperience(definition: ExperienceDefinition, experience: LazyExperience): Promise<boolean> {
-        const experienceStatus = definition.draft === true ? ExperienceStatus.DRAFT : ExperienceStatus.ACTIVE;
-
-        if (
-            experienceStatus !== experience.status
-            || !deepEqual(definition.audiences, experience.audiences)
-            || !deepEqual(definition.slots, experience.slots)
-            || (definition.experiment !== undefined && experience.experiment === undefined)
-        ) {
-            return false;
-        }
-
-        const [content, experiment = null] = await Promise.all([
-            experience.details.content,
-            experience.details.experiment,
-        ]);
-
-        if (
-            definition.experiment !== undefined
-            && (
-                experiment === null
-                || definition.experiment.goalId !== experiment.goalId
-                || definition.experiment.traffic !== experiment.traffic
-                || definition.experiment.crossDevice !== experiment.crossDevice
-                || !deepEqual(definition.experiment.variants, experiment.variants)
-            )
-        ) {
-            return false;
-        }
-
-        return deepEqual(definition.content, content);
-    }
-
-    private async getNewAudiences(
-        definitions: Record<string, AudienceDefinition>,
-        configuration: ResolvedConfiguration,
-    ): Promise<Record<string, AudienceDefinition>> {
-        const {api: {workspace: api}} = this.config;
-        const audiences = await Promise.all(
-            Object.keys(definitions).map<Promise<[string, Audience | null]>>(
-                async slug => [slug, await api.getAudience({
-                    organizationSlug: configuration.organization,
-                    workspaceSlug: configuration.workspace,
-                    audienceSlug: slug,
-                })],
-            ),
-        );
-
-        const newAudiences: Record<string, AudienceDefinition> = {};
-
-        for (const [slug, audience] of audiences) {
-            if (audience === null || !CreateResource.isSameAudience(definitions[slug], audience)) {
-                newAudiences[slug] = definitions[slug];
-            }
-        }
-
-        return newAudiences;
-    }
-
-    private static isSameAudience(definition: AudienceDefinition, audience: Audience): boolean {
-        return definition.criteria === audience.criteria;
-    }
-
-    private async getNewComponents(
-        definitions: Record<string, ComponentDefinition>,
-        configuration: ResolvedConfiguration,
-    ): Promise<Record<string, ComponentDefinition>> {
-        const {api: {workspace: api}} = this.config;
-        const components = await Promise.all(
-            Object.keys(definitions).map<Promise<[string, Component | null]>>(
-                async slug => [slug, await api.getComponent({
-                    organizationSlug: configuration.organization,
-                    workspaceSlug: configuration.workspace,
-                    componentSlug: slug,
-                })],
-            ),
-        );
-
-        const newComponents: Record<string, ComponentDefinition> = {};
-
-        for (const [slug, component] of components) {
-            if (component === null || !CreateResource.isSameComponent(definitions[slug], component)) {
-                newComponents[slug] = definitions[slug];
-            }
-        }
-
-        return newComponents;
-    }
-
-    private static isSameComponent(definition: ComponentDefinition, component: Component): boolean {
-        return deepEqual(definition.definition, component.definition);
-    }
-
-    private async getNewSlots(
-        definitions: Record<string, SlotDefinition>,
-        configuration: ResolvedConfiguration,
-    ): Promise<Record<string, SlotDefinition>> {
-        const {api: {workspace: api}} = this.config;
-        const slots = await Promise.all(
-            Object.keys(definitions).map<Promise<[string, Slot | null]>>(
-                async slug => [slug, await api.getSlot({
-                    organizationSlug: configuration.organization,
-                    workspaceSlug: configuration.workspace,
-                    slotSlug: slug,
-                })],
-            ),
-        );
-
-        const newSlots: Record<string, SlotDefinition> = {};
-
-        for (const [slug, slot] of slots) {
-            if (slot === null || !CreateResource.isSameSlot(definitions[slug], slot)) {
-                newSlots[slug] = definitions[slug];
-            }
-        }
-
-        return newSlots;
-    }
-
-    private static isSameSlot(definition: SlotDefinition, slot: Slot): boolean {
-        return definition.component === slot.component?.slug;
-    }
-
-    private async getWorkspace(configuration: ResolvedConfiguration): Promise<WorkspaceInfo> {
+    private async getProjectInfo(configuration: ResolvedConfiguration): Promise<ProjectInfo> {
         const {api} = this.config;
 
         const [workspace, features] = await Promise.all([
@@ -359,21 +227,70 @@ export class CreateResource implements Action<CreateResourceOptions> {
         }
 
         return {
-            ...workspace,
-            features: features,
+            configuration: configuration,
+            workspace: {
+                ...workspace,
+                ...features,
+            },
         };
     }
 
-    private checkMissingResources(analysis: TemplateAnalysis, template: Template): void {
-        const missingResources = this.findMissingResources(analysis, template);
+    private async checkRequiredQuota(projectInfo: ProjectInfo, required: RequiredQuota): Promise<void> {
+        const {api: {user: api}} = this.config;
+
+        for (const [resource, count] of Object.entries(required) as Array<[keyof RequiredQuota, number]>) {
+            const remainingQuota = CreateResource.getRemainingQuota(projectInfo.workspace, resource);
+
+            if (remainingQuota < count) {
+                const email = await api.getUser()
+                    .catch(() => ({email: undefined}));
+
+                const link = new URL('https://croct.com/contact/support');
+
+                link.searchParams.set('subject', 'limit-increase');
+                link.searchParams.set('organization', projectInfo.configuration.organization);
+                link.searchParams.set('message', `I need more quota for ${resource}`);
+
+                if (email.email !== undefined) {
+                    link.searchParams.set('email', email.email);
+                }
+
+                throw new CliError(
+                    `Not enough ${resource} quota available in your workspace.`,
+                    {
+                        title: 'Insufficient quota',
+                        code: CliErrorCode.PRECONDITION,
+                        links: [
+                            {
+                                description: 'Request more quota',
+                                url: link.toString(),
+                            },
+                        ],
+                        details: [
+                            `Available: ${remainingQuota}`,
+                            `Required: ${count}`,
+                        ],
+                        suggestions: [
+                            `Free up quota by removing unused ${resource}`,
+                            'Request additional quota from support',
+                        ],
+                    },
+                );
+            }
+        }
+    }
+
+    private checkMissingResources(analysis: ResourcesAnalysis, resources: WorkspaceResources): void {
+        const missingResources = this.findMissingResources(analysis, resources);
 
         for (const [resource, missing] of Object.entries(missingResources)) {
             if (missing.size > 0) {
-                // Add link to report issue to the template author
                 throw new CliError(`Some ${resource} referenced in the template are missing`, {
                     title: 'Invalid template',
                     code: CliErrorCode.INVALID_INPUT,
-                    details: [...missingResources.components],
+                    details: [
+                        `Missing ${resource}: ${Array.from(missing).join(', ')}`,
+                    ],
                     suggestions: [
                         'Report this issue to the template author',
                     ],
@@ -382,21 +299,21 @@ export class CreateResource implements Action<CreateResourceOptions> {
         }
     }
 
-    private findMissingResources(analysis: TemplateAnalysis, template: Template): MissingResources {
+    private findMissingResources(analysis: ResourcesAnalysis, resources: WorkspaceResources): MissingResources {
         const components = new Set(analysis.components);
         const slots = new Set(analysis.slots);
         const audiences = new Set(analysis.audiences);
         const locales = new Set(analysis.locales);
 
-        for (const slug of Object.keys(template.components ?? {})) {
+        for (const slug of Object.keys(resources.components ?? {})) {
             components.delete(slug);
         }
 
-        for (const slug of Object.keys(template.slots ?? {})) {
+        for (const slug of Object.keys(resources.slots ?? {})) {
             slots.delete(slug);
         }
 
-        for (const slug of Object.keys(template.audiences ?? {})) {
+        for (const slug of Object.keys(resources.audiences ?? {})) {
             audiences.delete(slug);
         }
 
@@ -406,6 +323,105 @@ export class CreateResource implements Action<CreateResourceOptions> {
             audiences: audiences,
             locales: locales,
         };
+    }
+
+    private static getRemainingQuota<T extends keyof RequiredQuota>(features: WorkspaceFeatures, resource: T): number {
+        const resourceName = (resource.charAt(0).toUpperCase() + resource.slice(1)) as Capitalize<T>;
+
+        return features.quotas[`remaining${resourceName}`];
+    }
+
+    private static getWarnings(analysis: ResourcesAnalysis, workspace: ProjectInfo['workspace']): string[] {
+        const warnings: string[] = [];
+
+        const maxDynamicAttributes = Math.max(
+            ...analysis.experiences.map(experience => experience.dynamicContentPerContent),
+        );
+
+        if (maxDynamicAttributes > workspace.quotas.dynamicAttributesPerContent) {
+            warnings.push('Some dynamic values have been removed from the content to fit the workspace quota.');
+        }
+
+        const maxAudiences = Math.max(
+            ...analysis.experiences.map(experience => experience.audiencesPerExperience),
+        );
+
+        if (maxAudiences > workspace.quotas.audiencesPerExperience) {
+            warnings.push('Some audiences have been removed from the experiences to fit the workspace quota.');
+        }
+
+        const missingLocales = Array.from(analysis.locales)
+            .filter(locale => !workspace.locales.includes(locale));
+
+        if (missingLocales.length > 0) {
+            warnings.push('Content in unsupported locales have been removed or mapped to the default locale.');
+        }
+
+        if (!workspace.features.crossDevice && analysis.experiences.some(experience => experience.crossDevice)) {
+            warnings.push('Disabled cross-device feature not available in the workspace.');
+        }
+
+        return warnings;
+    }
+
+    private static setVariables(
+        variables: NewResourceVariables,
+        processedTemplate: ResourceCreationPlan,
+        newResources: NewResourceIds,
+        context: ActionContext,
+    ): void {
+        if (variables.audiences !== undefined) {
+            for (const [slug] of Object.entries(processedTemplate.matches.audiences ?? {})) {
+                if (variables.audiences[slug] !== undefined) {
+                    context.set(variables.audiences[slug], processedTemplate.mapping.audiences[slug] ?? slug);
+                }
+            }
+        }
+
+        if (variables.components !== undefined) {
+            for (const [slug] of Object.entries(processedTemplate.matches.components ?? {})) {
+                if (variables.components[slug] !== undefined) {
+                    context.set(variables.components[slug], processedTemplate.mapping.components[slug] ?? slug);
+                }
+            }
+        }
+
+        if (variables.slots !== undefined) {
+            for (const [slug] of Object.entries(processedTemplate.matches.slots ?? {})) {
+                if (variables.slots[slug] !== undefined) {
+                    context.set(variables.slots[slug], processedTemplate.mapping.slots[slug] ?? slug);
+                }
+            }
+        }
+
+        if (variables.experiences !== undefined) {
+            const {experiences} = processedTemplate.matches;
+
+            let newIndex = 0;
+
+            for (const [index, experience] of experiences.entries()) {
+                if (variables.experiences[index] !== undefined) {
+                    context.set(
+                        variables.experiences[index],
+                        'id' in experience
+                            ? experience.id
+                            : newResources.experiences[newIndex].experienceId,
+                    );
+                }
+
+                const experienceId = experience.experiment !== undefined && 'id' in experience.experiment
+                    ? experience.experiment.id
+                    : newResources.experiences[newIndex].experimentId;
+
+                if (experienceId !== undefined && variables.experiments?.[index] !== undefined) {
+                    context.set(variables.experiments[index], experienceId);
+                }
+
+                if (!('id' in experience)) {
+                    newIndex++;
+                }
+            }
+        }
     }
 }
 

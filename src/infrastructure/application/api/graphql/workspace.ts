@@ -1,3 +1,6 @@
+import {Content} from '@croct/content-model/content/content';
+import {randomUUID} from 'crypto';
+import * as console from 'node:console';
 import {GraphqlClient} from '@/infrastructure/graphql';
 import {
     ApplicationPath,
@@ -6,6 +9,8 @@ import {
     ExperienceCriteria,
     ExperiencePath,
     NewApplication,
+    NewResourceIds,
+    NewResources,
     SlotCriteria,
     SlotPath,
     TargetTyping,
@@ -17,11 +22,14 @@ import {
     ApplicationQuery,
     AudienceQuery,
     ComponentQuery,
+    CreateWorkspaceResourcePayload,
     ExperienceQuery,
     ExperiencesQuery,
     ExperienceStatus,
     Feature,
     SlotQuery,
+    WorkspaceResourceContentInput,
+    WorkspaceResourcesExperienceContentInput,
 } from '@/infrastructure/graphql/schema/graphql';
 import {audienceQuery, audiencesQuery} from '@/infrastructure/application/api/graphql/queries/audience';
 import {slotQuery, slotsQuery, slotStaticContentQuery} from '@/infrastructure/application/api/graphql/queries/slot';
@@ -38,9 +46,19 @@ import {Application, ApplicationEnvironment} from '@/application/model/applicati
 import {Audience} from '@/application/model/audience';
 import {Slot} from '@/application/model/slot';
 import {Component} from '@/application/model/component';
-import {Experience, ExperienceSummary, LocalizedContent, SlotContentMap} from '@/application/model/experience';
+import {
+    ExperienceDetails,
+    Experience,
+    LocalizedContent,
+    SlotContentMap,
+    PersonalizedContent,
+    Variant,
+} from '@/application/model/experience';
 import {WorkspaceFeatures} from '@/application/model/workspace';
-import {workspaceFeaturesQuery} from '@/infrastructure/application/api/graphql/queries/workspace';
+import {
+    createResourcesMutation,
+    workspaceFeaturesQuery,
+} from '@/infrastructure/application/api/graphql/queries/workspace';
 
 type ApplicationData = NonNullable<
     NonNullable<NonNullable<ApplicationQuery['organization']>['workspace']>['application']
@@ -103,15 +121,15 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
 
         return {
             quotas: {
-                audience: quotas.audience,
+                audiences: quotas.audience,
                 remainingAudiences: quotas.remainingAudiences,
-                component: quotas.component,
+                components: quotas.component,
                 remainingComponents: quotas.remainingComponents,
-                slot: quotas.slot,
+                slots: quotas.slot,
                 remainingSlots: quotas.remainingSlots,
-                experience: quotas.experience,
+                experiences: quotas.experience,
                 remainingExperiences: quotas.remainingExperiences,
-                experiment: quotas.experiment,
+                experiments: quotas.experiment,
                 remainingExperiments: quotas.remainingExperiments,
                 dynamicAttributesPerContent: quotas.dynamicAttributesPerContent,
                 audiencesPerExperience: quotas.audiencesPerExperience,
@@ -296,10 +314,13 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
             metadata: {directReferences, indirectReferences, referenceMetadata},
         } = data.definition;
 
+        const description = data.description ?? null;
+
         return {
             id: data.id,
             name: data.name,
             slug: data.customId,
+            ...(description !== null ? {description: description} : {}),
             definition: definition,
             version: {
                 major: data.definition.version.major,
@@ -394,6 +415,11 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                 minor: data.content.version.minor,
             },
             resolvedDefinition: data.content.componentDefinition.resolvedDefinition,
+            content: Object.fromEntries(
+                data.content.default.map(
+                    ({locale, content}) => [locale, content as Content<'structure'>],
+                ),
+            ),
         };
     }
 
@@ -428,7 +454,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         return data.generateTyping;
     }
 
-    public async getExperiences(path: ExperienceCriteria): Promise<ExperienceSummary[]> {
+    public async getExperiences(path: ExperienceCriteria): Promise<Experience[]> {
         const {data} = await this.client.execute(experiencesQuery, {
             organizationSlug: path.organizationSlug,
             workspaceSlug: path.workspaceSlug,
@@ -437,18 +463,18 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
 
         const edges = data.organization?.workspace?.experiences.edges ?? [];
 
-        return edges.flatMap((edge): ExperienceSummary[] => {
+        return edges.flatMap((edge): Experience[] => {
             const node = edge?.node ?? null;
 
             if (node === null) {
                 return [];
             }
 
-            return [GraphqlWorkspaceApi.normalizeExperienceSummary(node)];
+            return [GraphqlWorkspaceApi.normalizeExperience(node)];
         });
     }
 
-    public async getExperience(path: ExperiencePath): Promise<Experience|null> {
+    public async getExperience(path: ExperiencePath): Promise<ExperienceDetails|null> {
         const {data} = await this.client.execute(experienceQuery, {
             organizationSlug: path.organizationSlug,
             workspaceSlug: path.workspaceSlug,
@@ -461,10 +487,10 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
             return null;
         }
 
-        return GraphqlWorkspaceApi.normalizeExperience(node);
+        return GraphqlWorkspaceApi.normalizeExperienceDetails(node);
     }
 
-    private static normalizeExperienceSummary(data: ExperienceSummaryData): ExperienceSummary {
+    private static normalizeExperience(data: ExperienceSummaryData): Experience {
         const audiences = data.settings?.audiences ?? data.draft?.audiences ?? [];
         const slots = data.settings?.slots ?? data.draft?.slots ?? [];
         const experiment = data.currentExperiment?.name ?? data.draft?.experiment?.name ?? null;
@@ -487,11 +513,18 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         };
     }
 
-    private static normalizeExperience(data: ExperienceData): Experience {
+    private static normalizeExperienceDetails(data: ExperienceData): ExperienceDetails {
         const audiences = data.settings?.audiences ?? data.draft?.audiences ?? [];
         const slots = data.settings?.slots ?? data.draft?.slots ?? [];
         const experiment = data.currentExperiment ?? data.draft?.experiment ?? null;
         const {name = null, goalId = null, crossDevice = null, traffic = null} = experiment ?? {};
+        const slotMap: Record<string, string> = Object.fromEntries(
+            slots.flatMap(
+                ({slot = null}) => (slot === null ? [] : [[slot.id, slot.customId]]),
+            ),
+        );
+
+        console.log(slotMap);
 
         return {
             id: data.id,
@@ -500,7 +533,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
             status: data.status as any,
             hasExperiments: data.hasExperiments,
             audiences: audiences.map(audience => audience.customId),
-            slots: slots.flatMap(({slot = null}) => (slot === null ? [] : [slot.customId])),
+            slots: Object.values(slotMap),
             ...(experiment !== null
                 ? {
                     experiment: {
@@ -509,21 +542,28 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                         ...(crossDevice !== null ? {crossDevice: crossDevice} : {}),
                         ...(traffic !== null ? {traffic: traffic} : {}),
                         variants: (experiment.variants ?? []).map(
-                            variant => {
+                            (variant): Variant => {
+                                const id = variant.variantId;
                                 const variantName = variant.name ?? null;
+                                const allocation = variant.allocation ?? null;
 
                                 return {
+                                    ...(id !== null ? {id: id} : {}),
                                     ...(variantName !== null ? {name: variantName} : {}),
+                                    ...(allocation !== null ? {allocation: allocation} : {}),
+                                    baseline: variant.baseline === true,
                                     content: {
                                         default: GraphqlWorkspaceApi.normalizeLocalizedContent(
                                             variant.content?.default.contents ?? [],
+                                            slotMap,
                                         ),
                                         segmented: (variant.content?.segmented ?? []).map(
                                             content => ({
-                                                groupId: content.groupId,
+                                                id: content.groupId,
                                                 audiences: content.audiences.map(audience => audience.audienceId),
                                                 content: GraphqlWorkspaceApi.normalizeLocalizedContent(
                                                     content.contents,
+                                                    slotMap,
                                                 ),
                                             }),
                                         ),
@@ -540,28 +580,160 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                     data.settings?.content.default.contents
                     ?? data.draft?.content?.default.contents
                     ?? [],
+                    slotMap,
                 ),
                 segmented: (data.settings?.content.segmented ?? data.draft?.content?.segmented ?? []).map(
                     content => ({
-                        groupId: content.groupId,
+                        id: content.groupId,
                         audiences: content.audiences.map(
                             ({audienceId}) => audiences.find(({id}) => id === audienceId)?.customId ?? audienceId,
                         ),
-                        content: GraphqlWorkspaceApi.normalizeLocalizedContent(content.contents),
+                        content: GraphqlWorkspaceApi.normalizeLocalizedContent(content.contents, slotMap),
                     }),
                 ),
             },
         };
     }
 
-    private static normalizeLocalizedContent(data: LocalizedContentData): SlotContentMap {
-        return Object.fromEntries(
-            data.map(
-                content => [content.slotId, Object.fromEntries(
-                    Object.entries(content.content).map(
-                        ([locale, localizedContent]) => [locale, localizedContent],
+    private static normalizeLocalizedContent(
+        data: LocalizedContentData,
+        slotMap: Record<string, string>,
+    ): SlotContentMap {
+        const slotContentMap: SlotContentMap = {};
+
+        for (const content of data) {
+            const {locale, slotId} = content;
+            const slug = slotMap[slotId];
+
+            if (slug === undefined) {
+                continue;
+            }
+
+            if (slotContentMap[slug] === undefined) {
+                slotContentMap[slug] = {};
+            }
+
+            slotContentMap[slug][locale] = content.content as Content<'structure'>;
+        }
+
+        return slotContentMap;
+    }
+
+    public async createResources(resources: NewResources): Promise<NewResourceIds> {
+        const payload: CreateWorkspaceResourcePayload = {
+            components: Object.entries(resources.components ?? {}).map(
+                ([slug, definition]) => ({
+                    customId: slug,
+                    name: definition.name,
+                    description: definition.description,
+                    definition: definition.definition,
+                }),
+            ),
+            slots: Object.entries(resources.slots ?? {}).map(
+                ([slug, definition]) => ({
+                    customId: slug,
+                    name: definition.name,
+                    component: definition.component,
+                    defaultContent: Object.entries(definition.content).map(
+                        ([locale, content]) => ({
+                            locale: locale,
+                            content: content,
+                        }),
                     ),
-                )],
+                }),
+            ),
+            audiences: Object.entries(resources.audiences ?? {}).map(
+                ([slug, definition]) => ({
+                    customId: slug,
+                    name: definition.name,
+                    criteria: definition.criteria,
+                }),
+            ),
+            experiences: (resources.experiences ?? []).map(experience => {
+                const experiment = experience.experiment ?? null;
+
+                return {
+                    name: experience.name,
+                    audiences: experience.audiences,
+                    slots: experience.slots,
+                    experiment: experiment !== null
+                        ? {
+                            name: experiment.name,
+                            goalId: experiment.goalId,
+                            traffic: experiment.traffic,
+                            crossDevice: experiment.crossDevice === true,
+                            variants: experiment.variants.map(
+                                variant => ({
+                                    id: randomUUID(),
+                                    name: variant.name,
+                                    baseline: variant.baseline === true,
+                                    allocation: variant.allocation,
+                                    content: GraphqlWorkspaceApi.createContentVariantGroup(variant.content),
+                                }),
+                            ),
+                        }
+                        : undefined,
+                    content: GraphqlWorkspaceApi.createContentVariantGroup(experience.content),
+                    validate: true,
+                    publish: experience.draft === false,
+                };
+            }),
+        };
+
+        const {data: {createWorkspaceResources: result}} = await this.client.execute(createResourcesMutation, {
+            workspaceId: resources.workspaceId,
+            payload: payload,
+        });
+
+        return {
+            components: Object.fromEntries(
+                payload.components.map(
+                    ({customId}, index) => [customId, result.components[index]],
+                ),
+            ),
+            slots: Object.fromEntries(
+                payload.slots.map(
+                    ({customId}, index) => [customId, result.slots[index]],
+                ),
+            ),
+            audiences: Object.fromEntries(
+                payload.audiences.map(
+                    ({customId}, index) => [customId, result.audiences[index]],
+                ),
+            ),
+            experiences: result.experiences.map(
+                experience => ({
+                    experienceId: experience.id,
+                    experimentId: experience.experimentId ?? null,
+                }),
+            ),
+        };
+    }
+
+    private static createContentVariantGroup(content: PersonalizedContent): WorkspaceResourcesExperienceContentInput {
+        return {
+            default: {
+                id: randomUUID(),
+                contents: GraphqlWorkspaceApi.createSlotContentMap(content.default),
+            },
+            segmented: content.segmented.map(
+                segmentedContent => ({
+                    id: randomUUID(),
+                    audiences: segmentedContent.audiences,
+                    contents: GraphqlWorkspaceApi.createSlotContentMap(segmentedContent.content),
+                }),
+            ),
+        };
+    }
+
+    private static createSlotContentMap(contentMap: SlotContentMap): WorkspaceResourceContentInput[] {
+        return Object.entries(contentMap).flatMap(
+            ([slot, localizedContent]) => Object.entries(localizedContent).map<WorkspaceResourceContentInput>(
+                ([locale, content]) => ({
+                    slot: slot,
+                    locale: locale,
+                    content: content,
+                }),
             ),
         );
     }

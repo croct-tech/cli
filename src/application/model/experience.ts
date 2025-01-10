@@ -19,6 +19,7 @@ export type LocalizedContentMap = Record<string, Content<'structure'>>;
 export type SlotContentMap = Record<string, LocalizedContentMap>;
 
 export type SegmentedContent = {
+    id: string,
     audiences: string[],
     content: SlotContentMap,
 };
@@ -33,7 +34,7 @@ export type ExperimentVariant = {
     content: PersonalizedContent,
 };
 
-export type ExperienceSummary = {
+export type Experience = {
     id: string,
     name: string,
     priority: number,
@@ -46,7 +47,15 @@ export type ExperienceSummary = {
     slots: string[],
 };
 
-export type Experience = {
+export type Variant = {
+    id?: string,
+    name?: string,
+    allocation?: number,
+    baseline?: boolean,
+    content: PersonalizedContent,
+};
+
+export type ExperienceDetails = {
     id: string,
     name: string,
     priority: number,
@@ -59,10 +68,7 @@ export type Experience = {
         goalId?: string,
         crossDevice?: boolean,
         traffic?: number,
-        variants: Array<{
-            name?: string,
-            content: PersonalizedContent,
-        }>,
+        variants: Variant[],
     },
     content: PersonalizedContent,
 };

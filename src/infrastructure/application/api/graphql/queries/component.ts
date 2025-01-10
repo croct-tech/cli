@@ -10,6 +10,7 @@ export const componentsQuery = graphql(`
                             id
                             customId
                             name
+                            description
                             definition {
                                 definition,
                                 version {
@@ -46,6 +47,7 @@ export const componentQuery = graphql(`
                     id
                     customId
                     name
+                    description
                     definition(majorVersion: $majorVersion) {
                         definition
                         version {

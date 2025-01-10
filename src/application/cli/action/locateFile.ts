@@ -18,7 +18,7 @@ type Matcher = PatternMatcher | CombinationMatcher;
 export type LocateFileOptions = {
     path: string,
     matcher?: Matcher,
-    multi?: boolean,
+    max?: number,
     output?: {
         path?: string,
         extension?: string,
@@ -38,9 +38,9 @@ export class LocateFile implements Action<LocateFileOptions> {
 
     public async execute(options: LocateFileOptions, context: ActionContext): Promise<void> {
         const pattern = await context.resolveString(options.path);
-        const match = await this.findMatch(pattern, options, context);
+        const matches = await this.findMatch(pattern, options, context);
 
-        if (match.length === 0) {
+        if (matches.length === 0) {
             throw new ActionError('No matching files found', {
                 code: CliErrorCode.PRECONDITION,
                 details: [`Pattern: ${pattern}`],
@@ -51,21 +51,19 @@ export class LocateFile implements Action<LocateFileOptions> {
             const variables = options.output;
 
             if (variables.path !== undefined) {
-                context.set(variables.path, options.multi === true ? match : match[0]);
+                context.set(variables.path, matches);
             }
 
             if (variables.extension !== undefined) {
-                const extensions = match.flatMap(file => {
+                const extensions = matches.map(file => {
                     const baseName = this.config
                         .fileSystem
                         .getBaseName(file);
 
-                    const extension = baseName.split('.').pop();
-
-                    return extension !== undefined ? [extension] : [];
+                    return baseName.split('.').pop() ?? '';
                 });
 
-                context.set(variables.extension, options.multi === true ? extensions : extensions[0]);
+                context.set(variables.extension, extensions);
             }
         }
     }
@@ -86,7 +84,7 @@ export class LocateFile implements Action<LocateFileOptions> {
                 }
             }
 
-            if (options.multi !== true) {
+            if (options.max !== undefined && matches.length >= options.max) {
                 break;
             }
         }

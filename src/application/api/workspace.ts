@@ -1,9 +1,16 @@
+import {RootDefinition} from '@croct/content-model/definition/definition';
 import {WorkspacePath} from '@/application/api/organization';
 import {Application} from '@/application/model/application';
 import {Audience} from '@/application/model/audience';
-import {Slot} from '@/application/model/slot';
+import {LocalizedSlotContent, Slot} from '@/application/model/slot';
 import {Component} from '@/application/model/component';
-import {Experience, ExperienceStatus, ExperienceSummary, LocalizedContent} from '@/application/model/experience';
+import {
+    ExperienceDetails,
+    ExperienceStatus,
+    Experience,
+    LocalizedContent,
+    PersonalizedContent,
+} from '@/application/model/experience';
 import {WorkspaceFeatures} from '@/application/model/workspace';
 
 export type AudiencePath = WorkspacePath & {
@@ -59,6 +66,61 @@ export type ExperienceCriteria = WorkspacePath & {
     status?: ExperienceStatus|ExperienceStatus[],
 };
 
+export type SlotDefinition = {
+    name: string,
+    component: string,
+    content: LocalizedSlotContent,
+};
+
+export type ComponentDefinition = {
+    name: string,
+    description?: string,
+    definition: RootDefinition,
+};
+
+export type AudienceDefinition = {
+    name: string,
+    criteria: string,
+};
+
+export type VariantDefinition = {
+    name: string,
+    content: PersonalizedContent,
+    baseline?: boolean,
+    allocation: number,
+};
+
+export type ExperienceDefinition = {
+    name: string,
+    draft?: boolean,
+    audiences: string[],
+    slots: string[],
+    experiment?: {
+        name: string,
+        goalId?: string,
+        crossDevice?: boolean,
+        traffic: number,
+        variants: VariantDefinition[],
+    },
+    content: PersonalizedContent,
+};
+
+export type NewResources = {
+    organizationId: string,
+    workspaceId: string,
+    components?: Record<string, ComponentDefinition>,
+    slots?: Record<string, SlotDefinition>,
+    audiences?: Record<string, AudienceDefinition>,
+    experiences?: ExperienceDefinition[],
+};
+
+export type NewResourceIds = {
+    components: Record<string, string>,
+    slots: Record<string, string>,
+    audiences: Record<string, string>,
+    experiences: Array<{experienceId: string, experimentId?: string}>,
+};
+
 export interface WorkspaceApi {
     getFeatures(path: WorkspacePath): Promise<WorkspaceFeatures|null>;
 
@@ -84,7 +146,9 @@ export interface WorkspaceApi {
 
     createApplication(application: NewApplication): Promise<Application>;
 
-    getExperiences(path: ExperienceCriteria): Promise<ExperienceSummary[]>;
+    getExperiences(path: ExperienceCriteria): Promise<Experience[]>;
 
-    getExperience(path: ExperiencePath): Promise<Experience|null>;
+    getExperience(path: ExperiencePath): Promise<ExperienceDetails|null>;
+
+    createResources(resources: NewResources): Promise<NewResourceIds>;
 }

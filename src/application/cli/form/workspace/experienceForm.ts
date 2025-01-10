@@ -2,7 +2,7 @@ import {Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
 import {Form} from '@/application/cli/form/form';
 import {WorkspaceApi} from '@/application/api/workspace';
-import {Experience} from '@/application/model/experience';
+import {ExperienceDetails} from '@/application/model/experience';
 
 export type Configuration = {
     input: Input,
@@ -16,14 +16,14 @@ export type ExperienceOptions = {
     confirmation?: string,
 };
 
-export class ExperienceForm implements Form<Experience[], ExperienceOptions> {
+export class ExperienceForm implements Form<ExperienceDetails[], ExperienceOptions> {
     private readonly config: Configuration;
 
     public constructor(config: Configuration) {
         this.config = config;
     }
 
-    public async handle(options: ExperienceOptions): Promise<Experience[]> {
+    public async handle(options: ExperienceOptions): Promise<ExperienceDetails[]> {
         const {output, input, workspaceApi: api} = this.config;
 
         let notifier = output.notify('Loading experiences...');
