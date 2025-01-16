@@ -1,5 +1,5 @@
-import {Action} from '@/application/cli/action/action';
-import {ActionContext} from '@/application/cli/action/context';
+import {Action} from '@/application/template/action/action';
+import {ActionContext} from '@/application/template/action/context';
 
 export type ResolveImportOptions = {
     target: string,
@@ -35,12 +35,12 @@ export class ResolveImportFile implements Action<ResolveImportOptions> {
         const variable = options.output?.importPath;
 
         if (variable !== undefined) {
-            context.set(variable, await context.resolveString(importPath));
+            context.set(variable, await context.resolveValue(importPath));
         }
     }
 }
 
-declare module '@/application/cli/action/action' {
+declare module '@/application/template/action/action' {
     export interface ActionOptionsMap {
         'resolve-import': ResolveImportOptions;
     }

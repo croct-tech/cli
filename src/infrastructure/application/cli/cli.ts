@@ -68,8 +68,8 @@ import {
 import {ApiError} from '@/application/api/error';
 import {UpgradeCommand, UpgradeInput} from '@/application/cli/command/upgrade';
 import {ConfigurationError} from '@/application/project/configuration/configuration';
-import {FileSystem} from '@/application/fileSystem/fileSystem';
-import {LocalFilesystem} from '@/application/fileSystem/localFilesystem';
+import {FileSystem} from '@/application/fs/fileSystem';
+import {LocalFilesystem} from '@/application/fs/localFilesystem';
 import {ImportConfigLoader} from '@/application/project/manager/importConfigLoader';
 import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
 import {AntfuPackageInstaller} from '@/infrastructure/project/antfuPackageInstaller';
@@ -87,26 +87,36 @@ import {CreateTemplateCommand, CreateTemplateInput} from '@/application/cli/comm
 import {TemplateForm} from '@/application/cli/form/workspace/templateForm';
 import {ExperienceForm} from '@/application/cli/form/workspace/experienceForm';
 import {AudienceForm} from '@/application/cli/form/workspace/audienceForm';
-import {ImportTemplateCommand, ImportTemplateInput} from '@/application/cli/command/template/import';
-import {DownloadSource} from '@/application/cli/action/downloadSource';
-import {ActionRunner} from '@/application/cli/action/runner';
-import {ResolveImportFile} from '@/application/cli/action/resolveImport';
-import {AddDependency} from '@/application/cli/action/addDependency';
-import {LocateFile} from '@/application/cli/action/locateFile';
-import {ReplaceFileContent} from '@/application/cli/action/replaceFileContent';
-import {GithubDownloader} from '@/application/cli/download/githubDownloader';
-import {OptionMap} from '@/application/template/template';
-import {AddSlot} from '@/application/cli/action/addSlot';
-import {AddComponent} from '@/application/cli/action/addComponent';
-import {Try} from '@/application/cli/action/try';
-import {ActionMap} from '@/application/cli/action/action';
-import {LazyAction} from '@/application/cli/action/lazyAction';
+import {ImportTemplateCommand, ImportTemplateInput, LoadedTemplate} from '@/application/cli/command/template/import';
+import {Download} from '@/application/template/action/download';
+import {ActionRunner} from '@/application/template/action/runner';
+import {ResolveImportFile} from '@/application/template/action/resolveImport';
+import {AddDependency} from '@/application/template/action/addDependency';
+import {LocateFile} from '@/application/template/action/locateFile';
+import {ReplaceFileContent} from '@/application/template/action/replaceFileContent';
+import {OptionMap, Template} from '@/application/template/template';
+import {AddSlot} from '@/application/template/action/addSlot';
+import {AddComponent} from '@/application/template/action/addComponent';
+import {Try} from '@/application/template/action/try';
+import {ActionMap} from '@/application/template/action/action';
+import {LazyAction} from '@/application/template/action/lazyAction';
 import {CachedConfigurationManager} from '@/application/project/configuration/manager/cachedConfigurationManager';
 import {ConfigurationFileManager} from '@/application/project/configuration/manager/configurationFileManager';
 import {CachedSdkResolver} from '@/application/project/sdk/cachedSdkResolver';
-import {CreateResource} from '@/application/cli/action/createResource';
+import {CreateResource} from '@/application/template/action/createResource';
 import {SlugMappingForm} from '@/application/cli/form/workspace/slugMappingForm';
 import {ResourceMatcher} from '@/application/template/resourceMatcher';
+import {FetchTransport} from '@/application/template/transport/fetchTransport';
+import {CheckDependencies} from '@/application/template/action/checkDependencies';
+import {HttpTransport} from '@/application/template/transport/httpTransport';
+import {MappedTransport} from '@/application/template/transport/mappedTransport';
+import {MultiTransport} from '@/application/template/transport/multiTransport';
+import {FileSystemTransport} from '@/application/template/transport/fileSystemTransport';
+import {TemplateTransport} from '@/application/template/transport/templateTransport';
+import {GithubTransport} from '@/application/template/transport/githubTransport';
+import {HttpFileTransport} from '@/application/template/transport/httpFileTransport';
+import {Transport} from '@/application/template/transport/transport';
+import {AdaptedTransport} from '@/application/template/transport/adaptedTransport';
 
 export type Configuration = {
     io: {
@@ -116,6 +126,7 @@ export type Configuration = {
     directories: {
         current: string,
         config: string,
+        downloadCache: string,
     },
     api: {
         graphqlEndpoint: string,
@@ -124,6 +135,7 @@ export type Configuration = {
         authenticationEndpoint: string,
         authenticationParameter: string,
     },
+    cache: boolean,
     quiet: boolean,
     interactive: boolean,
     exitCallback: ExitCallback,
@@ -164,6 +176,8 @@ export class Cli {
     private configurationManager?: ConfigurationManager;
 
     private emailLinkGenerator?: EmailLinkGenerator;
+
+    private transport: HttpTransport;
 
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
@@ -387,6 +401,7 @@ export class Cli {
 
     private getImportTemplateCommand(): ImportTemplateCommand {
         return new ImportTemplateCommand({
+            transport: this.getTemplateTransport(),
             fileSystem: this.getFileSystem(),
             actionRunner: this.getActionRunner(),
             configurationManager: this.getConfigurationManager(),
@@ -478,14 +493,63 @@ export class Cli {
         return this.output;
     }
 
+    private getTemplateTransport(): Transport<LoadedTemplate> {
+        const httpTransport = this.getHttpTransport();
+
+        return new MappedTransport({
+            transport: new MappedTransport({
+                transport: new AdaptedTransport({
+                    transport: new TemplateTransport(
+                        new MultiTransport(
+                            new FileSystemTransport(this.getFileSystem()),
+                            new GithubTransport(httpTransport),
+                            new HttpFileTransport(httpTransport),
+                        ),
+                    ),
+                    adapter: (template: Template, url: URL): Promise<LoadedTemplate> => Promise.resolve({
+                        template: template,
+                        url: url,
+                    }),
+                }),
+                mapping: [
+                    {
+                        // Any URL not ending with a file extension, excluding the trailing slash
+                        pattern: /^(.+?:\/+[^/]+(\/+[^/.]+|\/[^/]+(?=\/))*)\/*$/,
+                        template: '$1/template.json',
+                    },
+                ],
+            }),
+            mapping: [
+                // @todo load from external registry
+                {
+                    pattern: /^croct:\/(.+?)$/,
+                    template: 'github:/marcospassos/croct-examples/$1',
+                },
+                {
+                    pattern: /^https:\/\/magicui.design\/r\/(.+?)$/,
+                    template: 'github:/marcospassos/croct-examples/magic-ui/ui/$1',
+                },
+            ],
+        });
+    }
+
     private getActionRunner(): ActionRunner {
         const fileSystem = this.getFileSystem();
         const projectManager = this.createJavaScriptProjectManager();
+        const httpTransport = this.getHttpTransport();
+
         const actions: ActionMap = {
             try: new LazyAction(() => new Try(actions)),
-            'download-source': new DownloadSource({
+            'check-dependencies': new CheckDependencies({
+                projectManager: projectManager,
+            }),
+            download: new Download({
                 fileSystem: fileSystem,
-                downloader: new GithubDownloader(fileSystem),
+                transport: new MultiTransport(
+                    new FileSystemTransport(this.getFileSystem()),
+                    new GithubTransport(httpTransport),
+                    new HttpFileTransport(httpTransport),
+                ),
             }),
             'resolve-import': new ResolveImportFile({
                 importResolver: (target, source) => projectManager.getImportPath(target, source),
@@ -570,6 +634,14 @@ export class Cli {
         };
 
         return new ActionRunner(actions);
+    }
+
+    private getHttpTransport(): HttpTransport {
+        if (this.transport === undefined) {
+            this.transport = new FetchTransport();
+        }
+
+        return this.transport;
     }
 
     private getAuthenticator(): Authenticator<AuthenticationInput> {

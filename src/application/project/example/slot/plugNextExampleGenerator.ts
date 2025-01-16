@@ -2,7 +2,7 @@ import {ReactExampleGenerator, Configuration as ReactConfiguration, SlotFile} fr
 import {SlotDefinition} from './slotExampleGenerator';
 import {CodeWriter} from '@/application/project/example/codeWritter';
 import {CodeLanguage} from '@/application/project/example/example';
-import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {FileSystem} from '@/application/fs/fileSystem';
 
 export enum NextExampleRouter {
     PAGE = 'page',

@@ -1,5 +1,5 @@
-import {Action, ActionOptions} from '@/application/cli/action/action';
-import {ActionContext} from '@/application/cli/action/context';
+import {Action, ActionOptions} from '@/application/template/action/action';
+import {ActionContext} from '@/application/template/action/context';
 
 export type ActionFactory<T extends ActionOptions> = () => Action<T>;
 

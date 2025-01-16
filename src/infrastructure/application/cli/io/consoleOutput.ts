@@ -1,12 +1,12 @@
 import open from 'open';
 import chalk from 'chalk';
-import boxen from 'boxen';
+import boxen, {Options as BoxenOptions} from 'boxen';
 import terminalLink from 'terminal-link';
 import {Writable, PassThrough} from 'stream';
 import {Output, Notifier, TaskList, TaskResolver} from '@/application/cli/io/output';
 import {CliError, CliErrorCode, CliHelp} from '@/application/cli/error';
 import {InteractiveTaskMonitor} from '@/infrastructure/application/cli/io/interactiveTaskMonitor';
-import {format} from '@/infrastructure/application/cli/io/formatting';
+import {format, Semantic} from '@/infrastructure/application/cli/io/formatting';
 import {TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
 import {NonInteractiveTaskMonitor} from '@/infrastructure/application/cli/io/nonInteractiveTaskMonitor';
 import {formatMessage} from '@/application/error';
@@ -18,6 +18,17 @@ export type Configuration = {
     onExit: ExitCallback,
     quiet?: boolean,
     interactive?: boolean,
+};
+
+const boxenStyle: BoxenOptions = {
+    titleAlignment: 'center',
+    padding: {
+        top: 1,
+        bottom: 1,
+        right: 2,
+        left: 2,
+    },
+    borderStyle: 'round',
 };
 
 export class ConsoleOutput implements Output {
@@ -61,27 +72,27 @@ export class ConsoleOutput implements Output {
 
     public log(text: string): void {
         this.stop();
-        this.write(`${format(text)}\n`);
+        this.writeLog(text, 'neutral');
     }
 
     public confirm(text: string): void {
         this.stop();
-        this.write(`${format(text, {icon: {semantic: 'success'}})}\n`);
+        this.writeLog(text, 'success');
     }
 
     public inform(text: string): void {
         this.stop();
-        this.write(`${format(text, {icon: {semantic: 'info'}})}\n`);
+        this.writeLog(text, 'info');
     }
 
     public warn(text: string): void {
         this.stop();
-        this.write(`${format(text, {icon: {semantic: 'warning'}})}\n`);
+        this.writeLog(text, 'warning');
     }
 
     public alert(text: string): void {
         this.stop();
-        this.write(`${format(text, {icon: {semantic: 'error'}})}\n`);
+        this.writeLog(text, 'error');
     }
 
     public notify(initialStatus: string): Notifier {
@@ -119,16 +130,9 @@ export class ConsoleOutput implements Output {
 
     private formatError(error: any): string {
         return boxen(ConsoleOutput.formatErrorBody(error), {
+            ...boxenStyle,
             title: ConsoleOutput.formatErrorTitle(error),
-            titleAlignment: 'center',
-            padding: {
-                top: 1,
-                bottom: 1,
-                right: 2,
-                left: 2,
-            },
             borderColor: 'red',
-            borderStyle: 'round',
         });
     }
 
@@ -185,7 +189,6 @@ export class ConsoleOutput implements Output {
         }
 
         if (error.code === CliErrorCode.OTHER && cause instanceof Error) {
-            message += `\n\n${chalk.bold('Stack trace')}\n`;
             message += ConsoleOutput.formatStackTrace(error);
         }
 
@@ -262,6 +265,10 @@ export class ConsoleOutput implements Output {
         }
 
         return message;
+    }
+
+    private writeLog(text: string, semantic: Semantic): void {
+        this.write(`${format(text, semantic === 'neutral' ? {} : {icon: {semantic: semantic}})}\n`);
     }
 
     private write(text: string, critical = false): void {

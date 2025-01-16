@@ -1,11 +1,11 @@
-import {Action, ActionError} from '@/application/cli/action/action';
-import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {Action, ActionError} from '@/application/template/action/action';
+import {FileSystem} from '@/application/fs/fileSystem';
 import {CliErrorCode} from '@/application/cli/error';
-import {ActionContext} from '@/application/cli/action/context';
+import {ActionContext} from '@/application/template/action/context';
 
 type PatternMatcher = {
     pattern: string,
-    caseSensitive?: string|boolean,
+    caseSensitive?: boolean,
 };
 
 type CombinationMatcher = {
@@ -75,12 +75,12 @@ export class LocateFile implements Action<LocateFileOptions> {
 
         for await (const file of fileSystem.find(path)) {
             if (options.matcher === undefined) {
-                matches.push(file);
-            } else {
-                const content = await fileSystem.readFile(file);
+                matches.push(file.name);
+            } else if (file.type === 'file') {
+                const content = await new Response(file.content).text();
 
                 if (await this.matches(content, options.matcher, context)) {
-                    matches.push(file);
+                    matches.push(file.name);
                 }
             }
 
@@ -94,14 +94,9 @@ export class LocateFile implements Action<LocateFileOptions> {
 
     private async matches(content: string, matcher: Matcher, context: ActionContext): Promise<boolean> {
         if ('pattern' in matcher) {
-            const [caseSensitive, pattern] = await Promise.all([
-                typeof matcher.caseSensitive === 'string'
-                    ? await context.resolveBoolean(matcher.caseSensitive)
-                    : matcher.caseSensitive,
-                context.resolveString(matcher.pattern),
-            ]);
+            const pattern = await context.resolveString(matcher.pattern);
 
-            const flags = caseSensitive === true ? 'i' : undefined;
+            const flags = matcher.caseSensitive === true ? 'i' : undefined;
 
             return new RegExp(pattern, flags).test(content);
         }
@@ -116,7 +111,7 @@ export class LocateFile implements Action<LocateFileOptions> {
     }
 }
 
-declare module '@/application/cli/action/action' {
+declare module '@/application/template/action/action' {
     export interface ActionOptionsMap {
         'locate-file': LocateFileOptions;
     }

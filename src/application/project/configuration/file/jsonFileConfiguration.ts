@@ -4,7 +4,7 @@ import {Configuration, ConfigurationError} from '@/application/project/configura
 import {Version} from '@/application/project/version';
 import {ConfigurationFile} from '@/application/project/configuration/file/configurationFile';
 import {JsonObjectNode, JsonParser} from '@/infrastructure/json';
-import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {FileSystem} from '@/application/fs/fileSystem';
 
 const identifierSchema = z.string().regex(
     /^[a-z]+(-?[a-z0-9]+)*$/i,
@@ -106,7 +106,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
         });
 
         try {
-            await this.fileSystem.writeFile(file.path, json, {overwrite: true});
+            await this.fileSystem.writeTextFile(file.path, json, {overwrite: true});
         } catch {
             throw new Error(`Unable to write configuration file ${file.path}.`);
         }
@@ -124,7 +124,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
         let configuration: JsonValue;
 
         try {
-            file.source = await this.fileSystem.readFile(file.path);
+            file.source = await this.fileSystem.readTextFile(file.path);
             configuration = JsonParser.parse(file.source).toJSON();
         } catch {
             return file;

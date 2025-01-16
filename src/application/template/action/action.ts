@@ -1,5 +1,5 @@
 import {CliError, CliHelp} from '@/application/cli/error';
-import {ActionContext} from '@/application/cli/action/context';
+import {ActionContext} from '@/application/template/action/context';
 import {formatMessage} from '@/application/error';
 
 export interface ActionOptionsMap {

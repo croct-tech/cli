@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import {Minimatch} from 'minimatch';
-import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {FileSystem} from '@/application/fs/fileSystem';
 import {JsonParser} from '@/infrastructure/json';
 
 type ImportConfig = {
@@ -220,7 +220,7 @@ export class ImportConfigLoader {
 
     private async parseConfig(filePath: string): Promise<ConfigFile | null> {
         try {
-            const content = await this.fileSystem.readFile(filePath);
+            const content = await this.fileSystem.readTextFile(filePath);
 
             return {
                 rootConfigPath: filePath,

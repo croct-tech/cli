@@ -1,5 +1,5 @@
-import {Action} from '@/application/cli/action/action';
-import {ActionContext} from '@/application/cli/action/context';
+import {Action} from '@/application/template/action/action';
+import {ActionContext} from '@/application/template/action/context';
 import {
     AudienceDefinition,
     ComponentDefinition,
@@ -85,14 +85,18 @@ export class CreateResource implements Action<CreateResourceOptions> {
         const {configurationManager, api: {workspace: api}} = this.config;
         const {output} = context;
 
-        const notifier = output?.notify('Analyzing resources...');
+        const notifier = output?.notify('Analyzing resources');
 
         const configuration = await configurationManager.resolve();
         const projectInfo = await this.getProjectInfo(configuration);
 
-        const plan = await this.createPlan(options.resources, analysis, projectInfo);
+        const plan = await this.createPlan(
+            await context.resolveString(options.resources),
+            analysis,
+            projectInfo,
+        );
 
-        notifier?.update('Creating resources...');
+        notifier?.update('Creating resources');
 
         const newResources = await api.createResources({
             organizationId: configuration.organizationId,
@@ -106,10 +110,8 @@ export class CreateResource implements Action<CreateResourceOptions> {
             const warnings = CreateResource.getWarnings(analysis, projectInfo.workspace);
 
             if (warnings.length > 0) {
-                output.warn('Warnings:');
-
                 for (const warning of warnings) {
-                    output.log(` - ${warning}`);
+                    output.warn(`${warning}`);
                 }
             }
         }
@@ -339,7 +341,7 @@ export class CreateResource implements Action<CreateResourceOptions> {
         );
 
         if (maxDynamicAttributes > workspace.quotas.dynamicAttributesPerContent) {
-            warnings.push('Some dynamic values have been removed from the content to fit the workspace quota.');
+            warnings.push('Some dynamic values have been removed from the content to fit the workspace quota');
         }
 
         const maxAudiences = Math.max(
@@ -347,18 +349,18 @@ export class CreateResource implements Action<CreateResourceOptions> {
         );
 
         if (maxAudiences > workspace.quotas.audiencesPerExperience) {
-            warnings.push('Some audiences have been removed from the experiences to fit the workspace quota.');
+            warnings.push('Some audiences have been removed from the experiences to fit the workspace quota');
         }
 
         const missingLocales = Array.from(analysis.locales)
             .filter(locale => !workspace.locales.includes(locale));
 
         if (missingLocales.length > 0) {
-            warnings.push('Content in unsupported locales have been removed or mapped to the default locale.');
+            warnings.push('Content in unsupported locales have been mapped to default or removed');
         }
 
         if (!workspace.features.crossDevice && analysis.experiences.some(experience => experience.crossDevice)) {
-            warnings.push('Disabled cross-device feature not available in the workspace.');
+            warnings.push('Cross-device experiments have been disabled ');
         }
 
         return warnings;
@@ -425,7 +427,7 @@ export class CreateResource implements Action<CreateResourceOptions> {
     }
 }
 
-declare module '@/application/cli/action/action' {
+declare module '@/application/template/action/action' {
     export interface ActionOptionsMap {
         'create-resource': CreateResourceOptions;
     }

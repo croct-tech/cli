@@ -1,7 +1,7 @@
 import {Command, InvalidArgumentError, Option} from '@commander-js/extra-typings';
 import XDGAppPaths from 'xdg-app-paths';
 import * as process from 'node:process';
-import {resolve} from 'path';
+import {join, resolve} from 'path';
 import ci from 'ci-info';
 import {JsonPrimitive} from '@croct/json';
 import {Cli} from '@/infrastructure/application/cli/cli';
@@ -13,15 +13,22 @@ process.on('SIGTERM', () => process.exit(0));
 
 const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a.run.app';
 
-function createProgram(interactive: boolean, templateOptions?: OptionMap, cli?: Cli): typeof program {
+type Configuration = {
+    interactive: boolean,
+    template?: OptionMap,
+    cli?: Cli,
+};
+
+function createProgram(config: Configuration): typeof program {
     const program = new Command()
         .name('croct')
         .description('Manage your Croct projects.')
         .version('0.0.1', '-v, --version', 'Display the version number')
         .option('-d, --cwd <path>', 'The working directory')
-        .option('-n, --no-interaction', 'Disable interaction mode')
-        .helpOption(cli !== undefined)
-        .helpCommand(cli !== undefined)
+        .option('-ni, --no-interaction', 'Disable interaction mode')
+        .option('-nc, --no-cache', 'Disable cache')
+        .helpOption(config.cli !== undefined)
+        .helpCommand(config.cli !== undefined)
         .addOption(
             new Option('-q, --quiet', 'Disable output messages')
                 .default(false)
@@ -35,11 +42,11 @@ function createProgram(interactive: boolean, templateOptions?: OptionMap, cli?: 
     const passwordOption = new Option('-p, --password <password>', 'The password');
 
     loginCommand.command('credentials', {isDefault: true})
-        .addOption(interactive ? usernameOption : usernameOption.makeOptionMandatory())
-        .addOption(interactive ? passwordOption : passwordOption.makeOptionMandatory())
+        .addOption(config.interactive ? usernameOption : usernameOption.makeOptionMandatory())
+        .addOption(config.interactive ? passwordOption : passwordOption.makeOptionMandatory())
         .description('Authenticate using credentials.')
         .action(async options => {
-            await cli?.login({
+            await config.cli?.login({
                 method: 'credentials',
                 username: options.username,
                 password: options.password,
@@ -49,18 +56,18 @@ function createProgram(interactive: boolean, templateOptions?: OptionMap, cli?: 
     program.command('logout')
         .description('Logout the current user.')
         .action(async () => {
-            await cli?.logout();
+            await config.cli?.logout();
         });
 
     program.command('admin')
         .argument('[page...]', 'The name of the page or path to open')
         .description('Log in and open the admin panel.')
         .action(async path => {
-            await cli?.admin({
+            await config.cli?.admin({
                 // eslint-disable-next-line no-nested-ternary -- Best option for this case
                 page: path !== undefined
                     ? path.join(' ')
-                    : (interactive ? undefined : '/'),
+                    : (config.interactive ? undefined : '/'),
             });
         });
 
@@ -80,14 +87,14 @@ function createProgram(interactive: boolean, templateOptions?: OptionMap, cli?: 
             new Option('-s, --sdk <platform>', 'The SDK')
                 .choices(['javascript', 'react', 'next'] as const),
         )
-        .addOption(interactive ? organizationOption : organizationOption.makeOptionMandatory())
-        .addOption(interactive ? workspaceOption : workspaceOption.makeOptionMandatory())
-        .addOption(interactive ? devApplicationOption : devApplicationOption.makeOptionMandatory())
+        .addOption(config.interactive ? organizationOption : organizationOption.makeOptionMandatory())
+        .addOption(config.interactive ? workspaceOption : workspaceOption.makeOptionMandatory())
+        .addOption(config.interactive ? devApplicationOption : devApplicationOption.makeOptionMandatory())
         .addOption(prodApplicationOption)
         .action(async options => {
-            await cli?.init({
+            await config.cli?.init({
                 override: options.override,
-                new: ((): Resource|undefined => {
+                new: ((): Resource | undefined => {
                     switch (options.new) {
                         case 'organization':
                         case 'org':
@@ -116,7 +123,7 @@ function createProgram(interactive: boolean, templateOptions?: OptionMap, cli?: 
     program.command('install')
         .description('Download content and generate types.')
         .action(async () => {
-            await cli?.install({});
+            await config.cli?.install({});
         });
 
     program.command('upgrade')
@@ -124,7 +131,7 @@ function createProgram(interactive: boolean, templateOptions?: OptionMap, cli?: 
         .option('-s, --slots <slots...>', 'The slots to upgrade')
         .option('-c, --components <components...>', 'The components to upgrade')
         .action(async options => {
-            await cli?.upgrade({
+            await config.cli?.upgrade({
                 // The null coalescing operator is used to ensure that
                 // specifying --slots won't affect --components and vice versa
                 slots: options.slots ?? (options.components !== undefined ? [] : undefined),
@@ -136,21 +143,21 @@ function createProgram(interactive: boolean, templateOptions?: OptionMap, cli?: 
         .description('Add a resource to your project.');
 
     addCommand.command('slot')
-        .argument(interactive ? '[slots...]' : '<slots...>')
+        .argument(config.interactive ? '[slots...]' : '<slots...>')
         .option('-e, --example', 'Generate an implementation example')
         .description('Add a slot to your project.')
         .action(async (args, options) => {
-            await cli?.addSlot({
+            await config.cli?.addSlot({
                 slots: args,
                 example: options.example,
             });
         });
 
     addCommand.command('component')
-        .argument(interactive ? '[components...]' : '<components...>')
+        .argument(config.interactive ? '[components...]' : '<components...>')
         .description('Add a component to your project.')
         .action(async args => {
-            await cli?.addComponent({
+            await config.cli?.addComponent({
                 components: args,
             });
         });
@@ -159,19 +166,19 @@ function createProgram(interactive: boolean, templateOptions?: OptionMap, cli?: 
         .description('Remove a resource from your project.');
 
     removeCommand.command('slot')
-        .argument(interactive ? '[slots...]' : '<slots...>')
+        .argument(config.interactive ? '[slots...]' : '<slots...>')
         .description('Remove a slot from your project.')
         .action(async args => {
-            await cli?.removeSlot({
+            await config.cli?.removeSlot({
                 slots: args,
             });
         });
 
     removeCommand.command('component')
-        .argument(interactive ? '[components...]' : '<components...>')
+        .argument(config.interactive ? '[components...]' : '<components...>')
         .description('Remove a component from your project.')
         .action(async args => {
-            await cli?.removeComponent({
+            await config.cli?.removeComponent({
                 components: args,
             });
         });
@@ -183,13 +190,13 @@ function createProgram(interactive: boolean, templateOptions?: OptionMap, cli?: 
         .argument('path', 'The path to save the template')
         .description('Export a template from your project.')
         .action(async (path: string) => {
-            await cli?.createTemplate({
+            await config.cli?.createTemplate({
                 file: path,
             });
         });
 
     const importCommand = program.command('import')
-        .enablePositionalOptions(cli === undefined)
+        .enablePositionalOptions(config.cli === undefined)
         .description('Import a resource into your project.');
 
     const optionNames: Record<string, string> = {};
@@ -197,10 +204,10 @@ function createProgram(interactive: boolean, templateOptions?: OptionMap, cli?: 
     const templateCommand = importCommand.command('template')
         .argument('template', 'The path to the template')
         .description('Import a template into your project.')
-        .passThroughOptions(cli === undefined)
-        .allowUnknownOption(cli === undefined)
+        .passThroughOptions(config.cli === undefined)
+        .allowUnknownOption(config.cli === undefined)
         .action(async (template, options) => {
-            await cli?.importTemplate({
+            await config.cli?.importTemplate({
                 template: template,
                 options: Object.fromEntries(
                     Object.entries(options)
@@ -209,7 +216,7 @@ function createProgram(interactive: boolean, templateOptions?: OptionMap, cli?: 
             });
         });
 
-    for (const [name, definition] of Object.entries(templateOptions ?? {})) {
+    for (const [name, definition] of Object.entries(config.template ?? {})) {
         const usage = `--${name}${definition.type !== 'boolean' ? ' <value>' : ''}`;
 
         const option = new Option(usage, definition.description)
@@ -245,11 +252,11 @@ function createProgram(interactive: boolean, templateOptions?: OptionMap, cli?: 
 }
 
 (async function main(): Promise<void> {
-    const parsedInput = createProgram(true)
-        .parse();
+    const parsedInput = createProgram({interactive: true}).parse();
 
     const {args} = parsedInput;
     const options = parsedInput.opts();
+    const appPaths = XDGAppPaths('com.croct.cli');
 
     const cli = new Cli({
         io: {
@@ -257,7 +264,8 @@ function createProgram(interactive: boolean, templateOptions?: OptionMap, cli?: 
             output: process.stdout,
         },
         directories: {
-            config: XDGAppPaths('com.croct.cli').config(),
+            config: appPaths.config(),
+            downloadCache: join(appPaths.cache(), 'downloads'),
             current: options.cwd !== undefined
                 ? resolve(options.cwd)
                 : process.cwd(),
@@ -269,18 +277,19 @@ function createProgram(interactive: boolean, templateOptions?: OptionMap, cli?: 
             authenticationEndpoint: `${apiEndpoint}/start/`,
             authenticationParameter: 'session',
         },
+        cache: options.cache,
         quiet: options.quiet,
         interactive: options.interaction && !ci.isCI,
         exitCallback: () => process.exit(1),
     });
 
-    const program = createProgram(
-        options.interaction,
-        args[0] === 'import' && args[1] === 'template' && args[2] !== undefined
+    const program = createProgram({
+        cli: cli,
+        interactive: options.interaction,
+        template: args[0] === 'import' && args[1] === 'template' && args[2] !== undefined
             ? await cli.getTemplateOptions(args[2])
             : undefined,
-        cli,
-    );
+    });
 
     await program.parseAsync();
 }());

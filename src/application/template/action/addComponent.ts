@@ -1,5 +1,5 @@
-import {Action, ActionError} from '@/application/cli/action/action';
-import {ActionContext} from '@/application/cli/action/context';
+import {Action, ActionError} from '@/application/template/action/action';
+import {ActionContext} from '@/application/template/action/context';
 
 export type AddComponentOptions = {
     components: string|string[],
@@ -32,7 +32,7 @@ export class AddComponent implements Action<AddComponentOptions> {
     }
 }
 
-declare module '@/application/cli/action/action' {
+declare module '@/application/template/action/action' {
     export interface ActionOptionsMap {
         'add-component': AddComponentOptions;
     }

@@ -12,7 +12,7 @@ import {formatName} from '@/application/project/utils/formatName';
 import {ExampleFile} from '@/application/project/example/example';
 import {Linter} from '@/application/project/linter';
 import {Version} from '@/application/project/version';
-import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {FileSystem} from '@/application/fs/fileSystem';
 import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
 import {ApplicationPlatform} from '@/application/model/application';
 import {Slot} from '@/application/model/slot';
@@ -71,7 +71,7 @@ export abstract class JavaScriptSdk implements Sdk {
 
             const filePath = this.fileSystem.joinPaths(rootPath, file.name);
 
-            await this.fileSystem.writeFile(filePath, file.code, {overwrite: true});
+            await this.fileSystem.writeTextFile(filePath, file.code, {overwrite: true});
 
             files.push(filePath);
         }
@@ -299,7 +299,7 @@ export abstract class JavaScriptSdk implements Sdk {
                     );
                 }
 
-                await this.fileSystem.writeFile(
+                await this.fileSystem.writeTextFile(
                     this.fileSystem.joinPaths(directoryPath, locale, `${baseName}.json`),
                     JSON.stringify(content, null, 2),
                     {overwrite: true},
@@ -323,7 +323,7 @@ export abstract class JavaScriptSdk implements Sdk {
                 }).join('\n');
 
                 for (const extension of ['.js', '.d.ts']) {
-                    await this.fileSystem.writeFile(
+                    await this.fileSystem.writeTextFile(
                         this.fileSystem.joinPaths(directoryPath, path, `index${extension}`),
                         moduleCode,
                         {overwrite: true},
@@ -383,14 +383,14 @@ export abstract class JavaScriptSdk implements Sdk {
             module = `${types}\n${module}`;
         }
 
-        await this.fileSystem.writeFile(filePath, module, {overwrite: true});
+        await this.fileSystem.writeTextFile(filePath, module, {overwrite: true});
 
         indicator.confirm('Types updated');
     }
 
     private async registerScript(notifier: TaskNotifier): Promise<void> {
         const packageFile = this.projectManager.getProjectPackagePath();
-        const content = await this.fileSystem.readFile(packageFile);
+        const content = await this.fileSystem.readTextFile(packageFile);
 
         const packageJson = JsonParser.parse(content, JsonObjectNode);
 
@@ -417,7 +417,7 @@ export abstract class JavaScriptSdk implements Sdk {
             });
         }
 
-        await this.fileSystem.writeFile(packageFile, packageJson.toString(), {overwrite: true});
+        await this.fileSystem.writeTextFile(packageFile, packageJson.toString(), {overwrite: true});
 
         notifier.confirm('Script registered');
     }
@@ -456,7 +456,7 @@ export abstract class JavaScriptSdk implements Sdk {
             )
             .replace(/\\/g, '/');
 
-        const config = JsonParser.parse(await this.fileSystem.readFile(configPath), JsonObjectNode);
+        const config = JsonParser.parse(await this.fileSystem.readTextFile(configPath), JsonObjectNode);
 
         if (config.has('files')) {
             const files = config.get('files', JsonArrayNode);
@@ -471,7 +471,7 @@ export abstract class JavaScriptSdk implements Sdk {
             config.set('files', [typeFile]);
         }
 
-        await this.fileSystem.writeFile(configPath, config.toString(), {overwrite: true});
+        await this.fileSystem.writeTextFile(configPath, config.toString(), {overwrite: true});
 
         notifier.confirm('Type file registered');
     }
@@ -550,7 +550,7 @@ export abstract class JavaScriptSdk implements Sdk {
             const realPath = await this.fileSystem.getRealPath(packageInfo.directory);
 
             await this.fileSystem.delete(packageInfo.directory);
-            await this.fileSystem.copyDirectory(realPath, packageInfo.directory, {recursive: true});
+            await this.fileSystem.copy(realPath, packageInfo.directory, {recursive: true});
         }
 
         return packageInfo;

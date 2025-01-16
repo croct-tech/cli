@@ -1,4 +1,4 @@
-import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {FileSystem} from '@/application/fs/fileSystem';
 
 export class EnvFile {
     private readonly fileSystem: FileSystem;
@@ -69,14 +69,14 @@ export class EnvFile {
     }
 
     private async write(content: string): Promise<void> {
-        await this.fileSystem.writeFile(this.path, content, {
+        await this.fileSystem.writeTextFile(this.path, content, {
             overwrite: true,
         });
     }
 
     private async read(): Promise<string> {
         try {
-            return await this.fileSystem.readFile(this.path);
+            return await this.fileSystem.readTextFile(this.path);
         } catch (error) {
             if (error.code !== 'ENOENT') {
                 throw error;

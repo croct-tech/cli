@@ -1,6 +1,7 @@
 import {z} from 'zod';
+import semver from 'semver';
 import {PackageInfo, PackageInstallationOptions} from '@/application/project/manager/projectManager';
-import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {FileSystem} from '@/application/fs/fileSystem';
 import {ImportConfigLoader} from '@/application/project/manager/importConfigLoader';
 import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
 
@@ -69,7 +70,7 @@ export class NodeProjectManager implements JavaScriptProjectManager {
             return null;
         }
 
-        return this.fileSystem.readFile(this.fileSystem.joinPaths(this.getRootPath(), filePath));
+        return this.fileSystem.readTextFile(this.fileSystem.joinPaths(this.getRootPath(), filePath));
     }
 
     public async locateFile(...fileNames: string[]): Promise<string | null> {
@@ -90,15 +91,20 @@ export class NodeProjectManager implements JavaScriptProjectManager {
         return null;
     }
 
-    public async isPackageListed(packageName: string): Promise<boolean> {
+    public async isPackageListed(packageName: string, version?: string): Promise<boolean> {
         const info = await this.getPackageJson(this.getProjectPackagePath());
 
         if (info === null) {
             return false;
         }
 
-        return (info.dependencies !== undefined && packageName in info.dependencies)
-            || (info.devDependencies !== undefined && packageName in info.devDependencies);
+        const installedVersion = info.dependencies?.[packageName] ?? info.devDependencies?.[packageName];
+
+        if (installedVersion === undefined) {
+            return false;
+        }
+
+        return version === undefined || semver.satisfies(installedVersion, version);
     }
 
     public async getPackageInfo(packageName: string): Promise<PackageInfo|null> {
@@ -123,7 +129,7 @@ export class NodeProjectManager implements JavaScriptProjectManager {
         }
 
         try {
-            return packageSchema.parse(JSON.parse(await this.fileSystem.readFile(path)));
+            return packageSchema.parse(JSON.parse(await this.fileSystem.readTextFile(path)));
         } catch {
             return null;
         }

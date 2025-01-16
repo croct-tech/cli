@@ -14,7 +14,7 @@ import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {NextExampleRouter, PlugNextExampleGenerator} from '@/application/project/example/slot/plugNextExampleGenerator';
 import {Linter} from '@/application/project/linter';
 import {ApiError} from '@/application/api/error';
-import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {FileSystem} from '@/application/fs/fileSystem';
 import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
 import {ApplicationPlatform} from '@/application/model/application';
 import {Slot} from '@/application/model/slot';

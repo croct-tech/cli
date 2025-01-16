@@ -1,6 +1,6 @@
 import {AuthenticationInput, Authenticator} from '@/application/cli/authentication/authenticator/index';
 import {CliError, CliErrorCode} from '@/application/cli/error';
-import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {FileSystem} from '@/application/fs/fileSystem';
 
 export type Configuration<I extends AuthenticationInput>= {
     filePath: string,
@@ -23,7 +23,7 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
 
     public async getToken(): Promise<string|null> {
         try {
-            return await this.fileSystem.readFile(this.filePath);
+            return await this.fileSystem.readTextFile(this.filePath);
         } catch {
             return this.authenticator.getToken();
         }
@@ -65,7 +65,7 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
                 await this.fileSystem.createDirectory(directory, {recursive: true});
             }
 
-            await this.fileSystem.writeFile(this.filePath, token, {overwrite: true});
+            await this.fileSystem.writeTextFile(this.filePath, token, {overwrite: true});
         } catch (cause) {
             throw new CliError(
                 'Failed to save token to file.',

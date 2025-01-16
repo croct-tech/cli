@@ -3,7 +3,7 @@ import {SlotDefinition, SlotExampleGenerator} from './slotExampleGenerator';
 import {CodeExample, CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {CodeWriter} from '@/application/project/example/codeWritter';
 import {formatLabel, sortAttributes} from '@/application/project/example/utils';
-import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {FileSystem} from '@/application/fs/fileSystem';
 
 export type Configuration = {
     fileSystem: FileSystem,

@@ -1,6 +1,6 @@
-import {Action, ActionDefinition, ActionError, ActionMap, ActionName} from '@/application/cli/action/action';
+import {Action, ActionDefinition, ActionError, ActionMap, ActionName} from '@/application/template/action/action';
 import {CliHelp} from '@/application/cli/error';
-import {ActionContext} from '@/application/cli/action/context';
+import {ActionContext} from '@/application/template/action/context';
 
 export type TryOptions<T extends ActionName = ActionName> = {
     action: ActionDefinition<T>,
@@ -66,7 +66,7 @@ export class Try<T extends ActionName> implements Action<TryOptions<T>> {
     }
 }
 
-declare module '@/application/cli/action/action' {
+declare module '@/application/template/action/action' {
     export interface ActionOptionsMap {
         'try': TryOptions;
     }

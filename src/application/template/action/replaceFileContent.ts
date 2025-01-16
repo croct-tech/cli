@@ -1,10 +1,10 @@
-import {Action, ActionError} from '@/application/cli/action/action';
-import {FileSystem} from '@/application/fileSystem/fileSystem';
-import {ActionContext} from '@/application/cli/action/context';
+import {Action, ActionError} from '@/application/template/action/action';
+import {FileSystem} from '@/application/fs/fileSystem';
+import {ActionContext} from '@/application/template/action/context';
 
 type Replacement = {
     pattern: string,
-    caseSensitive?: string|boolean,
+    caseSensitive?: boolean,
     replacement: string,
 };
 
@@ -39,29 +39,13 @@ export class ReplaceFileContent implements Action<ReplaceFileContentOptions> {
             }
 
             try {
-                await fileSystem.writeFile(
+                await fileSystem.writeTextFile(
                     resolvedPath,
                     this.replaceContent(
-                        await fileSystem.readFile(resolvedPath),
-                        await Promise.all(
-                            replacements.map(
-                                async unresolvedReplacement => {
-                                    const [pattern, caseSensitive, replacement] = await Promise.all([
-                                        context.resolveString(unresolvedReplacement.pattern),
-                                        typeof unresolvedReplacement.caseSensitive === 'string'
-                                            ? context.resolveBoolean(unresolvedReplacement.caseSensitive)
-                                            : unresolvedReplacement.caseSensitive,
-                                        context.resolveString(unresolvedReplacement.replacement),
-                                    ]);
-
-                                    return {
-                                        pattern: pattern,
-                                        caseSensitive: caseSensitive,
-                                        replacement: replacement,
-                                    };
-                                },
-                            ),
-                        ),
+                        ...await Promise.all([
+                            fileSystem.readTextFile(resolvedPath),
+                            context.resolveString(replacements),
+                        ]),
                     ),
                     {overwrite: true},
                 );
@@ -84,7 +68,7 @@ export class ReplaceFileContent implements Action<ReplaceFileContentOptions> {
     }
 }
 
-declare module '@/application/cli/action/action' {
+declare module '@/application/template/action/action' {
     export interface ActionOptionsMap {
         'replace-file-content': ReplaceFileContentOptions;
     }

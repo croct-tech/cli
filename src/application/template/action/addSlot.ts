@@ -1,9 +1,9 @@
-import {Action, ActionError} from '@/application/cli/action/action';
-import {ActionContext} from '@/application/cli/action/context';
+import {Action, ActionError} from '@/application/template/action/action';
+import {ActionContext} from '@/application/template/action/context';
 
 export type AddSlotOptions = {
     slots: string|string[],
-    example?: string|boolean,
+    example?: boolean,
 };
 
 export type SlotInstaller = (slots: string[], example: boolean) => Promise<void>;
@@ -21,24 +21,19 @@ export class AddSlot implements Action<AddSlotOptions> {
 
     public async execute(options: AddSlotOptions, context: ActionContext): Promise<void> {
         const {installer} = this.config;
-        const [slots, example] = await Promise.all([
-            typeof options.slots === 'string'
-                ? context.resolveStringList(options.slots)
-                : Promise.all(options.slots.map(slot => context.resolveString(slot))),
-            typeof options.example === 'string'
-                ? context.resolveBoolean(options.example)
-                : options.example === true,
-        ]);
+        const slots = await (typeof options.slots === 'string'
+            ? context.resolveStringList(options.slots)
+            : Promise.all(options.slots.map(slot => context.resolveString(slot))));
 
         try {
-            await installer(slots, example);
+            await installer(slots, options.example === true);
         } catch (error) {
             throw ActionError.fromCause(error);
         }
     }
 }
 
-declare module '@/application/cli/action/action' {
+declare module '@/application/template/action/action' {
     export interface ActionOptionsMap {
         'add-slot': AddSlotOptions;
     }

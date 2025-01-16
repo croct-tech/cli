@@ -9,7 +9,7 @@ import {EnvFile} from '@/application/project/envFile';
 import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {PlugReactExampleGenerator} from '@/application/project/example/slot/plugReactExampleGenerator';
 import {Linter} from '@/application/project/linter';
-import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {FileSystem} from '@/application/fs/fileSystem';
 import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
 import {ResolvedConfiguration} from '@/application/project/configuration/configuration';
 import {ApplicationPlatform} from '@/application/model/application';

@@ -11,7 +11,7 @@ import {
     SlotDefinition,
 } from '@/application/api/workspace';
 import {ExperienceStatus} from '@/application/model/experience';
-import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {FileSystem} from '@/application/fs/fileSystem';
 import {Template} from '@/application/template/template';
 import {CliError, CliErrorCode} from '@/application/cli/error';
 import {Input} from '@/application/cli/io/input';
@@ -53,7 +53,7 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
                 })) ?? false;
             }
 
-            await fileSystem.writeFile(templateFile, JSON.stringify(template, null, 2), {
+            await fileSystem.writeTextFile(templateFile, JSON.stringify(template, null, 2), {
                 overwrite: override,
             });
         } catch (error) {

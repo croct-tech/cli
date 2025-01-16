@@ -2,30 +2,37 @@ import {JsonPrimitive} from '@croct/json';
 import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
-import {ActionRunner} from '@/application/cli/action/runner';
-import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {ActionRunner} from '@/application/template/action/runner';
+import {FileSystem} from '@/application/fs/fileSystem';
 import {Template, OptionMap} from '@/application/template/template';
-import {ActionContext, VariableValue} from '@/application/cli/action/context';
+import {ActionContext, VariableValue} from '@/application/template/action/context';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {SdkResolver} from '@/application/project/sdk/sdk';
 import {ApplicationPlatform} from '@/application/model/application';
+import {CliError, CliErrorCode} from '@/application/cli/error';
+import {Transport} from '@/application/template/transport/transport';
 
 export type ImportTemplateInput = {
     template: string,
     options: Record<string, JsonPrimitive>,
 };
 
+export type LoadedTemplate = {
+    url: URL,
+    template: Template,
+};
+
 export type ImportTemplateConfig = {
     configurationManager: ConfigurationManager,
     sdkResolver: SdkResolver,
     fileSystem: FileSystem,
+    transport: Transport<LoadedTemplate>,
     actionRunner: ActionRunner,
     io: {
         input?: Input,
         output: Output,
     },
 };
-
 export class ImportTemplateCommand implements Command<ImportTemplateInput> {
     private readonly config: ImportTemplateConfig;
 
@@ -34,24 +41,28 @@ export class ImportTemplateCommand implements Command<ImportTemplateInput> {
     }
 
     public async getOptions(template: string): Promise<OptionMap> {
-        const manifest = await this.loadManifest(template);
-
-        return manifest.options ?? {};
+        try {
+            return (await this.loadTemplate(template)).template.options ?? {};
+        } catch {
+            // Postpone the error handling to the execute method
+            return {};
+        }
     }
 
     public async execute(input: ImportTemplateInput): Promise<void> {
         const {actionRunner} = this.config;
-        const manifest = await this.loadManifest(input.template);
+        const {url, template} = await this.loadTemplate(input.template);
 
-        await actionRunner.run(manifest.actions, this.createContext(input.options));
+        await actionRunner.run(template.actions, this.createContext(input.options, url));
     }
 
-    private createContext(options: Record<string, JsonPrimitive>): ActionContext {
+    private createContext(options: Record<string, JsonPrimitive>, baseUrl: URL): ActionContext {
         const {io, configurationManager, sdkResolver} = this.config;
 
         const context = new ActionContext({
             input: io.input,
             output: io.output,
+            baseUrl: baseUrl,
             variables: Object.freeze({
                 project: Object.freeze({
                     path: Object.freeze({
@@ -72,7 +83,7 @@ export class ImportTemplateCommand implements Command<ImportTemplateInput> {
                             ([key, value]) => [
                                 key.replace(/~/g, '~0').replace(/\//g, '~1'),
                                 typeof value === 'string'
-                                    ? (): Promise<VariableValue> => context.resolve(value)
+                                    ? (): Promise<VariableValue> => context.resolveValue(value)
                                     : value,
                             ],
                         ),
@@ -85,10 +96,50 @@ export class ImportTemplateCommand implements Command<ImportTemplateInput> {
         return context;
     }
 
-    private async loadManifest(template: string): Promise<Template> {
-        const {fileSystem} = this.config;
-        const content = await fileSystem.readFile(template);
+    private async loadTemplate(name: string): Promise<LoadedTemplate> {
+        const {transport} = this.config;
 
-        return JSON.parse(content) as Template;
+        const url = await this.resolveUrl(name);
+
+        let result: LoadedTemplate;
+
+        try {
+            result = await transport.fetch(url);
+        } catch (error) {
+            throw new CliError('Template not found.', {
+                code: CliErrorCode.INVALID_INPUT,
+                details: [
+                    `Template: ${name}`,
+                ],
+                suggestions: [
+                    'Check if the template path or URL is correct and try again.',
+                ],
+            });
+        }
+
+        const resolvedUrl = result.url;
+
+        return {
+            url: new URL(resolvedUrl.href.replace(/\/[^/]+$/, '/')),
+            template: result.template,
+        };
+    }
+
+    private async resolveUrl(name: string): Promise<URL> {
+        const {fileSystem} = this.config;
+
+        let path = name;
+
+        if (URL.canParse(name)) {
+            const url = new URL(name);
+
+            if (url.protocol !== 'file:') {
+                return url;
+            }
+
+            path = fileSystem.normalizeSeparators(url.pathname);
+        }
+
+        return new URL(`file://${await fileSystem.getRealPath(path)}`);
     }
 }

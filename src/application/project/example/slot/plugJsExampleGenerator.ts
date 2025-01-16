@@ -4,7 +4,7 @@ import {CodeExample, CodeLanguage, ExampleFile} from '@/application/project/exam
 import {CodeWriter} from '@/application/project/example/codeWritter';
 import {formatLabel, sortAttributes} from '@/application/project/example/utils';
 import {formatName} from '@/application/project/utils/formatName';
-import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {FileSystem} from '@/application/fs/fileSystem';
 
 export type Configuration = {
     fileSystem: FileSystem,

@@ -1,4 +1,4 @@
-import {ActionDefinition} from '@/application/cli/action/action';
+import {ActionDefinition} from '@/application/template/action/action';
 
 type OptionTypes = {
     string: {

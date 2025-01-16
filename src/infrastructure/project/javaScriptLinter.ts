@@ -2,7 +2,7 @@ import {spawn} from 'child_process';
 import {execPath} from 'node:process';
 import {Linter} from '@/application/project/linter';
 import {PackageInfo, ProjectManager} from '@/application/project/manager/projectManager';
-import {FileSystem} from '@/application/fileSystem/fileSystem';
+import {FileSystem} from '@/application/fs/fileSystem';
 
 type LinterCommand = {
     executable: string,

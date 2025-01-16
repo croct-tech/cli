@@ -48,9 +48,10 @@ export interface ProjectManager {
      * Checks if a package is listed in the project's dependencies.
      *
      * @param packageName The name of the package to check.
+     * @param version The version of the package to check.
      * @returns A promise that resolves to true if the package is listed, false otherwise.
      */
-    isPackageListed(packageName: string): Promise<boolean>;
+    isPackageListed(packageName: string, version?: string): Promise<boolean>;
 
     /**
      * Retrieves information about a specific package.

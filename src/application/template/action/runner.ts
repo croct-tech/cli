@@ -1,5 +1,5 @@
-import {ActionDefinition, ActionMap, ActionName} from '@/application/cli/action/action';
-import {ActionContext} from '@/application/cli/action/context';
+import {ActionDefinition, ActionMap, ActionName} from '@/application/template/action/action';
+import {ActionContext} from '@/application/template/action/context';
 
 export class ActionRunner<T extends ActionName = ActionName> {
     private readonly actions: ActionMap<T>;
