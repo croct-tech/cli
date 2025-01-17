@@ -1,6 +1,5 @@
 import {Content} from '@croct/content-model/content/content';
 import {randomUUID} from 'crypto';
-import * as console from 'node:console';
 import {GraphqlClient} from '@/infrastructure/graphql';
 import {
     ApplicationPath,
@@ -523,8 +522,6 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                 ({slot = null}) => (slot === null ? [] : [[slot.id, slot.customId]]),
             ),
         );
-
-        console.log(slotMap);
 
         return {
             id: data.id,

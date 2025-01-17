@@ -93,6 +93,7 @@ export class Download implements Action<DownloadOptions> {
             const path = fileSystem.normalizeSeparators(entry.name);
 
             if (fileSystem.isAbsolutePath(path) || !fileSystem.isSubPath(destination, path)) {
+                // Disallow linking outside the destination directory for security reasons
                 continue;
             }
 
