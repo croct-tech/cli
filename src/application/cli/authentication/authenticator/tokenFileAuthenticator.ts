@@ -1,6 +1,6 @@
 import {AuthenticationInput, Authenticator} from '@/application/cli/authentication/authenticator/index';
-import {CliError, CliErrorCode} from '@/application/cli/error';
 import {FileSystem} from '@/application/fs/fileSystem';
+import {HelpfulError, ErrorReason} from '@/application/error';
 
 export type Configuration<I extends AuthenticationInput>= {
     filePath: string,
@@ -44,10 +44,10 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
             await this.fileSystem.delete(this.filePath);
         } catch (error) {
             if ((error instanceof Error) && 'code' in error && error.code !== 'ENOENT') {
-                throw new CliError(
+                throw new HelpfulError(
                     'Failed to delete token file.',
                     {
-                        code: CliErrorCode.OTHER,
+                        reason: ErrorReason.OTHER,
                         suggestions: ['Try to delete the file manually'],
                         details: [`Token file: ${this.filePath}`],
                         cause: error,
@@ -67,10 +67,10 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
 
             await this.fileSystem.writeTextFile(this.filePath, token, {overwrite: true});
         } catch (cause) {
-            throw new CliError(
+            throw new HelpfulError(
                 'Failed to save token to file.',
                 {
-                    code: CliErrorCode.OTHER,
+                    reason: ErrorReason.OTHER,
                     suggestions: [
                         'If the file exists, try to delete it manually',
                         'Check the permissions of the directory',

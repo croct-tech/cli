@@ -1,7 +1,7 @@
 import {Command, InvalidArgumentError, Option} from '@commander-js/extra-typings';
 import XDGAppPaths from 'xdg-app-paths';
 import * as process from 'node:process';
-import {join, resolve} from 'path';
+import {resolve} from 'path';
 import ci from 'ci-info';
 import {JsonPrimitive} from '@croct/json';
 import {Cli} from '@/infrastructure/application/cli/cli';
@@ -12,6 +12,7 @@ process.on('SIGINT', () => process.exit(0));
 process.on('SIGTERM', () => process.exit(0));
 
 const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a.run.app';
+const templateRegistry = 'https://github.com/marcospassos/croct-examples/blob/main/registry.json';
 
 type Configuration = {
     interactive: boolean,
@@ -25,6 +26,7 @@ function createProgram(config: Configuration): typeof program {
         .description('Manage your Croct projects.')
         .version('0.0.1', '-v, --version', 'Display the version number')
         .option('-d, --cwd <path>', 'The working directory')
+        .option('-r, --registry <url>', 'The template registry')
         .option('-ni, --no-interaction', 'Disable interaction mode')
         .option('-nc, --no-cache', 'Disable cache')
         .helpOption(config.cli !== undefined)
@@ -265,7 +267,7 @@ function createProgram(config: Configuration): typeof program {
         },
         directories: {
             config: appPaths.config(),
-            downloadCache: join(appPaths.cache(), 'downloads'),
+            cache: appPaths.cache(),
             current: options.cwd !== undefined
                 ? resolve(options.cwd)
                 : process.cwd(),
@@ -277,6 +279,7 @@ function createProgram(config: Configuration): typeof program {
             authenticationEndpoint: `${apiEndpoint}/start/`,
             authenticationParameter: 'session',
         },
+        templateRegistry: new URL(options.registry ?? templateRegistry),
         cache: options.cache,
         quiet: options.quiet,
         interactive: options.interaction && !ci.isCI,

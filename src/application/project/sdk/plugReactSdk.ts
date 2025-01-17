@@ -3,7 +3,6 @@ import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasSc
 import {WorkspaceApi} from '@/application/api/workspace';
 import {Codemod} from '@/application/project/sdk/code/codemod';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
-import {formatMessage} from '@/application/error';
 import {PropertyType, WrapperOptions} from '@/application/project/sdk/code/jsx/addWrapper';
 import {EnvFile} from '@/application/project/envFile';
 import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
@@ -14,6 +13,7 @@ import {JavaScriptProjectManager} from '@/application/project/manager/javaScript
 import {ResolvedConfiguration} from '@/application/project/configuration/configuration';
 import {ApplicationPlatform} from '@/application/model/application';
 import {Slot} from '@/application/model/slot';
+import {HelpfulError} from '@/application/error';
 
 type ApiConfiguration = {
     workspace: WorkspaceApi,
@@ -203,7 +203,7 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
 
                         notifier.confirm('Environment variables updated');
                     } catch (error) {
-                        notifier.alert('Failed to update environment variables', formatMessage(error));
+                        notifier.alert('Failed to update environment variables', HelpfulError.formatMessage(error));
                     }
                 },
             });
@@ -230,7 +230,7 @@ export class PlugReactSdk extends JavaScriptSdk implements SdkResolver<Sdk|null>
                         notifier.confirm('Provider configured');
                     }
                 } catch (error) {
-                    notifier.alert('Failed to install provider', formatMessage(error));
+                    notifier.alert('Failed to install provider', HelpfulError.formatMessage(error));
                 }
             },
         });

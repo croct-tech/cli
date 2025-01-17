@@ -11,11 +11,11 @@ import {Form} from '@/application/cli/form/form';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {UserApi} from '@/application/api/user';
 import {OrganizationApi} from '@/application/api/organization';
-import {CliError, CliErrorCode} from '@/application/cli/error';
 import {ApiError} from '@/application/api/error';
 import {Organization} from '@/application/model/organization';
 import {Workspace} from '@/application/model/workspace';
 import {Application, ApplicationEnvironment, ApplicationPlatform} from '@/application/model/application';
+import {HelpfulError, ErrorReason} from '@/application/error';
 
 export type Resource = 'organization' | 'workspace' | 'application';
 
@@ -60,8 +60,8 @@ export class InitCommand implements Command<InitInput> {
         const currentConfiguration = await configurationManager.load();
 
         if (currentConfiguration !== null && input.override !== true) {
-            throw new CliError('Configuration file already exists, pass `--override` to reconfigure', {
-                code: CliErrorCode.PRECONDITION,
+            throw new HelpfulError('Configuration file already exists, pass `--override` to reconfigure', {
+                reason: ErrorReason.PRECONDITION,
             });
         }
 
@@ -81,8 +81,8 @@ export class InitCommand implements Command<InitInput> {
         );
 
         if (organization === null) {
-            throw new CliError(`Organization not found: ${input.organization}`, {
-                code: CliErrorCode.INVALID_INPUT,
+            throw new HelpfulError(`Organization not found: ${input.organization}`, {
+                reason: ErrorReason.INVALID_INPUT,
             });
         }
 
@@ -169,8 +169,8 @@ export class InitCommand implements Command<InitInput> {
                 });
 
         if (organization === null) {
-            throw new CliError(`No organization found with slug "${organizationSlug}".`, {
-                code: CliErrorCode.INVALID_INPUT,
+            throw new HelpfulError(`No organization found with slug "${organizationSlug}".`, {
+                reason: ErrorReason.INVALID_INPUT,
             });
         }
 
@@ -196,8 +196,8 @@ export class InitCommand implements Command<InitInput> {
                 });
 
         if (workspace === null) {
-            throw new CliError(`No workspace found with slug "${workspaceSlug}".`, {
-                code: CliErrorCode.INVALID_INPUT,
+            throw new HelpfulError(`No workspace found with slug "${workspaceSlug}".`, {
+                reason: ErrorReason.INVALID_INPUT,
             });
         }
 
@@ -224,16 +224,16 @@ export class InitCommand implements Command<InitInput> {
                 });
 
         if (application === null) {
-            throw new CliError(`No application found with slug "${applicationSlug}".`, {
-                code: CliErrorCode.INVALID_INPUT,
+            throw new HelpfulError(`No application found with slug "${applicationSlug}".`, {
+                reason: ErrorReason.INVALID_INPUT,
             });
         }
 
         if (application.environment !== options.environment) {
-            throw new CliError(
+            throw new HelpfulError(
                 `No ${ApplicationEnvironment.getLabel(options.environment)} application `
                 + `found with slug "${applicationSlug}".`,
-                {code: CliErrorCode.INVALID_INPUT},
+                {reason: ErrorReason.INVALID_INPUT},
             );
         }
 

@@ -1,3 +1,5 @@
+import {Help, HelpfulError} from '@/application/error';
+
 export enum AccessDeniedReason {
     INTERNAL_ERROR = 'INTERNAL_ERROR',
     UNKNOWN_USER = 'UNKNOWN_USER',
@@ -24,23 +26,26 @@ export type Problem = {
     reason?: AccessDeniedReason,
 };
 
-export class ApiError extends Error {
-    public readonly details: Problem[];
+export class ApiError extends HelpfulError {
+    public readonly problems: Problem[];
 
-    public constructor(message: string, errors: Problem[] = []) {
-        super(message);
+    public constructor(message: string, errors: Problem[] = [], help: Help = {}) {
+        super(message, {
+            ...help,
+            details: help.details ?? errors.map(error => error.detail),
+        });
 
         Object.setPrototypeOf(this, ApiError.prototype);
 
-        this.details = errors;
+        this.problems = errors;
     }
 
     public isErrorType(type: ProblemType): boolean {
-        return this.details.some(problem => problem.type === type);
+        return this.problems.some(problem => problem.type === type);
     }
 
     public isAccessDenied(reason?: AccessDeniedReason): boolean {
-        return this.details.some(
+        return this.problems.some(
             problem => (
                 problem.type === ProblemType.ACCESS_DENIED && (reason === undefined || problem.reason === reason)
             ),

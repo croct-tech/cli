@@ -7,7 +7,7 @@ export class FixedProviderDetector implements EmailProviderDetector {
         this.provider = provider;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- For compatibility
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Keep the same signature as the interface
     public detect(_: string): Promise<string|null> {
         return Promise.resolve(this.provider);
     }

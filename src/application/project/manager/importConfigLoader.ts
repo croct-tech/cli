@@ -1,7 +1,7 @@
-import {z} from 'zod';
 import {Minimatch} from 'minimatch';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {JsonParser} from '@/infrastructure/json';
+import {Validator} from '@/application/validation';
 
 type ImportConfig = {
     rootConfigPath: string,
@@ -10,19 +10,7 @@ type ImportConfig = {
     paths: Record<string, string[]>,
 };
 
-const configSchema = z.object({
-    extends: z.string().optional(),
-    references: z.array(z.object({path: z.string()})).optional(),
-    include: z.array(z.string()).optional(),
-    compilerOptions: z.object({
-        baseUrl: z.string().optional(),
-        paths: z.record(z.array(z.string())).optional(),
-    }).optional(),
-});
-
-type ConfigFile = {
-    rootConfigPath: string,
-    matchedConfigPath: string,
+type PartialTsconfig = {
     extends?: string,
     references?: Array<{path: string}>,
     include?: string[],
@@ -30,6 +18,11 @@ type ConfigFile = {
         baseUrl?: string,
         paths?: Record<string, string[]>,
     },
+};
+
+type ConfigFile = PartialTsconfig & {
+    rootConfigPath: string,
+    matchedConfigPath: string,
 };
 
 export type Options = {
@@ -44,11 +37,19 @@ type Resolution = {
     targetDirectories: string[],
 };
 
+export type Configuration = {
+    fileSystem: FileSystem,
+    tsconfigValidator: Validator<PartialTsconfig>,
+};
+
 export class ImportConfigLoader {
     private readonly fileSystem: FileSystem;
 
-    public constructor(fileSystem: FileSystem) {
+    private readonly tsconfigValidator: Validator<PartialTsconfig>;
+
+    public constructor({fileSystem, tsconfigValidator}: Configuration) {
         this.fileSystem = fileSystem;
+        this.tsconfigValidator = tsconfigValidator;
     }
 
     public async load(directory: string, options: Options = {}): Promise<ImportConfig | null> {
@@ -219,17 +220,25 @@ export class ImportConfigLoader {
     }
 
     private async parseConfig(filePath: string): Promise<ConfigFile | null> {
-        try {
-            const content = await this.fileSystem.readTextFile(filePath);
+        let content: unknown;
 
-            return {
-                rootConfigPath: filePath,
-                matchedConfigPath: filePath,
-                ...configSchema.parse(JsonParser.parse(content).toJSON()),
-            };
+        try {
+            content = JsonParser.parse(await this.fileSystem.readTextFile(filePath)).toJSON();
         } catch {
             return null;
         }
+
+        const result = this.tsconfigValidator.validate(content);
+
+        if (!result.success) {
+            return null;
+        }
+
+        return {
+            rootConfigPath: filePath,
+            matchedConfigPath: filePath,
+            ...result.data,
+        };
     }
 
     private static mergeConfig(config: ConfigFile, parentConfig: Partial<ConfigFile>): ConfigFile {

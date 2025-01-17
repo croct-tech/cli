@@ -11,7 +11,6 @@ import {
 import {WorkspaceResources, ResourcesAnalysis} from '@/application/template/resources';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {OrganizationApi} from '@/application/api/organization';
-import {CliError, CliErrorCode} from '@/application/cli/error';
 import {Workspace, WorkspaceFeatures} from '@/application/model/workspace';
 import {ResolvedConfiguration} from '@/application/project/configuration/configuration';
 import {Form} from '@/application/cli/form/form';
@@ -19,6 +18,7 @@ import {SlugMappingOptions, SlugMapping} from '@/application/cli/form/workspace/
 import {ResourceMatches, ResourceMatcher} from '@/application/template/resourceMatcher';
 import {UserApi} from '@/application/api/user';
 import {ResourceRefactor} from '@/application/template/resourceRefactor';
+import {HelpfulError, ErrorReason} from '@/application/error';
 
 export type CreateResourceOptions = {
     resources: WorkspaceResources,
@@ -216,9 +216,9 @@ export class CreateResource implements Action<CreateResourceOptions> {
         ]);
 
         if (workspace == null || features == null) {
-            throw new CliError('Workspace not found', {
+            throw new HelpfulError('Workspace not found', {
                 title: 'Invalid configuration',
-                code: CliErrorCode.INVALID_CONFIGURATION,
+                reason: ErrorReason.INVALID_CONFIGURATION,
                 details: [
                     'The workspace defined in the configuration does not exist',
                 ],
@@ -257,11 +257,11 @@ export class CreateResource implements Action<CreateResourceOptions> {
                     link.searchParams.set('email', email.email);
                 }
 
-                throw new CliError(
+                throw new HelpfulError(
                     `Not enough ${resource} quota available in your workspace.`,
                     {
                         title: 'Insufficient quota',
-                        code: CliErrorCode.PRECONDITION,
+                        reason: ErrorReason.PRECONDITION,
                         links: [
                             {
                                 description: 'Request more quota',
@@ -287,9 +287,9 @@ export class CreateResource implements Action<CreateResourceOptions> {
 
         for (const [resource, missing] of Object.entries(missingResources)) {
             if (missing.size > 0) {
-                throw new CliError(`Some ${resource} referenced in the template are missing`, {
+                throw new HelpfulError(`Some ${resource} referenced in the template are missing`, {
                     title: 'Invalid template',
-                    code: CliErrorCode.INVALID_INPUT,
+                    reason: ErrorReason.INVALID_INPUT,
                     details: [
                         `Missing ${resource}: ${Array.from(missing).join(', ')}`,
                     ],

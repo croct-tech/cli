@@ -21,11 +21,6 @@ export type DeletionOptions = {
     recursive?: boolean,
 };
 
-export type TarExtractionOptions = {
-    stripComponents?: number,
-    gzip?: boolean,
-};
-
 type FileSystemEntries = {
     file: {
         content: Readable,
@@ -59,6 +54,7 @@ export interface FileSystem {
     readTextFile(path: string): Promise<string>;
     writeTextFile(path: string, data: string, options?: FileWritingOptions): Promise<void>;
     isAbsolutePath(path: string): boolean;
+    isSubPath(parent: string, path: string): boolean;
     joinPaths(...paths: string[]): string;
     getBaseName(path: string): string;
     getRelativePath(from: string, to: string): string;

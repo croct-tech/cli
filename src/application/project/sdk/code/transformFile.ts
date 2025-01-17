@@ -1,5 +1,4 @@
 import {Codemod, CodemodError, CodemodOptions, ResultCode} from '@/application/project/sdk/code/codemod';
-import {formatCause} from '@/application/error';
 import {FileSystem} from '@/application/fs/fileSystem';
 
 export class TransformFile<O extends CodemodOptions> implements Codemod<string, O> {
@@ -19,7 +18,12 @@ export class TransformFile<O extends CodemodOptions> implements Codemod<string, 
             source = await this.fileSystem.readTextFile(input);
         } catch (error) {
             if (error.code !== 'ENOENT') {
-                throw new CodemodError(`Failed to read file: ${formatCause(error)}`);
+                throw new CodemodError('Failed to read file', {
+                    cause: error,
+                    details: [
+                        `File: ${input}`,
+                    ],
+                });
             }
         }
 
@@ -31,7 +35,12 @@ export class TransformFile<O extends CodemodOptions> implements Codemod<string, 
                     overwrite: true,
                 });
             } catch (error) {
-                throw new CodemodError(`Failed to write file: ${formatCause(error)}`);
+                throw new CodemodError('Failed to write file', {
+                    cause: error,
+                    details: [
+                        `File: ${input}`,
+                    ],
+                });
             }
         }
 

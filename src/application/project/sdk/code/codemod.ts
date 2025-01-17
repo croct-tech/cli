@@ -1,3 +1,5 @@
+import {Help, HelpfulError} from '@/application/error';
+
 export type ResultCode<T> = {
     modified: boolean,
     result: T,
@@ -9,9 +11,9 @@ export interface Codemod<T, O extends CodemodOptions = CodemodOptions> {
     apply(input: T, options?: O): Promise<ResultCode<T>>;
 }
 
-export class CodemodError extends Error {
-    public constructor(message: string) {
-        super(message);
+export class CodemodError extends HelpfulError {
+    public constructor(message: string, help: Help = {}) {
+        super(message, help);
 
         Object.setPrototypeOf(this, CodemodError.prototype);
     }

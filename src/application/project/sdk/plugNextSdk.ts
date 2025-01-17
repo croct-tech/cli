@@ -7,7 +7,6 @@ import {UserApi} from '@/application/api/user';
 import {NextConfig, parseConfig} from '@/application/project/sdk/code/nextjs/parseConfig';
 import {Codemod, CodemodOptions} from '@/application/project/sdk/code/codemod';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
-import {formatMessage} from '@/application/error';
 import type {LayoutComponentOptions} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
 import type {AppComponentOptions} from '@/application/project/sdk/code/nextjs/createAppComponent';
 import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
@@ -18,6 +17,7 @@ import {FileSystem} from '@/application/fs/fileSystem';
 import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
 import {ApplicationPlatform} from '@/application/model/application';
 import {Slot} from '@/application/model/slot';
+import {HelpfulError} from '@/application/error';
 
 type ApiConfiguration = {
     user: UserApi,
@@ -254,7 +254,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
 
                     notifier.confirm('Middleware configured');
                 } catch (error) {
-                    notifier.alert('Failed to install middleware', formatMessage(error));
+                    notifier.alert('Failed to install middleware', HelpfulError.formatMessage(error));
                 }
             },
         });
@@ -270,7 +270,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
 
                     notifier.confirm('Provider configured');
                 } catch (error) {
-                    notifier.alert('Failed to install provider', formatMessage(error));
+                    notifier.alert('Failed to install provider', HelpfulError.formatMessage(error));
                 }
             },
         });
@@ -286,7 +286,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
 
                     notifier.confirm('Environment variables updated');
                 } catch (error) {
-                    notifier.alert('Failed to update .env.local', formatMessage(error));
+                    notifier.alert('Failed to update .env.local', HelpfulError.formatMessage(error));
                 }
             },
         });
@@ -342,7 +342,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
                 if (error instanceof ApiError && error.isAccessDenied()) {
                     throw new ApiError(
                         'Your user does not have permission to create an API key',
-                        error.details,
+                        error.problems,
                     );
                 }
 

@@ -1,7 +1,7 @@
-import {Transport, TransportError} from '@/application/template/transport/transport';
+import {Provider, ProviderError} from '@/application/template/provider/provider';
 import {FileSystem, FileSystemIterator} from '@/application/fs/fileSystem';
 
-export class FileSystemTransport implements Transport<FileSystemIterator> {
+export class FileSystemProvider implements Provider<FileSystemIterator> {
     private readonly fileSystem: FileSystem;
 
     public constructor(fileSystem: FileSystem) {
@@ -12,9 +12,9 @@ export class FileSystemTransport implements Transport<FileSystemIterator> {
         return url.protocol === 'file:';
     }
 
-    public fetch(url: URL): Promise<FileSystemIterator> {
+    public get(url: URL): Promise<FileSystemIterator> {
         if (!this.supports(url)) {
-            throw new TransportError('Unsupported protocol');
+            throw new ProviderError('Unsupported protocol.', url);
         }
 
         return Promise.resolve(this.fileSystem.list(this.fileSystem.normalizeSeparators(url.pathname)));

@@ -1,11 +1,11 @@
 import {Action, ActionDefinition, ActionError, ActionMap, ActionName} from '@/application/template/action/action';
-import {CliHelp} from '@/application/cli/error';
 import {ActionContext} from '@/application/template/action/context';
+import {Help} from '@/application/error';
 
 export type TryOptions<T extends ActionName = ActionName> = {
     action: ActionDefinition<T>,
     otherwise?: ActionDefinition<T>,
-    help?: Pick<CliHelp, | 'links' | 'suggestions'> & {
+    help?: Pick<Help, | 'links' | 'suggestions'> & {
         message?: string,
     },
 };

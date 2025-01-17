@@ -1,8 +1,8 @@
 import tar from 'tar-stream';
 import createGunzip from 'gunzip-maybe';
 import {Readable} from 'stream';
-import {Transport, TransportError, TransportOptions} from '@/application/template/transport/transport';
-import {HttpTransport, SuccessResponse} from '@/application/template/transport/httpTransport';
+import {Provider, ProviderError, ProviderOptions} from '@/application/template/provider/provider';
+import {HttpProvider, SuccessResponse} from '@/application/template/provider/httpProvider';
 import {FileSystemIterator} from '@/application/fs/fileSystem';
 
 type ParsedUrl = {
@@ -16,7 +16,7 @@ type GithubFile = ParsedUrl & {
     url: URL,
 };
 
-export class GithubTransport<O extends TransportOptions> implements Transport<FileSystemIterator, O> {
+export class GithubProvider<O extends ProviderOptions> implements Provider<FileSystemIterator, O> {
     private static readonly PROTOCOL = 'github:';
 
     private static readonly API_HOST = 'api.github.com';
@@ -25,28 +25,28 @@ export class GithubTransport<O extends TransportOptions> implements Transport<Fi
 
     private static readonly MAIN_HOST = 'github.com';
 
-    private readonly transport: HttpTransport;
+    private readonly provider: HttpProvider;
 
-    public constructor(transport: HttpTransport) {
-        this.transport = transport;
+    public constructor(provider: HttpProvider) {
+        this.provider = provider;
     }
 
     public supports(url: URL): boolean {
         const file = this.resolveFile(url);
 
-        return file !== null && this.transport.supports(file.url);
+        return file !== null && this.provider.supports(file.url);
     }
 
-    public async fetch(url: URL, options?: O): Promise<FileSystemIterator> {
+    public async get(url: URL, options?: O): Promise<FileSystemIterator> {
         const file = this.resolveFile(url);
 
         if (file === null) {
-            throw new TransportError('Unsupported GitHub URL');
+            throw new ProviderError('Unsupported GitHub URL', url);
         }
 
-        const response = await this.transport.fetch(file.url, options);
+        const response = await this.provider.get(file.url, options);
 
-        if (file.url.hostname === GithubTransport.RAW_HOST) {
+        if (file.url.hostname === GithubProvider.RAW_HOST) {
             return this.extractFile(response, file);
         }
 
@@ -60,20 +60,25 @@ export class GithubTransport<O extends TransportOptions> implements Transport<Fi
             .pipe(createGunzip())
             .pipe(extract);
 
-        const depth = file.path === null ? 1 : file.path.split('/').length;
+        const targetPath = GithubProvider.removeTrailSlash(file.path ?? '');
 
         for await (const entry of extract) {
             const {header} = entry;
 
-            const name = header.name
-                .split('/')
-                .slice(depth)
-                .join('/');
+            let name = GithubProvider.removeTrailSlash(
+                header.name
+                    .split('/')
+                    .slice(1)
+                    .join('/'),
+            );
 
-            const linkName = header.linkname
-                ?.split('/')
-                .slice(depth)
-                .join('/') ?? '';
+            if (name === '' || name === targetPath || !name.startsWith(targetPath)) {
+                continue;
+            }
+
+            if (targetPath.length > 0) {
+                name = name.slice(targetPath.length + 1);
+            }
 
             switch (header.type) {
                 case 'file':
@@ -97,7 +102,7 @@ export class GithubTransport<O extends TransportOptions> implements Transport<Fi
                     yield {
                         type: 'link',
                         name: name,
-                        target: linkName,
+                        target: header.linkname!,
                     };
 
                     break;
@@ -106,7 +111,7 @@ export class GithubTransport<O extends TransportOptions> implements Transport<Fi
                     yield {
                         type: 'symlink',
                         name: name,
-                        target: linkName,
+                        target: header.linkname!,
                     };
 
                     break;
@@ -139,14 +144,14 @@ export class GithubTransport<O extends TransportOptions> implements Transport<Fi
             ...info,
             url: new URL(
                 path !== null && /\..+$/.test(path)
-                    ? `https://${GithubTransport.RAW_HOST}/${username}/${repository}/${ref}/${path}`
-                    : `https://${GithubTransport.API_HOST}/repos/${username}/${repository}/tarball/${ref}`,
+                    ? `https://${GithubProvider.RAW_HOST}/${username}/${repository}/${ref}/${path}`
+                    : `https://${GithubProvider.API_HOST}/repos/${username}/${repository}/tarball/${ref}`,
             ),
         };
     }
 
     private parseUrl(url: URL): ParsedUrl|null {
-        if (!GithubTransport.isUrlSupported(url)) {
+        if (!GithubProvider.isUrlSupported(url)) {
             return null;
         }
 
@@ -156,7 +161,7 @@ export class GithubTransport<O extends TransportOptions> implements Transport<Fi
         let segments: string[];
 
         switch (true) {
-            case url.hostname === GithubTransport.MAIN_HOST:
+            case url.hostname === GithubProvider.MAIN_HOST:
                 [username = null, repository = null, /* tree/blob */, ref = null, ...segments] = url.pathname
                     .split('/')
                     .slice(1);
@@ -187,9 +192,13 @@ export class GithubTransport<O extends TransportOptions> implements Transport<Fi
 
     private static isUrlSupported(url: URL): boolean {
         if (url.protocol === 'https:') {
-            return url.hostname === GithubTransport.MAIN_HOST;
+            return url.hostname === GithubProvider.MAIN_HOST;
         }
 
-        return url.protocol === GithubTransport.PROTOCOL;
+        return url.protocol === GithubProvider.PROTOCOL;
+    }
+
+    private static removeTrailSlash(path: string): string {
+        return path.replace(/\/$/, '');
     }
 }

@@ -6,7 +6,6 @@ import {
 } from '@/application/project/configuration/configuration';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {TargetSdk, WorkspaceApi} from '@/application/api/workspace';
-import {formatMessage} from '@/application/error';
 import {JsonArrayNode, JsonObjectNode, JsonParser} from '@/infrastructure/json';
 import {formatName} from '@/application/project/utils/formatName';
 import {ExampleFile} from '@/application/project/example/example';
@@ -17,6 +16,7 @@ import {JavaScriptProjectManager} from '@/application/project/manager/javaScript
 import {ApplicationPlatform} from '@/application/model/application';
 import {Slot} from '@/application/model/slot';
 import {LocalizedContent} from '@/application/model/experience';
+import {HelpfulError} from '@/application/error';
 
 export type InstallationPlan = {
     tasks: Task[],
@@ -122,7 +122,7 @@ export abstract class JavaScriptSdk implements Sdk {
 
                     notifier.confirm('Dependencies installed');
                 } catch (error) {
-                    notifier.alert('Failed to install dependencies', formatMessage(error));
+                    notifier.alert('Failed to install dependencies', HelpfulError.formatMessage(error));
                 }
             },
         });
@@ -136,7 +136,7 @@ export abstract class JavaScriptSdk implements Sdk {
                     try {
                         await this.updateContent(resolvedInstallation, notifier);
                     } catch (error) {
-                        notifier.alert('Failed to download content', formatMessage(error));
+                        notifier.alert('Failed to download content', HelpfulError.formatMessage(error));
                     }
                 },
             });
@@ -149,13 +149,13 @@ export abstract class JavaScriptSdk implements Sdk {
                     try {
                         await this.updateTypes(resolvedInstallation, notifier);
                     } catch (error) {
-                        notifier.alert('Failed to generate types', formatMessage(error));
+                        notifier.alert('Failed to generate types', HelpfulError.formatMessage(error));
                     }
 
                     try {
                         await this.registerTypeFile(Object.values(resolvedInstallation.configuration.paths), notifier);
                     } catch (error) {
-                        notifier.alert('Failed to register type file', formatMessage(error));
+                        notifier.alert('Failed to register type file', HelpfulError.formatMessage(error));
                     }
                 },
             });
@@ -167,7 +167,7 @@ export abstract class JavaScriptSdk implements Sdk {
                 try {
                     await this.registerScript(notifier);
                 } catch (error) {
-                    notifier.alert('Failed to register script', formatMessage(error));
+                    notifier.alert('Failed to register script', HelpfulError.formatMessage(error));
                 }
             },
         });
@@ -433,13 +433,8 @@ export abstract class JavaScriptSdk implements Sdk {
         }
 
         const projectDirectory = this.projectManager.getRootPath();
-        const relativeConfigPath = this.fileSystem.getRelativePath(projectDirectory, configPath);
 
-        if (
-            relativeConfigPath.length === 0
-            || relativeConfigPath.startsWith('..')
-            || this.fileSystem.isAbsolutePath(relativeConfigPath)
-        ) {
+        if (!this.fileSystem.isSubPath(projectDirectory, configPath)) {
             const relativePath = this.fileSystem.getRelativePath(projectDirectory, configPath);
 
             throw new Error(`TypeScript configuration is outside the project directory: \`${relativePath}\``);

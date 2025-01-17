@@ -1,7 +1,8 @@
 import {Input} from '@/application/cli/io/input';
-import {CliError, CliHelp} from '@/application/cli/error';
 
-export type Instruction = CliHelp & {
+import {HelpfulError, Help} from '@/application/error';
+
+export type Instruction = Help & {
     message: string,
 };
 
@@ -31,6 +32,6 @@ export class NonInteractiveInput implements Input {
     private report(): never {
         const {message, ...help} = this.instruction;
 
-        throw new CliError(message, help);
+        throw new HelpfulError(message, help);
     }
 }

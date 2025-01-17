@@ -4,12 +4,11 @@ import boxen, {Options as BoxenOptions} from 'boxen';
 import terminalLink from 'terminal-link';
 import {Writable, PassThrough} from 'stream';
 import {Output, Notifier, TaskList, TaskResolver} from '@/application/cli/io/output';
-import {CliError, CliErrorCode, CliHelp} from '@/application/cli/error';
 import {InteractiveTaskMonitor} from '@/infrastructure/application/cli/io/interactiveTaskMonitor';
 import {format, Semantic} from '@/infrastructure/application/cli/io/formatting';
 import {TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
 import {NonInteractiveTaskMonitor} from '@/infrastructure/application/cli/io/nonInteractiveTaskMonitor';
-import {formatMessage} from '@/application/error';
+import {HelpfulError, ErrorReason, Help} from '@/application/error';
 
 export type ExitCallback = () => never;
 
@@ -137,30 +136,30 @@ export class ConsoleOutput implements Output {
     }
 
     private static formatErrorTitle(error: any): string {
-        if (!(error instanceof CliError)) {
+        if (!(error instanceof HelpfulError)) {
             return 'Unexpected error';
         }
 
-        const titles: Record<CliErrorCode, string> = {
-            [CliErrorCode.INVALID_INPUT]: 'Invalid input',
-            [CliErrorCode.INVALID_CONFIGURATION]: 'Invalid configuration',
-            [CliErrorCode.PRECONDITION]: 'Precondition failed',
-            [CliErrorCode.ACCESS_DENIED]: 'Access denied',
-            [CliErrorCode.OTHER]: 'Error',
+        const titles: Record<ErrorReason, string> = {
+            [ErrorReason.INVALID_INPUT]: 'Invalid input',
+            [ErrorReason.INVALID_CONFIGURATION]: 'Invalid configuration',
+            [ErrorReason.PRECONDITION]: 'Precondition failed',
+            [ErrorReason.ACCESS_DENIED]: 'Access denied',
+            [ErrorReason.OTHER]: 'Error',
         };
 
-        return titles[error.code];
+        return titles[error.reason];
     }
 
     private static formatErrorBody(error: unknown): string {
-        let body = format(CliError.formatMessage(error));
+        let body = format(HelpfulError.formatMessage(error));
 
-        if (error instanceof CliError) {
+        if (error instanceof HelpfulError) {
             const {cause} = error.help;
 
             if (cause !== undefined && error.message.toLowerCase() !== cause.message.toLowerCase()) {
                 body += `\n\n${chalk.bold('Cause')}\n`;
-                body += `${format(formatMessage(error.help.cause))}`;
+                body += `${format(HelpfulError.formatMessage(error.help.cause))}`;
             }
 
             body += ConsoleOutput.formatErrorSuggestions(error);
@@ -173,7 +172,7 @@ export class ConsoleOutput implements Output {
     }
 
     private static formatErrorDetails(error: unknown): string {
-        if (!(error instanceof CliError)) {
+        if (!(error instanceof HelpfulError)) {
             return ConsoleOutput.formatStackTrace(error);
         }
 
@@ -188,7 +187,7 @@ export class ConsoleOutput implements Output {
                 .join('\n');
         }
 
-        if (error.code === CliErrorCode.OTHER && cause instanceof Error) {
+        if (error.reason === ErrorReason.OTHER && cause instanceof Error) {
             message += ConsoleOutput.formatStackTrace(error);
         }
 
@@ -208,7 +207,7 @@ export class ConsoleOutput implements Output {
         return `\n\n${chalk.bold('Stack trace')}\n${stack.join('\n')}`;
     }
 
-    private static formatErrorSuggestions(error: CliError): string {
+    private static formatErrorSuggestions(error: HelpfulError): string {
         const {suggestions} = error.help;
         let message = '';
 
@@ -225,13 +224,13 @@ export class ConsoleOutput implements Output {
         return message;
     }
 
-    private static formatErrorUsefulLinks(error: CliError): string {
-        const usefulLinks: CliHelp['links'] = [];
+    private static formatErrorUsefulLinks(error: HelpfulError): string {
+        const usefulLinks: Help['links'] = [];
         let message = '';
 
-        switch (error.code) {
-            case CliErrorCode.INVALID_INPUT:
-            case CliErrorCode.PRECONDITION:
+        switch (error.reason) {
+            case ErrorReason.INVALID_INPUT:
+            case ErrorReason.PRECONDITION:
                 usefulLinks.push({
                     description: 'Documentation',
                     url: 'https://docs.croct.io/sdk/cli',
@@ -239,7 +238,7 @@ export class ConsoleOutput implements Output {
 
                 break;
 
-            case CliErrorCode.INVALID_CONFIGURATION:
+            case ErrorReason.INVALID_CONFIGURATION:
                 break;
 
             default:

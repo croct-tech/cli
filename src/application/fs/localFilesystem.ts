@@ -68,6 +68,14 @@ export class LocalFilesystem implements FileSystem {
         return isAbsolute(path);
     }
 
+    public isSubPath(parent: string, path: string): boolean {
+        const parentPath = this.resolvePath(parent);
+        const subPath = isAbsolute(path) ? path : join(parentPath, path);
+        const relativePath = relative(parent, subPath);
+
+        return !relativePath.startsWith('..') && !isAbsolute(relativePath);
+    }
+
     public async isSymbolicLink(path: string): Promise<boolean> {
         try {
             return (await lstat(this.resolvePath(path))).isSymbolicLink();

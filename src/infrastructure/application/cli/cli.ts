@@ -1,5 +1,13 @@
 import {Readable, Writable} from 'stream';
 import * as process from 'node:process';
+import {
+    AdaptedCache,
+    CacheProvider,
+    NoopCache,
+    PrefixedCache,
+    StaleWhileRevalidateCache,
+    TimestampedCacheEntry,
+} from '@croct/cache';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput, ExitCallback} from '@/infrastructure/application/cli/io/consoleOutput';
 import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
@@ -59,7 +67,6 @@ import {NewConfigurationManager} from '@/application/project/configuration/manag
 import {InstallCommand, InstallInput} from '@/application/cli/command/install';
 import {PageForm} from '@/application/cli/form/page';
 import {NonInteractiveAuthenticator} from '@/application/cli/authentication/authenticator/nonInteractiveAuthenticator';
-import {CliError, CliErrorCode} from '@/application/cli/error';
 import {Instruction, NonInteractiveInput} from '@/infrastructure/application/cli/io/nonInteractiveInput';
 import {
     MultiAuthenticationInput,
@@ -106,17 +113,28 @@ import {CachedSdkResolver} from '@/application/project/sdk/cachedSdkResolver';
 import {CreateResource} from '@/application/template/action/createResource';
 import {SlugMappingForm} from '@/application/cli/form/workspace/slugMappingForm';
 import {ResourceMatcher} from '@/application/template/resourceMatcher';
-import {FetchTransport} from '@/application/template/transport/fetchTransport';
+import {FetchProvider} from '@/application/template/provider/fetchProvider';
 import {CheckDependencies} from '@/application/template/action/checkDependencies';
-import {HttpTransport} from '@/application/template/transport/httpTransport';
-import {MappedTransport} from '@/application/template/transport/mappedTransport';
-import {MultiTransport} from '@/application/template/transport/multiTransport';
-import {FileSystemTransport} from '@/application/template/transport/fileSystemTransport';
-import {TemplateTransport} from '@/application/template/transport/templateTransport';
-import {GithubTransport} from '@/application/template/transport/githubTransport';
-import {HttpFileTransport} from '@/application/template/transport/httpFileTransport';
-import {Transport} from '@/application/template/transport/transport';
-import {AdaptedTransport} from '@/application/template/transport/adaptedTransport';
+import {HttpProvider} from '@/application/template/provider/httpProvider';
+import {DenormalizedRegistry, MappedProvider, Registry} from '@/application/template/provider/mappedProvider';
+import {MultiProvider} from '@/application/template/provider/multiProvider';
+import {FileSystemProvider} from '@/application/template/provider/fileSystemProvider';
+import {GithubProvider} from '@/application/template/provider/githubProvider';
+import {HttpFileProvider} from '@/application/template/provider/httpFileProvider';
+import {Provider} from '@/application/template/provider/provider';
+import {AdaptedProvider} from '@/application/template/provider/adaptedProvider';
+import {HelpfulError, ErrorReason} from '@/application/error';
+import {PartialNpmPackageValidator} from '@/infrastructure/application/validation/PartialNpmPackageValidator';
+import {PartialTsconfigValidator} from '@/infrastructure/application/validation/partialTsconfigValidator';
+import {CroctConfigurationValidator} from '@/infrastructure/application/validation/croctConfigurationValidator';
+import {ConstantProvider} from '@/application/template/provider/constantProvider';
+import {ValidatedProvider} from '@/application/template/provider/validatedProvider';
+import {FileContentProvider} from '@/application/template/provider/fileContentProvider';
+import {JsonProvider} from '@/application/template/provider/jsonProvider';
+import {ValidationResult} from '@/application/validation';
+import {RegistryValidator} from '@/infrastructure/application/validation/registryValidator';
+import {FileSystemCache} from '@/infrastructure/fileSystemCache';
+import {CachedProvider} from '@/application/template/provider/cachedProvider';
 
 export type Configuration = {
     io: {
@@ -126,7 +144,7 @@ export type Configuration = {
     directories: {
         current: string,
         config: string,
-        downloadCache: string,
+        cache: string,
     },
     api: {
         graphqlEndpoint: string,
@@ -139,6 +157,7 @@ export type Configuration = {
     quiet: boolean,
     interactive: boolean,
     exitCallback: ExitCallback,
+    templateRegistry: URL,
 };
 
 type AuthenticationMethods = {
@@ -177,7 +196,9 @@ export class Cli {
 
     private emailLinkGenerator?: EmailLinkGenerator;
 
-    private transport: HttpTransport;
+    private httpProvider: HttpProvider;
+
+    private cache: CacheProvider<string, string>;
 
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
@@ -401,7 +422,7 @@ export class Cli {
 
     private getImportTemplateCommand(): ImportTemplateCommand {
         return new ImportTemplateCommand({
-            transport: this.getTemplateTransport(),
+            provider: this.getTemplateProvider(),
             fileSystem: this.getFileSystem(),
             actionRunner: this.getActionRunner(),
             configurationManager: this.getConfigurationManager(),
@@ -493,50 +514,69 @@ export class Cli {
         return this.output;
     }
 
-    private getTemplateTransport(): Transport<LoadedTemplate> {
-        const httpTransport = this.getHttpTransport();
+    private getTemplateProvider(): Provider<LoadedTemplate> {
+        const httpProvider = this.getHttpProvider();
+        const fileProvider = new MultiProvider(
+            new FileSystemProvider(this.getFileSystem()),
+            new GithubProvider(httpProvider),
+            new HttpFileProvider(httpProvider),
+        );
 
-        return new MappedTransport({
-            transport: new MappedTransport({
-                transport: new AdaptedTransport({
-                    transport: new TemplateTransport(
-                        new MultiTransport(
-                            new FileSystemTransport(this.getFileSystem()),
-                            new GithubTransport(httpTransport),
-                            new HttpFileTransport(httpTransport),
-                        ),
-                    ),
+        return new MappedProvider({
+            dataProvider: new MappedProvider({
+                dataProvider: new AdaptedProvider({
+                    provider: new ValidatedProvider({
+                        provider: new JsonProvider(new FileContentProvider(fileProvider)),
+                        validator: {
+                            validate: function validate(data: unknown): ValidationResult<Template> {
+                                // @todo implement validator
+                                return {
+                                    success: true,
+                                    data: data as Template,
+                                };
+                            },
+                        },
+                    }),
                     adapter: (template: Template, url: URL): Promise<LoadedTemplate> => Promise.resolve({
                         template: template,
                         url: url,
                     }),
                 }),
-                mapping: [
+                registryProvider: new ConstantProvider<Registry>([
                     {
                         // Any URL not ending with a file extension, excluding the trailing slash
                         pattern: /^(.+?:\/+[^/]+(\/+[^/.]+|\/[^/]+(?=\/))*)\/*$/,
-                        template: '$1/template.json',
+                        destination: '$1/template.json',
                     },
-                ],
+                ]),
             }),
-            mapping: [
-                // @todo load from external registry
-                {
-                    pattern: /^croct:\/(.+?)$/,
-                    template: 'github:/marcospassos/croct-examples/$1',
-                },
-                {
-                    pattern: /^https:\/\/magicui.design\/r\/(.+?)$/,
-                    template: 'github:/marcospassos/croct-examples/magic-ui/ui/$1',
-                },
-            ],
+            registryProvider: new MappedProvider({
+                dataProvider: new CachedProvider({
+                    cache: new StaleWhileRevalidateCache<string, DenormalizedRegistry>({
+                        freshPeriod: 60,
+                        cacheProvider: AdaptedCache.transformValues(
+                            this.getCache('template-registry'),
+                            TimestampedCacheEntry.toJSON,
+                            TimestampedCacheEntry.fromJSON,
+                        ),
+                    }),
+                    provider: new ValidatedProvider({
+                        provider: new JsonProvider(new FileContentProvider(fileProvider)),
+                        validator: new RegistryValidator(),
+                    }),
+                }),
+                registryProvider: new ConstantProvider<Registry>([{
+                    pattern: /.*/,
+                    destination: this.configuration.templateRegistry,
+                }]),
+            }),
         });
     }
 
     private getActionRunner(): ActionRunner {
         const fileSystem = this.getFileSystem();
         const projectManager = this.createJavaScriptProjectManager();
-        const httpTransport = this.getHttpTransport();
+        const httpProvider = this.getHttpProvider();
 
         const actions: ActionMap = {
             try: new LazyAction(() => new Try(actions)),
@@ -545,10 +585,10 @@ export class Cli {
             }),
             download: new Download({
                 fileSystem: fileSystem,
-                transport: new MultiTransport(
-                    new FileSystemTransport(this.getFileSystem()),
-                    new GithubTransport(httpTransport),
-                    new HttpFileTransport(httpTransport),
+                provider: new MultiProvider(
+                    new FileSystemProvider(this.getFileSystem()),
+                    new GithubProvider(httpProvider),
+                    new HttpFileProvider(httpProvider),
                 ),
             }),
             'resolve-import': new ResolveImportFile({
@@ -636,12 +676,12 @@ export class Cli {
         return new ActionRunner(actions);
     }
 
-    private getHttpTransport(): HttpTransport {
-        if (this.transport === undefined) {
-            this.transport = new FetchTransport();
+    private getHttpProvider(): HttpProvider {
+        if (this.httpProvider === undefined) {
+            this.httpProvider = new FetchProvider();
         }
 
-        return this.transport;
+        return this.httpProvider;
     }
 
     private getAuthenticator(): Authenticator<AuthenticationInput> {
@@ -694,7 +734,7 @@ export class Cli {
                     instruction: {
                         message: 'Authentication required.',
                         suggestions: ['Run `login` to authenticate'],
-                        code: CliErrorCode.PRECONDITION,
+                        reason: ErrorReason.PRECONDITION,
                     },
                 }),
             credentials: credentialsAuthenticator,
@@ -855,7 +895,11 @@ export class Cli {
         return new NodeProjectManager({
             fileSystem: this.getFileSystem(),
             packageInstaller: new AntfuPackageInstaller(this.configuration.directories.current),
-            importConfigLoader: new ImportConfigLoader(this.getFileSystem()),
+            packageValidator: new PartialNpmPackageValidator(),
+            importConfigLoader: new ImportConfigLoader({
+                fileSystem: this.getFileSystem(),
+                tsconfigValidator: new PartialTsconfigValidator(),
+            }),
             directory: this.configuration.directories.current,
         });
     }
@@ -887,10 +931,11 @@ export class Cli {
         if (this.configurationManager === undefined) {
             const output = this.getOutput();
             const manager = new ConfigurationFileManager({
-                file: new JsonFileConfiguration(
-                    this.getFileSystem(),
-                    this.configuration.directories.current,
-                ),
+                file: new JsonFileConfiguration({
+                    fileSystem: this.getFileSystem(),
+                    validator: new CroctConfigurationValidator(),
+                    projectDirectory: this.configuration.directories.current,
+                }),
                 output: output,
                 api: {
                     user: this.getUserApi(),
@@ -1035,6 +1080,21 @@ export class Cli {
         return this.emailLinkGenerator;
     }
 
+    private getCache(namespace: string): CacheProvider<string, string> {
+        if (!this.configuration.cache) {
+            return new NoopCache();
+        }
+
+        if (this.cache === undefined) {
+            this.cache = new FileSystemCache({
+                fileSystem: this.getFileSystem(),
+                directory: this.configuration.directories.cache,
+            });
+        }
+
+        return new PrefixedCache(this.cache, namespace);
+    }
+
     private async execute<I extends CommandInput>(command: Command<I>, input: I): Promise<void> {
         try {
             await command.execute(input);
@@ -1054,38 +1114,33 @@ export class Cli {
     }
 
     private static handleError(error: unknown): any {
-        if (error instanceof ApiError) {
-            if (error.isAccessDenied()) {
-                return new CliError(
-                    'Your user lacks the necessary permissions to complete this operation.',
+        switch (true) {
+            case error instanceof ApiError:
+                if (error.isAccessDenied()) {
+                    return new HelpfulError(
+                        'Your user lacks the necessary permissions to complete this operation.',
+                        {
+                            reason: ErrorReason.ACCESS_DENIED,
+                            details: error.problems.map(detail => detail.detail),
+                            suggestions: ['Contact your organization or workspace administrator for assistance.'],
+                            cause: error,
+                        },
+                    );
+                }
+
+                break;
+
+            case error instanceof ConfigurationError:
+                return new HelpfulError(
+                    error.message,
                     {
-                        code: CliErrorCode.ACCESS_DENIED,
-                        details: error.details.map(detail => detail.detail),
-                        suggestions: ['Contact your organization or workspace administrator for assistance.'],
-                        cause: error,
+                        ...error.help,
+                        suggestions: ['Run `init` to create a new configuration.'],
                     },
                 );
-            }
 
-            return new CliError(error.message, {
-                code: CliErrorCode.OTHER,
-                details: error.details.map(detail => detail.detail),
-                cause: error,
-            });
+            default:
+                return error;
         }
-
-        if (error instanceof ConfigurationError) {
-            return new CliError(
-                error.message,
-                {
-                    code: CliErrorCode.INVALID_CONFIGURATION,
-                    details: error.details,
-                    suggestions: ['Run `init` to create a new configuration.'],
-                    cause: error,
-                },
-            );
-        }
-
-        return error;
     }
 }

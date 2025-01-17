@@ -1,24 +1,25 @@
-import {z} from 'zod';
 import semver from 'semver';
 import {PackageInfo, PackageInstallationOptions} from '@/application/project/manager/projectManager';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {ImportConfigLoader} from '@/application/project/manager/importConfigLoader';
 import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
+import {Validator} from '@/application/validation';
+
+type PartialNpmPackage = {
+    name: string,
+    version?: string,
+    dependencies?: Record<string, string>,
+    devDependencies?: Record<string, string>,
+    bin?: Record<string, string>,
+};
 
 export type Configuration = {
     directory: string,
     fileSystem: FileSystem,
     packageInstaller: NodePackageInstaller,
     importConfigLoader: ImportConfigLoader,
+    packageValidator: Validator<PartialNpmPackage>,
 };
-
-const packageSchema = z.object({
-    name: z.string(),
-    version: z.string().optional(),
-    dependencies: z.record(z.string()).optional(),
-    devDependencies: z.record(z.string()).optional(),
-    bin: z.record(z.string()).optional(),
-});
 
 export type NodePackageInstaller = Pick<JavaScriptProjectManager, 'installPackage'>;
 
@@ -29,13 +30,16 @@ export class NodeProjectManager implements JavaScriptProjectManager {
 
     private readonly importConfigLoader: ImportConfigLoader;
 
+    private readonly packageValidator: Validator<PartialNpmPackage>;
+
     private readonly directory: string;
 
-    public constructor({directory, fileSystem, importConfigLoader, packageInstaller}: Configuration) {
-        this.fileSystem = fileSystem;
-        this.directory = directory;
-        this.packageInstaller = packageInstaller;
-        this.importConfigLoader = importConfigLoader;
+    public constructor(configuration: Configuration) {
+        this.fileSystem = configuration.fileSystem;
+        this.packageInstaller = configuration.packageInstaller;
+        this.importConfigLoader = configuration.importConfigLoader;
+        this.packageValidator = configuration.packageValidator;
+        this.directory = configuration.directory;
     }
 
     public getRootPath(): string {
@@ -123,16 +127,26 @@ export class NodeProjectManager implements JavaScriptProjectManager {
         };
     }
 
-    private async getPackageJson(path: string): Promise<z.infer<typeof packageSchema> | null> {
+    private async getPackageJson(path: string): Promise<PartialNpmPackage | null> {
         if (!await this.fileSystem.exists(path)) {
             return null;
         }
 
+        let data: unknown;
+
         try {
-            return packageSchema.parse(JSON.parse(await this.fileSystem.readTextFile(path)));
+            data = JSON.parse(await this.fileSystem.readTextFile(path));
         } catch {
             return null;
         }
+
+        const result = this.packageValidator.validate(data);
+
+        if (!result.success) {
+            return null;
+        }
+
+        return result.data;
     }
 
     public async installPackage(packageName: string|string[], options: PackageInstallationOptions = {}): Promise<void> {

@@ -1,3 +1,5 @@
+import {ErrorReason, Help, HelpfulError} from '@/application/error';
+
 export type Configuration = {
     organization: string,
     workspace: string,
@@ -39,13 +41,12 @@ export type ResolvedConfiguration = Omit<Configuration, 'applications'> & {
     applications: ApplicationIds,
 };
 
-export class ConfigurationError extends Error {
-    public details: string[];
-
-    public constructor(message: string, details: string[] = []) {
-        super(message);
-
-        this.details = details;
+export class ConfigurationError extends HelpfulError {
+    public constructor(message: string, help: Help = {}) {
+        super(message, {
+            ...help,
+            reason: help.reason ?? ErrorReason.INVALID_CONFIGURATION,
+        });
 
         Object.setPrototypeOf(this, ConfigurationError.prototype);
     }

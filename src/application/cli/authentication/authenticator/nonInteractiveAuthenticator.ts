@@ -1,7 +1,8 @@
 import {AuthenticationInput, Authenticator} from '@/application/cli/authentication/authenticator/index';
-import {CliError, CliHelp} from '@/application/cli/error';
 
-export type Instruction = CliHelp & {
+import {HelpfulError, Help} from '@/application/error';
+
+export type Instruction = Help & {
     message: string,
 };
 
@@ -28,7 +29,7 @@ export class NonInteractiveAuthenticator<T extends AuthenticationInput> implemen
         if (Object.keys(input).length === 0) {
             const {message, ...help} = this.instruction;
 
-            throw new CliError(message, help);
+            throw new HelpfulError(message, help);
         }
 
         return this.authenticator.login(input);

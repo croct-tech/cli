@@ -13,8 +13,8 @@ import {
 import {ExperienceStatus} from '@/application/model/experience';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {Template} from '@/application/template/template';
-import {CliError, CliErrorCode} from '@/application/cli/error';
 import {Input} from '@/application/cli/io/input';
+import {HelpfulError, ErrorReason} from '@/application/error';
 
 export type CreateTemplateInput = {
     file?: string,
@@ -57,8 +57,8 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
                 overwrite: override,
             });
         } catch (error) {
-            throw new CliError('Failed to write template file', {
-                code: CliErrorCode.OTHER,
+            throw new HelpfulError('Failed to write template file', {
+                reason: ErrorReason.OTHER,
                 cause: error,
             });
         }

@@ -1,5 +1,6 @@
 import {Sdk, SdkResolver} from '@/application/project/sdk/sdk';
-import {CliError, CliErrorCode} from '@/application/cli/error';
+
+import {HelpfulError, ErrorReason} from '@/application/error';
 
 export type SdkDetectorConfiguration = {
     resolvers: Array<SdkResolver<Sdk|null>>,
@@ -16,8 +17,8 @@ export class SdkDetector implements SdkResolver {
         const sdk = await this.detect(hint);
 
         if (sdk === null) {
-            throw new CliError('No supported SDK found.', {
-                code: CliErrorCode.PRECONDITION,
+            throw new HelpfulError('No supported SDK found.', {
+                reason: ErrorReason.PRECONDITION,
             });
         }
 

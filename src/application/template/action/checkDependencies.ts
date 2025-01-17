@@ -1,7 +1,8 @@
 import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {ProjectManager} from '@/application/project/manager/projectManager';
-import {CliHelp} from '@/application/cli/error';
+
+import {Help} from '@/application/error';
 
 type Requirement = {
     name: string,
@@ -16,7 +17,7 @@ type DependencyCheck = {
 
 export type CheckDependenciesOptions = {
     dependencies: Requirement[],
-    help?: Pick<CliHelp, | 'links' | 'suggestions'> & {
+    help?: Pick<Help, | 'links' | 'suggestions'> & {
         message?: string,
     },
 };
@@ -32,7 +33,7 @@ export class CheckDependencies implements Action<CheckDependenciesOptions> {
         this.config = config;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Ensure compatibility with the interface
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Keep the same signature as the interface
     public async execute(options: CheckDependenciesOptions, _: ActionContext): Promise<void> {
         const results = await Promise.all(options.dependencies.map(requirement => this.check(requirement)));
         const missing = results.filter(result => result.issue !== undefined);

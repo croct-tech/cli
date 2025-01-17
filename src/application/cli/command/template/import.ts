@@ -9,8 +9,8 @@ import {ActionContext, VariableValue} from '@/application/template/action/contex
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {SdkResolver} from '@/application/project/sdk/sdk';
 import {ApplicationPlatform} from '@/application/model/application';
-import {CliError, CliErrorCode} from '@/application/cli/error';
-import {Transport} from '@/application/template/transport/transport';
+import {NotFoundError, Provider} from '@/application/template/provider/provider';
+import {HelpfulError, ErrorReason} from '@/application/error';
 
 export type ImportTemplateInput = {
     template: string,
@@ -26,7 +26,7 @@ export type ImportTemplateConfig = {
     configurationManager: ConfigurationManager,
     sdkResolver: SdkResolver,
     fileSystem: FileSystem,
-    transport: Transport<LoadedTemplate>,
+    provider: Provider<LoadedTemplate>,
     actionRunner: ActionRunner,
     io: {
         input?: Input,
@@ -52,8 +52,9 @@ export class ImportTemplateCommand implements Command<ImportTemplateInput> {
     public async execute(input: ImportTemplateInput): Promise<void> {
         const {actionRunner} = this.config;
         const {url, template} = await this.loadTemplate(input.template);
+        const baseUrl = new URL(url.href.replace(/\/[^/]+$/, '/'));
 
-        await actionRunner.run(template.actions, this.createContext(input.options, url));
+        await actionRunner.run(template.actions, this.createContext(input.options, baseUrl));
     }
 
     private createContext(options: Record<string, JsonPrimitive>, baseUrl: URL): ActionContext {
@@ -97,32 +98,28 @@ export class ImportTemplateCommand implements Command<ImportTemplateInput> {
     }
 
     private async loadTemplate(name: string): Promise<LoadedTemplate> {
-        const {transport} = this.config;
+        const {provider} = this.config;
 
         const url = await this.resolveUrl(name);
 
-        let result: LoadedTemplate;
-
         try {
-            result = await transport.fetch(url);
+            return await provider.get(url);
         } catch (error) {
-            throw new CliError('Template not found.', {
-                code: CliErrorCode.INVALID_INPUT,
-                details: [
-                    `Template: ${name}`,
-                ],
-                suggestions: [
-                    'Check if the template path or URL is correct and try again.',
-                ],
-            });
+            if (error instanceof NotFoundError) {
+                throw new HelpfulError('Template not found.', {
+                    cause: error,
+                    reason: ErrorReason.INVALID_INPUT,
+                    details: [
+                        `Template: ${name}`,
+                    ],
+                    suggestions: [
+                        'Check if the template path or URL is correct and try again.',
+                    ],
+                });
+            }
+
+            throw error;
         }
-
-        const resolvedUrl = result.url;
-
-        return {
-            url: new URL(resolvedUrl.href.replace(/\/[^/]+$/, '/')),
-            template: result.template,
-        };
     }
 
     private async resolveUrl(name: string): Promise<URL> {

@@ -1,6 +1,5 @@
-import {CliError, CliHelp} from '@/application/cli/error';
 import {ActionContext} from '@/application/template/action/context';
-import {formatMessage} from '@/application/error';
+import {HelpfulError, Help} from '@/application/error';
 
 export interface ActionOptionsMap {
 }
@@ -21,29 +20,29 @@ export type ActionMap<T extends ActionName = ActionName> = {
     [K in T]: Action<ActionOptions<K>>;
 };
 
-type ExtendedHelp = CliHelp & {
+type OverridableHelp = Help & {
     message?: string,
 };
 
-export class ActionError extends CliError {
-    public constructor(message: string, help?: CliHelp) {
+export class ActionError extends HelpfulError {
+    public constructor(message: string, help?: Help) {
         super(message, help);
 
         Object.setPrototypeOf(this, ActionError.prototype);
     }
 
-    public static fromCause(cause: unknown, help: ExtendedHelp = {}): ActionError {
+    public static fromCause(cause: unknown, help: OverridableHelp = {}): ActionError {
         const {message, ...helpProps} = help;
 
         if (!(cause instanceof Error)) {
-            return new ActionError(message ?? formatMessage(cause), {
+            return new ActionError(message ?? HelpfulError.formatMessage(cause), {
                 ...helpProps,
                 cause: cause,
             });
         }
 
         const error = new ActionError(message ?? cause.message, {
-            ...(cause instanceof CliError ? cause.help : {}),
+            ...(cause instanceof HelpfulError ? cause.help : {}),
             ...helpProps,
             cause: cause,
         });

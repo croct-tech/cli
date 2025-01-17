@@ -5,10 +5,10 @@ import {Installation, SdkResolver} from '@/application/project/sdk/sdk';
 import {Form} from '@/application/cli/form/form';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
-import {CliError, CliErrorCode} from '@/application/cli/error';
 import {Configuration as ProjectConfiguration} from '@/application/project/configuration/configuration';
 import {Version} from '@/application/project/version';
 import {Component} from '@/application/model/component';
+import {HelpfulError, ErrorReason} from '@/application/error';
 
 export type AddComponentInput = {
     components?: string[],
@@ -95,8 +95,8 @@ export class AddComponentCommand implements Command<AddComponentInput> {
                 slug => !components.some(component => component.slug === slug),
             );
 
-            throw new CliError(`Non-existing components: \`${missingComponents.join('`, `')}\``, {
-                code: CliErrorCode.INVALID_INPUT,
+            throw new HelpfulError(`Non-existing components: \`${missingComponents.join('`, `')}\``, {
+                reason: ErrorReason.INVALID_INPUT,
                 suggestions: ['Run `component add` without arguments to see available components'],
             });
         }
@@ -109,10 +109,10 @@ export class AddComponentCommand implements Command<AddComponentInput> {
             }
 
             if (version.getMinVersion() > component.version.major) {
-                throw new CliError(
+                throw new HelpfulError(
                     `No matching version for component \`${component.slug}\`.`,
                     {
-                        code: CliErrorCode.INVALID_INPUT,
+                        reason: ErrorReason.INVALID_INPUT,
                         details: [
                             `Requested version: ${version.toString()}`,
                             `Current version: ${component.version.major}`,
@@ -139,10 +139,10 @@ export class AddComponentCommand implements Command<AddComponentInput> {
                 }
 
                 if (!Version.isValid(specifier)) {
-                    throw new CliError(
+                    throw new HelpfulError(
                         `Invalid version specifier \`${specifier}\` for component \`${slug}\`.`,
                         {
-                            code: CliErrorCode.INVALID_INPUT,
+                            reason: ErrorReason.INVALID_INPUT,
                             suggestions: [
                                 'Version must be exact (i.e. `1`), range (i.e. `1 - 2`), or set (i.e. `1 || 2`).',
                             ],
@@ -153,10 +153,10 @@ export class AddComponentCommand implements Command<AddComponentInput> {
                 let version = Version.parse(specifier);
 
                 if (version.getCardinality() > 5) {
-                    throw new CliError(
+                    throw new HelpfulError(
                         `The number of versions specified for component \`${slug}\` exceeds 5 major versions.`,
                         {
-                            code: CliErrorCode.INVALID_INPUT,
+                            reason: ErrorReason.INVALID_INPUT,
                             suggestions: [
                                 'Narrow down the number of versions to 5 or less.',
                             ],
@@ -168,11 +168,11 @@ export class AddComponentCommand implements Command<AddComponentInput> {
                     version = Version.parse(components[slug]).with(version);
 
                     if (version.getCardinality() > 5) {
-                        throw new CliError(
+                        throw new HelpfulError(
                             `The cumulative number of versions for component \`${slug}\` `
                             + 'cannot exceed 5 major versions.',
                             {
-                                code: CliErrorCode.INVALID_INPUT,
+                                reason: ErrorReason.INVALID_INPUT,
                                 suggestions: [
                                     'Narrow down the number of versions to 5 or less.',
                                 ],

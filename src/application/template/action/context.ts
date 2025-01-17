@@ -4,7 +4,8 @@ import isPlainObject from 'is-plain-obj';
 import {Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
 import {ActionError} from '@/application/template/action/action';
-import {CliErrorCode} from '@/application/cli/error';
+
+import {ErrorReason} from '@/application/error';
 
 export type LazyJsonValue = () => Promise<VariableValue>;
 
@@ -52,7 +53,7 @@ export class ActionContext {
 
         if (pointer.isRoot()) {
             throw new ActionError('Cannot set the root value.', {
-                code: CliErrorCode.INVALID_INPUT,
+                reason: ErrorReason.INVALID_INPUT,
             });
         }
 
@@ -65,13 +66,13 @@ export class ActionContext {
                 throw new ActionError(
                     `Cannot set variable \`${variable}\` because the parent value is not writable.`,
                     {
-                        code: CliErrorCode.INVALID_INPUT,
+                        reason: ErrorReason.INVALID_INPUT,
                     },
                 );
             }
         } else {
             throw new ActionError(`Path \`${parent.toString()}\` does not exist.`, {
-                code: CliErrorCode.INVALID_INPUT,
+                reason: ErrorReason.INVALID_INPUT,
             });
         }
 
@@ -111,7 +112,7 @@ export class ActionContext {
                     `Expected placeholder variable \`${variable}\` to be null, string, number, or boolean, `
                     + `but got ${ActionContext.getType(placeholderValue)}.`,
                     {
-                        code: CliErrorCode.INVALID_INPUT,
+                        reason: ErrorReason.INVALID_INPUT,
                     },
                 );
             }
@@ -132,7 +133,7 @@ export class ActionContext {
                 `Expected reference \`${reference}\` to be of type ${types.join(' or ')}, `
                 + `but got ${ActionContext.getType(value)}.`,
                 {
-                    code: CliErrorCode.INVALID_INPUT,
+                    reason: ErrorReason.INVALID_INPUT,
                 },
             );
         }
@@ -203,7 +204,7 @@ export class ActionContext {
                     `Expected reference \`${reference}\` to be a list of ${types.join(' or ')}, `
                     + `but got ${ActionContext.getType(item)}.`,
                     {
-                        code: CliErrorCode.INVALID_INPUT,
+                        reason: ErrorReason.INVALID_INPUT,
                     },
                 );
             }
@@ -237,7 +238,7 @@ export class ActionContext {
 
         if (pointer.isRoot()) {
             throw new ActionError('Cannot get the root value.', {
-                code: CliErrorCode.INVALID_INPUT,
+                reason: ErrorReason.INVALID_INPUT,
             });
         }
 
@@ -251,7 +252,7 @@ export class ActionContext {
 
         if (value === null && !optional) {
             throw new ActionError(`Variable \`${value}\` is not defined.`, {
-                code: CliErrorCode.INVALID_INPUT,
+                reason: ErrorReason.INVALID_INPUT,
             });
         }
 
@@ -272,7 +273,7 @@ export class ActionContext {
             }
 
             throw new ActionError(`Variable \`${variable}\` is not defined.`, {
-                code: CliErrorCode.INVALID_INPUT,
+                reason: ErrorReason.INVALID_INPUT,
             });
         }
 
@@ -281,7 +282,7 @@ export class ActionContext {
                 `Expected variable \`${variable}\` to be of type ${types.join(' or ')}, `
                 + `but got ${ActionContext.getType(value)}.`,
                 {
-                    code: CliErrorCode.INVALID_INPUT,
+                    reason: ErrorReason.INVALID_INPUT,
                 },
             );
         }
@@ -389,7 +390,7 @@ export class ActionContext {
                 `Expected variable \`${variable}\` to be a list, `
                 + `but got ${ActionContext.getType(value)}.`,
                 {
-                    code: CliErrorCode.INVALID_INPUT,
+                    reason: ErrorReason.INVALID_INPUT,
                 },
             );
         }
@@ -417,7 +418,7 @@ export class ActionContext {
                     `Expected variable \`${variable}\` to be a list of ${types.join(' or ')}, `
                     + `but got ${ActionContext.getType(item)}.`,
                     {
-                        code: CliErrorCode.INVALID_INPUT,
+                        reason: ErrorReason.INVALID_INPUT,
                     },
                 );
             }

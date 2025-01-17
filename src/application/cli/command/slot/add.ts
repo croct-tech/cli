@@ -5,11 +5,11 @@ import {Installation, SdkResolver} from '@/application/project/sdk/sdk';
 import {Form} from '@/application/cli/form/form';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
-import {CliError, CliErrorCode} from '@/application/cli/error';
 import {Configuration as ProjectConfiguration} from '@/application/project/configuration/configuration';
 import {Version} from '@/application/project/version';
 import {WorkspaceApi} from '@/application/api/workspace';
 import {Slot} from '@/application/model/slot';
+import {HelpfulError, ErrorReason} from '@/application/error';
 
 export type AddSlotInput = {
     slots?: string[],
@@ -96,8 +96,8 @@ export class AddSlotCommand implements Command<AddSlotInput> {
         if (input.slots !== undefined && input.slots.length > 0 && slots.length !== input.slots.length) {
             const missingSlots = input.slots.filter(slug => !slots.some(slot => slot.slug === slug));
 
-            throw new CliError(`Non-existing slots: \`${missingSlots.join('`, `')}\``, {
-                code: CliErrorCode.INVALID_INPUT,
+            throw new HelpfulError(`Non-existing slots: \`${missingSlots.join('`, `')}\``, {
+                reason: ErrorReason.INVALID_INPUT,
                 suggestions: ['Run `slot add` without arguments to see available slots'],
             });
         }
@@ -110,10 +110,10 @@ export class AddSlotCommand implements Command<AddSlotInput> {
             }
 
             if (version.getMinVersion() > slot.version.major) {
-                throw new CliError(
+                throw new HelpfulError(
                     `No matching version for slot \`${slot.slug}\`.`,
                     {
-                        code: CliErrorCode.INVALID_INPUT,
+                        reason: ErrorReason.INVALID_INPUT,
                         details: [
                             `Requested version: ${version.toString()}`,
                             `Current version: ${slot.version.major}`,
@@ -152,10 +152,10 @@ export class AddSlotCommand implements Command<AddSlotInput> {
                 }
 
                 if (!Version.isValid(specifier)) {
-                    throw new CliError(
+                    throw new HelpfulError(
                         `Invalid version specifier \`${specifier}\` for slot \`${slug}\`.`,
                         {
-                            code: CliErrorCode.INVALID_INPUT,
+                            reason: ErrorReason.INVALID_INPUT,
                             suggestions: [
                                 'Version must be exact (i.e. `1`), range (i.e. `1 - 2`), or set (i.e. `1 || 2`).',
                             ],
@@ -166,10 +166,10 @@ export class AddSlotCommand implements Command<AddSlotInput> {
                 let version = Version.parse(specifier);
 
                 if (version.getCardinality() > 5) {
-                    throw new CliError(
+                    throw new HelpfulError(
                         `The number of versions specified for slot \`${slug}\` exceeds 5 major versions.`,
                         {
-                            code: CliErrorCode.INVALID_INPUT,
+                            reason: ErrorReason.INVALID_INPUT,
                             suggestions: [
                                 'Narrow down the number of versions to 5 or less.',
                             ],
@@ -181,11 +181,11 @@ export class AddSlotCommand implements Command<AddSlotInput> {
                     version = Version.parse(slots[slug]).with(version);
 
                     if (version.getCardinality() > 5) {
-                        throw new CliError(
+                        throw new HelpfulError(
                             `The cumulative number of versions for slot \`${slug}\` `
                             + 'cannot exceed 5 major versions.',
                             {
-                                code: CliErrorCode.INVALID_INPUT,
+                                reason: ErrorReason.INVALID_INPUT,
                                 suggestions: [
                                     'Narrow down the number of versions to 5 or less.',
                                 ],

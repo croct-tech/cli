@@ -5,7 +5,6 @@ import {SdkResolver} from '@/application/project/sdk/sdk';
 import {Form} from '@/application/cli/form/form';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
-import {CliError, CliErrorCode} from '@/application/cli/error';
 import {
     Configuration as ProjectConfiguration,
     ResolvedConfiguration,
@@ -14,6 +13,7 @@ import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
 import {Version} from '@/application/project/version';
 import {Slot} from '@/application/model/slot';
 import {Component} from '@/application/model/component';
+import {HelpfulError, ErrorReason} from '@/application/error';
 
 export type UpgradeInput = {
     slots?: string[],
@@ -107,8 +107,8 @@ export class UpgradeCommand implements Command<UpgradeInput> {
                 slug => !components.some(component => component.slug === slug),
             );
 
-            throw new CliError(`Components not found: \`${missingComponents.join('`, `')}\`.`, {
-                code: CliErrorCode.PRECONDITION,
+            throw new HelpfulError(`Components not found: \`${missingComponents.join('`, `')}\`.`, {
+                reason: ErrorReason.PRECONDITION,
                 suggestions: ['Run `remove component` to remove a component from your configuration.'],
             });
         }
@@ -134,8 +134,8 @@ export class UpgradeCommand implements Command<UpgradeInput> {
         if (listedSlots.length > 0 && slots.length !== listedSlots.length) {
             const missingSlots = listedSlots.filter(slug => !slots.some(slot => slot.slug === slug));
 
-            throw new CliError(`Slots not found: \`${missingSlots.join('`, `')}\`.`, {
-                code: CliErrorCode.PRECONDITION,
+            throw new HelpfulError(`Slots not found: \`${missingSlots.join('`, `')}\`.`, {
+                reason: ErrorReason.PRECONDITION,
                 suggestions: ['Run `remove slot` to remove a slot from your configuration.'],
             });
         }

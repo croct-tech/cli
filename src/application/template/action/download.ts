@@ -1,8 +1,9 @@
 import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
-import {FileSystem, FileSystemEntry} from '@/application/fs/fileSystem';
-import {Transport} from '@/application/template/transport/transport';
-import {CliErrorCode} from '@/application/cli/error';
+import {FileSystem, FileSystemIterator} from '@/application/fs/fileSystem';
+import {Provider} from '@/application/template/provider/provider';
+
+import {ErrorReason} from '@/application/error';
 
 export type DownloadOptions = {
     source: string,
@@ -14,7 +15,7 @@ export type DownloadOptions = {
 
 export type Configuration = {
     fileSystem: FileSystem,
-    transport: Transport<AsyncGenerator<FileSystemEntry>>,
+    provider: Provider<FileSystemIterator>,
 };
 
 export class Download implements Action<DownloadOptions> {
@@ -38,7 +39,7 @@ export class Download implements Action<DownloadOptions> {
 
         if (sourceUrl.protocol === 'file:' && baseUrl.protocol !== 'file:') {
             throw new ActionError('File URL is not allowed from remote sources for security reasons.', {
-                code: CliErrorCode.PRECONDITION,
+                reason: ErrorReason.PRECONDITION,
                 suggestions: [
                     `Source URL: ${source}`,
                 ],
@@ -54,7 +55,7 @@ export class Download implements Action<DownloadOptions> {
                     }) !== true
                 ) {
                     throw new ActionError('Destination directory is not empty.', {
-                        code: CliErrorCode.PRECONDITION,
+                        reason: ErrorReason.PRECONDITION,
                         suggestions: [
                             'Clear the directory or choose another destination.',
                         ],
@@ -65,13 +66,14 @@ export class Download implements Action<DownloadOptions> {
                 await fileSystem.createDirectory(destination);
             }
         }
+
         const destinationPath = fileSystem.normalizeSeparators(destination);
 
         const {output} = context;
 
         const notifier = output?.notify('Downloading sources');
 
-        await this.downloadFile(sourceUrl, destinationPath);
+        await this.downloadFile(sourceUrl, await fileSystem.getRealPath(destination));
 
         notifier?.stop();
 
@@ -81,23 +83,28 @@ export class Download implements Action<DownloadOptions> {
     }
 
     private async downloadFile(url: URL, destination: string): Promise<void> {
-        const {transport, fileSystem} = this.config;
+        const {provider, fileSystem} = this.config;
 
-        let iterator: AsyncGenerator<FileSystemEntry>;
-
-        try {
-            iterator = await transport.fetch(url);
-        } catch (error) {
-            throw new ActionError('Failed to download sources.', {
-                cause: error,
-            });
-        }
+        const iterator = await provider.get(url);
 
         for await (const entry of iterator) {
-            entry.name = fileSystem.joinPaths(destination, fileSystem.normalizeSeparators(entry.name));
+            const path = fileSystem.normalizeSeparators(entry.name);
+
+            if (fileSystem.isAbsolutePath(path) || !fileSystem.isSubPath(destination, path)) {
+                continue;
+            }
+
+            entry.name = fileSystem.joinPaths(destination, path);
 
             if (entry.type === 'link' || entry.type === 'symlink') {
-                entry.target = fileSystem.joinPaths(destination, fileSystem.normalizeSeparators(entry.target));
+                const target = fileSystem.normalizeSeparators(entry.target);
+
+                if (fileSystem.isAbsolutePath(target) || !fileSystem.isSubPath(destination, target)) {
+                    // Disallow linking outside the destination directory for security reasons
+                    continue;
+                }
+
+                entry.target = target;
             }
 
             await fileSystem.create(entry);

@@ -1,61 +1,23 @@
-import {z} from 'zod';
 import {JsonValue} from '@croct/json';
-import {Configuration, ConfigurationError} from '@/application/project/configuration/configuration';
-import {Version} from '@/application/project/version';
+import {
+    Configuration as ProjectConfiguration,
+    ConfigurationError as ProjectConfigurationError,
+} from '@/application/project/configuration/configuration';
 import {ConfigurationFile} from '@/application/project/configuration/file/configurationFile';
 import {JsonObjectNode, JsonParser} from '@/infrastructure/json';
 import {FileSystem} from '@/application/fs/fileSystem';
-
-const identifierSchema = z.string().regex(
-    /^[a-z]+(-?[a-z0-9]+)*$/i,
-    'An identifier must start with a letter and contain only letters, numbers, and hyphens.',
-);
-
-const localeSchema = z.string().regex(
-    /^[a-z]{2,3}([-_][a-z]{2,3})?$/i,
-    'Locale must be in the form of en, en_US, or en-US.',
-);
-
-const versionSchema = z.string()
-    .refine(
-        Version.isValid,
-        'Version must be exact (1), range (1 - 2), or set (1 || 2).',
-    )
-    .refine(
-        version => {
-            try {
-                return Version.parse(version).getCardinality() <= 5;
-            } catch {
-                return false;
-            }
-        },
-        'Version range must not exceed 5 major versions.',
-    );
-
-const ConfigurationSchema = z.object({
-    organization: identifierSchema,
-    workspace: identifierSchema,
-    applications: z.object({
-        development: identifierSchema,
-        production: identifierSchema.optional(),
-    }),
-    locales: z.array(localeSchema),
-    defaultLocale: localeSchema,
-    slots: z.record(versionSchema),
-    components: z.record(versionSchema),
-    paths: z.object({
-        components: z.string(),
-        examples: z.string(),
-    }),
-}).refine(data => data.locales.includes(data.defaultLocale), {
-    message: 'The default locale is not included in the list of locales.',
-    path: ['defaultLocale'], // Error will be attached to this path
-});
+import {Validator} from '@/application/validation';
 
 type LoadedFile = {
     path: string,
     source: string|null,
-    configuration: Configuration|null,
+    configuration: ProjectConfiguration|null,
+};
+
+export type Configuration = {
+    fileSystem: FileSystem,
+    projectDirectory: string,
+    validator: Validator<ProjectConfiguration>,
 };
 
 export class JsonFileConfiguration implements ConfigurationFile {
@@ -63,22 +25,25 @@ export class JsonFileConfiguration implements ConfigurationFile {
 
     private readonly projectDirectory: string;
 
-    public constructor(fileSystem: FileSystem, projectDirectory: string) {
+    private readonly validator: Validator<ProjectConfiguration>;
+
+    public constructor({fileSystem, projectDirectory, validator}: Configuration) {
         this.fileSystem = fileSystem;
         this.projectDirectory = projectDirectory;
+        this.validator = validator;
     }
 
-    public async load(): Promise<Configuration|null> {
+    public async load(): Promise<ProjectConfiguration|null> {
         return (await this.loadFile()).configuration;
     }
 
-    public update(configuration: Configuration): Promise<Configuration> {
+    public update(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
         this.checkConfiguration(configuration);
 
         return this.updateFile(configuration);
     }
 
-    private async updateFile(configuration: Configuration): Promise<Configuration> {
+    private async updateFile(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
         const cleanedConfiguration = JsonFileConfiguration.clean(configuration);
         const file = await this.loadFile();
         const data = file.configuration !== null && file.source !== null
@@ -143,34 +108,25 @@ export class JsonFileConfiguration implements ConfigurationFile {
         return this.fileSystem.joinPaths(this.projectDirectory, 'croct.json');
     }
 
-    private checkConfiguration(configuration: JsonValue, file?: LoadedFile): asserts configuration is Configuration {
-        const result = ConfigurationSchema.safeParse(configuration);
+    private checkConfiguration(value: JsonValue, file?: LoadedFile): asserts value is ProjectConfiguration {
+        const result = this.validator.validate(value);
 
-        if (result.error !== undefined) {
-            const error = result.error.errors[0];
+        if (!result.success) {
+            const violation = result.violations[0];
 
-            const path = error.path.reduce(
-                (previous, segment) => {
-                    if (typeof segment === 'string') {
-                        return previous === '' ? segment : `${previous}.${segment}`;
-                    }
-
-                    return `${previous}[${segment}]`;
-                },
-                '',
-            );
-
-            throw new ConfigurationError(error.message, [
-                ...(file !== undefined
-                    ? `Configuration file: ${this.fileSystem.getRelativePath(this.projectDirectory, file.path)}`
-                    : []
-                ),
-                `Violation path: ${path}`,
-            ]);
+            throw new ProjectConfigurationError(violation.message, {
+                details: [
+                    ...(file !== undefined
+                        ? `Configuration file: ${this.fileSystem.getRelativePath(this.projectDirectory, file.path)}`
+                        : []
+                    ),
+                    `Violation path: ${violation.path}`,
+                ],
+            });
         }
     }
 
-    private static clean(configuration: Configuration): Configuration {
+    private static clean(configuration: ProjectConfiguration): ProjectConfiguration {
         return {
             organization: configuration.organization,
             workspace: configuration.workspace,

@@ -1,7 +1,7 @@
 import {Action, ActionError} from '@/application/template/action/action';
 import {FileSystem} from '@/application/fs/fileSystem';
-import {CliErrorCode} from '@/application/cli/error';
 import {ActionContext} from '@/application/template/action/context';
+import {ErrorReason} from '@/application/error';
 
 type PatternMatcher = {
     pattern: string,
@@ -42,7 +42,7 @@ export class LocateFile implements Action<LocateFileOptions> {
 
         if (matches.length === 0) {
             throw new ActionError('No matching files found', {
-                code: CliErrorCode.PRECONDITION,
+                reason: ErrorReason.PRECONDITION,
                 details: [`Pattern: ${pattern}`],
             });
         }

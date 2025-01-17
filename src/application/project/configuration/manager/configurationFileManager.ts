@@ -3,12 +3,12 @@ import {
     Configuration as ProjectConfiguration,
     ResolvedConfiguration,
 } from '@/application/project/configuration/configuration';
-import {CliError, CliErrorCode} from '@/application/cli/error';
 import {UserApi} from '@/application/api/user';
 import {OrganizationApi} from '@/application/api/organization';
 import {Output} from '@/application/cli/io/output';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {ConfigurationFile} from '@/application/project/configuration/file/configurationFile';
+import {HelpfulError, ErrorReason} from '@/application/error';
 
 export type Configuration = {
     file: ConfigurationFile,
@@ -43,8 +43,8 @@ export class ConfigurationFileManager implements ConfigurationManager {
         const configuration = await this.load();
 
         if (configuration === null) {
-            throw new CliError('Project configuration not found.', {
-                code: CliErrorCode.PRECONDITION,
+            throw new HelpfulError('Project configuration not found.', {
+                reason: ErrorReason.PRECONDITION,
                 // @todo add link to init documentation
                 suggestions: [
                     'Run `init` command to initialize the project',
@@ -69,7 +69,7 @@ export class ConfigurationFileManager implements ConfigurationManager {
         const organization = await api.user.getOrganization(configuration.organization);
 
         if (organization === null) {
-            throw new CliError('Project\'s organization not found.', {
+            throw new HelpfulError('Project\'s organization not found.', {
                 suggestions: [
                     'Check if you have access to the organization',
                     'Run `init` command to reconfigure the project',
@@ -83,7 +83,7 @@ export class ConfigurationFileManager implements ConfigurationManager {
         });
 
         if (workspace === null) {
-            throw new CliError('Project\'s workspace not found.', {
+            throw new HelpfulError('Project\'s workspace not found.', {
                 suggestions: [
                     'Check if you have access to the workspace',
                     'Run `init` command to reconfigure the project',
@@ -107,7 +107,7 @@ export class ConfigurationFileManager implements ConfigurationManager {
         ]);
 
         if (developmentApplication === null) {
-            throw new CliError('Project\'s development application not found.', {
+            throw new HelpfulError('Project\'s development application not found.', {
                 suggestions: [
                     'Check if you have access to the application',
                     'Run `init` command to reconfigure the project',
@@ -116,7 +116,7 @@ export class ConfigurationFileManager implements ConfigurationManager {
         }
 
         if (productionApplication === null && configuration.applications.production !== undefined) {
-            throw new CliError('Project\'s production application not found.', {
+            throw new HelpfulError('Project\'s production application not found.', {
                 suggestions: [
                     'Check if you have access to the application',
                     'Run `init` command to reconfigure the project',
