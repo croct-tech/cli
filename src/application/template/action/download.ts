@@ -7,6 +7,7 @@ import {ErrorReason} from '@/application/error';
 
 export type DownloadOptions = {
     source: string,
+    filter?: string,
     destination: string,
     output?: {
         destination: string,
@@ -63,9 +64,10 @@ export class Download implements Action<DownloadOptions> {
                 }
 
                 await fileSystem.delete(destination, {recursive: true});
-                await fileSystem.createDirectory(destination);
             }
         }
+
+        await fileSystem.createDirectory(destination);
 
         const destinationPath = fileSystem.normalizeSeparators(destination);
 
@@ -73,7 +75,7 @@ export class Download implements Action<DownloadOptions> {
 
         const notifier = output?.notify('Downloading sources');
 
-        await this.downloadFile(sourceUrl, await fileSystem.getRealPath(destination));
+        await this.downloadFile(sourceUrl, destination);
 
         notifier?.stop();
 
