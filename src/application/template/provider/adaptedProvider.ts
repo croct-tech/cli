@@ -1,6 +1,6 @@
 import {Provider, ProviderOptions} from '@/application/template/provider/provider';
 
-export type Adapter<I, R> = (value: I, url: URL) => Promise<R>;
+export type Adapter<I, R> = (value: I, url: URL) => R|Promise<R>;
 
 export type Configuration<I, R, O extends ProviderOptions> = {
     provider: Provider<I, O>,

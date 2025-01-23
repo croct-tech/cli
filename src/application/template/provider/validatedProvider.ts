@@ -24,7 +24,7 @@ export class ValidatedProvider<I, R, O extends ProviderOptions> implements Provi
         const data = await this.provider.get(url, options);
         const result = this.validator.validate(data);
 
-        if (!result.success) {
+        if (!result.valid) {
             throw new ProviderError('The response data is invalid.', url, {
                 details: result.violations.map(violation => violation.message),
             });

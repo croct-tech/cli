@@ -1,25 +1,6 @@
 import {ActionContext} from '@/application/template/action/context';
 import {HelpfulError, Help} from '@/application/error';
 
-export interface ActionOptionsMap {
-}
-
-export type ActionName = keyof ActionOptionsMap;
-
-export type ActionOptions<T extends ActionName = ActionName> = {
-    [K in T]: ActionOptionsMap[K];
-}[T];
-
-export type ActionDefinition<T extends ActionName = ActionName> = {
-    [K in T]: ActionOptionsMap[K] & {
-        name: K,
-    }
-}[T];
-
-export type ActionMap<T extends ActionName = ActionName> = {
-    [K in T]: Action<ActionOptions<K>>;
-};
-
 type OverridableHelp = Help & {
     message?: string,
 };
@@ -42,9 +23,9 @@ export class ActionError extends HelpfulError {
         }
 
         const error = new ActionError(message ?? cause.message, {
+            cause: cause,
             ...(cause instanceof HelpfulError ? cause.help : {}),
             ...helpProps,
-            cause: cause,
         });
 
         error.stack = cause.stack;
@@ -53,6 +34,8 @@ export class ActionError extends HelpfulError {
     }
 }
 
-export interface Action<T extends Record<string, any>> {
+export type ActionOptions = Record<string, any>;
+
+export interface Action<T extends ActionOptions = ActionOptions> {
     execute(options: T, context: ActionContext): Promise<void>;
 }

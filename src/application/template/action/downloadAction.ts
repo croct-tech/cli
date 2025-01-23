@@ -1,8 +1,8 @@
+import {Minimatch} from 'minimatch';
 import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {FileSystem, FileSystemIterator} from '@/application/fs/fileSystem';
 import {Provider} from '@/application/template/provider/provider';
-
 import {ErrorReason} from '@/application/error';
 
 export type DownloadOptions = {
@@ -10,7 +10,7 @@ export type DownloadOptions = {
     filter?: string,
     destination: string,
     output?: {
-        destination: string,
+        destination?: string,
     },
 };
 
@@ -19,7 +19,7 @@ export type Configuration = {
     provider: Provider<FileSystemIterator>,
 };
 
-export class Download implements Action<DownloadOptions> {
+export class DownloadAction implements Action<DownloadOptions> {
     private readonly config: Configuration;
 
     public constructor(config: Configuration) {
@@ -30,22 +30,18 @@ export class Download implements Action<DownloadOptions> {
         const {fileSystem} = this.config;
         const {input} = context;
 
-        const [source, destination] = await Promise.all([
-            context.resolveString(options.source),
-            context.resolveString(options.destination),
-        ]);
+        const sourceUrl = DownloadAction.getSourceUrl(options.source, context.baseUrl);
 
-        const baseUrl = context.getBaseUrl();
-        const sourceUrl = Download.getSourceUrl(source, baseUrl);
-
-        if (sourceUrl.protocol === 'file:' && baseUrl.protocol !== 'file:') {
+        if (sourceUrl.protocol === 'file:' && context.baseUrl.protocol !== 'file:') {
             throw new ActionError('File URL is not allowed from remote sources for security reasons.', {
                 reason: ErrorReason.PRECONDITION,
                 suggestions: [
-                    `Source URL: ${source}`,
+                    `Source URL: ${sourceUrl}`,
                 ],
             });
         }
+
+        const {destination} = options;
 
         if (await fileSystem.exists(destination)) {
             if (!await fileSystem.isDirectory(destination) || !await fileSystem.isEmptyDirectory(destination)) {
@@ -67,7 +63,9 @@ export class Download implements Action<DownloadOptions> {
             }
         }
 
-        await fileSystem.createDirectory(destination);
+        await fileSystem.createDirectory(destination, {
+            recursive: true,
+        });
 
         const destinationPath = fileSystem.normalizeSeparators(destination);
 
@@ -75,16 +73,22 @@ export class Download implements Action<DownloadOptions> {
 
         const notifier = output?.notify('Downloading sources');
 
-        await this.downloadFile(sourceUrl, destination);
+        await this.download(
+            sourceUrl,
+            destination,
+            options.filter !== undefined
+                ? new Minimatch(options.filter)
+                : undefined,
+        );
 
         notifier?.stop();
 
-        if (options.output !== undefined) {
+        if (options.output?.destination !== undefined) {
             context.set(options.output.destination, destinationPath);
         }
     }
 
-    private async downloadFile(url: URL, destination: string): Promise<void> {
+    private async download(url: URL, destination: string, matcher?: Minimatch): Promise<void> {
         const {provider, fileSystem} = this.config;
 
         const iterator = await provider.get(url);
@@ -94,6 +98,10 @@ export class Download implements Action<DownloadOptions> {
 
             if (fileSystem.isAbsolutePath(path) || !fileSystem.isSubPath(destination, path)) {
                 // Disallow linking outside the destination directory for security reasons
+                continue;
+            }
+
+            if (matcher !== undefined && !matcher.match(path)) {
                 continue;
             }
 
@@ -121,7 +129,7 @@ export class Download implements Action<DownloadOptions> {
 
         const url = new URL(baseUrl);
 
-        url.pathname = `${url.pathname.replace(/\/$/, '')}/${source}`;
+        url.pathname = `${url.pathname.replace(/\/([^/]*\.[^/]+)?$/, '')}/${source}`;
 
         return url;
     }

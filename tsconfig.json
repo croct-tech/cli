@@ -3,6 +3,7 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "target": "ESNext",
+    "strict": true,
     "esModuleInterop": true,
     "isolatedModules": false,
     "baseUrl": ".",

@@ -230,7 +230,7 @@ export class ImportConfigLoader {
 
         const result = this.tsconfigValidator.validate(content);
 
-        if (!result.success) {
+        if (!result.valid) {
             return null;
         }
 

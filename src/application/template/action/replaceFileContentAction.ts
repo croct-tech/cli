@@ -1,52 +1,44 @@
 import {Action, ActionError} from '@/application/template/action/action';
 import {FileSystem} from '@/application/fs/fileSystem';
-import {ActionContext} from '@/application/template/action/context';
 
 type Replacement = {
     pattern: string,
     caseSensitive?: boolean,
-    replacement: string,
+    value: string,
 };
 
-type Replacements = {
+type FileMatcher = {
     path: string,
     replacements: Replacement[],
 };
 
 export type ReplaceFileContentOptions = {
-    files: Replacements[],
+    files: FileMatcher[],
 };
 
 export type Configuration = {
     fileSystem: FileSystem,
 };
 
-export class ReplaceFileContent implements Action<ReplaceFileContentOptions> {
+export class ReplaceFileContentAction implements Action<ReplaceFileContentOptions> {
     private readonly config: Configuration;
 
     public constructor(config: Configuration) {
         this.config = config;
     }
 
-    public async execute(options: ReplaceFileContentOptions, context: ActionContext): Promise<void> {
+    public async execute(options: ReplaceFileContentOptions): Promise<void> {
         const {fileSystem} = this.config;
 
         for (const {path, replacements} of options.files) {
-            const resolvedPath = await context.resolveString(path);
-
-            if (!await fileSystem.exists(resolvedPath)) {
+            if (!await fileSystem.exists(path)) {
                 continue;
             }
 
             try {
                 await fileSystem.writeTextFile(
-                    resolvedPath,
-                    this.replaceContent(
-                        ...await Promise.all([
-                            fileSystem.readTextFile(resolvedPath),
-                            context.resolveString(replacements),
-                        ]),
-                    ),
+                    path,
+                    this.replaceContent(await fileSystem.readTextFile(path), replacements),
                     {overwrite: true},
                 );
             } catch (error) {
@@ -58,18 +50,12 @@ export class ReplaceFileContent implements Action<ReplaceFileContentOptions> {
     private replaceContent(content: string, replacements: Replacement[]): string {
         let result = content;
 
-        for (const {pattern, caseSensitive, replacement} of replacements) {
+        for (const {pattern, caseSensitive, value} of replacements) {
             const flags = caseSensitive === true ? 'i' : undefined;
 
-            result = result.replace(new RegExp(pattern, flags), replacement);
+            result = result.replace(new RegExp(pattern, flags), value);
         }
 
         return result;
-    }
-}
-
-declare module '@/application/template/action/action' {
-    export interface ActionOptionsMap {
-        'replace-file-content': ReplaceFileContentOptions;
     }
 }

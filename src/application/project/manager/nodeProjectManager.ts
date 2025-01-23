@@ -142,7 +142,7 @@ export class NodeProjectManager implements JavaScriptProjectManager {
 
         const result = this.packageValidator.validate(data);
 
-        if (!result.success) {
+        if (!result.valid) {
             return null;
         }
 

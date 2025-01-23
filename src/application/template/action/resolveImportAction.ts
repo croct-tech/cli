@@ -15,7 +15,7 @@ export type Configuration = {
 
 export type ImportResolver = (target: string, source: string) => Promise<string>;
 
-export class ResolveImportFile implements Action<ResolveImportOptions> {
+export class ResolveImportAction implements Action<ResolveImportOptions> {
     private readonly config: Configuration;
 
     public constructor(config: Configuration) {
@@ -24,24 +24,12 @@ export class ResolveImportFile implements Action<ResolveImportOptions> {
 
     public async execute(options: ResolveImportOptions, context: ActionContext): Promise<void> {
         const {importResolver} = this.config;
-
-        const [target, source] = await Promise.all([
-            context.resolveString(options.target),
-            context.resolveString(options.source),
-        ]);
-
-        const importPath = await importResolver(target, source);
+        const importPath = await importResolver(options.target, options.source);
 
         const variable = options.output?.importPath;
 
         if (variable !== undefined) {
-            context.set(variable, await context.resolveValue(importPath));
+            context.set(variable, importPath);
         }
-    }
-}
-
-declare module '@/application/template/action/action' {
-    export interface ActionOptionsMap {
-        'resolve-import': ResolveImportOptions;
     }
 }

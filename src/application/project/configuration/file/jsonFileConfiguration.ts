@@ -111,7 +111,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
     private checkConfiguration(value: JsonValue, file?: LoadedFile): asserts value is ProjectConfiguration {
         const result = this.validator.validate(value);
 
-        if (!result.success) {
+        if (!result.valid) {
             const violation = result.violations[0];
 
             throw new ProjectConfigurationError(violation.message, {

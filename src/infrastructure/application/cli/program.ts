@@ -222,7 +222,6 @@ function createProgram(config: Configuration): typeof program {
         const usage = `--${name}${definition.type !== 'boolean' ? ' <value>' : ''}`;
 
         const option = new Option(usage, definition.description)
-            .default(definition.default)
             .makeOptionMandatory(definition.required === true);
 
         switch (definition.type) {
@@ -243,6 +242,13 @@ function createProgram(config: Configuration): typeof program {
 
                     return value;
                 });
+
+                break;
+
+            case 'array':
+                option.argParser(value => value.split(','));
+
+                break;
         }
 
         optionNames[option.attributeName()] = name;
@@ -279,7 +285,7 @@ function createProgram(config: Configuration): typeof program {
             authenticationEndpoint: `${apiEndpoint}/start/`,
             authenticationParameter: 'session',
         },
-        templateRegistry: new URL(options.registry ?? templateRegistry),
+        nameRegistry: new URL(options.registry ?? templateRegistry),
         cache: options.cache,
         quiet: options.quiet,
         interactive: options.interaction && !ci.isCI,

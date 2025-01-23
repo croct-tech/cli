@@ -2,14 +2,16 @@ import {RootDefinition} from '@croct/content-model/definition/definition';
 import {WorkspacePath} from '@/application/api/organization';
 import {Application} from '@/application/model/application';
 import {Audience} from '@/application/model/audience';
-import {LocalizedSlotContent, Slot} from '@/application/model/slot';
+import {Slot} from '@/application/model/slot';
 import {Component} from '@/application/model/component';
 import {
     ExperienceDetails,
     ExperienceStatus,
     Experience,
     LocalizedContent,
-    PersonalizedContent,
+    LocalizedContentMap,
+    SlotContentMap,
+    SegmentedContent,
 } from '@/application/model/experience';
 import {WorkspaceFeatures} from '@/application/model/workspace';
 
@@ -66,10 +68,17 @@ export type ExperienceCriteria = WorkspacePath & {
     status?: ExperienceStatus|ExperienceStatus[],
 };
 
+export type SegmentedContentDefinition = Omit<SegmentedContent, 'id'>;
+
+export type PersonalizedContentDefinition = {
+    default: SlotContentMap,
+    segmented: SegmentedContentDefinition[],
+};
+
 export type SlotDefinition = {
     name: string,
     component: string,
-    content: LocalizedSlotContent,
+    content: LocalizedContentMap,
 };
 
 export type ComponentDefinition = {
@@ -85,7 +94,7 @@ export type AudienceDefinition = {
 
 export type VariantDefinition = {
     name: string,
-    content: PersonalizedContent,
+    content: PersonalizedContentDefinition,
     baseline?: boolean,
     allocation: number,
 };
@@ -102,7 +111,7 @@ export type ExperienceDefinition = {
         traffic: number,
         variants: VariantDefinition[],
     },
-    content: PersonalizedContent,
+    content: PersonalizedContentDefinition,
 };
 
 export type NewResources = {

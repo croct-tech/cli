@@ -13,7 +13,7 @@ export class ZodValidator<T> implements Validator<T> {
 
         if (result.success) {
             return {
-                success: true,
+                valid: true,
                 data: result.data,
             };
         }
@@ -21,7 +21,7 @@ export class ZodValidator<T> implements Validator<T> {
         const {error} = result;
 
         return {
-            success: false,
+            valid: false,
             violations: error.issues.map<Violation>(
                 issue => ({
                     path: issue.path.reduce<string>(

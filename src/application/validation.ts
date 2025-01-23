@@ -4,13 +4,13 @@ export type Violation = {
 };
 
 export type ValidResult<T> = {
-    success: true,
+    valid: true,
     data: T,
     violations?: never,
 };
 
 export declare type InvalidResult = {
-    success: false,
+    valid: false,
     violations: Violation[],
     data?: never,
 };

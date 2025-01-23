@@ -5,7 +5,7 @@ export class ProviderError extends HelpfulError {
         super(message, {
             ...help,
             details: [
-                `URL: ${url}`,
+                `Resource URL: ${url}`,
                 ...(help.details ?? []),
             ],
         });

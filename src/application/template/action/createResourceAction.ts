@@ -70,7 +70,7 @@ export type ResourceCreationPlan = {
     mapping: SlugMapping,
 };
 
-export class CreateResource implements Action<CreateResourceOptions> {
+export class CreateResourceAction implements Action<CreateResourceOptions> {
     private readonly config: Configuration;
 
     public constructor(config: Configuration) {
@@ -90,11 +90,7 @@ export class CreateResource implements Action<CreateResourceOptions> {
         const configuration = await configurationManager.resolve();
         const projectInfo = await this.getProjectInfo(configuration);
 
-        const plan = await this.createPlan(
-            await context.resolveString(options.resources),
-            analysis,
-            projectInfo,
-        );
+        const plan = await this.createPlan(options.resources, analysis, projectInfo);
 
         notifier?.update('Creating resources');
 
@@ -107,7 +103,7 @@ export class CreateResource implements Action<CreateResourceOptions> {
         notifier?.stop();
 
         if (output !== undefined) {
-            const warnings = CreateResource.getWarnings(analysis, projectInfo.workspace);
+            const warnings = CreateResourceAction.getWarnings(analysis, projectInfo.workspace);
 
             if (warnings.length > 0) {
                 for (const warning of warnings) {
@@ -117,7 +113,7 @@ export class CreateResource implements Action<CreateResourceOptions> {
         }
 
         if (options.output !== undefined) {
-            CreateResource.setVariables(options.output, plan, newResources, context);
+            CreateResourceAction.setVariables(options.output, plan, newResources, context);
         }
     }
 
@@ -241,7 +237,7 @@ export class CreateResource implements Action<CreateResourceOptions> {
         const {api: {user: api}} = this.config;
 
         for (const [resource, count] of Object.entries(required) as Array<[keyof RequiredQuota, number]>) {
-            const remainingQuota = CreateResource.getRemainingQuota(projectInfo.workspace, resource);
+            const remainingQuota = CreateResourceAction.getRemainingQuota(projectInfo.workspace, resource);
 
             if (remainingQuota < count) {
                 const email = await api.getUser()
@@ -424,11 +420,5 @@ export class CreateResource implements Action<CreateResourceOptions> {
                 }
             }
         }
-    }
-}
-
-declare module '@/application/template/action/action' {
-    export interface ActionOptionsMap {
-        'create-resource': CreateResourceOptions;
     }
 }

@@ -10,12 +10,7 @@ type Requirement = {
     optional?: boolean,
 };
 
-type DependencyCheck = {
-    dependency: string,
-    issue?: string,
-};
-
-export type CheckDependenciesOptions = {
+export type CheckDependencyOptions = {
     dependencies: Requirement[],
     help?: Pick<Help, | 'links' | 'suggestions'> & {
         message?: string,
@@ -26,7 +21,12 @@ export type Configuration = {
     projectManager: ProjectManager,
 };
 
-export class CheckDependencies implements Action<CheckDependenciesOptions> {
+type DependencyCheck = {
+    dependency: string,
+    issue?: string,
+};
+
+export class CheckDependencyAction implements Action<CheckDependencyOptions> {
     private readonly config: Configuration;
 
     public constructor(config: Configuration) {
@@ -34,7 +34,7 @@ export class CheckDependencies implements Action<CheckDependenciesOptions> {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Keep the same signature as the interface
-    public async execute(options: CheckDependenciesOptions, _: ActionContext): Promise<void> {
+    public async execute(options: CheckDependencyOptions, _: ActionContext): Promise<void> {
         const results = await Promise.all(options.dependencies.map(requirement => this.check(requirement)));
         const missing = results.filter(result => result.issue !== undefined);
 
@@ -72,6 +72,6 @@ export class CheckDependencies implements Action<CheckDependenciesOptions> {
 
 declare module '@/application/template/action/action' {
     export interface ActionOptionsMap {
-        'check-dependencies': CheckDependenciesOptions;
+        'check-dependencies': CheckDependencyOptions;
     }
 }

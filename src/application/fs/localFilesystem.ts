@@ -123,32 +123,31 @@ export class LocalFilesystem implements FileSystem {
     }
 
     public async* list(path: string, recursive = false): FileSystemIterator {
-        const stats = await lstat(this.resolvePath(path));
+        const resolvedPath = this.resolvePath(path);
+        const stats = await lstat(resolvedPath);
 
         if (!stats.isDirectory()) {
-            return yield* this.createEntry(path, stats, recursive);
+            return yield* this.createEntry(basename(resolvedPath), resolvedPath, stats, recursive);
         }
 
-        const files = await readdir(this.resolvePath(path));
+        const files = await readdir(resolvedPath);
 
         for (const entry of files) {
-            const entryPath = this.joinPaths(path, entry);
-
-            yield* this.createEntry(entryPath, await lstat(entryPath), recursive);
+            yield* this.createEntry(entry, resolvedPath, await lstat(resolvedPath), recursive);
         }
     }
 
-    private async* createEntry(path: string, stats: Stats, recursive: boolean): FileSystemIterator {
+    private async* createEntry(name: string, path: string, stats: Stats, recursive: boolean): FileSystemIterator {
         if (stats.isFile()) {
             yield {
                 type: 'file',
-                name: path,
+                name: name,
                 content: createReadStream(path),
             };
         } else if (stats.isDirectory()) {
             yield {
                 type: 'directory',
-                name: path,
+                name: name,
             };
 
             if (recursive) {
@@ -157,13 +156,13 @@ export class LocalFilesystem implements FileSystem {
         } else if (stats.isSymbolicLink()) {
             yield {
                 type: 'symlink',
-                name: path,
+                name: name,
                 target: await realpath(path),
             };
         } else {
             yield {
                 type: 'link',
-                name: path,
+                name: name,
                 target: await realpath(path),
             };
         }
@@ -201,7 +200,9 @@ export class LocalFilesystem implements FileSystem {
         });
 
         for await (const file of glob) {
-            yield* this.createEntry(file, await lstat(file), false);
+            const path = this.resolvePath(file);
+
+            yield* this.createEntry(file, path, await lstat(path), false);
         }
     }
 

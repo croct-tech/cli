@@ -1,7 +1,5 @@
 import {RootDefinition} from '@croct/content-model/definition/definition';
-import {Content} from '@croct/content-model/content/content';
-
-export type LocalizedSlotContent = Record<string, Content<'structure'>>;
+import {LocalizedContentMap} from '@/application/model/experience';
 
 export type Slot = {
     id: string,
@@ -23,5 +21,5 @@ export type Slot = {
         minor: number,
     },
     resolvedDefinition: RootDefinition,
-    content: LocalizedSlotContent,
+    content: LocalizedContentMap,
 };

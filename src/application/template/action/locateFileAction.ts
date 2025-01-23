@@ -3,17 +3,17 @@ import {FileSystem} from '@/application/fs/fileSystem';
 import {ActionContext} from '@/application/template/action/context';
 import {ErrorReason} from '@/application/error';
 
-type PatternMatcher = {
+export type PatternMatcher = {
     pattern: string,
     caseSensitive?: boolean,
 };
 
-type CombinationMatcher = {
+export type CombinationMatcher = {
     type: 'and' | 'or',
-    matchers: PatternMatcher[],
+    matchers: Matcher[],
 };
 
-type Matcher = PatternMatcher | CombinationMatcher;
+export type Matcher = PatternMatcher | CombinationMatcher;
 
 export type LocateFileOptions = {
     path: string,
@@ -29,7 +29,7 @@ export type Configuration = {
     fileSystem: FileSystem,
 };
 
-export class LocateFile implements Action<LocateFileOptions> {
+export class LocateFileAction implements Action<LocateFileOptions> {
     private readonly config: Configuration;
 
     public constructor(config: Configuration) {
@@ -37,13 +37,12 @@ export class LocateFile implements Action<LocateFileOptions> {
     }
 
     public async execute(options: LocateFileOptions, context: ActionContext): Promise<void> {
-        const pattern = await context.resolveString(options.path);
-        const matches = await this.findMatch(pattern, options, context);
+        const matches = await this.findMatch(options.path, options);
 
         if (matches.length === 0) {
             throw new ActionError('No matching files found', {
                 reason: ErrorReason.PRECONDITION,
-                details: [`Pattern: ${pattern}`],
+                details: [`Pattern: ${options.path}`],
             });
         }
 
@@ -68,7 +67,7 @@ export class LocateFile implements Action<LocateFileOptions> {
         }
     }
 
-    private async findMatch(path: string, options: LocateFileOptions, context: ActionContext): Promise<string[]> {
+    private async findMatch(path: string, options: LocateFileOptions): Promise<string[]> {
         const {fileSystem} = this.config;
 
         const matches: string[] = [];
@@ -79,7 +78,7 @@ export class LocateFile implements Action<LocateFileOptions> {
             } else if (file.type === 'file') {
                 const content = await new Response(file.content).text();
 
-                if (await this.matches(content, options.matcher, context)) {
+                if (this.matches(content, options.matcher)) {
                     matches.push(file.name);
                 }
             }
@@ -92,27 +91,17 @@ export class LocateFile implements Action<LocateFileOptions> {
         return matches;
     }
 
-    private async matches(content: string, matcher: Matcher, context: ActionContext): Promise<boolean> {
+    private matches(content: string, matcher: Matcher): boolean {
         if ('pattern' in matcher) {
-            const pattern = await context.resolveString(matcher.pattern);
-
-            const flags = matcher.caseSensitive === true ? 'i' : undefined;
-
-            return new RegExp(pattern, flags).test(content);
+            return new RegExp(matcher.pattern, matcher.caseSensitive === true ? 'i' : undefined).test(content);
         }
 
         switch (matcher.type) {
             case 'and':
-                return matcher.matchers.every(subMatcher => this.matches(content, subMatcher, context));
+                return matcher.matchers.every(subMatcher => this.matches(content, subMatcher));
 
             case 'or':
-                return matcher.matchers.some(subMatcher => this.matches(content, subMatcher, context));
+                return matcher.matchers.some(subMatcher => this.matches(content, subMatcher));
         }
-    }
-}
-
-declare module '@/application/template/action/action' {
-    export interface ActionOptionsMap {
-        'locate-file': LocateFileOptions;
     }
 }

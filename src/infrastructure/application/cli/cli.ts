@@ -75,7 +75,7 @@ import {
 import {ApiError} from '@/application/api/error';
 import {UpgradeCommand, UpgradeInput} from '@/application/cli/command/upgrade';
 import {ConfigurationError} from '@/application/project/configuration/configuration';
-import {FileSystem} from '@/application/fs/fileSystem';
+import {FileSystem, FileSystemIterator} from '@/application/fs/fileSystem';
 import {LocalFilesystem} from '@/application/fs/localFilesystem';
 import {ImportConfigLoader} from '@/application/project/manager/importConfigLoader';
 import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
@@ -94,47 +94,74 @@ import {CreateTemplateCommand, CreateTemplateInput} from '@/application/cli/comm
 import {TemplateForm} from '@/application/cli/form/workspace/templateForm';
 import {ExperienceForm} from '@/application/cli/form/workspace/experienceForm';
 import {AudienceForm} from '@/application/cli/form/workspace/audienceForm';
-import {ImportTemplateCommand, ImportTemplateInput, LoadedTemplate} from '@/application/cli/command/template/import';
-import {Download} from '@/application/template/action/download';
-import {ActionRunner} from '@/application/template/action/runner';
-import {ResolveImportFile} from '@/application/template/action/resolveImport';
-import {AddDependency} from '@/application/template/action/addDependency';
-import {LocateFile} from '@/application/template/action/locateFile';
-import {ReplaceFileContent} from '@/application/template/action/replaceFileContent';
-import {OptionMap, Template} from '@/application/template/template';
-import {AddSlot} from '@/application/template/action/addSlot';
-import {AddComponent} from '@/application/template/action/addComponent';
-import {Try} from '@/application/template/action/try';
-import {ActionMap} from '@/application/template/action/action';
+import {ImportTemplateCommand, ImportTemplateInput} from '@/application/cli/command/template/import';
+import {DownloadAction} from '@/application/template/action/downloadAction';
+import {ResolveImportAction} from '@/application/template/action/resolveImportAction';
+import {AddDependencyAction} from '@/application/template/action/addDependencyAction';
+import {LocateFileAction} from '@/application/template/action/locateFileAction';
+import {ReplaceFileContentAction} from '@/application/template/action/replaceFileContentAction';
+import {OptionMap} from '@/application/template/template';
+import {AddSlotAction} from '@/application/template/action/addSlotAction';
+import {AddComponentAction} from '@/application/template/action/addComponentAction';
+import {TryAction, TryOptions} from '@/application/template/action/tryAction';
 import {LazyAction} from '@/application/template/action/lazyAction';
 import {CachedConfigurationManager} from '@/application/project/configuration/manager/cachedConfigurationManager';
 import {ConfigurationFileManager} from '@/application/project/configuration/manager/configurationFileManager';
 import {CachedSdkResolver} from '@/application/project/sdk/cachedSdkResolver';
-import {CreateResource} from '@/application/template/action/createResource';
+import {CreateResourceAction} from '@/application/template/action/createResourceAction';
 import {SlugMappingForm} from '@/application/cli/form/workspace/slugMappingForm';
 import {ResourceMatcher} from '@/application/template/resourceMatcher';
 import {FetchProvider} from '@/application/template/provider/fetchProvider';
-import {CheckDependencies} from '@/application/template/action/checkDependencies';
+import {CheckDependencyAction} from '@/application/template/action/checkDependencyAction';
 import {HttpProvider} from '@/application/template/provider/httpProvider';
 import {DenormalizedRegistry, MappedProvider, Registry} from '@/application/template/provider/mappedProvider';
 import {MultiProvider} from '@/application/template/provider/multiProvider';
 import {FileSystemProvider} from '@/application/template/provider/fileSystemProvider';
 import {GithubProvider} from '@/application/template/provider/githubProvider';
 import {HttpFileProvider} from '@/application/template/provider/httpFileProvider';
-import {Provider} from '@/application/template/provider/provider';
+import {Provider, ProviderOptions} from '@/application/template/provider/provider';
 import {AdaptedProvider} from '@/application/template/provider/adaptedProvider';
 import {HelpfulError, ErrorReason} from '@/application/error';
-import {PartialNpmPackageValidator} from '@/infrastructure/application/validation/PartialNpmPackageValidator';
+import {PartialNpmPackageValidator} from '@/infrastructure/application/validation/partialNpmPackageValidator';
 import {PartialTsconfigValidator} from '@/infrastructure/application/validation/partialTsconfigValidator';
 import {CroctConfigurationValidator} from '@/infrastructure/application/validation/croctConfigurationValidator';
 import {ConstantProvider} from '@/application/template/provider/constantProvider';
 import {ValidatedProvider} from '@/application/template/provider/validatedProvider';
 import {FileContentProvider} from '@/application/template/provider/fileContentProvider';
 import {JsonProvider} from '@/application/template/provider/jsonProvider';
-import {ValidationResult} from '@/application/validation';
 import {RegistryValidator} from '@/infrastructure/application/validation/registryValidator';
 import {FileSystemCache} from '@/infrastructure/fileSystemCache';
 import {CachedProvider} from '@/application/template/provider/cachedProvider';
+import {JsepExpressionEvaluator} from '@/infrastructure/application/evaluation/jsepExpressionEvaluator';
+import {TemplateValidator} from '@/infrastructure/application/validation/templateValidator';
+import {ImportAction, ImportOptions} from '@/application/template/action/importAction';
+import {ApplicationPlatform} from '@/application/model/application';
+import {Action} from '@/application/template/action/action';
+import {ValidatedAction} from '@/application/template/action/validatedAction';
+import {TryOptionsValidator} from '@/infrastructure/application/validation/actions/tryOptionsValidator';
+import {
+    CheckDependenciesOptionsValidator,
+} from '@/infrastructure/application/validation/actions/checkDependenciesOptionsValidator';
+import {DownloadOptionsValidator} from '@/infrastructure/application/validation/actions/downloadOptionsValidator';
+import {
+    ResolveImportOptionsValidator,
+} from '@/infrastructure/application/validation/actions/resolveImportOptionsValidator';
+import {
+    AddDependencyOptionsValidator,
+} from '@/infrastructure/application/validation/actions/addDependencyOptionsValidator';
+import {LocateFileOptionsValidator} from '@/infrastructure/application/validation/actions/locateFileOptionsValidator';
+import {
+    ReplaceFileContentOptionsValidator,
+} from '@/infrastructure/application/validation/actions/replaceFileContentOptionsValidator';
+import {AddSlotOptionsValidator} from '@/infrastructure/application/validation/actions/addSlotOptionsValidator';
+import {
+    AddComponentOptionsValidator,
+} from '@/infrastructure/application/validation/actions/addComponentOptionsValidator';
+import {
+    CreateResourceOptionsValidator,
+} from '@/infrastructure/application/validation/actions/createResourceOptionsValidator';
+import {ImportOptionsValidator} from '@/infrastructure/application/validation/actions/importOptionsValidator';
+import {TemplateProvider} from '@/application/template/provider/templateProvider';
 
 export type Configuration = {
     io: {
@@ -157,7 +184,7 @@ export type Configuration = {
     quiet: boolean,
     interactive: boolean,
     exitCallback: ExitCallback,
-    templateRegistry: URL,
+    nameRegistry: URL,
 };
 
 type AuthenticationMethods = {
@@ -170,7 +197,7 @@ type AuthenticationInput = MultiAuthenticationInput<AuthenticationMethods>;
 export class Cli {
     private readonly configuration: Configuration;
 
-    private fileSystem: FileSystem;
+    private fileSystem?: FileSystem;
 
     private authenticator?: Authenticator<AuthenticationInput>;
 
@@ -196,9 +223,13 @@ export class Cli {
 
     private emailLinkGenerator?: EmailLinkGenerator;
 
-    private httpProvider: HttpProvider;
+    private httpProvider?: HttpProvider;
 
-    private cache: CacheProvider<string, string>;
+    private importAction?: Action<ImportOptions>;
+
+    private fileProvider?: Provider<FileSystemIterator>;
+
+    private cache?: CacheProvider<string, string>;
 
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
@@ -402,9 +433,7 @@ export class Cli {
     }
 
     public importTemplate(input: ImportTemplateInput): Promise<void> {
-        const command = this.getImportTemplateCommand();
-
-        return this.execute(command, input);
+        return this.execute(this.getImportTemplateCommand(), input);
     }
 
     public async getTemplateOptions(template: string): Promise<OptionMap> {
@@ -422,11 +451,12 @@ export class Cli {
 
     private getImportTemplateCommand(): ImportTemplateCommand {
         return new ImportTemplateCommand({
-            provider: this.getTemplateProvider(),
+            templateProvider: new ValidatedProvider({
+                provider: new JsonProvider(this.createTemplateProvider(this.getFileContentProvider())),
+                validator: new TemplateValidator(),
+            }),
             fileSystem: this.getFileSystem(),
-            actionRunner: this.getActionRunner(),
-            configurationManager: this.getConfigurationManager(),
-            sdkResolver: this.getSdkResolver(),
+            action: this.getImportAction(),
             io: {
                 input: this.getInput(),
                 output: this.getOutput(),
@@ -514,166 +544,247 @@ export class Cli {
         return this.output;
     }
 
-    private getTemplateProvider(): Provider<LoadedTemplate> {
-        const httpProvider = this.getHttpProvider();
-        const fileProvider = new MultiProvider(
-            new FileSystemProvider(this.getFileSystem()),
-            new GithubProvider(httpProvider),
-            new HttpFileProvider(httpProvider),
-        );
-
+    private createTemplateProvider<T, O extends ProviderOptions>(provider: Provider<T, O>): Provider<T, O> {
         return new MappedProvider({
-            dataProvider: new MappedProvider({
-                dataProvider: new AdaptedProvider({
-                    provider: new ValidatedProvider({
-                        provider: new JsonProvider(new FileContentProvider(fileProvider)),
-                        validator: {
-                            validate: function validate(data: unknown): ValidationResult<Template> {
-                                // @todo implement validator
-                                return {
-                                    success: true,
-                                    data: data as Template,
-                                };
-                            },
-                        },
-                    }),
-                    adapter: (template: Template, url: URL): Promise<LoadedTemplate> => Promise.resolve({
-                        template: template,
-                        url: url,
-                    }),
-                }),
-                registryProvider: new ConstantProvider<Registry>([
-                    {
-                        // Any URL not ending with a file extension, excluding the trailing slash
-                        pattern: /^(.+?:\/+[^/]+(\/+[^/.]+|\/[^/]+(?=\/))*)\/*$/,
-                        destination: '$1/template.json',
-                    },
-                ]),
-            }),
-            registryProvider: new MappedProvider({
-                dataProvider: new CachedProvider({
-                    cache: new StaleWhileRevalidateCache<string, DenormalizedRegistry>({
-                        freshPeriod: 60,
-                        cacheProvider: AdaptedCache.transformValues(
-                            this.getCache('template-registry'),
-                            TimestampedCacheEntry.toJSON,
-                            TimestampedCacheEntry.fromJSON,
-                        ),
-                    }),
-                    provider: new ValidatedProvider({
-                        provider: new JsonProvider(new FileContentProvider(fileProvider)),
-                        validator: new RegistryValidator(),
-                    }),
-                }),
-                registryProvider: new ConstantProvider<Registry>([{
-                    pattern: /.*/,
-                    destination: this.configuration.templateRegistry,
-                }]),
-            }),
+            dataProvider: provider,
+            registryProvider: new ConstantProvider<Registry>([
+                {
+                    // Any URL not ending with a file extension, excluding the trailing slash
+                    pattern: /^(.+?:\/+[^/]+(\/+[^/.]+|\/[^/]+(?=\/))*)\/*$/,
+                    destination: '$1/template.json',
+                },
+            ]),
         });
     }
 
-    private getActionRunner(): ActionRunner {
+    private getFileContentProvider(): Provider<string> {
+        return new FileContentProvider(this.getFileProvider());
+    }
+
+    private getFileProvider(): Provider<FileSystemIterator> {
+        if (this.fileProvider === undefined) {
+            this.fileProvider = this.createFileProvider();
+        }
+
+        return this.fileProvider;
+    }
+
+    private createFileProvider(): Provider<FileSystemIterator> {
+        const httpProvider = this.getHttpProvider();
+        const localProvider = new FileSystemProvider(this.getFileSystem());
+        const remoteProviders = [
+            new GithubProvider(httpProvider),
+            new HttpFileProvider(httpProvider),
+        ];
+
+        return new MultiProvider(
+            localProvider,
+            new MappedProvider({
+                dataProvider: new MultiProvider(remoteProviders[0], ...remoteProviders.slice(1)),
+                registryProvider: new MappedProvider({
+                    dataProvider: new CachedProvider({
+                        cache: new StaleWhileRevalidateCache<string, DenormalizedRegistry>({
+                            freshPeriod: 60,
+                            cacheProvider: AdaptedCache.transformValues(
+                                this.getCache('name-registry'),
+                                TimestampedCacheEntry.toJSON,
+                                TimestampedCacheEntry.fromJSON,
+                            ),
+                        }),
+                        provider: new ValidatedProvider({
+                            provider: new JsonProvider(
+                                new FileContentProvider(
+                                    new MultiProvider(localProvider, ...remoteProviders),
+                                ),
+                            ),
+                            validator: new RegistryValidator(),
+                        }),
+                    }),
+                    registryProvider: new ConstantProvider<Registry>([{
+                        pattern: /.*/,
+                        destination: this.configuration.nameRegistry,
+                    }]),
+                }),
+            }),
+        );
+    }
+
+    private getImportAction(): Action<ImportOptions> {
+        if (this.importAction === undefined) {
+            this.importAction = this.createImportAction();
+        }
+
+        return this.importAction;
+    }
+
+    private createImportAction(): Action<ImportOptions> {
         const fileSystem = this.getFileSystem();
         const projectManager = this.createJavaScriptProjectManager();
-        const httpProvider = this.getHttpProvider();
 
-        const actions: ActionMap = {
-            try: new LazyAction(() => new Try(actions)),
-            'check-dependencies': new CheckDependencies({
-                projectManager: projectManager,
+        const actions = {
+            try: new ValidatedAction<TryOptions>({
+                action: new LazyAction((): TryAction => new TryAction(actions)),
+                validator: new TryOptionsValidator(),
             }),
-            download: new Download({
-                fileSystem: fileSystem,
-                provider: new MultiProvider(
-                    new FileSystemProvider(this.getFileSystem()),
-                    new GithubProvider(httpProvider),
-                    new HttpFileProvider(httpProvider),
-                ),
-            }),
-            'resolve-import': new ResolveImportFile({
-                importResolver: (target, source) => projectManager.getImportPath(target, source),
-            }),
-            'add-dependency': new AddDependency({
-                installer: (dependencies, development) => projectManager.installPackage(dependencies, {
-                    dev: development,
+            'check-dependencies': new ValidatedAction({
+                action: new CheckDependencyAction({
+                    projectManager: projectManager,
                 }),
+                validator: new CheckDependenciesOptionsValidator(),
             }),
-            'locate-file': new LocateFile({
-                fileSystem: fileSystem,
-            }),
-            'replace-file-content': new ReplaceFileContent({
-                fileSystem: fileSystem,
-            }),
-            'add-slot': new AddSlot({
-                installer: (slots, example): Promise<void> => {
-                    const output = this.getNonInteractiveOutput(true);
-
-                    return this.execute(
-                        new AddSlotCommand({
-                            sdkResolver: this.getSdkResolver(),
-                            configurationManager: this.getConfigurationManager(),
-                            workspaceApi: this.getWorkspaceApi(),
-                            slotForm: new SlotForm({
-                                input: this.getNonInteractiveInput(),
-                                output: output,
-                                workspaceApi: this.getWorkspaceApi(),
-                            }),
-                            io: {
-                                output: output,
-                            },
-                        }),
-                        {
-                            slots: slots,
-                            example: example,
-                        },
-                    );
-                },
-            }),
-            'add-component': new AddComponent({
-                installer: (components): Promise<void> => {
-                    const output = this.getNonInteractiveOutput(true);
-
-                    return this.execute(
-                        new AddComponentCommand({
-                            sdkResolver: this.getSdkResolver(),
-                            configurationManager: this.getConfigurationManager(),
-                            componentForm: new ComponentForm({
-                                input: this.getNonInteractiveInput(),
-                                output: output,
-                                workspaceApi: this.getWorkspaceApi(),
-                            }),
-                            io: {
-                                output: output,
-                            },
-                        }),
-                        {
-                            components: components,
-                        },
-                    );
-                },
-            }),
-            'create-resource': new CreateResource({
-                configurationManager: this.getConfigurationManager(),
-                matcher: new ResourceMatcher({
-                    workspaceApi: this.getWorkspaceApi(),
+            download: new ValidatedAction({
+                action: new DownloadAction({
+                    fileSystem: fileSystem,
+                    provider: this.getFileProvider(),
                 }),
-                api: {
-                    user: this.getUserApi(),
-                    workspace: this.getWorkspaceApi(),
-                    organization: this.getOrganizationApi(),
-                },
-                mappingForm: new SlugMappingForm({
-                    input: this.getFormInput({
-                        message: 'Some resource IDs are in use and interactive mode is required to assign new ones.',
-                        suggestions: ['Retry in interactive mode'],
+                validator: new DownloadOptionsValidator(),
+            }),
+            'resolve-import': new ValidatedAction({
+                action: new ResolveImportAction({
+                    importResolver: (target, source) => projectManager.getImportPath(target, source),
+                }),
+                validator: new ResolveImportOptionsValidator(),
+            }),
+            'add-dependency': new ValidatedAction({
+                action: new AddDependencyAction({
+                    installer: (dependencies, development) => projectManager.installPackage(dependencies, {
+                        dev: development,
                     }),
-                    workspaceApi: this.getWorkspaceApi(),
                 }),
+                validator: new AddDependencyOptionsValidator(),
             }),
-        };
+            'locate-file': new ValidatedAction({
+                action: new LocateFileAction({
+                    fileSystem: fileSystem,
+                }),
+                validator: new LocateFileOptionsValidator(),
+            }),
+            'replace-file-content': new ValidatedAction({
+                action: new ReplaceFileContentAction({
+                    fileSystem: fileSystem,
+                }),
+                validator: new ReplaceFileContentOptionsValidator(),
+            }),
+            'add-slot': new ValidatedAction({
+                action: new AddSlotAction({
+                    installer: (slots, example): Promise<void> => {
+                        const output = this.getNonInteractiveOutput(true);
 
-        return new ActionRunner(actions);
+                        return this.execute(
+                            new AddSlotCommand({
+                                sdkResolver: this.getSdkResolver(),
+                                configurationManager: this.getConfigurationManager(),
+                                workspaceApi: this.getWorkspaceApi(),
+                                slotForm: new SlotForm({
+                                    input: this.getNonInteractiveInput(),
+                                    output: output,
+                                    workspaceApi: this.getWorkspaceApi(),
+                                }),
+                                io: {
+                                    output: output,
+                                },
+                            }),
+                            {
+                                slots: slots,
+                                example: example,
+                            },
+                        );
+                    },
+                }),
+                validator: new AddSlotOptionsValidator(),
+            }),
+            'add-component': new ValidatedAction({
+                action: new AddComponentAction({
+                    installer: (components): Promise<void> => {
+                        const output = this.getNonInteractiveOutput(true);
+
+                        return this.execute(
+                            new AddComponentCommand({
+                                sdkResolver: this.getSdkResolver(),
+                                configurationManager: this.getConfigurationManager(),
+                                componentForm: new ComponentForm({
+                                    input: this.getNonInteractiveInput(),
+                                    output: output,
+                                    workspaceApi: this.getWorkspaceApi(),
+                                }),
+                                io: {
+                                    output: output,
+                                },
+                            }),
+                            {
+                                components: components,
+                            },
+                        );
+                    },
+                }),
+                validator: new AddComponentOptionsValidator(),
+            }),
+            'create-resource': new ValidatedAction({
+                action: new CreateResourceAction({
+                    configurationManager: this.getConfigurationManager(),
+                    matcher: new ResourceMatcher({
+                        workspaceApi: this.getWorkspaceApi(),
+                    }),
+                    api: {
+                        user: this.getUserApi(),
+                        workspace: this.getWorkspaceApi(),
+                        organization: this.getOrganizationApi(),
+                    },
+                    mappingForm: new SlugMappingForm({
+                        input: this.getFormInput({
+                            message: 'Some resource IDs are in use and interactive mode is '
+                                + 'required to assign new ones.',
+                            suggestions: ['Retry in interactive mode'],
+                        }),
+                        workspaceApi: this.getWorkspaceApi(),
+                    }),
+                }),
+                validator: new CreateResourceOptionsValidator(),
+            }),
+            import: new ValidatedAction<ImportOptions>({
+                action: new LazyAction(
+                    (): Action<ImportOptions> => {
+                        const configurationManager = this.getConfigurationManager();
+                        const sdkResolver = this.getSdkResolver();
+
+                        return new ImportAction({
+                            actions: actions,
+                            templateProvider: new AdaptedProvider({
+                                provider: this.createTemplateProvider(
+                                    new TemplateProvider({
+                                        evaluator: new JsepExpressionEvaluator(),
+                                        validator: new TemplateValidator(),
+                                        provider: this.getFileContentProvider(),
+                                    }),
+                                ),
+                                adapter: (template, url) => ({
+                                    url: url,
+                                    template: template,
+                                }),
+                            }),
+                            variables: {
+                                project: {
+                                    path: {
+                                        example: async () => (await configurationManager.resolve()).paths.examples,
+                                        component: async () => (await configurationManager.resolve()).paths.components,
+                                    },
+                                    platform: async (): Promise<string> => {
+                                        const sdk = await sdkResolver.resolve();
+
+                                        return ApplicationPlatform.getName(sdk.getPlatform())
+                                            .toLowerCase()
+                                            .replace(/[^a-z0-9]+/g, '-');
+                                    },
+                                },
+                            },
+                        });
+                    },
+                ),
+                validator: new ImportOptionsValidator(),
+            }),
+        } satisfies Record<string, ValidatedAction<any>>;
+
+        return actions.import;
     }
 
     private getHttpProvider(): HttpProvider {
