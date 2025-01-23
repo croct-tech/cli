@@ -3,10 +3,9 @@ import isUnicodeSupported from 'is-unicode-supported';
 import {render as renderMarkdown} from '@croct/md-lite/rendering';
 import terminalLink from 'terminal-link';
 import {unescape as unescapeMarkdown} from '@croct/md-lite/parsing';
+import {Semantic} from '@/application/cli/io/output';
 
 const unicodeSupport = isUnicodeSupported();
-
-export type Semantic = 'neutral' | 'info' | 'error' | 'warning' | 'success';
 
 const colors: Record<Semantic, ForegroundColorName> = {
     neutral: 'cyan',

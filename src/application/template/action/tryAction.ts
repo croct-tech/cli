@@ -1,4 +1,4 @@
-import {Action, ActionError, ActionOptions} from '@/application/template/action/action';
+import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {ErrorReason, Help} from '@/application/error';
 import {ActionDefinition} from '@/application/template/template';
@@ -18,7 +18,7 @@ export class TryAction implements Action<TryOptions> {
         this.actions = actions;
     }
 
-    public async execute(options: ActionOptions, context: ActionContext): Promise<void> {
+    public async execute(options: TryOptions, context: ActionContext): Promise<void> {
         try {
             await this.try(options.action, context);
         } catch (error) {

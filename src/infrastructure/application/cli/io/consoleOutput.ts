@@ -3,9 +3,9 @@ import chalk from 'chalk';
 import boxen, {Options as BoxenOptions} from 'boxen';
 import terminalLink from 'terminal-link';
 import {Writable, PassThrough} from 'stream';
-import {Output, Notifier, TaskList, TaskResolver} from '@/application/cli/io/output';
+import {Output, Notifier, TaskList, TaskResolver, Semantic} from '@/application/cli/io/output';
 import {InteractiveTaskMonitor} from '@/infrastructure/application/cli/io/interactiveTaskMonitor';
-import {format, Semantic} from '@/infrastructure/application/cli/io/formatting';
+import {format} from '@/infrastructure/application/cli/io/formatting';
 import {TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
 import {NonInteractiveTaskMonitor} from '@/infrastructure/application/cli/io/nonInteractiveTaskMonitor';
 import {HelpfulError, ErrorReason, Help} from '@/application/error';
@@ -68,8 +68,8 @@ export class ConsoleOutput implements Output {
         this.write('\n');
     }
 
-    public log(text: string): void {
-        this.writeLog(text, 'neutral');
+    public log(text: string, semantic?: Semantic): void {
+        this.writeLog(text, semantic ?? 'neutral');
     }
 
     public confirm(text: string): void {

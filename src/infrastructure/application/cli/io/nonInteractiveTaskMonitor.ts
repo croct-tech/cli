@@ -1,7 +1,7 @@
 import {Writable} from 'stream';
-import {TaskList, Notifier} from '@/application/cli/io/output';
+import {TaskList, Notifier, Semantic} from '@/application/cli/io/output';
 import {TaskExecution, TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
-import {format, Semantic} from '@/infrastructure/application/cli/io/formatting';
+import {format} from '@/infrastructure/application/cli/io/formatting';
 
 type InternalNotifier = Notifier & {
     stopped: boolean,

@@ -30,8 +30,10 @@ export type TaskList = TaskOptions & {
     tasks: Task[],
 };
 
+export type Semantic = 'neutral' | 'info' | 'error' | 'warning' | 'success';
+
 export interface Logger {
-    log(message: string): void;
+    log(message: string, semantic?: Semantic): void;
     inform(message: string): void;
     warn(message: string): void;
     alert(message: string): void;

@@ -167,6 +167,10 @@ import {FormatCodeAction} from '@/application/template/action/formatCodeAction';
 import {FormatCodeOptionsValidator} from '@/infrastructure/application/validation/actions/formatCodeOptionsValidator';
 import {EnumeratedProvider} from '@/application/provider/enumeratedProvider';
 import {ParameterlessProvider} from '@/application/provider/parameterlessProvider';
+import {TestAction, TestOptions} from '@/application/template/action/test';
+import {TestOptionsValidator} from '@/infrastructure/application/validation/actions/testOptionsValidator';
+import {LogAction, LogOptions} from '@/application/template/action/logAction';
+import {LogOptionsValidator} from '@/infrastructure/application/validation/actions/logOptionsValidator';
 
 export type Configuration = {
     io: {
@@ -639,6 +643,14 @@ export class Cli {
             try: new ValidatedAction<TryOptions>({
                 action: new LazyAction((): TryAction => new TryAction(actions)),
                 validator: new TryOptionsValidator(),
+            }),
+            test: new ValidatedAction<TestOptions>({
+                action: new LazyAction((): TestAction => new TestAction(actions)),
+                validator: new TestOptionsValidator(),
+            }),
+            log: new ValidatedAction<LogOptions>({
+                action: new LogAction({logger: this.getOutput()}),
+                validator: new LogOptionsValidator(),
             }),
             'check-dependencies': new ValidatedAction({
                 action: new CheckDependencyAction({
