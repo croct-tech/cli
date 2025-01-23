@@ -255,6 +255,7 @@ export class TemplateProvider<O extends ProviderOptions> implements Provider<Def
                                     ),
                                 },
                             },
+                            baseUrl,
                         );
                     },
                 },
@@ -276,7 +277,16 @@ export class TemplateProvider<O extends ProviderOptions> implements Provider<Def
         }
     }
 
-    private async import(url: URL, variables: VariableMap): Promise<JsonValue> {
+    private async import(url: URL, variables: VariableMap, baseUrl: URL): Promise<JsonValue> {
+        if (url.protocol === 'file:' && baseUrl.protocol !== 'file:') {
+            throw new ProviderError('File URL is not allowed from remote sources for security reasons.', url, {
+                reason: ErrorReason.PRECONDITION,
+                details: [
+                    `Source URL: ${url}`,
+                ],
+            });
+        }
+
         if (this.loading.includes(url.toString())) {
             const chain = [...this.loading, url.href].map((path, index) => ` ${index + 1}. ${path}`)
                 .join('\n');

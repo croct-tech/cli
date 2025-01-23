@@ -32,7 +32,24 @@ export class ImportAction implements Action<ImportOptions> {
     }
 
     public async execute(options: ImportOptions, context: ActionContext): Promise<void> {
-        const {url, template} = await this.loadTemplate(options.template, context.baseUrl);
+        const {output} = context;
+
+        const notifier = output.notify('Loading template');
+
+        let template: DeferredTemplate;
+        let url: URL;
+        let input: VariableMap;
+
+        try {
+            const result = await this.loadTemplate(options.template, context.baseUrl);
+
+            template = result.template;
+            url = result.url;
+
+            input = this.getInputValues(template, options.input);
+        } finally {
+            notifier.stop();
+        }
 
         if (this.resolving.includes(url.href)) {
             const chain = [...this.resolving, url.href].map((path, index) => ` ${index + 1}. ${path}`)
@@ -45,14 +62,16 @@ export class ImportAction implements Action<ImportOptions> {
 
         this.resolving.push(url.toString());
 
-        const subContext = new ActionContext({
-            input: context.input,
-            output: context.output,
-            baseUrl: url,
-        });
-
         try {
-            await this.run(template, this.getInputValues(template, options.input), subContext);
+            await this.run(
+                template,
+                input,
+                new ActionContext({
+                    input: context.input,
+                    output: context.output,
+                    baseUrl: url,
+                }),
+            );
         } finally {
             this.resolving.pop();
         }
@@ -122,7 +141,7 @@ export class ImportAction implements Action<ImportOptions> {
             } catch (error) {
                 throw ActionError.fromCause(error, {
                     details: [
-                        `Action \`${name}\` from ${context.baseUrl}`,
+                        `Action: \`${name}\` from ${context.baseUrl}`,
                         ...(error instanceof HelpfulError ? error.help.details ?? [] : []),
                     ],
                 });

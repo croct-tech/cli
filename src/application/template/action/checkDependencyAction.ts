@@ -69,9 +69,3 @@ export class CheckDependencyAction implements Action<CheckDependencyOptions> {
         };
     }
 }
-
-declare module '@/application/template/action/action' {
-    export interface ActionOptionsMap {
-        'check-dependencies': CheckDependencyOptions;
-    }
-}

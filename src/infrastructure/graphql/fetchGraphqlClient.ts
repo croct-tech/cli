@@ -46,9 +46,14 @@ export class FetchGraphqlClient implements GraphqlClient {
             }),
         });
 
-        return response.json().then(({data, errors}: GraphqlResponseBody<TResult>) => {
+        return response.json().then(result => {
+            const {data, errors} = result as GraphqlResponseBody<TResult>;
+
             if (errors !== undefined) {
-                throw new ApiError(errors[0].message, errors.map(({extensions}) => extensions));
+                throw new ApiError(
+                    errors[0].message,
+                    errors.map(({extensions}) => extensions),
+                );
             }
 
             return {

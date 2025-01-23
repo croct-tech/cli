@@ -35,7 +35,7 @@ export class DownloadAction implements Action<DownloadOptions> {
         if (sourceUrl.protocol === 'file:' && context.baseUrl.protocol !== 'file:') {
             throw new ActionError('File URL is not allowed from remote sources for security reasons.', {
                 reason: ErrorReason.PRECONDITION,
-                suggestions: [
+                details: [
                     `Source URL: ${sourceUrl}`,
                 ],
             });
@@ -132,11 +132,5 @@ export class DownloadAction implements Action<DownloadOptions> {
         url.pathname = `${url.pathname.replace(/\/([^/]*\.[^/]+)?$/, '')}/${source}`;
 
         return url;
-    }
-}
-
-declare module '@/application/template/action/action' {
-    export interface ActionOptionsMap {
-        'download': DownloadOptions;
     }
 }

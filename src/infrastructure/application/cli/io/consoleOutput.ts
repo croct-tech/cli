@@ -65,32 +65,26 @@ export class ConsoleOutput implements Output {
     }
 
     public break(): void {
-        this.stop();
         this.write('\n');
     }
 
     public log(text: string): void {
-        this.stop();
         this.writeLog(text, 'neutral');
     }
 
     public confirm(text: string): void {
-        this.stop();
         this.writeLog(text, 'success');
     }
 
     public inform(text: string): void {
-        this.stop();
         this.writeLog(text, 'info');
     }
 
     public warn(text: string): void {
-        this.stop();
         this.writeLog(text, 'warning');
     }
 
     public alert(text: string): void {
-        this.stop();
         this.writeLog(text, 'error');
     }
 
@@ -272,7 +266,9 @@ export class ConsoleOutput implements Output {
 
     private write(text: string, critical = false): void {
         if (!this.quiet || critical) {
+            this.suspend();
             this.output.write(text);
+            this.resume();
         }
     }
 }

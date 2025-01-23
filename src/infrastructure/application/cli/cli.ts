@@ -3,6 +3,7 @@ import * as process from 'node:process';
 import {
     AdaptedCache,
     CacheProvider,
+    InMemoryCache,
     NoopCache,
     PrefixedCache,
     StaleWhileRevalidateCache,
@@ -789,7 +790,10 @@ export class Cli {
 
     private getHttpProvider(): HttpProvider {
         if (this.httpProvider === undefined) {
-            this.httpProvider = new FetchProvider();
+            this.httpProvider = new CachedProvider({
+                provider: new FetchProvider(),
+                cache: new InMemoryCache(),
+            });
         }
 
         return this.httpProvider;
@@ -1249,9 +1253,8 @@ export class Cli {
                         suggestions: ['Run `init` to create a new configuration.'],
                     },
                 );
-
-            default:
-                return error;
         }
+
+        return error;
     }
 }

@@ -394,7 +394,7 @@ export abstract class JavaScriptSdk implements Sdk {
 
         const packageJson = JsonParser.parse(content, JsonObjectNode);
 
-        let command = 'croct install';
+        let command = 'croct install --no-interaction';
 
         if (packageJson.has('scripts')) {
             const scripts = packageJson.get('scripts', JsonObjectNode);
@@ -403,7 +403,7 @@ export abstract class JavaScriptSdk implements Sdk {
                 const postInstall = scripts.get('postinstall');
                 const value = postInstall.toJSON();
 
-                if (typeof value === 'string' && value.includes('croct install --no-interaction')) {
+                if (typeof value === 'string' && value.includes('croct install')) {
                     return notifier.confirm('Script already registered');
                 }
 

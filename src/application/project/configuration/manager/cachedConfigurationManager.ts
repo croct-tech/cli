@@ -62,7 +62,7 @@ export class CachedConfigurationManager implements ConfigurationManager {
                     this.resolvedConfiguration = Promise.resolve({
                         ...configuration,
                         organizationId: resolvedConfiguration.organizationId,
-                        workspaceId: resolvedConfiguration.workspace,
+                        workspaceId: resolvedConfiguration.workspaceId,
                         applications: resolvedConfiguration.applications,
                     });
                 }
