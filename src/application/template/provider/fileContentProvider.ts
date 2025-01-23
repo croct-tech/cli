@@ -1,10 +1,10 @@
-import {NotFoundError, Provider, ProviderOptions} from '@/application/template/provider/provider';
+import {ResourceNotFoundError, ResourceProvider, ProviderOptions} from '@/application/provider/resourceProvider';
 import {FileSystemIterator} from '@/application/fs/fileSystem';
 
-export class FileContentProvider<O extends ProviderOptions> implements Provider<string, O> {
-    private readonly provider: Provider<FileSystemIterator, O>;
+export class FileContentProvider<O extends ProviderOptions> implements ResourceProvider<string, O> {
+    private readonly provider: ResourceProvider<FileSystemIterator, O>;
 
-    public constructor(provider: Provider<FileSystemIterator, O>) {
+    public constructor(provider: ResourceProvider<FileSystemIterator, O>) {
         this.provider = provider;
     }
 
@@ -17,7 +17,7 @@ export class FileContentProvider<O extends ProviderOptions> implements Provider<
         const next = await iterator.next();
 
         if (next.done === true || next.value.type !== 'file') {
-            throw new NotFoundError('File not found.', url);
+            throw new ResourceNotFoundError('File not found.', url);
         }
 
         return new Response(next.value.content).text();

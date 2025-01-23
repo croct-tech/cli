@@ -1,7 +1,7 @@
 import tar from 'tar-stream';
 import createGunzip from 'gunzip-maybe';
 import {Readable} from 'stream';
-import {Provider, ProviderError, ProviderOptions} from '@/application/template/provider/provider';
+import {ResourceProvider, ResourceProviderError, ProviderOptions} from '@/application/provider/resourceProvider';
 import {HttpProvider, SuccessResponse} from '@/application/template/provider/httpProvider';
 import {FileSystemIterator} from '@/application/fs/fileSystem';
 
@@ -16,7 +16,7 @@ type GithubFile = ParsedUrl & {
     url: URL,
 };
 
-export class GithubProvider<O extends ProviderOptions> implements Provider<FileSystemIterator, O> {
+export class GithubProvider<O extends ProviderOptions> implements ResourceProvider<FileSystemIterator, O> {
     private static readonly PROTOCOL = 'github:';
 
     private static readonly API_HOST = 'api.github.com';
@@ -41,7 +41,7 @@ export class GithubProvider<O extends ProviderOptions> implements Provider<FileS
         const file = this.resolveFile(url);
 
         if (file === null) {
-            throw new ProviderError('Unsupported GitHub URL', url);
+            throw new ResourceProviderError('Unsupported GitHub URL', url);
         }
 
         const response = await this.provider.get(file.url, options);

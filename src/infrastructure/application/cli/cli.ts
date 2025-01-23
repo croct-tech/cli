@@ -120,7 +120,7 @@ import {MultiProvider} from '@/application/template/provider/multiProvider';
 import {FileSystemProvider} from '@/application/template/provider/fileSystemProvider';
 import {GithubProvider} from '@/application/template/provider/githubProvider';
 import {HttpFileProvider} from '@/application/template/provider/httpFileProvider';
-import {Provider, ProviderOptions} from '@/application/template/provider/provider';
+import {ResourceProvider, ProviderOptions} from '@/application/provider/resourceProvider';
 import {AdaptedProvider} from '@/application/template/provider/adaptedProvider';
 import {HelpfulError, ErrorReason} from '@/application/error';
 import {PartialNpmPackageValidator} from '@/infrastructure/application/validation/partialNpmPackageValidator';
@@ -163,6 +163,10 @@ import {
 } from '@/infrastructure/application/validation/actions/createResourceOptionsValidator';
 import {ImportOptionsValidator} from '@/infrastructure/application/validation/actions/importOptionsValidator';
 import {TemplateProvider} from '@/application/template/provider/templateProvider';
+import {FormatCodeAction} from '@/application/template/action/formatCodeAction';
+import {FormatCodeOptionsValidator} from '@/infrastructure/application/validation/actions/formatCodeOptionsValidator';
+import {EnumeratedProvider} from '@/application/provider/enumeratedProvider';
+import {ParameterlessProvider} from '@/application/provider/parameterlessProvider';
 
 export type Configuration = {
     io: {
@@ -228,9 +232,17 @@ export class Cli {
 
     private importAction?: Action<ImportOptions>;
 
-    private fileProvider?: Provider<FileSystemIterator>;
+    private fileProvider?: ResourceProvider<FileSystemIterator>;
 
     private cache?: CacheProvider<string, string>;
+
+    private projectManagerProvider?: ParameterlessProvider<ProjectManager>;
+
+    private linterProvider?: ParameterlessProvider<Linter>;
+
+    private javaScriptProjectManager?: JavaScriptProjectManager;
+
+    private javaScriptLinter?: JavaScriptLinter;
 
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
@@ -545,7 +557,9 @@ export class Cli {
         return this.output;
     }
 
-    private createTemplateProvider<T, O extends ProviderOptions>(provider: Provider<T, O>): Provider<T, O> {
+    private createTemplateProvider<T, O extends ProviderOptions>(
+        provider: ResourceProvider<T, O>,
+    ): ResourceProvider<T, O> {
         return new MappedProvider({
             dataProvider: provider,
             registryProvider: new ConstantProvider<Registry>([
@@ -558,11 +572,11 @@ export class Cli {
         });
     }
 
-    private getFileContentProvider(): Provider<string> {
+    private getFileContentProvider(): ResourceProvider<string> {
         return new FileContentProvider(this.getFileProvider());
     }
 
-    private getFileProvider(): Provider<FileSystemIterator> {
+    private getFileProvider(): ResourceProvider<FileSystemIterator> {
         if (this.fileProvider === undefined) {
             this.fileProvider = this.createFileProvider();
         }
@@ -570,7 +584,7 @@ export class Cli {
         return this.fileProvider;
     }
 
-    private createFileProvider(): Provider<FileSystemIterator> {
+    private createFileProvider(): ResourceProvider<FileSystemIterator> {
         const httpProvider = this.getHttpProvider();
         const localProvider = new FileSystemProvider(this.getFileSystem());
         const remoteProviders = [
@@ -620,7 +634,6 @@ export class Cli {
 
     private createImportAction(): Action<ImportOptions> {
         const fileSystem = this.getFileSystem();
-        const projectManager = this.createJavaScriptProjectManager();
 
         const actions = {
             try: new ValidatedAction<TryOptions>({
@@ -629,7 +642,7 @@ export class Cli {
             }),
             'check-dependencies': new ValidatedAction({
                 action: new CheckDependencyAction({
-                    projectManager: projectManager,
+                    projectManagerProvider: this.getProjectManagerProvider(),
                 }),
                 validator: new CheckDependenciesOptionsValidator(),
             }),
@@ -642,15 +655,18 @@ export class Cli {
             }),
             'resolve-import': new ValidatedAction({
                 action: new ResolveImportAction({
-                    importResolver: (target, source) => projectManager.getImportPath(target, source),
+                    importResolver: async (target, source) => (
+                        (await this.getProjectManagerProvider().get()).getImportPath(target, source)
+                    ),
                 }),
                 validator: new ResolveImportOptionsValidator(),
             }),
             'add-dependency': new ValidatedAction({
                 action: new AddDependencyAction({
-                    installer: (dependencies, development) => projectManager.installPackage(dependencies, {
-                        dev: development,
-                    }),
+                    installer: async (dependencies, development) => (
+                        (await this.getProjectManagerProvider().get()).installPackage(dependencies, {
+                            dev: development,
+                        })),
                 }),
                 validator: new AddDependencyOptionsValidator(),
             }),
@@ -741,6 +757,12 @@ export class Cli {
                     }),
                 }),
                 validator: new CreateResourceOptionsValidator(),
+            }),
+            'format-code': new ValidatedAction({
+                action: new FormatCodeAction({
+                    linterProvider: this.getLinterProvider(),
+                }),
+                validator: new FormatCodeOptionsValidator(),
             }),
             import: new ValidatedAction<ImportOptions>({
                 action: new LazyAction(
@@ -869,8 +891,8 @@ export class Cli {
     }
 
     private createJavaScriptSdkResolvers(): Array<SdkResolver<Sdk | null>> {
-        const projectManager = this.createJavaScriptProjectManager();
-        const linter = this.createJavaScriptLinter(projectManager);
+        const projectManager = this.getJavaScriptProjectManager();
+        const linter = this.getJavaScriptLinter();
 
         return [
             new PlugNextSdk({
@@ -1006,40 +1028,78 @@ export class Cli {
         ];
     }
 
-    private createJavaScriptProjectManager(): JavaScriptProjectManager {
-        return new NodeProjectManager({
-            fileSystem: this.getFileSystem(),
-            packageInstaller: new AntfuPackageInstaller(this.configuration.directories.current),
-            packageValidator: new PartialNpmPackageValidator(),
-            importConfigLoader: new ImportConfigLoader({
-                fileSystem: this.getFileSystem(),
-                tsconfigValidator: new PartialTsconfigValidator(),
-            }),
-            directory: this.configuration.directories.current,
-        });
+    private getLinterProvider(): ParameterlessProvider<Linter> {
+        if (this.linterProvider === undefined) {
+            this.linterProvider = new EnumeratedProvider({
+                discriminator: async () => (await this.getSdkResolver().resolve()).getPlatform(),
+                mapping: {
+                    [ApplicationPlatform.JAVASCRIPT]: () => this.getJavaScriptLinter(),
+                    [ApplicationPlatform.REACT]: () => this.getJavaScriptLinter(),
+                    [ApplicationPlatform.NEXT]: () => this.getJavaScriptLinter(),
+                },
+            });
+        }
+
+        return this.linterProvider;
     }
 
-    private createJavaScriptLinter(projectManager: ProjectManager): Linter {
-        return new JavaScriptLinter({
-            projectManager: projectManager,
-            fileSystem: this.getFileSystem(),
-            tools: [
-                {
-                    package: 'eslint',
-                    bin: 'eslint',
-                    args: files => ['--fix', ...files],
+    private getProjectManagerProvider(): ParameterlessProvider<ProjectManager> {
+        if (this.projectManagerProvider === undefined) {
+            this.projectManagerProvider = new EnumeratedProvider({
+                discriminator: async () => (await this.getSdkResolver().resolve()).getPlatform(),
+                mapping: {
+                    [ApplicationPlatform.JAVASCRIPT]: () => this.getJavaScriptProjectManager(),
+                    [ApplicationPlatform.REACT]: () => this.getJavaScriptProjectManager(),
+                    [ApplicationPlatform.NEXT]: () => this.getJavaScriptProjectManager(),
                 },
-                {
-                    package: 'prettier',
-                    args: files => ['--write', ...files],
-                },
-                {
-                    package: '@biomejs/biome',
-                    bin: 'biome',
-                    args: files => ['format', '--write', ...files],
-                },
-            ],
-        });
+            });
+        }
+
+        return this.projectManagerProvider;
+    }
+
+    private getJavaScriptProjectManager(): JavaScriptProjectManager {
+        if (this.javaScriptProjectManager === undefined) {
+            this.javaScriptProjectManager = new NodeProjectManager({
+                fileSystem: this.getFileSystem(),
+                packageInstaller: new AntfuPackageInstaller(this.configuration.directories.current),
+                packageValidator: new PartialNpmPackageValidator(),
+                importConfigLoader: new ImportConfigLoader({
+                    fileSystem: this.getFileSystem(),
+                    tsconfigValidator: new PartialTsconfigValidator(),
+                }),
+                directory: this.configuration.directories.current,
+            });
+        }
+
+        return this.javaScriptProjectManager;
+    }
+
+    private getJavaScriptLinter(): Linter {
+        if (this.javaScriptLinter === undefined) {
+            this.javaScriptLinter = new JavaScriptLinter({
+                projectManager: this.getJavaScriptProjectManager(),
+                fileSystem: this.getFileSystem(),
+                tools: [
+                    {
+                        package: 'eslint',
+                        bin: 'eslint',
+                        args: files => ['--fix', ...files],
+                    },
+                    {
+                        package: 'prettier',
+                        args: files => ['--write', ...files],
+                    },
+                    {
+                        package: '@biomejs/biome',
+                        bin: 'biome',
+                        args: files => ['format', '--write', ...files],
+                    },
+                ],
+            });
+        }
+
+        return this.javaScriptLinter;
     }
 
     private getConfigurationManager(): ConfigurationManager {

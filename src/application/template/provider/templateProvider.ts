@@ -13,24 +13,24 @@ import {ExpressionEvaluator, VariableMap} from '@/application/template/evaluatio
 import {ErrorReason} from '@/application/error';
 import {Validator} from '@/application/validation';
 import {DeferredTemplate, Template} from '@/application/template/template';
-import {Provider, ProviderError, ProviderOptions} from '@/application/template/provider/provider';
+import {ResourceProvider, ResourceProviderError, ProviderOptions} from '@/application/provider/resourceProvider';
 import {Fragment, JsonExpressionNode, TemplateStringParser} from '@/application/template/templateStringParser';
 
 export type Configuration<O extends ProviderOptions> = {
     evaluator: ExpressionEvaluator,
     validator: Validator<Template>,
-    provider: Provider<string, O>,
+    provider: ResourceProvider<string, O>,
 };
 
 type DeferredOptions = DeferredTemplate['options'];
 type Options = Template['options'];
 
-export class TemplateProvider<O extends ProviderOptions> implements Provider<DeferredTemplate, O> {
+export class TemplateProvider<O extends ProviderOptions> implements ResourceProvider<DeferredTemplate, O> {
     private readonly evaluator: ExpressionEvaluator;
 
     private readonly validator: Validator<Template>;
 
-    private readonly provider: Provider<string, O>;
+    private readonly provider: ResourceProvider<string, O>;
 
     private readonly loading: string[] = [];
 
@@ -52,7 +52,7 @@ export class TemplateProvider<O extends ProviderOptions> implements Provider<Def
         try {
             node = JsonParser.parse(source, JsonObjectNode);
         } catch (error) {
-            throw new ProviderError('Failed to parse the JSON template.', url, {
+            throw new ResourceProviderError('Failed to parse the JSON template.', url, {
                 reason: ErrorReason.INVALID_INPUT,
                 cause: error,
             });
@@ -66,7 +66,7 @@ export class TemplateProvider<O extends ProviderOptions> implements Provider<Def
                 .map(violation => ` • ${violation.path}: ${violation.message}`)
                 .join('\n');
 
-            throw new ProviderError(`Invalid template:\n\n${violations}`, url, {
+            throw new ResourceProviderError(`Invalid template:\n\n${violations}`, url, {
                 reason: ErrorReason.INVALID_INPUT,
             });
         }
@@ -139,7 +139,7 @@ export class TemplateProvider<O extends ProviderOptions> implements Provider<Def
                         if (typeof key !== 'string' && typeof key !== 'number') {
                             const location = property.key.location.start;
 
-                            throw new ProviderError(
+                            throw new ResourceProviderError(
                                 'Expected object key to resolve to string or number, '
                                 + `but got ${TemplateProvider.getType(key)}.`,
                                 baseUrl,
@@ -191,7 +191,7 @@ export class TemplateProvider<O extends ProviderOptions> implements Provider<Def
                 if (result !== null && !['string', 'number', 'boolean'].includes(typeof result)) {
                     const location = node.location.start;
 
-                    throw new ProviderError(
+                    throw new ResourceProviderError(
                         `Expected expression \`${fragment.expression}\` to resolve to null, string, number, or `
                         + `boolean value, but got ${TemplateProvider.getType(result)}.`,
                         baseUrl,
@@ -218,7 +218,7 @@ export class TemplateProvider<O extends ProviderOptions> implements Provider<Def
                 functions: {
                     import: (url?: JsonValue, input?: JsonValue): Promise<JsonValue> => {
                         if (typeof url !== 'string') {
-                            throw new ProviderError(
+                            throw new ResourceProviderError(
                                 'The first argument of the `import` function must be a string, but got '
                                 + `${TemplateProvider.getType(url)}.`,
                                 baseUrl,
@@ -232,7 +232,7 @@ export class TemplateProvider<O extends ProviderOptions> implements Provider<Def
                             input !== undefined
                             && (typeof input !== 'object' || input === null || Array.isArray(input))
                         ) {
-                            throw new ProviderError(
+                            throw new ResourceProviderError(
                                 'The second argument of the `import` function must be an object, but got '
                                 + `${TemplateProvider.getType(input)}.`,
                                 baseUrl,
@@ -263,7 +263,7 @@ export class TemplateProvider<O extends ProviderOptions> implements Provider<Def
         } catch (error) {
             const location = node.location.start;
 
-            throw new ProviderError(
+            throw new ResourceProviderError(
                 `Failed to evaluate expression \`${expression}\`.`,
                 baseUrl,
                 {
@@ -279,7 +279,7 @@ export class TemplateProvider<O extends ProviderOptions> implements Provider<Def
 
     private async import(url: URL, variables: VariableMap, baseUrl: URL): Promise<JsonValue> {
         if (url.protocol === 'file:' && baseUrl.protocol !== 'file:') {
-            throw new ProviderError('File URL is not allowed from remote sources for security reasons.', url, {
+            throw new ResourceProviderError('File URL is not allowed from remote sources for security reasons.', url, {
                 reason: ErrorReason.PRECONDITION,
                 details: [
                     `Source URL: ${url}`,
@@ -291,7 +291,7 @@ export class TemplateProvider<O extends ProviderOptions> implements Provider<Def
             const chain = [...this.loading, url.href].map((path, index) => ` ${index + 1}. ${path}`)
                 .join('\n');
 
-            throw new ProviderError(`Circular dependency detected while loading templates:\n\n${chain}`, url, {
+            throw new ResourceProviderError(`Circular dependency detected while loading templates:\n\n${chain}`, url, {
                 reason: ErrorReason.INVALID_INPUT,
             });
         }
@@ -303,7 +303,7 @@ export class TemplateProvider<O extends ProviderOptions> implements Provider<Def
         try {
             node = JsonParser.parse(template);
         } catch (error) {
-            throw new ProviderError('Failed to parse referenced JSON.', url, {
+            throw new ResourceProviderError('Failed to parse referenced JSON.', url, {
                 reason: ErrorReason.INVALID_INPUT,
                 cause: error,
             });

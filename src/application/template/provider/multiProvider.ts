@@ -1,9 +1,9 @@
-import {NotFoundError, Provider, ProviderOptions} from '@/application/template/provider/provider';
+import {ResourceNotFoundError, ResourceProvider, ProviderOptions} from '@/application/provider/resourceProvider';
 
-export class MultiProvider<T, O extends ProviderOptions> implements Provider<T, O> {
-    private readonly providers: Array<Provider<T, O>>;
+export class MultiProvider<T, O extends ProviderOptions> implements ResourceProvider<T, O> {
+    private readonly providers: Array<ResourceProvider<T, O>>;
 
-    public constructor(provider: Provider<T, O>, ...providers: Array<Provider<T, O>>) {
+    public constructor(provider: ResourceProvider<T, O>, ...providers: Array<ResourceProvider<T, O>>) {
         this.providers = [provider, ...providers];
     }
 
@@ -18,6 +18,6 @@ export class MultiProvider<T, O extends ProviderOptions> implements Provider<T, 
             }
         }
 
-        throw new NotFoundError('Resource not found.', url);
+        throw new ResourceNotFoundError('Resource not found.', url);
     }
 }

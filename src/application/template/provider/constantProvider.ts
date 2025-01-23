@@ -1,6 +1,6 @@
-import {Provider, ProviderOptions} from '@/application/template/provider/provider';
+import {ResourceProvider, ProviderOptions} from '@/application/provider/resourceProvider';
 
-export class ConstantProvider<T> implements Provider<T> {
+export class ConstantProvider<T> implements ResourceProvider<T> {
     private readonly data: T;
 
     public constructor(data: T) {

@@ -1,4 +1,4 @@
-import {Provider, ProviderOptions} from '@/application/template/provider/provider';
+import {ResourceProvider, ProviderOptions} from '@/application/provider/resourceProvider';
 
 export type Mapping = {
     pattern: string|RegExp,
@@ -22,14 +22,14 @@ export type NormalizedRegistry = NormalizedMapping[];
 export type Registry = Mapping[];
 
 export type Configuration<T, O extends ProviderOptions> = {
-    dataProvider: Provider<T, O>,
-    registryProvider: Provider<Registry>,
+    dataProvider: ResourceProvider<T, O>,
+    registryProvider: ResourceProvider<Registry>,
 };
 
-export class MappedProvider<T, O extends ProviderOptions> implements Provider<T, O> {
-    private readonly dataProvider: Provider<T, O>;
+export class MappedProvider<T, O extends ProviderOptions> implements ResourceProvider<T, O> {
+    private readonly dataProvider: ResourceProvider<T, O>;
 
-    private readonly registryProvider: Provider<Mapping[]>;
+    private readonly registryProvider: ResourceProvider<Mapping[]>;
 
     public constructor({dataProvider, registryProvider}: Configuration<T, O>) {
         this.dataProvider = dataProvider;

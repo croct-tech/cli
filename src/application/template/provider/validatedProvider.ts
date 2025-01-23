@@ -1,13 +1,13 @@
-import {Provider, ProviderError, ProviderOptions} from '@/application/template/provider/provider';
+import {ResourceProvider, ResourceProviderError, ProviderOptions} from '@/application/provider/resourceProvider';
 import {Validator} from '@/application/validation';
 
 export type Configuration<I, R, O extends ProviderOptions> = {
-    provider: Provider<R, O>,
+    provider: ResourceProvider<R, O>,
     validator: Validator<I>,
 };
 
-export class ValidatedProvider<I, R, O extends ProviderOptions> implements Provider<I, O> {
-    private readonly provider: Provider<R>;
+export class ValidatedProvider<I, R, O extends ProviderOptions> implements ResourceProvider<I, O> {
+    private readonly provider: ResourceProvider<R>;
 
     private readonly validator: Validator<I>;
 
@@ -25,7 +25,7 @@ export class ValidatedProvider<I, R, O extends ProviderOptions> implements Provi
         const result = this.validator.validate(data);
 
         if (!result.valid) {
-            throw new ProviderError('The response data is invalid.', url, {
+            throw new ResourceProviderError('The response data is invalid.', url, {
                 details: result.violations.map(violation => violation.message),
             });
         }

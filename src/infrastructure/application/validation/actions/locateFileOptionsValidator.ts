@@ -23,10 +23,10 @@ const schema: ZodType<LocateFileOptions> = z.object({
         .positive()
         .optional(),
     output: z.object({
-        path: z.string()
+        paths: z.string()
             .min(1)
             .optional(),
-        extension: z.string()
+        extensions: z.string()
             .min(1)
             .optional(),
     }).optional(),

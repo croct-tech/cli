@@ -1,14 +1,14 @@
-import {Provider, ProviderOptions} from '@/application/template/provider/provider';
+import {ResourceProvider, ProviderOptions} from '@/application/provider/resourceProvider';
 
 export type Adapter<I, R> = (value: I, url: URL) => R|Promise<R>;
 
 export type Configuration<I, R, O extends ProviderOptions> = {
-    provider: Provider<I, O>,
+    provider: ResourceProvider<I, O>,
     adapter: Adapter<I, R>,
 };
 
-export class AdaptedProvider<I, R, O extends ProviderOptions> implements Provider<R, O> {
-    private readonly provider: Provider<I, O>;
+export class AdaptedProvider<I, R, O extends ProviderOptions> implements ResourceProvider<R, O> {
+    private readonly provider: ResourceProvider<I, O>;
 
     private readonly adapter: Adapter<I, R>;
 

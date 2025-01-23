@@ -2,7 +2,7 @@ import {JsonValue} from '@croct/json';
 import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {ErrorReason, HelpfulError} from '@/application/error';
-import {NotFoundError, Provider} from '@/application/template/provider/provider';
+import {ResourceNotFoundError, ResourceProvider} from '@/application/provider/resourceProvider';
 import {LazyJsonValue, VariableMap} from '@/application/template/evaluation';
 import {DeferredOptionDefinition, DeferredTemplate} from '@/application/template/template';
 
@@ -18,7 +18,7 @@ type DeferredTemplateSource = {
 
 export type Configuration = {
     actions: Record<string, Action>,
-    templateProvider: Provider<DeferredTemplateSource>,
+    templateProvider: ResourceProvider<DeferredTemplateSource>,
     variables: VariableMap,
 };
 
@@ -156,7 +156,7 @@ export class ImportAction implements Action<ImportOptions> {
         try {
             return await provider.get(url);
         } catch (error) {
-            if (error instanceof NotFoundError) {
+            if (error instanceof ResourceNotFoundError) {
                 throw new HelpfulError('Template not found.', {
                     cause: error,
                     reason: ErrorReason.INVALID_INPUT,

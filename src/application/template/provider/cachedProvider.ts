@@ -1,13 +1,13 @@
 import {CacheProvider} from '@croct/cache';
-import {Provider, ProviderOptions} from '@/application/template/provider/provider';
+import {ResourceProvider, ProviderOptions} from '@/application/provider/resourceProvider';
 
 export type Configuration<T, O extends ProviderOptions> = {
-    provider: Provider<T, O>,
+    provider: ResourceProvider<T, O>,
     cache: CacheProvider<string, T>,
 };
 
-export class CachedProvider<T, O extends ProviderOptions> implements Provider<T, O> {
-    private readonly provider: Provider<T, O>;
+export class CachedProvider<T, O extends ProviderOptions> implements ResourceProvider<T, O> {
+    private readonly provider: ResourceProvider<T, O>;
 
     private readonly cache: CacheProvider<string, T>;
 

@@ -1,8 +1,8 @@
 import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {ProjectManager} from '@/application/project/manager/projectManager';
-
 import {Help} from '@/application/error';
+import {ParameterlessProvider} from '@/application/provider/parameterlessProvider';
 
 type Requirement = {
     name: string,
@@ -18,7 +18,7 @@ export type CheckDependencyOptions = {
 };
 
 export type Configuration = {
-    projectManager: ProjectManager,
+    projectManagerProvider: ParameterlessProvider<ProjectManager>,
 };
 
 type DependencyCheck = {
@@ -27,10 +27,10 @@ type DependencyCheck = {
 };
 
 export class CheckDependencyAction implements Action<CheckDependencyOptions> {
-    private readonly config: Configuration;
+    private readonly projectManagerProvider: ParameterlessProvider<ProjectManager>;
 
-    public constructor(config: Configuration) {
-        this.config = config;
+    public constructor({projectManagerProvider}: Configuration) {
+        this.projectManagerProvider = projectManagerProvider;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Keep the same signature as the interface
@@ -50,7 +50,7 @@ export class CheckDependencyAction implements Action<CheckDependencyOptions> {
 
     private async check(requirement: Requirement): Promise<DependencyCheck> {
         const {name, version, optional = false} = requirement;
-        const {projectManager} = this.config;
+        const projectManager = await this.projectManagerProvider.get();
 
         if (
             (optional && (version === undefined || !await projectManager.isPackageListed(name)))

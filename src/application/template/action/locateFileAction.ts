@@ -20,8 +20,8 @@ export type LocateFileOptions = {
     matcher?: Matcher,
     max?: number,
     output?: {
-        path?: string,
-        extension?: string,
+        paths?: string,
+        extensions?: string,
     },
 };
 
@@ -49,11 +49,11 @@ export class LocateFileAction implements Action<LocateFileOptions> {
         if (options.output !== undefined) {
             const variables = options.output;
 
-            if (variables.path !== undefined) {
-                context.set(variables.path, matches);
+            if (variables.paths !== undefined) {
+                context.set(variables.paths, matches);
             }
 
-            if (variables.extension !== undefined) {
+            if (variables.extensions !== undefined) {
                 const extensions = matches.map(file => {
                     const baseName = this.config
                         .fileSystem
@@ -62,7 +62,7 @@ export class LocateFileAction implements Action<LocateFileOptions> {
                     return baseName.split('.').pop() ?? '';
                 });
 
-                context.set(variables.extension, extensions);
+                context.set(variables.extensions, extensions);
             }
         }
     }

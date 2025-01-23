@@ -1,6 +1,7 @@
-import {ErrorReason, Help, HelpfulError} from '@/application/error';
+import {ErrorReason, Help} from '@/application/error';
+import {Provider, ProviderError} from '@/application/provider/provider';
 
-export class ProviderError extends HelpfulError {
+export class ResourceProviderError extends ProviderError {
     public constructor(message: string, url: URL, help: Help = {}) {
         super(message, {
             ...help,
@@ -10,24 +11,24 @@ export class ProviderError extends HelpfulError {
             ],
         });
 
-        Object.setPrototypeOf(this, ProviderError.prototype);
+        Object.setPrototypeOf(this, ResourceProviderError.prototype);
     }
 }
 
-export class NotFoundError extends ProviderError {
+export class ResourceNotFoundError extends ResourceProviderError {
     public constructor(message: string, url: URL, help: Help = {}) {
         super(message, url, {
             ...help,
             reason: help.reason ?? ErrorReason.INVALID_INPUT,
         });
 
-        Object.setPrototypeOf(this, NotFoundError.prototype);
+        Object.setPrototypeOf(this, ResourceNotFoundError.prototype);
     }
 }
 
 export type ProviderOptions = Record<string, any>;
 
-export interface Provider<T, O extends ProviderOptions = ProviderOptions> {
+export interface ResourceProvider<T, O extends ProviderOptions = ProviderOptions> extends Provider<[URL, O], T> {
     supports(url: URL): boolean;
 
     get(url: URL, options?: O): Promise<T>;

@@ -1,5 +1,5 @@
 import {HttpProvider, RequestOptions, SuccessResponse} from '@/application/template/provider/httpProvider';
-import {NotFoundError, ProviderError} from '@/application/template/provider/provider';
+import {ResourceNotFoundError, ResourceProviderError} from '@/application/provider/resourceProvider';
 
 export class FetchProvider implements HttpProvider {
     public supports(url: URL): boolean {
@@ -8,7 +8,7 @@ export class FetchProvider implements HttpProvider {
 
     public async get(url: URL, options?: RequestOptions): Promise<SuccessResponse> {
         if (!this.supports(url)) {
-            throw new ProviderError('Unsupported protocol', url);
+            throw new ResourceProviderError('Unsupported protocol', url);
         }
 
         const response = await fetch(url, {
@@ -17,10 +17,10 @@ export class FetchProvider implements HttpProvider {
 
         if (!FetchProvider.isSuccessful(response)) {
             if (response.status === 404) {
-                throw new NotFoundError('Resource not found', url);
+                throw new ResourceNotFoundError('Resource not found', url);
             }
 
-            throw new ProviderError(response.statusText, url);
+            throw new ResourceProviderError(response.statusText, url);
         }
 
         return response;

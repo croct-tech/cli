@@ -1,4 +1,4 @@
-import {Provider} from '@/application/template/provider/provider';
+import {ResourceProvider} from '@/application/provider/resourceProvider';
 
 export type RequestOptions = {
     headers?: Headers,
@@ -9,5 +9,5 @@ export type SuccessResponse = Omit<Response, 'ok' | 'body'> & {
     body: ReadableStream,
 };
 
-export interface HttpProvider<T = SuccessResponse> extends Provider<T, RequestOptions> {
+export interface HttpProvider<T = SuccessResponse> extends ResourceProvider<T, RequestOptions> {
 }

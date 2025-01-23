@@ -1,11 +1,11 @@
 import {JsonValue} from '@croct/json';
-import {Provider, ProviderError, ProviderOptions} from '@/application/template/provider/provider';
+import {ResourceProvider, ResourceProviderError, ProviderOptions} from '@/application/provider/resourceProvider';
 import {JsonParser} from '@/infrastructure/json';
 
-export class JsonProvider<O extends ProviderOptions> implements Provider<JsonValue, O> {
-    private readonly provider: Provider<string, O>;
+export class JsonProvider<O extends ProviderOptions> implements ResourceProvider<JsonValue, O> {
+    private readonly provider: ResourceProvider<string, O>;
 
-    public constructor(provider: Provider<string, O>) {
+    public constructor(provider: ResourceProvider<string, O>) {
         this.provider = provider;
     }
 
@@ -19,7 +19,7 @@ export class JsonProvider<O extends ProviderOptions> implements Provider<JsonVal
         try {
             return JsonParser.parse(source).toJSON();
         } catch (error) {
-            throw new ProviderError('Malformed JSON.', url, {
+            throw new ResourceProviderError('Malformed JSON.', url, {
                 cause: error,
             });
         }

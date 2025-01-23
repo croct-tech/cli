@@ -2,7 +2,7 @@ import {Minimatch} from 'minimatch';
 import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {FileSystem, FileSystemIterator} from '@/application/fs/fileSystem';
-import {Provider} from '@/application/template/provider/provider';
+import {ResourceProvider} from '@/application/provider/resourceProvider';
 import {ErrorReason} from '@/application/error';
 
 export type DownloadOptions = {
@@ -16,7 +16,7 @@ export type DownloadOptions = {
 
 export type Configuration = {
     fileSystem: FileSystem,
-    provider: Provider<FileSystemIterator>,
+    provider: ResourceProvider<FileSystemIterator>,
 };
 
 export class DownloadAction implements Action<DownloadOptions> {
