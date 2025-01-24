@@ -1,7 +1,6 @@
 import {z, ZodType} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {CheckDependencyOptions} from '@/application/template/action/checkDependencyAction';
-import {helpSchema} from '@/infrastructure/application/validation/actions/schemas';
 
 const requirementSchema = z.object({
     name: z.string().min(1),
@@ -13,7 +12,18 @@ const requirementSchema = z.object({
 
 const schema: ZodType<CheckDependencyOptions> = z.object({
     dependencies: z.array(requirementSchema),
-    help: helpSchema.optional(),
+    help: z.object({
+        message: z.string()
+            .min(1)
+            .optional(),
+        links: z.array(
+            z.object({
+                url: z.string().url(),
+                description: z.string().min(1),
+            }),
+        ).optional(),
+        suggestions: z.array(z.string().min(1)).optional(),
+    }).optional(),
 });
 
 export class CheckDependenciesOptionsValidator extends ZodValidator<CheckDependencyOptions> {

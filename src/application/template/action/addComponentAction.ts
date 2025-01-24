@@ -1,4 +1,5 @@
 import {Action, ActionError} from '@/application/template/action/action';
+import {ActionContext} from '@/application/template/action/context';
 
 export type AddComponentOptions = {
     components: string[],
@@ -11,19 +12,23 @@ export type Configuration = {
 };
 
 export class AddComponentAction implements Action<AddComponentOptions> {
-    private readonly config: Configuration;
+    private readonly installer: ComponentInstaller;
 
-    public constructor(config: Configuration) {
-        this.config = config;
+    public constructor({installer}: Configuration) {
+        this.installer = installer;
     }
 
-    public async execute(options: AddComponentOptions): Promise<void> {
-        const {installer} = this.config;
+    public async execute(options: AddComponentOptions, context: ActionContext): Promise<void> {
+        const {output} = context;
+
+        const notifier = output?.notify('Installing components');
 
         try {
-            await installer(options.components);
+            await this.installer(options.components);
         } catch (error) {
             throw ActionError.fromCause(error);
+        } finally {
+            notifier?.stop();
         }
     }
 }

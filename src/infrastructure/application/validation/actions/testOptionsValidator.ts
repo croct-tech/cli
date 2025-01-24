@@ -1,7 +1,8 @@
 import {z, ZodType} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
-import {actionDefinitionSchema} from '@/infrastructure/application/validation/actions/schemas';
 import {TestOptions} from '@/application/template/action/test';
+
+const actionDefinitionSchema = z.object({name: z.string().min(1)}).passthrough();
 
 const schema: ZodType<TestOptions> = z.object({
     condition: z.boolean(),

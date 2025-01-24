@@ -1,4 +1,5 @@
 import {Action, ActionError} from '@/application/template/action/action';
+import {ActionContext} from '@/application/template/action/context';
 
 export type AddSlotOptions = {
     slots: string[],
@@ -12,19 +13,23 @@ export type Configuration = {
 };
 
 export class AddSlotAction implements Action<AddSlotOptions> {
-    private readonly config: Configuration;
+    private readonly installer: SlotInstaller;
 
-    public constructor(config: Configuration) {
-        this.config = config;
+    public constructor({installer}: Configuration) {
+        this.installer = installer;
     }
 
-    public async execute(options: AddSlotOptions): Promise<void> {
-        const {installer} = this.config;
+    public async execute(options: AddSlotOptions, context: ActionContext): Promise<void> {
+        const {output} = context;
+
+        const notifier = output?.notify('Installing slots');
 
         try {
-            await installer(options.slots, options.example === true);
+            await this.installer(options.slots, options.example === true);
         } catch (error) {
             throw ActionError.fromCause(error);
+        } finally {
+            notifier?.stop();
         }
     }
 }

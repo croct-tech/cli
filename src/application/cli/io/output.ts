@@ -32,7 +32,14 @@ export type TaskList = TaskOptions & {
 
 export type Semantic = 'neutral' | 'info' | 'error' | 'warning' | 'success';
 
+export type Callout = {
+    semantic: Semantic,
+    title: string,
+    message: string,
+};
+
 export interface Logger {
+    announce(callout: Callout): void;
     log(message: string, semantic?: Semantic): void;
     inform(message: string): void;
     warn(message: string): void;

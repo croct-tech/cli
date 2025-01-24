@@ -1,4 +1,5 @@
 import {Action, ActionError} from '@/application/template/action/action';
+import {ActionContext} from '@/application/template/action/context';
 
 export type AddDependencyOptions = {
     dependencies: string[],
@@ -12,19 +13,23 @@ export type Configuration = {
 };
 
 export class AddDependencyAction implements Action<AddDependencyOptions> {
-    private readonly config: Configuration;
+    private readonly installer: DependencyInstaller;
 
-    public constructor(config: Configuration) {
-        this.config = config;
+    public constructor({installer}: Configuration) {
+        this.installer = installer;
     }
 
-    public async execute(options: AddDependencyOptions): Promise<void> {
-        const {installer} = this.config;
+    public async execute(options: AddDependencyOptions, context: ActionContext): Promise<void> {
+        const {output} = context;
+
+        const notifier = output?.notify('Installing dependencies');
 
         try {
-            await installer(options.dependencies, options.development === true);
+            await this.installer(options.dependencies, options.development === true);
         } catch (error) {
             throw ActionError.fromCause(error);
+        } finally {
+            notifier?.stop();
         }
     }
 }

@@ -63,10 +63,18 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
             // eslint-disable-next-line eqeqeq -- Intentional loose comparison
             evaluate: async (left, right) => (await left()) == (await right()),
         },
+        '===': {
+            precedence: 6,
+            evaluate: async (left, right) => (await left()) === (await right()),
+        },
         '!=': {
             precedence: 6,
             // eslint-disable-next-line eqeqeq -- Intentional loose comparison
             evaluate: async (left, right) => (await left()) != (await right()),
+        },
+        '!==': {
+            precedence: 6,
+            evaluate: async (left, right) => (await left()) !== (await right()),
         },
         '<': {
             precedence: 7,
@@ -243,14 +251,22 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                 }
 
                 if (Array.isArray(object)) {
-                    if (typeof property !== 'number') {
-                        throw new EvaluationError(`Array index must be a number, got ${typeof property}.`);
+                    if (typeof property === 'string') {
+                        if (!['length'].includes(property)) {
+                            throw new EvaluationError(`Array property \`${property}\` is not defined.`);
+                        }
+
+                        return object.length;
+                    }
+
+                    if (property < 0 || property >= object.length) {
+                        throw new EvaluationError(`Array index ${property} is out of bounds.`);
                     }
 
                     return object[property];
                 }
 
-                if (object[property] === undefined) {
+                if (object[property] === undefined || !Object.hasOwn(object, property)) {
                     throw new EvaluationError(`Property \`${property}\` is not defined.`);
                 }
 

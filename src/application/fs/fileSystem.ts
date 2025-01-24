@@ -66,5 +66,4 @@ export interface FileSystem {
     isEmptyDirectory(path: string): Promise<boolean>;
     create(entry: FileSystemEntry): Promise<void>;
     list(path: string, recursive?: boolean): FileSystemIterator;
-    find(pattern: string): FileSystemIterator;
 }

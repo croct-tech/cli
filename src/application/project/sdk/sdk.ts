@@ -10,9 +10,16 @@ export type Installation = {
     configuration: ResolvedConfiguration,
 };
 
+export type ServerInfo = {
+    url: URL,
+    running: boolean,
+    startCommand: string,
+};
+
 export interface Sdk {
     getPackage(): string;
     getPlatform(): ApplicationPlatform;
+    getLocalServerInfo(): Promise<ServerInfo|null>;
     install(installation: Installation): Promise<Configuration>;
     update(installation: Installation): Promise<void>;
     updateTypes(installation: Installation): Promise<void>;

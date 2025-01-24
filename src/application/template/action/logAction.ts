@@ -3,6 +3,7 @@ import {Logger, Semantic} from '@/application/cli/io/output';
 
 export type LogOptions = {
     semantic?: Semantic,
+    title?: string,
     message: string,
 };
 
@@ -18,7 +19,17 @@ export class LogAction implements Action<LogOptions> {
     }
 
     public execute(options: LogOptions): Promise<void> {
-        this.logger.log(options.message, options.semantic);
+        const semantic = options.semantic ?? 'neutral';
+
+        if (options.title === undefined) {
+            this.logger.log(options.message, semantic);
+        } else {
+            this.logger.announce({
+                semantic: semantic,
+                title: options.title,
+                message: options.message,
+            });
+        }
 
         return Promise.resolve();
     }

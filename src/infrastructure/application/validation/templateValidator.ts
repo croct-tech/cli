@@ -1,7 +1,6 @@
 import {z, ZodType} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {OptionDefinition, Template} from '@/application/template/template';
-import {actionDefinitionSchema} from '@/infrastructure/application/validation/actions/schemas';
 
 const baseOptionSchema = z.object({
     description: z.string(),
@@ -54,7 +53,7 @@ const templateSchema: ZodType<Template> = z.object({
         z.string().min(1),
         optionSchema,
     ).optional(),
-    actions: z.array(actionDefinitionSchema),
+    actions: z.array(z.object({name: z.string().min(1)}).passthrough()),
 });
 
 export class TemplateValidator extends ZodValidator<Template> {

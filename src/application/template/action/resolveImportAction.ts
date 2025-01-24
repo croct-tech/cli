@@ -16,15 +16,26 @@ export type Configuration = {
 export type ImportResolver = (target: string, source: string) => Promise<string>;
 
 export class ResolveImportAction implements Action<ResolveImportOptions> {
-    private readonly config: Configuration;
+    private readonly resolver: ImportResolver;
 
-    public constructor(config: Configuration) {
-        this.config = config;
+    public constructor({importResolver}: Configuration) {
+        this.resolver = importResolver;
     }
 
     public async execute(options: ResolveImportOptions, context: ActionContext): Promise<void> {
-        const {importResolver} = this.config;
-        const importPath = await importResolver(options.target, options.source);
+        const {output} = context;
+
+        const notifier = output?.notify('Resolving import');
+
+        try {
+            await this.resolveImport(options, context);
+        } finally {
+            notifier?.stop();
+        }
+    }
+
+    private async resolveImport(options: ResolveImportOptions, context: ActionContext): Promise<void> {
+        const importPath = await this.resolver(options.target, options.source);
 
         const variable = options.output?.importPath;
 

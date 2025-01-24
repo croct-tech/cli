@@ -7,7 +7,7 @@ import {Semantic} from '@/application/cli/io/output';
 
 const unicodeSupport = isUnicodeSupported();
 
-const colors: Record<Semantic, ForegroundColorName> = {
+export const colors: Record<Semantic, ForegroundColorName> = {
     neutral: 'cyan',
     info: 'blue',
     error: 'red',

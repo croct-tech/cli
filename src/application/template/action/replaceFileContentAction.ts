@@ -1,5 +1,6 @@
 import {Action, ActionError} from '@/application/template/action/action';
 import {FileSystem} from '@/application/fs/fileSystem';
+import {ActionContext} from '@/application/template/action/context';
 
 type Replacement = {
     pattern: string,
@@ -21,24 +22,33 @@ export type Configuration = {
 };
 
 export class ReplaceFileContentAction implements Action<ReplaceFileContentOptions> {
-    private readonly config: Configuration;
+    private readonly fileSystem: FileSystem;
 
-    public constructor(config: Configuration) {
-        this.config = config;
+    public constructor({fileSystem}: Configuration) {
+        this.fileSystem = fileSystem;
     }
 
-    public async execute(options: ReplaceFileContentOptions): Promise<void> {
-        const {fileSystem} = this.config;
+    public async execute(options: ReplaceFileContentOptions, context: ActionContext): Promise<void> {
+        const {output} = context;
+        const notifier = output.notify('Replacing file content');
 
+        try {
+            await this.replaceFiles(options);
+        } finally {
+            notifier.stop();
+        }
+    }
+
+    private async replaceFiles(options: ReplaceFileContentOptions): Promise<void> {
         for (const {path, replacements} of options.files) {
-            if (!await fileSystem.exists(path)) {
+            if (!await this.fileSystem.exists(path)) {
                 continue;
             }
 
             try {
-                await fileSystem.writeTextFile(
+                await this.fileSystem.writeTextFile(
                     path,
-                    this.replaceContent(await fileSystem.readTextFile(path), replacements),
+                    this.replaceContent(await this.fileSystem.readTextFile(path), replacements),
                     {overwrite: true},
                 );
             } catch (error) {

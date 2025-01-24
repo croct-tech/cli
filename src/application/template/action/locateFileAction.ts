@@ -1,7 +1,7 @@
-import {Action, ActionError} from '@/application/template/action/action';
+import {Minimatch} from 'minimatch';
+import {Action} from '@/application/template/action/action';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {ActionContext} from '@/application/template/action/context';
-import {ErrorReason} from '@/application/error';
 
 export type PatternMatcher = {
     pattern: string,
@@ -26,25 +26,34 @@ export type LocateFileOptions = {
 };
 
 export type Configuration = {
+    projectDirectory: string,
     fileSystem: FileSystem,
 };
 
 export class LocateFileAction implements Action<LocateFileOptions> {
-    private readonly config: Configuration;
+    private readonly projectDirectory: string;
 
-    public constructor(config: Configuration) {
-        this.config = config;
+    private readonly fileSystem: FileSystem;
+
+    public constructor({projectDirectory, fileSystem}: Configuration) {
+        this.projectDirectory = projectDirectory;
+        this.fileSystem = fileSystem;
     }
 
     public async execute(options: LocateFileOptions, context: ActionContext): Promise<void> {
-        const matches = await this.findMatch(options.path, options);
+        const {output} = context;
 
-        if (matches.length === 0) {
-            throw new ActionError('No matching files found', {
-                reason: ErrorReason.PRECONDITION,
-                details: [`Pattern: ${options.path}`],
-            });
+        const notifier = output?.notify('Locating files');
+
+        try {
+            await this.findMatches(options, context);
+        } finally {
+            notifier?.stop();
         }
+    }
+
+    private async findMatches(options: LocateFileOptions, context: ActionContext): Promise<void> {
+        const matches = await this.findMatch(options.path, options);
 
         if (options.output !== undefined) {
             const variables = options.output;
@@ -55,9 +64,7 @@ export class LocateFileAction implements Action<LocateFileOptions> {
 
             if (variables.extensions !== undefined) {
                 const extensions = matches.map(file => {
-                    const baseName = this.config
-                        .fileSystem
-                        .getBaseName(file);
+                    const baseName = this.fileSystem.getBaseName(file);
 
                     return baseName.split('.').pop() ?? '';
                 });
@@ -67,12 +74,16 @@ export class LocateFileAction implements Action<LocateFileOptions> {
         }
     }
 
-    private async findMatch(path: string, options: LocateFileOptions): Promise<string[]> {
-        const {fileSystem} = this.config;
+    private async findMatch(pattern: string, options: LocateFileOptions): Promise<string[]> {
+        const filter = new Minimatch(pattern);
 
         const matches: string[] = [];
 
-        for await (const file of fileSystem.find(path)) {
+        for await (const file of this.fileSystem.list(this.projectDirectory, true)) {
+            if (!filter.match(file.name)) {
+                continue;
+            }
+
             if (options.matcher === undefined) {
                 matches.push(file.name);
             } else if (file.type === 'file') {

@@ -21,11 +21,11 @@ export class FormatCodeAction implements Action<FormatCodeOptions> {
     public async execute(options: FormatCodeOptions, context: ActionContext): Promise<void> {
         const {output} = context;
 
-        const linter = await this.linterProvider.get();
-
         const notifier = output.notify('Formatting code');
 
         try {
+            const linter = await this.linterProvider.get();
+
             await linter.fix(options.files);
         } finally {
             notifier.stop();

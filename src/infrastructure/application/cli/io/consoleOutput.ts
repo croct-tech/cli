@@ -3,9 +3,9 @@ import chalk from 'chalk';
 import boxen, {Options as BoxenOptions} from 'boxen';
 import terminalLink from 'terminal-link';
 import {Writable, PassThrough} from 'stream';
-import {Output, Notifier, TaskList, TaskResolver, Semantic} from '@/application/cli/io/output';
+import {Output, Notifier, TaskList, TaskResolver, Semantic, Callout} from '@/application/cli/io/output';
 import {InteractiveTaskMonitor} from '@/infrastructure/application/cli/io/interactiveTaskMonitor';
-import {format} from '@/infrastructure/application/cli/io/formatting';
+import {colors, format} from '@/infrastructure/application/cli/io/formatting';
 import {TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
 import {NonInteractiveTaskMonitor} from '@/infrastructure/application/cli/io/nonInteractiveTaskMonitor';
 import {HelpfulError, ErrorReason, Help} from '@/application/error';
@@ -21,13 +21,14 @@ export type Configuration = {
 
 const boxenStyle: BoxenOptions = {
     titleAlignment: 'center',
+    width: 80,
+    borderStyle: 'round',
     padding: {
         top: 1,
         bottom: 1,
         right: 2,
         left: 2,
     },
-    borderStyle: 'round',
 };
 
 export class ConsoleOutput implements Output {
@@ -66,6 +67,16 @@ export class ConsoleOutput implements Output {
 
     public break(): void {
         this.write('\n');
+    }
+
+    public announce(callout: Callout): void {
+        const content = boxen(callout.message, {
+            ...boxenStyle,
+            title: callout.title,
+            borderColor: colors[callout.semantic],
+        });
+
+        this.write(`${content}\n`);
     }
 
     public log(text: string, semantic?: Semantic): void {

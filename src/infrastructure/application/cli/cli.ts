@@ -171,6 +171,8 @@ import {TestAction, TestOptions} from '@/application/template/action/test';
 import {TestOptionsValidator} from '@/infrastructure/application/validation/actions/testOptionsValidator';
 import {LogAction, LogOptions} from '@/application/template/action/logAction';
 import {LogOptionsValidator} from '@/infrastructure/application/validation/actions/logOptionsValidator';
+import {FailAction} from '@/application/template/action/failAction';
+import {FailOptionsValidator} from '@/infrastructure/application/validation/actions/failOptionsValidator';
 
 export type Configuration = {
     io: {
@@ -652,6 +654,10 @@ export class Cli {
                 action: new LogAction({logger: this.getOutput()}),
                 validator: new LogOptionsValidator(),
             }),
+            fail: new ValidatedAction({
+                action: new FailAction(),
+                validator: new FailOptionsValidator(),
+            }),
             'check-dependencies': new ValidatedAction({
                 action: new CheckDependencyAction({
                     projectManagerProvider: this.getProjectManagerProvider(),
@@ -684,6 +690,7 @@ export class Cli {
             }),
             'locate-file': new ValidatedAction({
                 action: new LocateFileAction({
+                    projectDirectory: this.configuration.directories.current,
                     fileSystem: fileSystem,
                 }),
                 validator: new LocateFileOptionsValidator(),

@@ -33,9 +33,20 @@ export class CheckDependencyAction implements Action<CheckDependencyOptions> {
         this.projectManagerProvider = projectManagerProvider;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Keep the same signature as the interface
-    public async execute(options: CheckDependencyOptions, _: ActionContext): Promise<void> {
-        const results = await Promise.all(options.dependencies.map(requirement => this.check(requirement)));
+    public async execute(options: CheckDependencyOptions, context: ActionContext): Promise<void> {
+        const {output} = context;
+
+        const notifier = output?.notify('Checking dependencies');
+
+        try {
+            await this.checkDependencies(options);
+        } finally {
+            notifier?.stop();
+        }
+    }
+
+    private async checkDependencies(options: CheckDependencyOptions): Promise<void> {
+        const results = await Promise.all(options.dependencies.map(requirement => this.checkRequirement(requirement)));
         const missing = results.filter(result => result.issue !== undefined);
 
         if (missing.length > 0) {
@@ -48,7 +59,7 @@ export class CheckDependencyAction implements Action<CheckDependencyOptions> {
         }
     }
 
-    private async check(requirement: Requirement): Promise<DependencyCheck> {
+    private async checkRequirement(requirement: Requirement): Promise<DependencyCheck> {
         const {name, version, optional = false} = requirement;
         const projectManager = await this.projectManagerProvider.get();
 
