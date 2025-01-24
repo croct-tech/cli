@@ -36,20 +36,17 @@ export class ImportAction implements Action<ImportOptions> {
 
         const notifier = output.notify('Loading template');
 
-        let template: DeferredTemplate;
-        let url: URL;
-        let input: VariableMap;
-
         try {
-            const result = await this.loadTemplate(options.template, context.baseUrl);
-
-            template = result.template;
-            url = result.url;
-
-            input = this.getInputValues(template, options.input);
+            await this.importTemplate(options, context);
         } finally {
             notifier.stop();
         }
+    }
+
+    private async importTemplate(options: ImportOptions, context: ActionContext): Promise<void> {
+        const {template, url} = await this.loadTemplate(options.template, context.baseUrl);
+
+        const input = this.getInputValues(template, options.input);
 
         if (this.resolving.includes(url.href)) {
             const chain = [...this.resolving, url.href].map((path, index) => ` ${index + 1}. ${path}`)
@@ -119,6 +116,7 @@ export class ImportAction implements Action<ImportOptions> {
 
     private async run(template: DeferredTemplate, input: VariableMap, context: ActionContext): Promise<void> {
         const {actions, variables} = this.config;
+        const {output} = context;
 
         for (const {name, resolve} of template.actions) {
             const action = actions[name];
@@ -129,15 +127,18 @@ export class ImportAction implements Action<ImportOptions> {
                 });
             }
 
+            const notifier = output.notify('Resolving options');
+
             try {
-                await action.execute(
-                    await resolve({
-                        ...variables,
-                        input: input,
-                        output: context.getVariables(),
-                    }),
-                    context,
-                );
+                const resolvedOptions = await resolve({
+                    ...variables,
+                    input: input,
+                    output: context.getVariables(),
+                });
+
+                notifier.stop();
+
+                await action.execute(resolvedOptions, context);
             } catch (error) {
                 throw ActionError.fromCause(error, {
                     details: [
@@ -145,6 +146,8 @@ export class ImportAction implements Action<ImportOptions> {
                         ...(error instanceof HelpfulError ? error.help.details ?? [] : []),
                     ],
                 });
+            } finally {
+                notifier.stop();
             }
         }
     }

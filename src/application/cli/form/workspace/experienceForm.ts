@@ -26,7 +26,7 @@ export class ExperienceForm implements Form<ExperienceDetails[], ExperienceOptio
     public async handle(options: ExperienceOptions): Promise<ExperienceDetails[]> {
         const {output, input, workspaceApi: api} = this.config;
 
-        let notifier = output.notify('Loading experiences...');
+        let notifier = output.notify('Loading experiences');
 
         const summaries = await api.getExperiences({
             organizationSlug: options.organizationSlug,
@@ -51,7 +51,7 @@ export class ExperienceForm implements Form<ExperienceDetails[], ExperienceOptio
             ),
         });
 
-        notifier = output.notify('Loading details...');
+        notifier = output.notify('Loading details');
 
         const experiences = await Promise.all(
             selection.flatMap(

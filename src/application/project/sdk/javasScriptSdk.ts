@@ -187,7 +187,7 @@ export abstract class JavaScriptSdk implements Sdk {
                     return output.exit();
                 }
             } else {
-                output.log('Installation in progress...');
+                output.log('Installation in progress');
             }
 
             await output.monitor({tasks: tasks});

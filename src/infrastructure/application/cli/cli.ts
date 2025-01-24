@@ -115,7 +115,7 @@ import {ResourceMatcher} from '@/application/template/resourceMatcher';
 import {FetchProvider} from '@/application/template/provider/fetchProvider';
 import {CheckDependencyAction} from '@/application/template/action/checkDependencyAction';
 import {HttpProvider} from '@/application/template/provider/httpProvider';
-import {DenormalizedRegistry, MappedProvider, Registry} from '@/application/template/provider/mappedProvider';
+import {DenormalizedRegistry, MappedProvider} from '@/application/template/provider/mappedProvider';
 import {MultiProvider} from '@/application/template/provider/multiProvider';
 import {FileSystemProvider} from '@/application/template/provider/fileSystemProvider';
 import {GithubProvider} from '@/application/template/provider/githubProvider';
@@ -126,7 +126,6 @@ import {HelpfulError, ErrorReason} from '@/application/error';
 import {PartialNpmPackageValidator} from '@/infrastructure/application/validation/partialNpmPackageValidator';
 import {PartialTsconfigValidator} from '@/infrastructure/application/validation/partialTsconfigValidator';
 import {CroctConfigurationValidator} from '@/infrastructure/application/validation/croctConfigurationValidator';
-import {ConstantProvider} from '@/application/template/provider/constantProvider';
 import {ValidatedProvider} from '@/application/template/provider/validatedProvider';
 import {FileContentProvider} from '@/application/template/provider/fileContentProvider';
 import {JsonProvider} from '@/application/template/provider/jsonProvider';
@@ -173,6 +172,8 @@ import {LogAction, LogOptions} from '@/application/template/action/logAction';
 import {LogOptionsValidator} from '@/infrastructure/application/validation/actions/logOptionsValidator';
 import {FailAction} from '@/application/template/action/failAction';
 import {FailOptionsValidator} from '@/infrastructure/application/validation/actions/failOptionsValidator';
+import {ParameterlessResourceProvider} from '@/application/provider/parameterlessResourceProvider';
+import {ConstantProvider} from '@/application/provider/constantProvider';
 
 export type Configuration = {
     io: {
@@ -459,7 +460,7 @@ export class Cli {
         const command = this.getImportTemplateCommand();
         const output = this.getOutput();
 
-        const notifier = output.notify('Loading template...');
+        const notifier = output.notify('Loading template');
 
         try {
             return await command.getOptions(template);
@@ -568,7 +569,7 @@ export class Cli {
     ): ResourceProvider<T, O> {
         return new MappedProvider({
             dataProvider: provider,
-            registryProvider: new ConstantProvider<Registry>([
+            registryProvider: new ConstantProvider([
                 {
                     // Any URL not ending with a file extension, excluding the trailing slash
                     pattern: /^(.+?:\/+[^/]+(\/+[^/.]+|\/[^/]+(?=\/))*)\/*$/,
@@ -593,6 +594,7 @@ export class Cli {
     private createFileProvider(): ResourceProvider<FileSystemIterator> {
         const httpProvider = this.getHttpProvider();
         const localProvider = new FileSystemProvider(this.getFileSystem());
+
         const remoteProviders = [
             new GithubProvider(httpProvider),
             new HttpFileProvider(httpProvider),
@@ -602,8 +604,9 @@ export class Cli {
             localProvider,
             new MappedProvider({
                 dataProvider: new MultiProvider(remoteProviders[0], ...remoteProviders.slice(1)),
-                registryProvider: new MappedProvider({
-                    dataProvider: new CachedProvider({
+                registryProvider: new ParameterlessResourceProvider({
+                    url: this.configuration.nameRegistry,
+                    provider: new CachedProvider({
                         cache: new StaleWhileRevalidateCache<string, DenormalizedRegistry>({
                             freshPeriod: 60,
                             cacheProvider: AdaptedCache.transformValues(
@@ -621,10 +624,6 @@ export class Cli {
                             validator: new RegistryValidator(),
                         }),
                     }),
-                    registryProvider: new ConstantProvider<Registry>([{
-                        pattern: /.*/,
-                        destination: this.configuration.nameRegistry,
-                    }]),
                 }),
             }),
         );

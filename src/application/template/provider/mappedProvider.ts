@@ -1,4 +1,5 @@
 import {ResourceProvider, ProviderOptions} from '@/application/provider/resourceProvider';
+import {ParameterlessProvider} from '@/application/provider/parameterlessProvider';
 
 export type Mapping = {
     pattern: string|RegExp,
@@ -23,13 +24,13 @@ export type Registry = Mapping[];
 
 export type Configuration<T, O extends ProviderOptions> = {
     dataProvider: ResourceProvider<T, O>,
-    registryProvider: ResourceProvider<Registry>,
+    registryProvider: ParameterlessProvider<Registry>,
 };
 
 export class MappedProvider<T, O extends ProviderOptions> implements ResourceProvider<T, O> {
     private readonly dataProvider: ResourceProvider<T, O>;
 
-    private readonly registryProvider: ResourceProvider<Mapping[]>;
+    private readonly registryProvider: ParameterlessProvider<Mapping[]>;
 
     public constructor({dataProvider, registryProvider}: Configuration<T, O>) {
         this.dataProvider = dataProvider;
@@ -45,7 +46,7 @@ export class MappedProvider<T, O extends ProviderOptions> implements ResourcePro
     }
 
     private async resolveUrl(url: URL): Promise<URL> {
-        const mappings = await this.registryProvider.get(url);
+        const mappings = await this.registryProvider.get();
 
         for (const {pattern, destination} of mappings) {
             const match = url.href.match(typeof pattern === 'string' ? new RegExp(pattern) : pattern);

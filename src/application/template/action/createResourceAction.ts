@@ -78,14 +78,14 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
     }
 
     public async execute(options: CreateResourceOptions, context: ActionContext): Promise<void> {
-        const analysis = WorkspaceResources.analyze(options.resources);
-
-        this.checkMissingResources({...analysis, locales: new Set()}, options.resources);
-
-        const {configurationManager, api: {workspace: api}} = this.config;
         const {output} = context;
 
         const notifier = output?.notify('Analyzing resources');
+
+        const analysis = WorkspaceResources.analyze(options.resources);
+
+        this.checkMissingResources({...analysis, locales: new Set()}, options.resources);
+        const {configurationManager, api: {workspace: api}} = this.config;
 
         const configuration = await configurationManager.resolve();
         const projectInfo = await this.getProjectInfo(configuration);
