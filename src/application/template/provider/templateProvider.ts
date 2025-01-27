@@ -1,4 +1,5 @@
 import {JsonArray, JsonObject, JsonValue} from '@croct/json';
+import PLazy from 'p-lazy';
 import {
     JsonArrayNode,
     JsonIdentifierNode,
@@ -10,11 +11,17 @@ import {
     JsonValueNode,
 } from '@/infrastructure/json';
 import {ExpressionEvaluator, VariableMap} from '@/application/template/evaluation';
-import {ErrorReason} from '@/application/error';
-import {Validator} from '@/application/validation';
+import {ErrorReason, HelpfulError} from '@/application/error';
+import {Validator, Violation} from '@/application/validation';
 import {DeferredTemplate, Template} from '@/application/template/template';
-import {ResourceProvider, ResourceProviderError, ProviderOptions} from '@/application/provider/resourceProvider';
+import {
+    ResourceProvider,
+    ResourceProviderError,
+    ProviderOptions,
+    ResourceHelp,
+} from '@/application/provider/resourceProvider';
 import {Fragment, JsonExpressionNode, TemplateStringParser} from '@/application/template/templateStringParser';
+import {Deferred, Deferrable} from '@/application/template/deferral';
 
 export type Configuration<O extends ProviderOptions> = {
     evaluator: ExpressionEvaluator,
@@ -22,8 +29,24 @@ export type Configuration<O extends ProviderOptions> = {
     provider: ResourceProvider<string, O>,
 };
 
-type DeferredOptions = DeferredTemplate['options'];
-type Options = Template['options'];
+type DeferredTemplateOptions = DeferredTemplate['options'];
+type TemplateOptions = Template['options'];
+
+type TemplateHelp = ResourceHelp & {
+    violations: Violation[],
+};
+
+export class TemplateError extends ResourceProviderError {
+    public readonly violations: Violation[];
+
+    public constructor(message: string, {violations, ...help}: TemplateHelp) {
+        super(message, help);
+
+        this.violations = violations;
+
+        Object.setPrototypeOf(this, TemplateError.prototype);
+    }
+}
 
 export class TemplateProvider<O extends ProviderOptions> implements ResourceProvider<DeferredTemplate, O> {
     private readonly evaluator: ExpressionEvaluator;
@@ -52,22 +75,27 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
         try {
             node = JsonParser.parse(source, JsonObjectNode);
         } catch (error) {
-            throw new ResourceProviderError('Failed to parse the JSON template.', url, {
+            throw new TemplateError('Failed to parse the JSON template.', {
                 reason: ErrorReason.INVALID_INPUT,
+                url: url,
                 cause: error,
+                violations: [
+                    {
+                        path: '',
+                        message: HelpfulError.formatMessage(error),
+                    },
+                ],
             });
         }
 
         const data = node.toJSON();
-        const validation = this.validator.validate(data);
+        const validation = await this.validator.validate(data);
 
         if (!validation.valid) {
-            const violations = validation.violations
-                .map(violation => ` • ${violation.path}: ${violation.message}`)
-                .join('\n');
-
-            throw new ResourceProviderError(`Invalid template:\n\n${violations}`, url, {
+            throw new TemplateError('The template contains errors.', {
                 reason: ErrorReason.INVALID_INPUT,
+                url: url,
+                violations: validation.violations,
             });
         }
 
@@ -87,7 +115,7 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
         };
     }
 
-    private parseOptions(node: JsonObjectNode, options: Options, baseUrl: URL): DeferredOptions {
+    private parseOptions(node: JsonObjectNode, options: TemplateOptions, baseUrl: URL): DeferredTemplateOptions {
         if (options === undefined) {
             return undefined;
         }
@@ -95,7 +123,7 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
         const optionsNode = node.get('options', JsonObjectNode);
 
         return Object.fromEntries(
-            Object.entries(options).map<[string, NonNullable<DeferredOptions>[number]]>(
+            Object.entries(options).map(
                 ([name, definition]) => {
                     if (definition.default === undefined) {
                         return [name, definition];
@@ -116,56 +144,73 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
         );
     }
 
-    private resolve(node: JsonObjectNode, variables: VariableMap, baseUrl: URL): Promise<JsonObject>;
+    private resolve(node: JsonObjectNode, variables: VariableMap, baseUrl: URL, path?: string): Deferrable<JsonObject>;
 
-    private resolve(node: JsonArrayNode, variables: VariableMap, baseUrl: URL): Promise<JsonArray>;
+    private resolve(node: JsonArrayNode, variables: VariableMap, baseUrl: URL, path?: string): Deferrable<JsonArray>;
 
-    private resolve(node: JsonValueNode, variables: VariableMap, baseUrl: URL): Promise<JsonValue>;
+    private resolve(node: JsonValueNode, variables: VariableMap, baseUrl: URL, path?: string): Deferrable<JsonValue>;
 
-    private async resolve(node: JsonValueNode, variables: VariableMap, baseUrl: URL): Promise<JsonValue> {
+    private resolve(node: JsonValueNode, variables: VariableMap, baseUrl: URL, path = ''): Deferrable<JsonValue> {
         if (node instanceof JsonArrayNode) {
-            return Promise.all(node.elements.map(element => this.resolve(element, variables, baseUrl)));
+            return node.elements.map(
+                (element, index) => PLazy.from(
+                    () => this.resolve(element, variables, baseUrl, `${path}[${index}]`),
+                ),
+            );
         }
 
         if (node instanceof JsonObjectNode) {
-            return Object.fromEntries(
-                await Promise.all(
-                    node.properties.map(async property => {
-                        const [key, value] = await Promise.all([
-                            this.interpolate(property.key, variables, baseUrl),
-                            this.resolve(property.value, variables, baseUrl),
-                        ]);
+            return PLazy.from(
+                async () => Object.fromEntries(
+                    await Promise.all(
+                        node.properties.map(async property => {
+                            const key = await this.interpolate(property.key, variables, baseUrl, path);
 
-                        if (typeof key !== 'string' && typeof key !== 'number') {
-                            const location = property.key.location.start;
+                            if (typeof key !== 'string' && typeof key !== 'number') {
+                                const location = property.key.location.start;
 
-                            throw new ResourceProviderError(
-                                'Expected object key to resolve to string or number, '
-                                + `but got ${TemplateProvider.getType(key)}.`,
-                                baseUrl,
-                                {
-                                    reason: ErrorReason.INVALID_INPUT,
-                                    details: [
-                                        `Location: line ${location.line}, column ${location.column}`,
-                                    ],
-                                },
-                            );
-                        }
+                                throw new TemplateError(
+                                    'Unexpected object key type.',
+                                    {
+                                        url: baseUrl,
+                                        reason: ErrorReason.INVALID_INPUT,
+                                        violations: [
+                                            {
+                                                path: path,
+                                                message: 'Expected object key to resolve to string or number at '
+                                                    + `line ${location.line}, column ${location.column} but `
+                                                    + `got ${TemplateProvider.getType(key)}.`,
+                                            },
+                                        ],
+                                    },
+                                );
+                            }
 
-                        return [key, value];
-                    }),
+                            const propertyPath = path === '' ? `${key}` : `${path}.${key}`;
+
+                            return [
+                                key,
+                                PLazy.from(() => this.resolve(property.value, variables, baseUrl, propertyPath)),
+                            ];
+                        }),
+                    ),
                 ),
             );
         }
 
         if (node instanceof JsonPrimitiveNode && typeof node.value === 'string') {
-            return this.interpolate(node, variables, baseUrl);
+            return this.interpolate(node, variables, baseUrl, path);
         }
 
         return node.toJSON();
     }
 
-    private async interpolate(node: JsonExpressionNode, variables: VariableMap, baseUrl: URL): Promise<JsonValue> {
+    private interpolate(
+        node: JsonExpressionNode,
+        variables: VariableMap,
+        baseUrl: URL,
+        path: string,
+    ): Deferrable<JsonValue> {
         const fragments = TemplateStringParser.parse(node);
 
         if (fragments.length === 1) {
@@ -175,71 +220,98 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
                 return fragment.source;
             }
 
-            return this.evaluate(TemplateProvider.createExpressionNode(fragment), variables, baseUrl);
+            return PLazy.from(
+                () => this.evaluate(
+                    TemplateProvider.createExpressionNode(fragment),
+                    variables,
+                    baseUrl,
+                    path,
+                ),
+            );
         }
 
-        return (await Promise.all(
-            fragments.map(async fragment => {
-                if (fragment.type === 'literal') {
-                    return fragment.source;
-                }
+        return PLazy.from(
+            async () => (await Promise.all(
+                fragments.map(async fragment => {
+                    if (fragment.type === 'literal') {
+                        return fragment.source;
+                    }
 
-                const expressionNode = TemplateProvider.createExpressionNode(fragment);
+                    const expressionNode = TemplateProvider.createExpressionNode(fragment);
 
-                const result = await this.evaluate(expressionNode, variables, baseUrl);
+                    const result = await this.evaluate(expressionNode, variables, baseUrl, path);
 
-                if (result !== null && !['string', 'number', 'boolean'].includes(typeof result)) {
-                    const location = node.location.start;
+                    if (result !== null && !['string', 'number', 'boolean'].includes(typeof result)) {
+                        const location = node.location.start;
 
-                    throw new ResourceProviderError(
-                        `Expected expression \`${fragment.expression}\` to resolve to null, string, number, or `
-                        + `boolean value, but got ${TemplateProvider.getType(result)}.`,
-                        baseUrl,
-                        {
+                        throw new TemplateError('Unexpected expression result.', {
                             reason: ErrorReason.INVALID_INPUT,
-                            details: [
-                                `Location: line ${location.line}, column ${location.column}`,
+                            url: baseUrl,
+                            violations: [
+                                {
+                                    path: path,
+                                    message: `Expected expression \`${fragment.expression}\` to resolve to null, `
+                                        + `string, number, or boolean value at line ${location.line}, `
+                                        + `column ${location.column}, but got ${TemplateProvider.getType(result)}.`,
+                                },
                             ],
-                        },
-                    );
-                }
+                        });
+                    }
 
-                return `${result ?? ''}`;
-            }),
-        )).join('');
+                    return `${result ?? ''}`;
+                }),
+            )).join(''),
+        );
     }
 
-    public async evaluate(node: JsonExpressionNode, variables: VariableMap, baseUrl: URL): Promise<JsonValue> {
+    public async evaluate(
+        node: JsonExpressionNode,
+        variables: VariableMap,
+        baseUrl: URL,
+        path: string,
+    ): Deferred<JsonValue> {
         const expression = (node instanceof JsonIdentifierNode ? node.token.value : node.value).trim();
 
         try {
             return await this.evaluator.evaluate(expression, {
                 variables: variables,
                 functions: {
-                    import: (url?: JsonValue, input?: JsonValue): Promise<JsonValue> => {
+                    import: (url?: JsonValue, input?: JsonValue): Deferred<JsonValue> => {
                         if (typeof url !== 'string') {
-                            throw new ResourceProviderError(
-                                'The first argument of the `import` function must be a string, but got '
-                                + `${TemplateProvider.getType(url)}.`,
-                                baseUrl,
-                                {
-                                    reason: ErrorReason.INVALID_INPUT,
-                                },
-                            );
+                            const location = node.location.start;
+
+                            throw new TemplateError('Invalid argument for function `import`.', {
+                                reason: ErrorReason.INVALID_INPUT,
+                                url: baseUrl,
+                                violations: [
+                                    {
+                                        path: path,
+                                        message: 'The first argument of the `import` function must be a string, '
+                                            + `but got ${TemplateProvider.getType(url)} at line ${location.line}, `
+                                            + `column ${location.column}.`,
+                                    },
+                                ],
+                            });
                         }
 
                         if (
                             input !== undefined
                             && (typeof input !== 'object' || input === null || Array.isArray(input))
                         ) {
-                            throw new ResourceProviderError(
-                                'The second argument of the `import` function must be an object, but got '
-                                + `${TemplateProvider.getType(input)}.`,
-                                baseUrl,
-                                {
-                                    reason: ErrorReason.INVALID_INPUT,
-                                },
-                            );
+                            const location = node.location.start;
+
+                            throw new TemplateError('Invalid argument for function `import`.', {
+                                reason: ErrorReason.INVALID_INPUT,
+                                url: baseUrl,
+                                violations: [
+                                    {
+                                        path: path,
+                                        message: 'The second argument of the `import` function must be an object. '
+                                            + `but got ${TemplateProvider.getType(url)} at line ${location.line}, `
+                                            + `column ${location.column}.`,
+                                    },
+                                ],
+                            });
                         }
 
                         return this.import(
@@ -256,6 +328,7 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
                                 },
                             },
                             baseUrl,
+                            path,
                         );
                     },
                 },
@@ -263,36 +336,48 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
         } catch (error) {
             const location = node.location.start;
 
-            throw new ResourceProviderError(
-                `Failed to evaluate expression \`${expression}\`.`,
-                baseUrl,
-                {
-                    reason: ErrorReason.INVALID_INPUT,
-                    cause: error,
-                    details: [
-                        `Location: line ${location.line}, column ${location.column}`,
-                    ],
-                },
-            );
+            throw new TemplateError('Failed to evaluate expression.', {
+                reason: ErrorReason.INVALID_INPUT,
+                url: baseUrl,
+                cause: error,
+                violations: [
+                    {
+                        path: path,
+                        message: `Evaluation of \`${expression}\` at line ${location.line}, column ${location.column} `
+                         + `failed because ${HelpfulError.formatCause(error)}`,
+                    },
+                ],
+            });
         }
     }
 
-    private async import(url: URL, variables: VariableMap, baseUrl: URL): Promise<JsonValue> {
+    private async import(url: URL, variables: VariableMap, baseUrl: URL, path: string): Deferred<JsonValue> {
         if (url.protocol === 'file:' && baseUrl.protocol !== 'file:') {
-            throw new ResourceProviderError('File URL is not allowed from remote sources for security reasons.', url, {
+            throw new TemplateError('Unsafe import URL.', {
                 reason: ErrorReason.PRECONDITION,
-                details: [
-                    `Source URL: ${url}`,
+                url: url,
+                violations: [
+                    {
+                        path: path,
+                        message: 'File URL is not allowed from remote sources for security reasons.',
+                    },
                 ],
             });
         }
 
         if (this.loading.includes(url.toString())) {
-            const chain = [...this.loading, url.href].map((path, index) => ` ${index + 1}. ${path}`)
+            const chain = [...this.loading, url.href].map((dependency, index) => ` ${index + 1}. ${dependency}`)
                 .join('\n');
 
-            throw new ResourceProviderError(`Circular dependency detected while loading templates:\n\n${chain}`, url, {
+            throw new TemplateError(`Circular dependency detected while loading templates:\n\n${chain}`, {
                 reason: ErrorReason.INVALID_INPUT,
+                url: url,
+                violations: [
+                    {
+                        path: path,
+                        message: 'Imported template creates a circular dependency.',
+                    },
+                ],
             });
         }
 
@@ -303,16 +388,23 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
         try {
             node = JsonParser.parse(template);
         } catch (error) {
-            throw new ResourceProviderError('Failed to parse referenced JSON.', url, {
+            throw new TemplateError('Failed to parse referenced JSON.', {
                 reason: ErrorReason.INVALID_INPUT,
                 cause: error,
+                url: url,
+                violations: [
+                    {
+                        path: path,
+                        message: HelpfulError.formatMessage(error),
+                    },
+                ],
             });
         }
 
         this.loading.push(url.toString());
 
         try {
-            return this.resolve(node, variables, url);
+            return this.resolve(node, variables, url, path);
         } finally {
             this.loading.pop();
         }

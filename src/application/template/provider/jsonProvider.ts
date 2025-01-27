@@ -19,7 +19,8 @@ export class JsonProvider<O extends ProviderOptions> implements ResourceProvider
         try {
             return JsonParser.parse(source).toJSON();
         } catch (error) {
-            throw new ResourceProviderError('Malformed JSON.', url, {
+            throw new ResourceProviderError('Malformed JSON.', {
+                url: url,
                 cause: error,
             });
         }

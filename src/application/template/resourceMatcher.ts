@@ -6,17 +6,12 @@ import {
     AudienceDefinition,
     ComponentDefinition,
     ExperienceDefinition,
+    PersonalizedContentDefinition,
     SlotDefinition,
+    VariantDefinition,
     WorkspaceApi,
 } from '@/application/api/workspace';
-import {
-    ExperienceDetails,
-    ExperienceStatus,
-    Experience,
-    PersonalizedContent,
-    SlotContentMap,
-    Variant,
-} from '@/application/model/experience';
+import {ExperienceDetails, ExperienceStatus, Experience, SlotContentMap} from '@/application/model/experience';
 import {WorkspacePath} from '@/application/api/organization';
 import {WorkspaceResources} from '@/application/template/resources';
 
@@ -249,7 +244,7 @@ export class ResourceMatcher {
                 .some(content => Object.values(slug.content).some(otherContent => deepEqual(content, otherContent)));
     }
 
-    private static isSimilarExperimentContent(left: Variant[], right: Variant[]): boolean {
+    private static isSimilarExperimentContent(left: VariantDefinition[], right: VariantDefinition[]): boolean {
         if (left.length !== right.length) {
             return false;
         }
@@ -257,7 +252,10 @@ export class ResourceMatcher {
         return left.some((variant, index) => deepEqual(variant, right[index]));
     }
 
-    private static isSimilarPersonalizedContent(left: PersonalizedContent, right: PersonalizedContent): boolean {
+    private static isSimilarPersonalizedContent(
+        left: PersonalizedContentDefinition,
+        right: PersonalizedContentDefinition,
+    ): boolean {
         if (ResourceMatcher.isSimilarSlotContent(left.default, right.default)) {
             return true;
         }

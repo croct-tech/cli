@@ -3,36 +3,28 @@ import {ActionContext} from '@/application/template/action/context';
 import {ErrorReason} from '@/application/error';
 import {ActionDefinition} from '@/application/template/template';
 
-export type TestOptions = {
-    condition: boolean,
-    then?: ActionDefinition,
-    else?: ActionDefinition,
+export type RunOptions = {
+    actions: ActionDefinition[],
 };
 
-export class TestAction implements Action<TestOptions> {
+export class RunAction implements Action<RunOptions> {
     private readonly actions: Record<string, Action>;
 
     public constructor(actions: Record<string, Action>) {
         this.actions = actions;
     }
 
-    public execute(options: TestOptions, context: ActionContext): Promise<void> {
-        if (options.condition) {
-            return options.then !== undefined
-                ? this.run(options.then, context)
-                : Promise.resolve();
+    public async execute(options: RunOptions, context: ActionContext): Promise<void> {
+        for (const action of options.actions) {
+            await this.run(action, context);
         }
-
-        return options.else !== undefined
-            ? this.run(options.else, context)
-            : Promise.resolve();
     }
 
     private run({name, ...options}: ActionDefinition, context: ActionContext): Promise<void> {
         const action = this.actions[name];
 
         if (action === undefined) {
-            throw new ActionError(`Action "${name}" is not supported`, {
+            throw new ActionError(`Unsupported action \`${name}\`.`, {
                 reason: ErrorReason.INVALID_INPUT,
             });
         }

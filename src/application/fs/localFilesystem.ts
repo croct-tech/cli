@@ -68,7 +68,7 @@ export class LocalFilesystem implements FileSystem {
     }
 
     public getRelativePath(from: string, to: string): string {
-        return relative(from, to);
+        return relative(this.resolvePath(from), this.resolvePath(to));
     }
 
     public isAbsolutePath(path: string): boolean {
@@ -78,7 +78,7 @@ export class LocalFilesystem implements FileSystem {
     public isSubPath(parent: string, path: string): boolean {
         const parentPath = this.resolvePath(parent);
         const subPath = isAbsolute(path) ? path : join(parentPath, path);
-        const relativePath = relative(parent, subPath);
+        const relativePath = relative(parentPath, subPath);
 
         return !relativePath.startsWith('..') && !isAbsolute(relativePath);
     }

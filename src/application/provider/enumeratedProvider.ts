@@ -2,7 +2,7 @@ import {Provider, ProviderError} from '@/application/provider/provider';
 
 export type Discriminator<K extends string> = () => Promise<K>;
 
-type Mapping<K extends string, V> = Record<K, V|(() => V)>;
+type Mapping<K extends string, V> = Record<K, V|(() => Promise<V>|V)>;
 
 export type Configuration<K extends string, V> = {
     discriminator: Discriminator<K>,

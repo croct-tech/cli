@@ -1,5 +1,9 @@
 export type Confirmation = {
     message: string,
+    labels?: {
+        true: string,
+        false: string,
+    },
     default?: boolean,
 };
 
@@ -22,7 +26,6 @@ export type Selection<T> = {
 export type MultipleSelection<T> = {
     message: string,
     options: Array<MultipleSelectionOption<T>>,
-    default?: T,
 };
 
 export type ValidationResult = boolean | string | Promise<boolean | string>;

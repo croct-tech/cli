@@ -1,4 +1,4 @@
-import {JsonObject, JsonValue} from '@croct/json';
+import {JsonValue} from '@croct/json';
 import jsep, {CoreExpression, Expression} from 'jsep';
 import jsepObject, {ObjectExpression} from '@jsep-plugin/object';
 import {
@@ -6,18 +6,19 @@ import {
     EvaluationError,
     ExpressionEvaluator,
     VariableMap,
-    VariableValue,
 } from '@/application/template/evaluation';
 
-type LazyOperand = () => Promise<JsonValue>;
+import {Deferred, Deferrable} from '@/application/template/deferral';
+
+type LazyOperand = () => Deferred<JsonValue>;
 
 type UnaryOperator = {
-    evaluate: (operand: LazyOperand) => Promise<JsonValue>,
+    evaluate: (operand: LazyOperand) => Deferred<JsonValue>,
 };
 
 type BinaryOperator = {
     precedence: number,
-    evaluate: (left: LazyOperand, right: LazyOperand) => Promise<JsonValue>,
+    evaluate: (left: LazyOperand, right: LazyOperand) => Deferred<JsonValue>,
 };
 
 type ExtendedExpression = Expression|CoreExpression|ObjectExpression;
@@ -120,9 +121,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
 
     private readonly parserCache: Map<string, Expression> = new Map();
 
-    private readonly resolutionCache: WeakMap<any, JsonValue> = new WeakMap();
-
-    public evaluate(expression: string, variables?: VariableMap): Promise<JsonValue> {
+    public evaluate(expression: string, variables?: VariableMap): Deferred<JsonValue> {
         return this.evaluateExpression(this.parse(expression), variables);
     }
 
@@ -171,7 +170,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
         return parsedExpression;
     }
 
-    private async evaluateExpression(expression: Expression, context?: EvaluationContext): Promise<JsonValue> {
+    private async evaluateExpression(expression: Expression, context?: EvaluationContext): Deferred<JsonValue> {
         switch (true) {
             case matches(expression, 'Literal'):
                 return expression.value as JsonValue;
@@ -183,10 +182,10 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                 const value = context?.variables?.[name];
 
                 if (value === undefined) {
-                    throw new EvaluationError(`Unknown variable \`${name}\`.`);
+                    throw new EvaluationError(`Variable \`${name}\` is unknown.`);
                 }
 
-                return this.resolve(value);
+                return value;
             }
 
             case matches(expression, 'ArrayExpression'):
@@ -211,7 +210,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                                         .then(result => {
                                             if (typeof result !== 'string' && typeof result !== 'number') {
                                                 throw new EvaluationError(
-                                                    `Property must be a string or a number, got ${typeof result}.`,
+                                                    `Property name must be a string or a number, got ${typeof result}.`,
                                                 );
                                             }
 
@@ -288,7 +287,9 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
 
                 return fn(
                     ...await Promise.all(
-                        expression.arguments.map(argument => this.evaluateExpression(argument, context)),
+                        expression.arguments.map(
+                            argument => this.resolve(this.evaluateExpression(argument, context)),
+                        ),
                     ),
                 );
             }
@@ -304,51 +305,40 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
         }
     }
 
-    private async resolve(value: VariableValue): Promise<JsonValue> {
-        const cachedValue = this.resolutionCache.get(value);
-
-        if (cachedValue !== undefined) {
-            return cachedValue;
+    private async resolve(value: Deferrable<JsonValue>): Promise<JsonValue> {
+        if (!(value instanceof Promise) && (typeof value !== 'object' || value === null)) {
+            return value;
         }
 
-        if (typeof value === 'function') {
-            const resolvedValue = await value();
+        const resolvedValue = await value;
 
-            this.resolutionCache.set(value, resolvedValue);
-
-            return resolvedValue;
+        if (Array.isArray(resolvedValue)) {
+            return Promise.all(resolvedValue.map(item => this.resolve(item)));
         }
 
-        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-            const record: JsonObject = {};
-            let resolved = false;
+        if (typeof resolvedValue === 'object' && resolvedValue !== null) {
+            const record = Object.fromEntries(
+                await Promise.all(
+                    Object.entries(resolvedValue).flatMap(([key, propertyValue]) => {
+                        if (propertyValue === undefined) {
+                            return [];
+                        }
 
-            for (const [key, propertyValue] of Object.entries(value)) {
-                if (propertyValue === undefined) {
-                    continue;
-                }
+                        return [[key, this.resolve(propertyValue)]];
+                    }),
+                ),
+            );
 
-                record[key] = await this.resolve(propertyValue);
-
-                resolved = resolved || record[key] !== propertyValue;
-            }
-
-            if (Object.isFrozen(value)) {
+            if (Object.isFrozen(resolvedValue)) {
                 Object.freeze(record);
-            } else if (Object.isSealed(value)) {
+            } else if (Object.isSealed(resolvedValue)) {
                 Object.seal(record);
             }
 
-            if (resolved) {
-                this.resolutionCache.set(value, record);
-
-                return record;
-            }
-
-            return value as JsonValue;
+            return record;
         }
 
-        return value;
+        return resolvedValue;
     }
 }
 

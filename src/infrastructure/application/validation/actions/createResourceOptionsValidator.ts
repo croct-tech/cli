@@ -6,7 +6,7 @@ import {
     RootDefinition,
 } from '@croct/content-model/definition/definition';
 import {Content, PrimitiveValue} from '@croct/content-model/content/content';
-import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
+import {JsonValue} from '@croct/json';
 import {CreateResourceOptions} from '@/application/template/action/createResourceAction';
 import {
     AudienceDefinition,
@@ -18,6 +18,7 @@ import {
     VariantDefinition,
 } from '@/application/api/workspace';
 import {LocalizedContentMap, SlotContentMap} from '@/application/model/experience';
+import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const outputMapSchema = z.record(z.string().min(1), z.string().min(1));
 const outputListSchema = z.record(z.number().nonnegative(), z.string().min(1));
@@ -88,10 +89,20 @@ const listDefinitionSchema = definitionAnnotationSchema.extend({
     maximumLength: z.number().optional(),
 }) satisfies ZodType<ContentDefinition<'list'>>;
 
+const jsonPrimitiveSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
+
+const jsonSchema: z.ZodType<JsonValue> = z.lazy(
+    () => z.union([
+        jsonPrimitiveSchema,
+        z.array(jsonSchema),
+        z.record(jsonSchema),
+    ]),
+);
+
 const referenceDefinitionSchema = definitionAnnotationSchema.extend({
     type: z.literal('reference'),
     id: z.string(),
-    properties: z.record(z.string(), z.any()).optional(),
+    properties: z.record(z.string(), jsonSchema).optional(),
 }) satisfies ZodType<ContentDefinition<'reference'>>;
 
 const unionDefinitionSchema = definitionAnnotationSchema.extend({
@@ -288,7 +299,7 @@ const schema: ZodType<CreateResourceOptions> = z.object({
     }).optional(),
 });
 
-export class CreateResourceOptionsValidator extends ZodValidator<CreateResourceOptions> {
+export class CreateResourceOptionsValidator extends ActionOptionsValidator<CreateResourceOptions> {
     public constructor() {
         super(schema);
     }

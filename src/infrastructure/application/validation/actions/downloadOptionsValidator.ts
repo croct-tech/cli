@@ -1,6 +1,6 @@
 import {z, ZodType} from 'zod';
-import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {DownloadOptions} from '@/application/template/action/downloadAction';
+import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const schema: ZodType<DownloadOptions> = z.object({
     source: z.string().min(1),
@@ -15,7 +15,7 @@ const schema: ZodType<DownloadOptions> = z.object({
     }).optional(),
 });
 
-export class DownloadOptionsValidator extends ZodValidator<DownloadOptions> {
+export class DownloadOptionsValidator extends ActionOptionsValidator<DownloadOptions> {
     public constructor() {
         super(schema);
     }

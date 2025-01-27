@@ -18,6 +18,6 @@ export class MultiProvider<T, O extends ProviderOptions> implements ResourceProv
             }
         }
 
-        throw new ResourceNotFoundError('Resource not found.', url);
+        throw new ResourceNotFoundError('Resource not found.', {url: url});
     }
 }

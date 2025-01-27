@@ -1,4 +1,4 @@
-import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
+import {Installation, Sdk, SdkResolver, ServerInfo} from '@/application/project/sdk/sdk';
 import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import {PlugJsExampleGenerator} from '@/application/project/example/slot/plugJsExampleGenerator';
 import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
@@ -12,6 +12,10 @@ export class PlugJsSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> {
 
     public getPlatform(): ApplicationPlatform {
         return ApplicationPlatform.JAVASCRIPT;
+    }
+
+    public getLocalServerInfo(): Promise<ServerInfo | null> {
+        return Promise.resolve(null);
     }
 
     public resolve(hint?: string): Promise<Sdk|null> {

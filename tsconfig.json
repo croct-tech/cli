@@ -3,7 +3,6 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "target": "ESNext",
-    "strict": true,
     "esModuleInterop": true,
     "isolatedModules": false,
     "baseUrl": ".",
@@ -24,6 +23,7 @@
     "noEmit": true,
     "downlevelIteration": true,
     "declaration": true,
+    "skipLibCheck": true,
     "lib": ["es2022"]
   },
   "include": [

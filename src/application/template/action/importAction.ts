@@ -1,9 +1,9 @@
 import {JsonValue} from '@croct/json';
-import {Action, ActionError} from '@/application/template/action/action';
+import {Action, ActionError, ActionRunner} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {ResourceNotFoundError, ResourceProvider} from '@/application/provider/resourceProvider';
-import {LazyJsonValue, VariableMap} from '@/application/template/evaluation';
+import {VariableMap} from '@/application/template/evaluation';
 import {DeferredOptionDefinition, DeferredTemplate} from '@/application/template/template';
 
 export type ImportOptions = {
@@ -17,7 +17,7 @@ type DeferredTemplateSource = {
 };
 
 export type Configuration = {
-    actions: Record<string, Action>,
+    runner: ActionRunner,
     templateProvider: ResourceProvider<DeferredTemplateSource>,
     variables: VariableMap,
 };
@@ -46,7 +46,7 @@ export class ImportAction implements Action<ImportOptions> {
     private async importTemplate(options: ImportOptions, context: ActionContext): Promise<void> {
         const {template, url} = await this.loadTemplate(options.template, context.baseUrl);
 
-        const input = this.getInputValues(template, options.input);
+        const input = await this.getInputValues(template, options.input);
 
         if (this.resolving.includes(url.href)) {
             const chain = [...this.resolving, url.href].map((path, index) => ` ${index + 1}. ${path}`)
@@ -74,7 +74,7 @@ export class ImportAction implements Action<ImportOptions> {
         }
     }
 
-    private getInputValues(template: DeferredTemplate, input: VariableMap = {}): VariableMap {
+    private async getInputValues(template: DeferredTemplate, input: VariableMap = {}): Promise<VariableMap> {
         const values: VariableMap = {};
 
         for (const [name, definition] of Object.entries(template.options ?? {})) {
@@ -86,59 +86,39 @@ export class ImportAction implements Action<ImportOptions> {
                 });
             }
 
-            const {resolveDefault} = definition;
+            const resolvedValue = await (value ?? definition.resolveDefault?.(this.config.variables));
 
-            let optionValue = value ?? (
-                resolveDefault !== undefined
-                    ? (): Promise<JsonValue> => resolveDefault(this.config.variables)
-                    : undefined
-            );
+            if (resolvedValue !== undefined) {
+                ImportAction.checkOptionValue(name, resolvedValue, definition);
 
-            if (typeof optionValue === 'function') {
-                const lazyValue: LazyJsonValue = optionValue;
-
-                optionValue = async (): Promise<JsonValue> => {
-                    const resolvedValue = await lazyValue();
-
-                    ImportAction.checkOptionValue(name, resolvedValue, definition);
-
-                    return resolvedValue;
-                };
-            } else {
-                ImportAction.checkOptionValue(name, optionValue, definition);
+                values[name] = resolvedValue;
             }
-
-            values[name] = optionValue;
         }
 
         return values;
     }
 
     private async run(template: DeferredTemplate, input: VariableMap, context: ActionContext): Promise<void> {
-        const {actions, variables} = this.config;
+        const {runner, variables} = this.config;
         const {output} = context;
 
         for (const {name, resolve} of template.actions) {
-            const action = actions[name];
-
-            if (action === undefined) {
-                throw new HelpfulError(`Unknown action \`${name}\`.`, {
-                    reason: ErrorReason.INVALID_INPUT,
-                });
-            }
-
             const notifier = output.notify('Resolving options');
 
             try {
-                const resolvedOptions = await resolve({
+                const options = await resolve({
                     ...variables,
                     input: input,
-                    output: context.getVariables(),
+                    get this() {
+                        // Defer the variable resolution to the last moment to allow nested actions
+                        // to access variables set by previous actions
+                        return context.getVariables();
+                    },
                 });
 
                 notifier.stop();
 
-                await action.execute(resolvedOptions, context);
+                await runner.execute({actions: [options]}, context);
             } catch (error) {
                 throw ActionError.fromCause(error, {
                     details: [

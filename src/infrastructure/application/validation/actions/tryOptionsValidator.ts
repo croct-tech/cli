@@ -1,12 +1,16 @@
 import {z, ZodType} from 'zod';
-import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {TryOptions} from '@/application/template/action/tryAction';
-
-const actionDefinitionSchema = z.object({name: z.string().min(1)}).passthrough();
+import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const schema: ZodType<TryOptions> = z.object({
-    action: actionDefinitionSchema,
-    otherwise: actionDefinitionSchema.optional(),
+    run: z.union([
+        z.array(z.promise(z.unknown())),
+        z.promise(z.unknown()),
+    ]),
+    else: z.union([
+        z.array(z.promise(z.unknown())),
+        z.promise(z.unknown()),
+    ]).optional(),
     help: z.object({
         message: z.string()
             .min(1)
@@ -21,7 +25,7 @@ const schema: ZodType<TryOptions> = z.object({
     }).optional(),
 });
 
-export class TryOptionsValidator extends ZodValidator<TryOptions> {
+export class TryOptionsValidator extends ActionOptionsValidator<TryOptions> {
     public constructor() {
         super(schema);
     }

@@ -1,10 +1,11 @@
 import {Content} from '@croct/content-model/content/content';
 import {WorkspaceResources} from '@/application/template/resources';
-import {LocalizedContentMap, PersonalizedContent, SlotContentMap} from '@/application/model/experience';
+import {LocalizedContentMap, SlotContentMap} from '@/application/model/experience';
 import {
     AudienceDefinition,
     ComponentDefinition,
     ExperienceDefinition,
+    PersonalizedContentDefinition,
     SlotDefinition,
 } from '@/application/api/workspace';
 
@@ -86,7 +87,10 @@ export class ResourceRefactor {
         };
     }
 
-    private refactorPersonalizedContent(content: PersonalizedContent, audiences: string[]): PersonalizedContent {
+    private refactorPersonalizedContent(
+        content: PersonalizedContentDefinition,
+        audiences: string[],
+    ): PersonalizedContentDefinition {
         return {
             default: this.refactorSlotContentMap(content.default),
             segmented: content.segmented.flatMap(segmentedContent => {
@@ -97,7 +101,6 @@ export class ResourceRefactor {
                 }
 
                 return {
-                    id: segmentedContent.id,
                     audiences: filteredAudiences,
                     content: this.refactorSlotContentMap(segmentedContent.content),
                 };

@@ -2,7 +2,7 @@ import semver from 'semver';
 import {PackageInfo, PackageInstallationOptions} from '@/application/project/manager/projectManager';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {ImportConfigLoader} from '@/application/project/manager/importConfigLoader';
-import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
+import {Command, JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
 import {Validator} from '@/application/validation';
 
 type PartialNpmPackage = {
@@ -16,17 +16,18 @@ type PartialNpmPackage = {
 export type Configuration = {
     directory: string,
     fileSystem: FileSystem,
-    packageInstaller: NodePackageInstaller,
+    packageManager: NodePackageManager,
     importConfigLoader: ImportConfigLoader,
     packageValidator: Validator<PartialNpmPackage>,
 };
 
-export type NodePackageInstaller = Pick<JavaScriptProjectManager, 'installPackage'>;
+export interface NodePackageManager extends Pick<JavaScriptProjectManager, 'installPackage' | 'getScriptCommand'> {
+}
 
 export class NodeProjectManager implements JavaScriptProjectManager {
     private readonly fileSystem: FileSystem;
 
-    private readonly packageInstaller: NodePackageInstaller;
+    private readonly packageManager: NodePackageManager;
 
     private readonly importConfigLoader: ImportConfigLoader;
 
@@ -36,7 +37,7 @@ export class NodeProjectManager implements JavaScriptProjectManager {
 
     public constructor(configuration: Configuration) {
         this.fileSystem = configuration.fileSystem;
-        this.packageInstaller = configuration.packageInstaller;
+        this.packageManager = configuration.packageManager;
         this.importConfigLoader = configuration.importConfigLoader;
         this.packageValidator = configuration.packageValidator;
         this.directory = configuration.directory;
@@ -44,6 +45,10 @@ export class NodeProjectManager implements JavaScriptProjectManager {
 
     public getRootPath(): string {
         return this.directory;
+    }
+
+    public getScriptCommand(script: string, args: string[] = []): Promise<Command> {
+        return this.packageManager.getScriptCommand(script, args);
     }
 
     public getProjectPackagePath(): string {
@@ -140,7 +145,7 @@ export class NodeProjectManager implements JavaScriptProjectManager {
             return null;
         }
 
-        const result = this.packageValidator.validate(data);
+        const result = await this.packageValidator.validate(data);
 
         if (!result.valid) {
             return null;
@@ -150,7 +155,7 @@ export class NodeProjectManager implements JavaScriptProjectManager {
     }
 
     public async installPackage(packageName: string|string[], options: PackageInstallationOptions = {}): Promise<void> {
-        await this.packageInstaller.installPackage(packageName, options);
+        await this.packageManager.installPackage(packageName, options);
     }
 
     public async getImportPath(filePath: string, importPath?: string): Promise<string> {

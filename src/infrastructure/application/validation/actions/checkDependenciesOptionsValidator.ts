@@ -1,6 +1,6 @@
 import {z, ZodType} from 'zod';
-import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {CheckDependencyOptions} from '@/application/template/action/checkDependencyAction';
+import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const requirementSchema = z.object({
     name: z.string().min(1),
@@ -26,7 +26,7 @@ const schema: ZodType<CheckDependencyOptions> = z.object({
     }).optional(),
 });
 
-export class CheckDependenciesOptionsValidator extends ZodValidator<CheckDependencyOptions> {
+export class CheckDependenciesOptionsValidator extends ActionOptionsValidator<CheckDependencyOptions> {
     public constructor() {
         super(schema);
     }

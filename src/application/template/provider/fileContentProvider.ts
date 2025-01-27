@@ -17,7 +17,7 @@ export class FileContentProvider<O extends ProviderOptions> implements ResourceP
         const next = await iterator.next();
 
         if (next.done === true || next.value.type !== 'file') {
-            throw new ResourceNotFoundError('File not found.', url);
+            throw new ResourceNotFoundError('File not found.', {url: url});
         }
 
         return new Response(next.value.content).text();

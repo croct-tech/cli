@@ -160,6 +160,8 @@ export class ConsoleOutput implements Output {
         let body = format(HelpfulError.formatMessage(error));
 
         if (error instanceof HelpfulError) {
+            body += ConsoleOutput.formatErrorDetails(error);
+
             const {cause} = error.help;
 
             if (cause !== undefined && error.message.toLowerCase() !== cause.message.toLowerCase()) {
@@ -171,29 +173,26 @@ export class ConsoleOutput implements Output {
             body += ConsoleOutput.formatErrorUsefulLinks(error);
         }
 
-        body += ConsoleOutput.formatErrorDetails(error);
+        if (
+            !(error instanceof HelpfulError)
+            || (error.reason === ErrorReason.OTHER && error.help.cause instanceof Error)
+        ) {
+            body += ConsoleOutput.formatStackTrace(error);
+        }
 
         return body;
     }
 
-    private static formatErrorDetails(error: unknown): string {
-        if (!(error instanceof HelpfulError)) {
-            return ConsoleOutput.formatStackTrace(error);
-        }
-
+    private static formatErrorDetails(error: HelpfulError): string {
         let message = '';
 
-        const {details, cause} = error.help;
+        const {details} = error.help;
 
         if (details !== undefined) {
             message += `\n\n${chalk.bold('Details')}\n`;
             message += details
                 .map(detail => ` • ${format(detail)}`)
                 .join('\n');
-        }
-
-        if (error.reason === ErrorReason.OTHER && cause instanceof Error) {
-            message += ConsoleOutput.formatStackTrace(error);
         }
 
         return message;

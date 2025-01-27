@@ -1,6 +1,6 @@
 import {z, ZodType} from 'zod';
-import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {ResolveImportOptions} from '@/application/template/action/resolveImportAction';
+import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const schema: ZodType<ResolveImportOptions> = z.object({
     target: z.string().min(1),
@@ -12,7 +12,7 @@ const schema: ZodType<ResolveImportOptions> = z.object({
     }).optional(),
 });
 
-export class ResolveImportOptionsValidator extends ZodValidator<ResolveImportOptions> {
+export class ResolveImportOptionsValidator extends ActionOptionsValidator<ResolveImportOptions> {
     public constructor() {
         super(schema);
     }

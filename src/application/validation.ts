@@ -15,8 +15,10 @@ export declare type InvalidResult = {
     data?: never,
 };
 
+type MaybePromise<T> = T | Promise<T>;
+
 export type ValidationResult<T> = ValidResult<T> | InvalidResult;
 
 export interface Validator<T> {
-    validate(data: unknown): ValidationResult<T>;
+    validate(data: unknown): MaybePromise<ValidationResult<T>>;
 }

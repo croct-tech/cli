@@ -13,10 +13,6 @@ export type CopyOptions = {
     overwrite?: boolean,
 };
 
-export type DirectoryMoveOptions = {
-    overwrite?: boolean,
-};
-
 export type DeletionOptions = {
     recursive?: boolean,
 };

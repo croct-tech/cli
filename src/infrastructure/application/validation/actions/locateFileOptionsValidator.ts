@@ -1,6 +1,6 @@
 import {z, ZodType} from 'zod';
-import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {LocateFileOptions, Matcher, PatternMatcher} from '@/application/template/action/locateFileAction';
+import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const patternMatcherSchema: ZodType<PatternMatcher> = z.object({
     pattern: z.string().min(1),
@@ -32,7 +32,7 @@ const schema: ZodType<LocateFileOptions> = z.object({
     }).optional(),
 });
 
-export class LocateFileOptionsValidator extends ZodValidator<LocateFileOptions> {
+export class LocateFileOptionsValidator extends ActionOptionsValidator<LocateFileOptions> {
     public constructor() {
         super(schema);
     }

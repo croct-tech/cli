@@ -64,6 +64,6 @@ function render(message: string): string {
             fallback: (text, url) => `${text} (${url})`,
         }),
         image: node => unescapeMarkdown(node.source),
-        paragraph: node => `${node.children.join('\n')}\n\n`,
+        paragraph: node => `${node.children.join('')}\n\n`,
     }).trim();
 }

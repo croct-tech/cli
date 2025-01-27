@@ -1,6 +1,31 @@
 import {ProjectManager} from '@/application/project/manager/projectManager';
 
+/**
+ * Represents a terminal command.
+ */
+export type Command = {
+    /**
+     * The name of the command.
+     */
+    name: string,
+
+    /**
+     * The arguments to pass to the command.
+     */
+    args: string[],
+};
+
 export interface JavaScriptProjectManager extends ProjectManager {
+    /**
+     * Returns the command to run a script.
+     *
+     * @param script The name of the script.
+     * @param args The arguments to pass to the script.
+     *
+     * @returns The command to run the script.
+     */
+   getScriptCommand(script: string, args?: string[]): Promise<Command>;
+
     /**
      * Checks if the project is a TypeScript project.
      *

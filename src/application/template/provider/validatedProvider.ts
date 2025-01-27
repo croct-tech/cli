@@ -22,14 +22,18 @@ export class ValidatedProvider<I, R, O extends ProviderOptions> implements Resou
 
     public async get(url: URL, options: O): Promise<I> {
         const data = await this.provider.get(url, options);
-        const result = this.validator.validate(data);
+        const validation = await this.validator.validate(data);
 
-        if (!result.valid) {
-            throw new ResourceProviderError('The response data is invalid.', url, {
-                details: result.violations.map(violation => violation.message),
+        if (!validation.valid) {
+            const violations = validation.violations
+                .map(violation => ` • **${violation.path}**: ${violation.message}`)
+                .join('\n\n');
+
+            throw new ResourceProviderError(`The response data is invalid:\n\n${violations}`, {
+                url: url,
             });
         }
 
-        return result.data;
+        return validation.data;
     }
 }

@@ -1,7 +1,6 @@
 /* eslint-disable no-inner-declarations -- False positive */
 import {Content} from '@croct/content-model/content/content';
-import {PersonalizedContent} from '@/application/model/experience';
-import {ExperienceDefinition, NewResources} from '@/application/api/workspace';
+import {ExperienceDefinition, NewResources, PersonalizedContentDefinition} from '@/application/api/workspace';
 
 export type WorkspaceResources = Omit<NewResources, 'organizationId' | 'workspaceId'>;
 
@@ -87,7 +86,7 @@ export namespace WorkspaceResources {
         };
     }
 
-    function getContentResources(content: PersonalizedContent): ContentResources {
+    function getContentResources(content: PersonalizedContentDefinition): ContentResources {
         const referencedSlots = new Set<string>();
         const locales = new Set<string>();
 

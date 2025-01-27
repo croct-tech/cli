@@ -1,28 +1,27 @@
-import {Action, ActionError} from '@/application/template/action/action';
+import {Action, ActionError, ActionRunner} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
-import {ErrorReason, Help} from '@/application/error';
-import {ActionDefinition} from '@/application/template/template';
+import {Help} from '@/application/error';
 
 export type TryOptions = {
-    action: ActionDefinition,
-    otherwise?: ActionDefinition,
+    run: Promise<unknown>|Array<Promise<unknown>>,
+    else?: Promise<unknown>|Array<Promise<unknown>>,
     help?: Pick<Help, | 'links' | 'suggestions'> & {
         message?: string,
     },
 };
 
 export class TryAction implements Action<TryOptions> {
-    private readonly actions: Record<string, Action>;
+    private readonly runner: ActionRunner;
 
-    public constructor(actions: Record<string, Action>) {
-        this.actions = actions;
+    public constructor(runner: ActionRunner) {
+        this.runner = runner;
     }
 
     public async execute(options: TryOptions, context: ActionContext): Promise<void> {
         try {
-            await this.try(options.action, context);
+            await this.run(options.run, context);
         } catch (error) {
-            if (options.otherwise === undefined) {
+            if (options.else === undefined) {
                 if (options.help === undefined) {
                     throw error;
                 }
@@ -30,19 +29,11 @@ export class TryAction implements Action<TryOptions> {
                 throw ActionError.fromCause(error, options.help);
             }
 
-            return this.try(options.otherwise, context);
+            return this.run(options.else, context);
         }
     }
 
-    private try({name, ...options}: ActionDefinition, context: ActionContext): Promise<void> {
-        const action = this.actions[name];
-
-        if (action === undefined) {
-            throw new ActionError(`Action "${name}" is not supported`, {
-                reason: ErrorReason.INVALID_INPUT,
-            });
-        }
-
-        return action.execute(options, context);
+    private run(action: Promise<unknown>|Array<Promise<unknown>>, context: ActionContext): Promise<void> {
+        return this.runner.execute({actions: Array.isArray(action) ? action : [action]}, context);
     }
 }

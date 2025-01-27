@@ -39,3 +39,6 @@ export type ActionOptions = Record<string, any>;
 export interface Action<T extends ActionOptions = ActionOptions> {
     execute(options: T, context: ActionContext): Promise<void>;
 }
+
+export interface ActionRunner extends Action<{actions: any[]}> {
+}

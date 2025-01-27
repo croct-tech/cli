@@ -41,7 +41,7 @@ export class GithubProvider<O extends ProviderOptions> implements ResourceProvid
         const file = this.resolveFile(url);
 
         if (file === null) {
-            throw new ResourceProviderError('Unsupported GitHub URL', url);
+            throw new ResourceProviderError('Unsupported GitHub URL.', {url: url});
         }
 
         const response = await this.provider.get(file.url, options);

@@ -1,6 +1,6 @@
 import {Command, InvalidArgumentError, Option} from '@commander-js/extra-typings';
 import XDGAppPaths from 'xdg-app-paths';
-import * as process from 'node:process';
+import process from 'node:process';
 import {resolve} from 'path';
 import ci from 'ci-info';
 import {JsonPrimitive} from '@croct/json';
@@ -13,6 +13,7 @@ process.on('SIGTERM', () => process.exit(0));
 
 const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a.run.app';
 const templateRegistry = 'https://github.com/marcospassos/croct-examples/blob/main/registry.json';
+const adminUrl = 'https://preview.app.croct.dev/pr-3359';
 
 type Configuration = {
     interactive: boolean,
@@ -23,25 +24,33 @@ type Configuration = {
 function createProgram(config: Configuration): typeof program {
     const program = new Command()
         .name('croct')
-        .description('Manage your Croct projects.')
-        .version('0.0.1', '-v, --version', 'Display the version number')
-        .option('-d, --cwd <path>', 'The working directory')
-        .option('-r, --registry <url>', 'The template registry')
-        .option('-ni, --no-interaction', 'Disable interaction mode')
-        .option('-nc, --no-cache', 'Disable cache')
-        .helpOption(config.cli !== undefined)
-        .helpCommand(config.cli !== undefined)
+        .description('Manage your Croct projects')
+        .version('0.0.1', '-v, --version', 'Display the version number.')
+        .option('-d, --cwd <path>', 'The working directory.')
+        .option('-r, --registry <url>', 'The template registry.')
+        .option('-ni, --no-interaction', 'Disable interaction mode.')
+        .option('-nc, --no-cache', 'Disable cache.')
         .addOption(
-            new Option('-q, --quiet', 'Disable output messages')
+            new Option('-q, --quiet', 'Disable output messages.')
                 .default(false)
                 .implies({interaction: false}),
         );
 
+    // Override the help command to not execute in the pre-execution phase
+    // since it exits the process prematurely
+    const helpCommand = new Command('help')
+        .description('Display help for the command.');
+
+    const helpOption = new Option('-h, --help', 'Display help for the command.');
+
+    program.helpCommand(helpCommand.name(), helpCommand.description());
+    program.helpOption(helpOption.flags, helpOption.description);
+
     const loginCommand = program.command('login')
         .description('Authenticate your user.');
 
-    const usernameOption = new Option('-u, --username <username>', 'The email');
-    const passwordOption = new Option('-p, --password <password>', 'The password');
+    const usernameOption = new Option('-u, --username <username>', 'The email.');
+    const passwordOption = new Option('-p, --password <password>', 'The password.');
 
     loginCommand.command('credentials', {isDefault: true})
         .addOption(config.interactive ? usernameOption : usernameOption.makeOptionMandatory())
@@ -62,7 +71,7 @@ function createProgram(config: Configuration): typeof program {
         });
 
     program.command('admin')
-        .argument('[page...]', 'The name of the page or path to open')
+        .argument('[page...]', 'The name of the page or path to open.')
         .description('Log in and open the admin panel.')
         .action(async path => {
             await config.cli?.admin({
@@ -73,20 +82,20 @@ function createProgram(config: Configuration): typeof program {
             });
         });
 
-    const workspaceOption = new Option('--wor <workspace-slug>', 'The workspace');
-    const organizationOption = new Option('--org <organization-slug>', 'The organization');
-    const devApplicationOption = new Option('--dev-app <application-slug>', 'The development application');
-    const prodApplicationOption = new Option('--prod-app <application-slug>', 'The production application');
+    const workspaceOption = new Option('--wor <workspace-slug>', 'The workspace slug.');
+    const organizationOption = new Option('--org <organization-slug>', 'The organization slug.');
+    const devApplicationOption = new Option('--dev-app <application-slug>', 'The development application slug.');
+    const prodApplicationOption = new Option('--prod-app <application-slug>', 'The production application slug.');
 
     program.command('init')
         .description('Configure the project.')
-        .option('-o, --override', 'Override any existing configuration')
+        .option('-o, --override', 'Override any existing configuration.')
         .addOption(
-            new Option('-n, --new <resource>', 'The resources to create')
+            new Option('-n, --new <resource>', 'The resources to create.')
                 .choices(['organization', 'org', 'workspace', 'wor', 'application', 'app'] as const),
         )
         .addOption(
-            new Option('-s, --sdk <platform>', 'The SDK')
+            new Option('-s, --sdk <platform>', 'The SDK to use.')
                 .choices(['javascript', 'react', 'next'] as const),
         )
         .addOption(config.interactive ? organizationOption : organizationOption.makeOptionMandatory())
@@ -130,8 +139,8 @@ function createProgram(config: Configuration): typeof program {
 
     program.command('upgrade')
         .description('Upgrade components and slots to the latest version.')
-        .option('-s, --slots <slots...>', 'The slots to upgrade')
-        .option('-c, --components <components...>', 'The components to upgrade')
+        .option('-s, --slots <slots...>', 'The slots to upgrade.')
+        .option('-c, --components <components...>', 'The components to upgrade.')
         .action(async options => {
             await config.cli?.upgrade({
                 // The null coalescing operator is used to ensure that
@@ -146,7 +155,7 @@ function createProgram(config: Configuration): typeof program {
 
     addCommand.command('slot')
         .argument(config.interactive ? '[slots...]' : '<slots...>')
-        .option('-e, --example', 'Generate an implementation example')
+        .option('-e, --example', 'Generate an implementation example.')
         .description('Add a slot to your project.')
         .action(async (args, options) => {
             await config.cli?.addSlot({
@@ -189,7 +198,7 @@ function createProgram(config: Configuration): typeof program {
         .description('Create a resource in your project.');
 
     createCommand.command('template')
-        .argument('path', 'The path to save the template')
+        .argument('path', 'The path to save the template.')
         .description('Export a template from your project.')
         .action(async (path: string) => {
             await config.cli?.createTemplate({
@@ -204,7 +213,7 @@ function createProgram(config: Configuration): typeof program {
     const optionNames: Record<string, string> = {};
 
     const templateCommand = importCommand.command('template')
-        .argument('template', 'The path to the template')
+        .argument('template', 'The path to the template.')
         .description('Import a template into your project.')
         .passThroughOptions(config.cli === undefined)
         .allowUnknownOption(config.cli === undefined)
@@ -256,7 +265,27 @@ function createProgram(config: Configuration): typeof program {
         templateCommand.addOption(option);
     }
 
+    if (config.template === undefined) {
+        importCommand.helpCommand(false);
+        importCommand.addCommand(helpCommand);
+        templateCommand.helpOption(false);
+    }
+
     return program;
+}
+
+function getTemplate(args: string[]): string | null {
+    const commands = ['import template', 'import help template'];
+
+    for (const command of commands) {
+        const index = command.split(' ').length;
+
+        if (args.length > index && args.slice(0, index).join(' ') === command && (args[index] ?? '') !== '') {
+            return args[index];
+        }
+    }
+
+    return null;
 }
 
 (async function main(): Promise<void> {
@@ -285,6 +314,7 @@ function createProgram(config: Configuration): typeof program {
             authenticationEndpoint: `${apiEndpoint}/start/`,
             authenticationParameter: 'session',
         },
+        adminUrl: adminUrl,
         nameRegistry: new URL(options.registry ?? templateRegistry),
         cache: options.cache,
         quiet: options.quiet,
@@ -292,11 +322,13 @@ function createProgram(config: Configuration): typeof program {
         exitCallback: () => process.exit(1),
     });
 
+    const template = getTemplate(args);
+
     const program = createProgram({
         cli: cli,
         interactive: options.interaction,
-        template: args[0] === 'import' && args[1] === 'template' && args[2] !== undefined
-            ? await cli.getTemplateOptions(args[2])
+        template: template !== null
+            ? await cli.getTemplateOptions(template)
             : undefined,
     });
 

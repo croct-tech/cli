@@ -93,10 +93,10 @@ export type AudienceDefinition = {
 };
 
 export type VariantDefinition = {
-    name: string,
+    name?: string,
     content: PersonalizedContentDefinition,
     baseline?: boolean,
-    allocation: number,
+    allocation?: number,
 };
 
 export type ExperienceDefinition = {

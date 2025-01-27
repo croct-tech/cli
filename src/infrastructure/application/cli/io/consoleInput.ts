@@ -55,10 +55,6 @@ export class ConsoleInput implements Input {
     }
 
     public selectMultiple<T>(selection: MultipleSelection<T>): Promise<T[]> {
-        const initial = selection.default !== undefined
-            ? selection.options.findIndex(option => selection.default === option.value)
-            : -1;
-
         return this.interact({
             type: selection.options.length > 10 ? 'autocompleteMultiselect' : 'multiselect',
             hint: '<space> to select. <a> to toggle all. <enter> to submit.',
@@ -72,7 +68,6 @@ export class ConsoleInput implements Input {
                     selected: option.selected,
                 }),
             ),
-            initial: initial,
         });
     }
 

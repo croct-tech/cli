@@ -16,7 +16,7 @@ export class HttpFileProvider implements ResourceProvider<FileSystemIterator> {
 
     public async get(url: URL): Promise<FileSystemIterator> {
         if (!this.supports(url)) {
-            throw new ResourceProviderError('Unsupported URL', url);
+            throw new ResourceProviderError('Unsupported URL.', {url: url});
         }
 
         return this.yield(await this.provider.get(url), url);

@@ -17,12 +17,12 @@ export class ValidatedAction<T extends ActionOptions> implements Action {
 
     public async execute(options: ActionOptions, context: ActionContext): Promise<void> {
         const {action, validator} = this.configuration;
-        const validation = validator.validate(options);
+        const validation = await validator.validate(options);
 
         if (!validation.valid) {
             const violations = validation.violations
-                .map(violation => ` • ${violation.path}: ${violation.message}`)
-                .join('\n');
+                .map(violation => ` • **${violation.path}**: ${violation.message}`)
+                .join('\n\n');
 
             throw new ActionError(`Invalid action options:\n\n${violations}`, {
                 reason: ErrorReason.INVALID_INPUT,

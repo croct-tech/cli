@@ -37,10 +37,8 @@ export class JsonFileConfiguration implements ConfigurationFile {
         return (await this.loadFile()).configuration;
     }
 
-    public update(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
-        this.checkConfiguration(configuration);
-
-        return this.updateFile(configuration);
+    public async update(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
+        return this.updateFile(await this.validateConfiguration(configuration));
     }
 
     private async updateFile(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
@@ -96,9 +94,9 @@ export class JsonFileConfiguration implements ConfigurationFile {
         }
 
         if (configuration !== null) {
-            this.checkConfiguration(configuration, file);
-
-            file.configuration = JsonFileConfiguration.clean(configuration);
+            file.configuration = JsonFileConfiguration.clean(
+                await this.validateConfiguration(configuration, file),
+            );
         }
 
         return file;
@@ -108,8 +106,8 @@ export class JsonFileConfiguration implements ConfigurationFile {
         return this.fileSystem.joinPaths(this.projectDirectory, 'croct.json');
     }
 
-    private checkConfiguration(value: JsonValue, file?: LoadedFile): asserts value is ProjectConfiguration {
-        const result = this.validator.validate(value);
+    private async validateConfiguration(value: JsonValue, file?: LoadedFile): Promise<ProjectConfiguration> {
+        const result = await this.validator.validate(value);
 
         if (!result.valid) {
             const violation = result.violations[0];
@@ -124,6 +122,8 @@ export class JsonFileConfiguration implements ConfigurationFile {
                 ],
             });
         }
+
+        return result.data;
     }
 
     private static clean(configuration: ProjectConfiguration): ProjectConfiguration {

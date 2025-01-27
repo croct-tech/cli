@@ -1,16 +1,20 @@
 import {z, ZodType} from 'zod';
-import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
-import {TestOptions} from '@/application/template/action/test';
-
-const actionDefinitionSchema = z.object({name: z.string().min(1)}).passthrough();
+import {TestOptions} from '@/application/template/action/testAction';
+import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const schema: ZodType<TestOptions> = z.object({
-    condition: z.boolean(),
-    then: actionDefinitionSchema.optional(),
-    else: actionDefinitionSchema.optional(),
+    if: z.boolean(),
+    run: z.union([
+        z.array(z.promise(z.unknown())),
+        z.promise(z.unknown()),
+    ]).optional(),
+    else: z.union([
+        z.array(z.promise(z.unknown())),
+        z.promise(z.unknown()),
+    ]).optional(),
 });
 
-export class TestOptionsValidator extends ZodValidator<TestOptions> {
+export class TestOptionsValidator extends ActionOptionsValidator<TestOptions> {
     public constructor() {
         super(schema);
     }

@@ -1,6 +1,6 @@
 import {z, ZodType} from 'zod';
-import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {ReplaceFileContentOptions} from '@/application/template/action/replaceFileContentAction';
+import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const schema: ZodType<ReplaceFileContentOptions> = z.object({
     files: z.array(
@@ -26,7 +26,7 @@ const schema: ZodType<ReplaceFileContentOptions> = z.object({
     ).min(1),
 });
 
-export class ReplaceFileContentOptionsValidator extends ZodValidator<ReplaceFileContentOptions> {
+export class ReplaceFileContentOptionsValidator extends ActionOptionsValidator<ReplaceFileContentOptions> {
     public constructor() {
         super(schema);
     }

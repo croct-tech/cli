@@ -1,13 +1,8 @@
-import {JsonValue} from '@croct/json';
+import {JsonObject, JsonValue} from '@croct/json';
 import {Help, HelpfulError} from '@/application/error';
+import {Deferred, Deferrable} from '@/application/template/deferral';
 
-export type LazyJsonValue = () => Promise<JsonValue>|JsonValue;
-
-export type VariableMap = {
-    [key: string]: VariableValue|undefined,
-};
-
-export type VariableValue = JsonValue | VariableMap | LazyJsonValue;
+export type VariableMap = Exclude<Deferrable<JsonObject>, Deferred<JsonObject>>;
 
 export class EvaluationError extends HelpfulError {
     public constructor(message: string, help?: Help) {
@@ -17,7 +12,7 @@ export class EvaluationError extends HelpfulError {
     }
 }
 
-export type GenericFunction = (...args: JsonValue[]) => Promise<JsonValue>|JsonValue;
+export type GenericFunction = (...args: JsonValue[]) => Deferred<JsonValue>;
 
 export type EvaluationContext = {
     variables?: VariableMap,
@@ -25,5 +20,5 @@ export type EvaluationContext = {
 };
 
 export interface ExpressionEvaluator {
-    evaluate(expression: string, context?: EvaluationContext): Promise<JsonValue>;
+    evaluate(expression: string, context?: EvaluationContext): Deferred<JsonValue>;
 }

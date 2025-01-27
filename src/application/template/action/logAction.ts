@@ -1,5 +1,6 @@
 import {Action} from '@/application/template/action/action';
-import {Logger, Semantic} from '@/application/cli/io/output';
+import {Semantic} from '@/application/cli/io/output';
+import {ActionContext} from '@/application/template/action/context';
 
 export type LogOptions = {
     semantic?: Semantic,
@@ -7,24 +8,15 @@ export type LogOptions = {
     message: string,
 };
 
-export type Configuration = {
-    logger: Logger,
-};
-
 export class LogAction implements Action<LogOptions> {
-    private readonly logger: Logger;
-
-    public constructor({logger}: Configuration) {
-        this.logger = logger;
-    }
-
-    public execute(options: LogOptions): Promise<void> {
+    public execute(options: LogOptions, context: ActionContext): Promise<void> {
+        const logger = context.output;
         const semantic = options.semantic ?? 'neutral';
 
         if (options.title === undefined) {
-            this.logger.log(options.message, semantic);
+            logger.log(options.message, semantic);
         } else {
-            this.logger.announce({
+            logger.announce({
                 semantic: semantic,
                 title: options.title,
                 message: options.message,

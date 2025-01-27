@@ -9,6 +9,7 @@ import {
     StaleWhileRevalidateCache,
     TimestampedCacheEntry,
 } from '@croct/cache';
+import PLazy from 'p-lazy';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput, ExitCallback} from '@/infrastructure/application/cli/io/consoleOutput';
 import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
@@ -80,7 +81,7 @@ import {FileSystem, FileSystemIterator} from '@/application/fs/fileSystem';
 import {LocalFilesystem} from '@/application/fs/localFilesystem';
 import {ImportConfigLoader} from '@/application/project/manager/importConfigLoader';
 import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
-import {AntfuPackageInstaller} from '@/infrastructure/project/antfuPackageInstaller';
+import {AntfuPackageManager} from '@/infrastructure/project/antfuPackageManager';
 import {FocusListener} from '@/infrastructure/application/cli/io/focusListener';
 import {EmailLinkGenerator} from '@/application/cli/email/email';
 import {FallbackProviderDetector} from '@/application/cli/email/detector/fallbackProviderDetector';
@@ -166,14 +167,37 @@ import {FormatCodeAction} from '@/application/template/action/formatCodeAction';
 import {FormatCodeOptionsValidator} from '@/infrastructure/application/validation/actions/formatCodeOptionsValidator';
 import {EnumeratedProvider} from '@/application/provider/enumeratedProvider';
 import {ParameterlessProvider} from '@/application/provider/parameterlessProvider';
-import {TestAction, TestOptions} from '@/application/template/action/test';
+import {TestAction, TestOptions} from '@/application/template/action/testAction';
 import {TestOptionsValidator} from '@/infrastructure/application/validation/actions/testOptionsValidator';
-import {LogAction, LogOptions} from '@/application/template/action/logAction';
+import {LogAction} from '@/application/template/action/logAction';
 import {LogOptionsValidator} from '@/infrastructure/application/validation/actions/logOptionsValidator';
 import {FailAction} from '@/application/template/action/failAction';
 import {FailOptionsValidator} from '@/infrastructure/application/validation/actions/failOptionsValidator';
 import {ParameterlessResourceProvider} from '@/application/provider/parameterlessResourceProvider';
 import {ConstantProvider} from '@/application/provider/constantProvider';
+import {Server} from '@/application/project/server/server';
+import {
+    ProjectServerProvider,
+    ServerConfiguration,
+    ServerFactory,
+} from '@/application/project/server/provider/projectServerProvider';
+import {ProcessServer} from '@/application/project/server/processServer';
+import {NodeScriptProvider} from '@/application/project/server/provider/nodeScriptProvider';
+import {NextCommandParser} from '@/application/project/server/provider/parser/nextCommandParser';
+import {ViteCommandParser} from '@/application/project/server/provider/parser/viteCommandParser';
+import {ParcelCommandParser} from '@/application/project/server/provider/parser/parcelCommandParser';
+import {ReactScriptCommandParser} from '@/application/project/server/provider/parser/reactScriptCommandParser';
+import {PromptAction} from '@/application/template/action/promptAction';
+import {PromptOptionsValidator} from '@/infrastructure/application/validation/actions/promptOptionsValidator';
+import {StartServer} from '@/application/template/action/startServerAction';
+import {StartServerOptionsValidator} from '@/infrastructure/application/validation/actions/startServerOptionsValidator';
+import {RunAction, RunOptions} from '@/application/template/action/runAction';
+import {RunOptionsValidator} from '@/infrastructure/application/validation/actions/runOptionsValidator';
+import {OpenLinkAction} from '@/application/template/action/openLinkAction';
+import {OpenLinkOptionsValidator} from '@/infrastructure/application/validation/actions/openLinkOptionsValidator';
+import {DefineOptionsValidator} from '@/infrastructure/application/validation/actions/defineOptionsValidator';
+import {DefineAction} from '@/application/template/action/defineAction';
+import {VariableMap} from '@/application/template/evaluation';
 
 export type Configuration = {
     io: {
@@ -192,6 +216,7 @@ export type Configuration = {
         authenticationEndpoint: string,
         authenticationParameter: string,
     },
+    adminUrl: string,
     cache: boolean,
     quiet: boolean,
     interactive: boolean,
@@ -250,6 +275,8 @@ export class Cli {
     private javaScriptProjectManager?: JavaScriptProjectManager;
 
     private javaScriptLinter?: JavaScriptLinter;
+
+    private serverProvider?: ParameterlessProvider<Server>;
 
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
@@ -641,21 +668,47 @@ export class Cli {
         const fileSystem = this.getFileSystem();
 
         const actions = {
+            run: new ValidatedAction<RunOptions>({
+                action: new LazyAction((): Action<RunOptions> => {
+                    const {run: _, ...otherActions} = actions;
+
+                    return new RunAction(otherActions);
+                }),
+                validator: new RunOptionsValidator(),
+            }),
             try: new ValidatedAction<TryOptions>({
-                action: new LazyAction((): TryAction => new TryAction(actions)),
+                action: new LazyAction((): TryAction => new TryAction(actions.run)),
                 validator: new TryOptionsValidator(),
             }),
             test: new ValidatedAction<TestOptions>({
-                action: new LazyAction((): TestAction => new TestAction(actions)),
+                action: new LazyAction((): TestAction => new TestAction(actions.run)),
                 validator: new TestOptionsValidator(),
             }),
-            log: new ValidatedAction<LogOptions>({
-                action: new LogAction({logger: this.getOutput()}),
+            log: new ValidatedAction({
+                action: new LogAction(),
                 validator: new LogOptionsValidator(),
             }),
             fail: new ValidatedAction({
                 action: new FailAction(),
                 validator: new FailOptionsValidator(),
+            }),
+            define: new ValidatedAction({
+                action: new DefineAction(),
+                validator: new DefineOptionsValidator(),
+            }),
+            prompt: new ValidatedAction({
+                action: new PromptAction(),
+                validator: new PromptOptionsValidator(),
+            }),
+            'open-link': new ValidatedAction({
+                action: new OpenLinkAction(),
+                validator: new OpenLinkOptionsValidator(),
+            }),
+            'start-server': new ValidatedAction({
+                action: new StartServer({
+                    serverProvider: this.getServerProvider(),
+                }),
+                validator: new StartServerOptionsValidator(),
             }),
             'check-dependencies': new ValidatedAction({
                 action: new CheckDependencyAction({
@@ -784,48 +837,114 @@ export class Cli {
             }),
             import: new ValidatedAction<ImportOptions>({
                 action: new LazyAction(
-                    (): Action<ImportOptions> => {
-                        const configurationManager = this.getConfigurationManager();
-                        const sdkResolver = this.getSdkResolver();
-
-                        return new ImportAction({
-                            actions: actions,
-                            templateProvider: new AdaptedProvider({
-                                provider: this.createTemplateProvider(
-                                    new TemplateProvider({
-                                        evaluator: new JsepExpressionEvaluator(),
-                                        validator: new TemplateValidator(),
-                                        provider: this.getFileContentProvider(),
-                                    }),
-                                ),
-                                adapter: (template, url) => ({
-                                    url: url,
-                                    template: template,
+                    (): Action<ImportOptions> => new ImportAction({
+                        runner: actions.run,
+                        templateProvider: new AdaptedProvider({
+                            provider: this.createTemplateProvider(
+                                new TemplateProvider({
+                                    evaluator: new JsepExpressionEvaluator(),
+                                    validator: new TemplateValidator(),
+                                    provider: this.getFileContentProvider(),
                                 }),
+                            ),
+                            adapter: (template, url) => ({
+                                url: url,
+                                template: template,
                             }),
-                            variables: {
-                                project: {
-                                    path: {
-                                        example: async () => (await configurationManager.resolve()).paths.examples,
-                                        component: async () => (await configurationManager.resolve()).paths.components,
-                                    },
-                                    platform: async (): Promise<string> => {
-                                        const sdk = await sdkResolver.resolve();
-
-                                        return ApplicationPlatform.getName(sdk.getPlatform())
-                                            .toLowerCase()
-                                            .replace(/[^a-z0-9]+/g, '-');
-                                    },
-                                },
-                            },
-                        });
-                    },
+                        }),
+                        variables: this.getActionVariables(),
+                    }),
                 ),
                 validator: new ImportOptionsValidator(),
             }),
         } satisfies Record<string, ValidatedAction<any>>;
 
         return actions.import;
+    }
+
+    private getActionVariables(): VariableMap {
+        const getUrl = (path: string): string => {
+            const url = new URL(this.configuration.adminUrl);
+
+            url.pathname += `${path}/`;
+
+            return url.toString();
+        };
+
+        return {
+            project: {
+                organization: PLazy.from(
+                    async () => {
+                        const {organization} = await this.getConfigurationManager().resolve();
+
+                        return {
+                            slug: organization,
+                            url: getUrl(`/organizations/${organization}`),
+                        };
+                    },
+                ),
+                workspace: PLazy.from(
+                    async () => {
+                        const {organization, workspace} = await this.getConfigurationManager().resolve();
+
+                        return {
+                            slug: workspace,
+                            url: getUrl(`/organizations/${organization}/workspaces/${workspace}`),
+                        };
+                    },
+                ),
+                application: PLazy.from(
+                    async () => {
+                        const {organization, workspace, applications} = await this.getConfigurationManager().resolve();
+                        const path = `/organizations/${organization}/workspaces/${workspace}/applications/`;
+
+                        return {
+                            development: {
+                                slug: applications.development,
+                                url: getUrl(path + applications.development),
+                            },
+                            production: {
+                                slug: applications.production,
+                                url: getUrl(path + applications.production),
+                            },
+                        };
+                    },
+                ),
+                path: {
+                    example: PLazy.from(
+                        async () => (await this.getConfigurationManager().resolve()).paths.examples,
+                    ),
+                    component: PLazy.from(
+                        async () => (await this.getConfigurationManager().resolve()).paths.components,
+                    ),
+                },
+                platform: PLazy.from(async (): Promise<string> => {
+                    const sdk = await this.getSdkResolver().resolve();
+
+                    return ApplicationPlatform.getName(sdk.getPlatform())
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-');
+                }),
+                server: PLazy.from(async (): Promise<{running: boolean, url?: string}> => {
+                    const serverProvider = this.getServerProvider();
+
+                    try {
+                        const status = await (await serverProvider.get()).getStatus();
+
+                        if (status.running) {
+                            return {
+                                running: true,
+                                url: status.url.toString(),
+                            };
+                        }
+                    } catch {
+                        // suppress errors
+                    }
+
+                    return {running: false};
+                }),
+            },
+        };
     }
 
     private getHttpProvider(): HttpProvider {
@@ -1080,7 +1199,7 @@ export class Cli {
         if (this.javaScriptProjectManager === undefined) {
             this.javaScriptProjectManager = new NodeProjectManager({
                 fileSystem: this.getFileSystem(),
-                packageInstaller: new AntfuPackageInstaller(this.configuration.directories.current),
+                packageManager: new AntfuPackageManager(this.configuration.directories.current),
                 packageValidator: new PartialNpmPackageValidator(),
                 importConfigLoader: new ImportConfigLoader({
                     fileSystem: this.getFileSystem(),
@@ -1118,6 +1237,67 @@ export class Cli {
         }
 
         return this.javaScriptLinter;
+    }
+
+    private getServerProvider(): ParameterlessProvider<Server> {
+        if (this.serverProvider === undefined) {
+            this.serverProvider = this.createServerProvider();
+        }
+
+        return this.serverProvider;
+    }
+
+    private createServerProvider(): ParameterlessProvider<Server> {
+        const serverFactory: ServerFactory = {
+            create: (configuration: ServerConfiguration): Server => new ProcessServer({
+                command: configuration.command.name,
+                args: configuration.command.args,
+                currentDirectory: '/Users/marcospassos/Downloads/next-tailwind',
+                startupTimeout: 5000,
+                startupCheckDelay: 1000,
+                commandTimeout: 5000,
+                lookupMaxPorts: 100,
+                lookupTimeout: 2000,
+                server: {
+                    protocol: 'http',
+                    host: 'localhost',
+                    defaultPort: 3000,
+                },
+            }),
+        };
+
+        let nodeServerProvider: ProjectServerProvider | undefined;
+
+        const getNodeServer = (): Promise<Server> => {
+            if (nodeServerProvider === undefined) {
+                const projectManager = this.getJavaScriptProjectManager();
+
+                nodeServerProvider = new ProjectServerProvider({
+                    factory: serverFactory,
+                    scriptProvider: new NodeScriptProvider({
+                        fileSystem: this.getFileSystem(),
+                        projectManager: projectManager,
+                    }),
+                    parsers: [
+                        new NextCommandParser(projectManager),
+                        new ViteCommandParser(projectManager),
+                        new ParcelCommandParser(projectManager),
+                        new ReactScriptCommandParser(projectManager),
+                    ],
+                });
+            }
+
+            return nodeServerProvider.get();
+        };
+
+        return new EnumeratedProvider({
+            discriminator: async () => (await this.getSdkResolver().resolve()).getPlatform(),
+            mapping: {
+                [ApplicationPlatform.JAVASCRIPT]: getNodeServer,
+                [ApplicationPlatform.REACT]: getNodeServer,
+                [ApplicationPlatform.NEXT]: getNodeServer,
+            },
+        });
     }
 
     private getConfigurationManager(): ConfigurationManager {

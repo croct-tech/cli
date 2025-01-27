@@ -1,7 +1,7 @@
 import {z, ZodType} from 'zod';
-import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {LogOptions} from '@/application/template/action/logAction';
 import {FailOptions} from '@/application/template/action/failAction';
+import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const schema: ZodType<FailOptions> = z.object({
     title: z.string()
@@ -18,7 +18,7 @@ const schema: ZodType<FailOptions> = z.object({
     details: z.array(z.string().min(1)).optional(),
 });
 
-export class FailOptionsValidator extends ZodValidator<LogOptions> {
+export class FailOptionsValidator extends ActionOptionsValidator<LogOptions> {
     public constructor() {
         super(schema);
     }

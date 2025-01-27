@@ -36,6 +36,11 @@ type VersionedContent = {
     list: LocalizedContent[],
 };
 
+export type ServerInfo = {
+    url: URL,
+    startCommand: string,
+};
+
 export abstract class JavaScriptSdk implements Sdk {
     protected static readonly CONTENT_PACKAGE = '@croct/content';
 

@@ -10,6 +10,7 @@ import {
     NewApplication,
     NewResourceIds,
     NewResources,
+    PersonalizedContentDefinition,
     SlotCriteria,
     SlotPath,
     TargetTyping,
@@ -50,7 +51,6 @@ import {
     Experience,
     LocalizedContent,
     SlotContentMap,
-    PersonalizedContent,
     Variant,
 } from '@/application/model/experience';
 import {WorkspaceFeatures} from '@/application/model/workspace';
@@ -662,9 +662,9 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                             variants: experiment.variants.map(
                                 variant => ({
                                     id: randomUUID(),
-                                    name: variant.name,
+                                    name: variant.name ?? '',
                                     baseline: variant.baseline === true,
-                                    allocation: variant.allocation,
+                                    allocation: variant.allocation ?? 0,
                                     content: GraphqlWorkspaceApi.createContentVariantGroup(variant.content),
                                 }),
                             ),
@@ -707,7 +707,9 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         };
     }
 
-    private static createContentVariantGroup(content: PersonalizedContent): WorkspaceResourcesExperienceContentInput {
+    private static createContentVariantGroup(
+        content: PersonalizedContentDefinition,
+    ): WorkspaceResourcesExperienceContentInput {
         return {
             default: {
                 id: randomUUID(),

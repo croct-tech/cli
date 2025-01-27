@@ -1,23 +1,25 @@
 import {ErrorReason, Help} from '@/application/error';
 import {Provider, ProviderError} from '@/application/provider/provider';
 
+export type ResourceHelp = Help & {
+    url: URL,
+};
+
 export class ResourceProviderError extends ProviderError {
-    public constructor(message: string, url: URL, help: Help = {}) {
-        super(message, {
-            ...help,
-            details: [
-                `Resource URL: ${url}`,
-                ...(help.details ?? []),
-            ],
-        });
+    public readonly url: URL;
+
+    public constructor(message: string, {url, ...help}: ResourceHelp) {
+        super(message, help);
 
         Object.setPrototypeOf(this, ResourceProviderError.prototype);
+
+        this.url = url;
     }
 }
 
 export class ResourceNotFoundError extends ResourceProviderError {
-    public constructor(message: string, url: URL, help: Help = {}) {
-        super(message, url, {
+    public constructor(message: string, help: ResourceHelp) {
+        super(message, {
             ...help,
             reason: help.reason ?? ErrorReason.INVALID_INPUT,
         });
