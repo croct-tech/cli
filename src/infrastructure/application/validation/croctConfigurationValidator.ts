@@ -28,10 +28,10 @@ const versionSchema = z.string()
         'Version range must not exceed 5 major versions.',
     );
 
-const configurationSchema = z.object({
+const configurationSchema = z.strictObject({
     organization: identifierSchema,
     workspace: identifierSchema,
-    applications: z.object({
+    applications: z.strictObject({
         development: identifierSchema,
         production: identifierSchema.optional(),
     }),
@@ -39,7 +39,7 @@ const configurationSchema = z.object({
     defaultLocale: localeSchema,
     slots: z.record(versionSchema),
     components: z.record(versionSchema),
-    paths: z.object({
+    paths: z.strictObject({
         components: z.string(),
         examples: z.string(),
     }),

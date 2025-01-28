@@ -5,13 +5,19 @@ import {ActionContext} from '@/application/template/action/context';
 import {Notifier} from '@/application/cli/io/output';
 
 export type StartServerOptions = {
-    output?: {
+    result?: {
         url?: string,
+        initiator?: string,
     },
 };
 
 export type Configuration = {
     serverProvider: ParameterlessProvider<Server>,
+};
+
+type ServerInstance = {
+    url: URL,
+    initiator: 'action' | 'unknown',
 };
 
 export class StartServer implements Action<StartServerOptions> {
@@ -26,32 +32,40 @@ export class StartServer implements Action<StartServerOptions> {
 
         const notifier = output.notify('Checking server');
 
-        let url: URL;
+        let instance: ServerInstance;
 
         try {
-            url = await this.startServer(notifier);
+            instance = await this.startServer(notifier);
         } finally {
             notifier.stop();
         }
 
-        if (options.output?.url !== undefined) {
-            context.set(options.output.url, url.toString());
+        if (options.result?.url !== undefined) {
+            context.set(options.result.url, instance.url.toString());
+        }
+
+        if (options.result?.initiator !== undefined) {
+            context.set(options.result.initiator, instance.initiator);
         }
     }
 
-    private async startServer(notifier: Notifier): Promise<URL> {
+    private async startServer(notifier: Notifier): Promise<ServerInstance> {
         const server = await this.provider.get();
 
         const status = await server.getStatus();
 
         if (status.running) {
-            return status.url;
+            return {
+                url: status.url,
+                initiator: 'unknown',
+            };
         }
 
         notifier.update('Starting server');
 
-        const instance = await server.start();
-
-        return instance.url;
+        return {
+            url: await server.start(),
+            initiator: 'action',
+        };
     }
 }

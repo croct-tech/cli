@@ -10,13 +10,10 @@ type StoppedStatus = {
 
 export type ServerStatus = RunningStatus | StoppedStatus;
 
-export type ServerInstance = {
-    url: URL,
-    stop: () => Promise<void>,
-};
-
 export interface Server {
     getStatus(): Promise<ServerStatus>;
 
-    start(): Promise<ServerInstance>;
+    start(): Promise<URL>;
+
+    stop(): Promise<void>;
 }

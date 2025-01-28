@@ -1,22 +1,27 @@
 import {JsonValue} from '@croct/json';
 import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
-import {Confirmation, Input, MultipleSelection, Prompt, Selection} from '@/application/cli/io/input';
+import {Confirmation, Input, MultipleSelection, Prompt, Selection, Wait} from '@/application/cli/io/input';
 import {ErrorReason} from '@/application/error';
 
 export type ConfirmationOptions = Confirmation;
 
-export type ChoiceOptions = Selection<JsonValue>;
+export type ChoiceOptions = Selection<string>;
 
-export type MultipleChoiceOptions = MultipleSelection<JsonValue>;
+export type MultipleChoiceOptions = MultipleSelection<string>;
 
-export type TextOptions = Omit<Prompt, 'validate'>;
+export type TextOptions = Omit<Prompt, 'validate'> & {
+    required?: boolean,
+};
+
+export type KeypressOptions = Wait;
 
 type PromptDefinitionMap = {
     confirmation: ConfirmationOptions,
     choice: ChoiceOptions,
     'multi-choice': MultipleChoiceOptions,
     text: TextOptions,
+    keypress: KeypressOptions,
 };
 
 type PromptDefinition = {
@@ -26,7 +31,7 @@ type PromptDefinition = {
 }[keyof PromptDefinitionMap];
 
 export type PromptOptions = PromptDefinition & {
-    output: string,
+    result?: string,
 };
 
 export class PromptAction implements Action<PromptOptions> {
@@ -46,7 +51,9 @@ export class PromptAction implements Action<PromptOptions> {
             });
         }
 
-        context.set(options.output, answer);
+        if (options.result !== undefined) {
+            context.set(options.result, answer);
+        }
     }
 
     private getDefaultValue(options: PromptDefinition): JsonValue|undefined {
@@ -69,6 +76,9 @@ export class PromptAction implements Action<PromptOptions> {
 
             case 'text':
                 return options.default;
+
+            default:
+                return undefined;
         }
     }
 
@@ -83,8 +93,23 @@ export class PromptAction implements Action<PromptOptions> {
             case 'multi-choice':
                 return input.selectMultiple(options);
 
-            case 'text':
-                return input.prompt(options);
+            case 'text': {
+                const {required = false, ...prompt} = options;
+
+                return input.prompt({
+                    ...prompt,
+                    validate: (value: string) => {
+                        if (required && value === '') {
+                            return 'This value is required.';
+                        }
+
+                        return true;
+                    },
+                });
+            }
+
+            case 'keypress':
+                return input.wait(options);
         }
     }
 }

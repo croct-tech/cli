@@ -2,7 +2,7 @@ import {z, ZodType} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {OptionDefinition, Template} from '@/application/template/template';
 
-const baseOptionSchema = z.object({
+const baseOptionSchema = z.strictObject({
     description: z.string(),
     required: z.boolean().optional(),
 });
@@ -44,7 +44,7 @@ const optionSchema: ZodType<OptionDefinition> = z.discriminatedUnion('type', [
     }),
 ]);
 
-const templateSchema: ZodType<Template> = z.object({
+const templateSchema: ZodType<Template> = z.strictObject({
     title: z.string()
         .min(1)
         .optional(),
@@ -53,7 +53,7 @@ const templateSchema: ZodType<Template> = z.object({
         z.string().min(1),
         optionSchema,
     ).optional(),
-    actions: z.array(z.object({name: z.string().min(1)}).passthrough()),
+    actions: z.array(z.strictObject({name: z.string().min(1)}).passthrough()),
 });
 
 export class TemplateValidator extends ZodValidator<Template> {

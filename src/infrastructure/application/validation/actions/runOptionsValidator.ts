@@ -4,7 +4,7 @@ import {ActionOptionsValidator} from '@/infrastructure/application/validation/ac
 
 const actionDefinitionSchema = z.object({name: z.string().min(1)}).passthrough();
 
-const schema: ZodType<RunOptions> = z.object({
+const schema: ZodType<RunOptions> = z.strictObject({
     actions: z.array(actionDefinitionSchema),
 });
 

@@ -176,12 +176,7 @@ import {FailOptionsValidator} from '@/infrastructure/application/validation/acti
 import {ParameterlessResourceProvider} from '@/application/provider/parameterlessResourceProvider';
 import {ConstantProvider} from '@/application/provider/constantProvider';
 import {Server} from '@/application/project/server/server';
-import {
-    ProjectServerProvider,
-    ServerConfiguration,
-    ServerFactory,
-} from '@/application/project/server/provider/projectServerProvider';
-import {ProcessServer} from '@/application/project/server/processServer';
+import {ProjectServerProvider} from '@/application/project/server/provider/projectServerProvider';
 import {NodeScriptProvider} from '@/application/project/server/provider/nodeScriptProvider';
 import {NextCommandParser} from '@/application/project/server/provider/parser/nextCommandParser';
 import {ViteCommandParser} from '@/application/project/server/provider/parser/viteCommandParser';
@@ -198,6 +193,10 @@ import {OpenLinkOptionsValidator} from '@/infrastructure/application/validation/
 import {DefineOptionsValidator} from '@/infrastructure/application/validation/actions/defineOptionsValidator';
 import {DefineAction} from '@/application/template/action/defineAction';
 import {VariableMap} from '@/application/template/evaluation';
+import {StopServer} from '@/application/template/action/stopServerAction';
+import {StopServerOptionsValidator} from '@/infrastructure/application/validation/actions/stopServerOptionsValidator';
+import {ProcessServerFactory} from '@/application/project/server/factory/processServerFactory';
+import {CachedServerFactory} from '@/application/project/server/factory/cachedServerFactory';
 
 export type Configuration = {
     io: {
@@ -709,6 +708,12 @@ export class Cli {
                     serverProvider: this.getServerProvider(),
                 }),
                 validator: new StartServerOptionsValidator(),
+            }),
+            'stop-server': new ValidatedAction({
+                action: new StopServer({
+                    serverProvider: this.getServerProvider(),
+                }),
+                validator: new StopServerOptionsValidator(),
             }),
             'check-dependencies': new ValidatedAction({
                 action: new CheckDependencyAction({
@@ -1248,23 +1253,13 @@ export class Cli {
     }
 
     private createServerProvider(): ParameterlessProvider<Server> {
-        const serverFactory: ServerFactory = {
-            create: (configuration: ServerConfiguration): Server => new ProcessServer({
-                command: configuration.command.name,
-                args: configuration.command.args,
-                currentDirectory: '/Users/marcospassos/Downloads/next-tailwind',
-                startupTimeout: 5000,
-                startupCheckDelay: 1000,
-                commandTimeout: 5000,
-                lookupMaxPorts: 100,
-                lookupTimeout: 2000,
-                server: {
-                    protocol: 'http',
-                    host: 'localhost',
-                    defaultPort: 3000,
-                },
-            }),
-        };
+        const processServerFactory = new ProcessServerFactory({
+            currentDirectory: this.configuration.directories.current,
+            startupTimeout: 5000,
+            startupCheckDelay: 1000,
+            lookupMaxPorts: 100,
+            lookupTimeout: 2000,
+        });
 
         let nodeServerProvider: ProjectServerProvider | undefined;
 
@@ -1273,7 +1268,7 @@ export class Cli {
                 const projectManager = this.getJavaScriptProjectManager();
 
                 nodeServerProvider = new ProjectServerProvider({
-                    factory: serverFactory,
+                    factory: new CachedServerFactory(processServerFactory),
                     scriptProvider: new NodeScriptProvider({
                         fileSystem: this.getFileSystem(),
                         projectManager: projectManager,

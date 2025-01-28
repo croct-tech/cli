@@ -1,12 +1,11 @@
-import {spawn} from 'child_process';
-import {Server, ServerStatus, ServerInstance} from '@/application/project/server/server';
+import {ChildProcess, spawn} from 'child_process';
+import {Server, ServerStatus} from '@/application/project/server/server';
 
 export type Configuration = {
     command: string,
     args: string[],
     startupCheckDelay: number,
     startupTimeout: number,
-    commandTimeout: number,
     lookupTimeout: number,
     lookupMaxPorts: number,
     currentDirectory: string,
@@ -20,6 +19,8 @@ export type Configuration = {
 
 export class ProcessServer implements Server {
     private readonly configuration: Configuration;
+
+    private subprocess?: ChildProcess;
 
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
@@ -38,44 +39,53 @@ export class ProcessServer implements Server {
         };
     }
 
-    public async start(): Promise<ServerInstance> {
-        const callback = await new Promise<ServerInstance['stop']>((resolveStart, rejectStart) => {
-            const subprocess = spawn(this.configuration.command, this.configuration.args, {
+    public async start(): Promise<URL> {
+        await new Promise<void>((resolve, reject) => {
+            this.subprocess = spawn(this.configuration.command, this.configuration.args, {
                 cwd: this.configuration.currentDirectory,
-                timeout: this.configuration.commandTimeout,
                 stdio: 'ignore',
             });
 
-            subprocess.on('error', rejectStart);
+            this.subprocess.on('error', reject);
 
-            subprocess.on('exit', code => {
-                rejectStart(new Error(`Server exited with code ${code}`));
+            this.subprocess.on('exit', code => {
+                reject(new Error(`Server exited with code ${code}.`));
             });
 
-            if (subprocess.pid === undefined) {
-                rejectStart(new Error('Server did not start'));
+            if (this.subprocess.pid === undefined) {
+                reject(new Error('Server did not start.'));
 
                 return;
             }
 
-            resolveStart(
-                () => new Promise(resolveStop => {
-                    subprocess.on('exit', resolveStop);
-                    subprocess.kill('SIGTERM');
-                }),
-            );
+            resolve();
         });
 
         const url = await this.waitStart();
 
         if (url === null) {
-            throw new Error('Server is unreachable');
+            throw new Error('Server is unreachable.');
         }
 
-        return {
-            url: url,
-            stop: callback,
-        };
+        return url;
+    }
+
+    public stop(): Promise<void> {
+        const {subprocess} = this;
+
+        if (subprocess === undefined) {
+            return Promise.resolve();
+        }
+
+        return new Promise<void>(resolve => {
+            subprocess.on('exit', () => {
+                this.subprocess = undefined;
+
+                resolve();
+            });
+
+            subprocess.kill('SIGINT');
+        });
     }
 
     private async waitStart(): Promise<URL|null> {

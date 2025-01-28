@@ -29,6 +29,10 @@ export class NonInteractiveInput implements Input {
         return this.report();
     }
 
+    public wait(): Promise<string> {
+        return this.report();
+    }
+
     private report(): never {
         const {message, ...help} = this.instruction;
 

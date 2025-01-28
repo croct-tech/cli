@@ -2,7 +2,7 @@ import {z, ZodType} from 'zod';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 import {DefineOptions} from '@/application/template/action/defineAction';
 
-const schema: ZodType<DefineOptions> = z.object({
+const schema: ZodType<DefineOptions> = z.strictObject({
     variables: z.record(z.string(), z.string()),
 });
 

@@ -2,9 +2,9 @@ import {Action, ActionRunner} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 
 export type TestOptions = {
-    if: boolean,
-    run?: Promise<unknown>|Array<Promise<unknown>>,
-    else?: Promise<unknown>|Array<Promise<unknown>>,
+    condition: boolean,
+    then: Array<Promise<unknown>>,
+    else?: Array<Promise<unknown>>,
 };
 
 export class TestAction implements Action<TestOptions> {
@@ -15,10 +15,8 @@ export class TestAction implements Action<TestOptions> {
     }
 
     public execute(options: TestOptions, context: ActionContext): Promise<void> {
-        if (options.if) {
-            return options.run !== undefined
-                ? this.run(options.run, context)
-                : Promise.resolve();
+        if (options.condition) {
+            return this.run(options.then, context);
         }
 
         return options.else !== undefined
@@ -26,7 +24,7 @@ export class TestAction implements Action<TestOptions> {
             : Promise.resolve();
     }
 
-    private run(action: Promise<unknown>|Array<Promise<unknown>>, context: ActionContext): Promise<void> {
-        return this.runner.execute({actions: Array.isArray(action) ? action : [action]}, context);
+    private run(actions: Array<Promise<unknown>>, context: ActionContext): Promise<void> {
+        return this.runner.execute({actions: actions}, context);
     }
 }

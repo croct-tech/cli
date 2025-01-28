@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 
-const packageSchema = z.object({
+const packageSchema = z.strictObject({
     name: z.string(),
     version: z.string().optional(),
     dependencies: z.record(z.string()).optional(),

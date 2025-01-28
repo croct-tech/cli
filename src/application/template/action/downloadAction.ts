@@ -9,7 +9,7 @@ export type DownloadOptions = {
     source: string,
     filter?: string,
     destination: string,
-    output?: {
+    result?: {
         destination?: string,
     },
 };
@@ -83,8 +83,8 @@ export class DownloadAction implements Action<DownloadOptions> {
 
         notifier?.stop();
 
-        if (options.output?.destination !== undefined) {
-            context.set(options.output.destination, destinationPath);
+        if (options.result?.destination !== undefined) {
+            context.set(options.result.destination, destinationPath);
         }
     }
 

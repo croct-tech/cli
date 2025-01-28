@@ -19,7 +19,7 @@ export type LocateFileOptions = {
     path: string,
     matcher?: Matcher,
     max?: number,
-    output?: {
+    result?: {
         paths?: string,
         extensions?: string,
     },
@@ -55,8 +55,8 @@ export class LocateFileAction implements Action<LocateFileOptions> {
     private async findMatches(options: LocateFileOptions, context: ActionContext): Promise<void> {
         const matches = await this.findMatch(options.path, options);
 
-        if (options.output !== undefined) {
-            const variables = options.output;
+        if (options.result !== undefined) {
+            const variables = options.result;
 
             if (variables.paths !== undefined) {
                 context.set(variables.paths, matches);

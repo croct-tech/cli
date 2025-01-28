@@ -2,7 +2,7 @@ import {z, ZodType} from 'zod';
 import {CheckDependencyOptions} from '@/application/template/action/checkDependencyAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
-const requirementSchema = z.object({
+const requirementSchema = z.strictObject({
     name: z.string().min(1),
     version: z.string()
         .min(1)
@@ -10,14 +10,14 @@ const requirementSchema = z.object({
     optional: z.boolean().optional(),
 });
 
-const schema: ZodType<CheckDependencyOptions> = z.object({
+const schema: ZodType<CheckDependencyOptions> = z.strictObject({
     dependencies: z.array(requirementSchema),
-    help: z.object({
+    help: z.strictObject({
         message: z.string()
             .min(1)
             .optional(),
         links: z.array(
-            z.object({
+            z.strictObject({
                 url: z.string().url(),
                 description: z.string().min(1),
             }),

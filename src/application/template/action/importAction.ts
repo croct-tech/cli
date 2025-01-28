@@ -98,7 +98,7 @@ export class ImportAction implements Action<ImportOptions> {
         return values;
     }
 
-    private async run(template: DeferredTemplate, input: VariableMap, context: ActionContext): Promise<void> {
+    private async run(template: DeferredTemplate, options: VariableMap, context: ActionContext): Promise<void> {
         const {runner, variables} = this.config;
         const {output} = context;
 
@@ -106,9 +106,9 @@ export class ImportAction implements Action<ImportOptions> {
             const notifier = output.notify('Resolving options');
 
             try {
-                const options = await resolve({
+                const action = await resolve({
                     ...variables,
-                    input: input,
+                    options: options,
                     get this() {
                         // Defer the variable resolution to the last moment to allow nested actions
                         // to access variables set by previous actions
@@ -118,7 +118,7 @@ export class ImportAction implements Action<ImportOptions> {
 
                 notifier.stop();
 
-                await runner.execute({actions: [options]}, context);
+                await runner.execute({actions: [action]}, context);
             } catch (error) {
                 throw ActionError.fromCause(error, {
                     details: [

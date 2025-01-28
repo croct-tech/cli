@@ -2,21 +2,19 @@ import {z, ZodType} from 'zod';
 import {TryOptions} from '@/application/template/action/tryAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
-const schema: ZodType<TryOptions> = z.object({
-    run: z.union([
-        z.array(z.promise(z.unknown())),
-        z.promise(z.unknown()),
-    ]),
-    else: z.union([
-        z.array(z.promise(z.unknown())),
-        z.promise(z.unknown()),
-    ]).optional(),
-    help: z.object({
+const actionsSchema = z.custom<Array<Promise<unknown>>>().transform(
+    value => (Array.isArray(value) ? value : [value]),
+);
+
+const schema: ZodType<TryOptions> = z.strictObject({
+    action: actionsSchema,
+    else: actionsSchema.optional(),
+    help: z.strictObject({
         message: z.string()
             .min(1)
             .optional(),
         links: z.array(
-            z.object({
+            z.strictObject({
                 url: z.string().url(),
                 description: z.string().min(1),
             }),

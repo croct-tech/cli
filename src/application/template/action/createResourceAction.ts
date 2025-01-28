@@ -22,7 +22,7 @@ import {HelpfulError, ErrorReason} from '@/application/error';
 
 export type CreateResourceOptions = {
     resources: WorkspaceResources,
-    output?: NewResourceVariables,
+    result?: NewResourceVariables,
 };
 
 type NewResourceVariables = {
@@ -112,8 +112,8 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
             }
         }
 
-        if (options.output !== undefined) {
-            CreateResourceAction.setVariables(options.output, plan, newResources, context);
+        if (options.result !== undefined) {
+            CreateResourceAction.setVariables(options.result, plan, newResources, context);
         }
     }
 

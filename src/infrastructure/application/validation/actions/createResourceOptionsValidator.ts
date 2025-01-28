@@ -23,26 +23,26 @@ import {ActionOptionsValidator} from '@/infrastructure/application/validation/ac
 const outputMapSchema = z.record(z.string().min(1), z.string().min(1));
 const outputListSchema = z.record(z.number().nonnegative(), z.string().min(1));
 
-const audienceDefinitionSchema: ZodType<AudienceDefinition> = z.object({
+const audienceDefinitionSchema: ZodType<AudienceDefinition> = z.strictObject({
     name: z.string().min(1),
     criteria: z.string().min(1),
 });
 
-const definitionAnnotationSchema = z.object({
+const definitionAnnotationSchema = z.strictObject({
     title: z.string().optional(),
     description: z.string().optional(),
 });
 
 const booleanDefinitionSchema = definitionAnnotationSchema.extend({
     type: z.literal('boolean'),
-    label: z.object({
+    label: z.strictObject({
         true: z.string(),
         false: z.string(),
     }).optional(),
     default: z.boolean().optional(),
 }) satisfies ZodType<ContentDefinition<'boolean'>>;
 
-const choiceDefinitionSchema: ZodType<ChoiceDefinition> = z.object({
+const choiceDefinitionSchema: ZodType<ChoiceDefinition> = z.strictObject({
     label: z.string().optional(),
     description: z.string().optional(),
     default: z.boolean().optional(),
@@ -66,7 +66,7 @@ const numberDefinitionSchema = definitionAnnotationSchema.extend({
 }) satisfies ZodType<ContentDefinition<'number'>>;
 
 const attributeDefinitionSchema: ZodType<AttributeDefinition> = z.lazy(
-    () => z.object({
+    () => z.strictObject({
         type: z.lazy((): ZodType<ContentDefinition> => contentDefinitionSchema),
         label: z.string().optional(),
         description: z.string().optional(),
@@ -131,7 +131,7 @@ const rootContentDefinitionSchema: ZodType<RootDefinition> = z.discriminatedUnio
     unionDefinitionSchema,
 ]);
 
-const componentDefinitionSchema: ZodType<ComponentDefinition> = z.object({
+const componentDefinitionSchema: ZodType<ComponentDefinition> = z.strictObject({
     name: z.string().min(1),
     description: z.string()
         .min(1)
@@ -140,17 +140,17 @@ const componentDefinitionSchema: ZodType<ComponentDefinition> = z.object({
 });
 
 const stringContentValueSchema: ZodType<PrimitiveValue<string>> = z.union([
-    z.object({
+    z.strictObject({
         type: z.literal('static'),
         value: z.string(),
     }),
-    z.object({
+    z.strictObject({
         type: z.literal('dynamic'),
         expression: z.string(),
         nullable: z.literal(false),
         default: z.string(),
     }),
-    z.object({
+    z.strictObject({
         type: z.literal('dynamic'),
         expression: z.string(),
         nullable: z.literal(true),
@@ -159,17 +159,17 @@ const stringContentValueSchema: ZodType<PrimitiveValue<string>> = z.union([
 ]);
 
 const numberContentValueSchema: ZodType<PrimitiveValue<number>> = z.union([
-    z.object({
+    z.strictObject({
         type: z.literal('static'),
         value: z.number(),
     }),
-    z.object({
+    z.strictObject({
         type: z.literal('dynamic'),
         nullable: z.literal(false),
         default: z.number(),
         expression: z.string(),
     }),
-    z.object({
+    z.strictObject({
         type: z.literal('dynamic'),
         nullable: z.literal(true),
         default: z.number().optional(),
@@ -178,17 +178,17 @@ const numberContentValueSchema: ZodType<PrimitiveValue<number>> = z.union([
 ]);
 
 const booleanContentValueSchema: ZodType<PrimitiveValue<boolean>> = z.union([
-    z.object({
+    z.strictObject({
         type: z.literal('static'),
         value: z.boolean(),
     }),
-    z.object({
+    z.strictObject({
         type: z.literal('dynamic'),
         nullable: z.literal(false),
         default: z.boolean(),
         expression: z.string(),
     }),
-    z.object({
+    z.strictObject({
         type: z.literal('dynamic'),
         nullable: z.literal(true),
         default: z.boolean().optional(),
@@ -196,28 +196,28 @@ const booleanContentValueSchema: ZodType<PrimitiveValue<boolean>> = z.union([
     }),
 ]);
 
-const textContentSchema = z.object({
+const textContentSchema = z.strictObject({
     type: z.literal('text'),
     value: stringContentValueSchema,
 }) satisfies ZodType<Content<'text'>>;
 
-const numberContentSchema = z.object({
+const numberContentSchema = z.strictObject({
     type: z.literal('number'),
     value: numberContentValueSchema,
 }) satisfies ZodType<Content<'number'>>;
 
-const booleanContentSchema = z.object({
+const booleanContentSchema = z.strictObject({
     type: z.literal('boolean'),
     value: booleanContentValueSchema,
 }) satisfies ZodType<Content<'boolean'>>;
 
-const structureContentSchema = z.object({
+const structureContentSchema = z.strictObject({
     type: z.literal('structure'),
     name: z.string().optional(),
     attributes: z.record(z.string(), z.lazy((): ZodType<Content> => contentSchema)),
 }) satisfies ZodType<Content<'structure'>>;
 
-const listContentSchema = z.object({
+const listContentSchema = z.strictObject({
     type: z.literal('list'),
     items: z.array(z.lazy((): ZodType<Content> => contentSchema)),
 }) satisfies ZodType<Content<'list'>>;
@@ -235,7 +235,7 @@ const localizedSlotContentSchema: ZodType<LocalizedContentMap> = z.record(
     structureContentSchema,
 );
 
-const slotDefinitionSchema: ZodType<SlotDefinition> = z.object({
+const slotDefinitionSchema: ZodType<SlotDefinition> = z.strictObject({
     name: z.string().min(1),
     component: z.string().min(1),
     content: localizedSlotContentSchema,
@@ -246,17 +246,17 @@ const slotContentMap: ZodType<SlotContentMap> = z.record(
     localizedSlotContentSchema,
 );
 
-const segmentedContentSchema: ZodType<SegmentedContentDefinition> = z.object({
+const segmentedContentSchema: ZodType<SegmentedContentDefinition> = z.strictObject({
     audiences: z.array(z.string()),
     content: slotContentMap,
 });
 
-const personalizedContentSchema: ZodType<PersonalizedContentDefinition> = z.object({
+const personalizedContentSchema: ZodType<PersonalizedContentDefinition> = z.strictObject({
     default: slotContentMap,
     segmented: z.array(segmentedContentSchema),
 });
 
-const experimentVariantSchema: ZodType<VariantDefinition> = z.object({
+const experimentVariantSchema: ZodType<VariantDefinition> = z.strictObject({
     name: z.string(),
     content: personalizedContentSchema,
     baseline: z.boolean().optional(),
@@ -265,12 +265,12 @@ const experimentVariantSchema: ZodType<VariantDefinition> = z.object({
         .max(1),
 });
 
-const experienceDefinitionSchema: ZodType<ExperienceDefinition> = z.object({
+const experienceDefinitionSchema: ZodType<ExperienceDefinition> = z.strictObject({
     name: z.string(),
     draft: z.boolean().optional(),
     audiences: z.array(z.string()),
     slots: z.array(z.string()),
-    experiment: z.object({
+    experiment: z.strictObject({
         name: z.string(),
         goalId: z.string().optional(),
         crossDevice: z.boolean().optional(),
@@ -283,14 +283,14 @@ const experienceDefinitionSchema: ZodType<ExperienceDefinition> = z.object({
     content: personalizedContentSchema,
 });
 
-const schema: ZodType<CreateResourceOptions> = z.object({
-    resources: z.object({
+const schema: ZodType<CreateResourceOptions> = z.strictObject({
+    resources: z.strictObject({
         audiences: z.record(z.string().min(1), audienceDefinitionSchema).optional(),
         components: z.record(z.string().min(1), componentDefinitionSchema).optional(),
         slots: z.record(z.string().min(1), slotDefinitionSchema).optional(),
         experiences: z.array(experienceDefinitionSchema).optional(),
     }),
-    output: z.object({
+    result: z.strictObject({
         audiences: outputMapSchema.optional(),
         components: outputMapSchema.optional(),
         slots: outputMapSchema.optional(),

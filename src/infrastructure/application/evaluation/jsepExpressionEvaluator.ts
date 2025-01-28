@@ -5,6 +5,7 @@ import {
     EvaluationContext,
     EvaluationError,
     ExpressionEvaluator,
+    GenericFunction,
     VariableMap,
 } from '@/application/template/evaluation';
 
@@ -27,7 +28,45 @@ type JsepExpression<T extends ExtendedExpression['type']> = {
     [K in T]: Extract<ExtendedExpression, {type: K}>;
 }[T];
 
+type Methods<T> = Exclude<
+    keyof {[K in keyof T as T[K] extends (...args: any[]) => any ? K : never]: T[K]},
+    Exclude<PropertyKey, string>
+>;
+
+type Properties<T> = Exclude<
+    keyof {[K in keyof T as T[K] extends (...args: any[]) => any ? never : K]: T[K]},
+    Exclude<PropertyKey, string>
+>;
+
 export class JsepExpressionEvaluator implements ExpressionEvaluator {
+    private static readonly ALLOWED_ARRAY_PROPERTIES: Array<Properties<any[]>> = [
+        'length',
+    ];
+
+    private static readonly ALLOWED_ARRAY_METHODS: Array<Methods<any[]>> = [
+        'map',
+        'filter',
+        'some',
+        'every',
+        'slice',
+        'join',
+    ];
+
+    // eslint-disable-next-line @typescript-eslint/ban-types -- Intentional use of String for correct type inference
+    private static readonly ALLOWED_STRING_PROPERTIES: Array<Properties<String>> = [
+        'length',
+    ];
+
+    // eslint-disable-next-line @typescript-eslint/ban-types -- Intentional use of String for correct type inference
+    private static readonly ALLOWED_STRING_METHODS: Array<Methods<String>> = [
+        'slice',
+        'includes',
+        'startsWith',
+        'endsWith',
+        'toLowerCase',
+        'toUpperCase',
+    ];
+
     private static readonly LITERALS: Record<string, JsonValue> = {
         true: true,
         false: false,
@@ -238,52 +277,38 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                 const object = await this.evaluateExpression(expression.object, context);
 
                 if (typeof object !== 'object' || object === null) {
-                    throw new EvaluationError('Object expected.');
+                    throw new EvaluationError('Cannot access property of a non-object.');
                 }
 
-                const property = expression.computed
-                    ? await this.evaluateExpression(expression.property, context)
-                    : expression.property.name;
+                const property = matches(expression.property, 'Identifier')
+                    ? expression.property.name
+                    : await this.evaluateExpression(expression.property, context);
 
-                if (typeof property !== 'string' && typeof property !== 'number') {
-                    throw new EvaluationError(`Property must be a string or a number, got ${typeof property}.`);
-                }
-
-                if (Array.isArray(object)) {
-                    if (typeof property === 'string') {
-                        if (!['length'].includes(property)) {
-                            throw new EvaluationError(`Array property \`${property}\` is not defined.`);
-                        }
-
-                        return object.length;
+                if (typeof property === 'number') {
+                    if (!Array.isArray(object)) {
+                        throw new EvaluationError('Cannot access array index of a non-array.');
                     }
 
                     if (property < 0 || property >= object.length) {
-                        throw new EvaluationError(`Array index ${property} is out of bounds.`);
+                        throw new EvaluationError('Array index  is out of bounds.');
                     }
 
                     return object[property];
                 }
 
-                if (object[property] === undefined || !Object.hasOwn(object, property)) {
-                    throw new EvaluationError(`Property \`${property}\` is not defined.`);
+                if (typeof property !== 'string') {
+                    throw new EvaluationError(`Property name must be a string, got ${typeof property}.`);
+                }
+
+                if (!JsepExpressionEvaluator.isPropertyAllowed(object, property)) {
+                    throw new EvaluationError(`Property \`${property}\` is not supported.`);
                 }
 
                 return object[property];
             }
 
             case matches(expression, 'CallExpression'): {
-                if (!matches(expression.callee, 'Identifier')) {
-                    throw new EvaluationError('Callee is not a function.');
-                }
-
-                const {name} = expression.callee;
-
-                const fn = context?.functions?.[expression.callee.name];
-
-                if (fn === undefined) {
-                    throw new EvaluationError(`Unknown function \`${name}\`.`);
-                }
+                const fn = await this.getCallee(expression.callee, context);
 
                 return fn(
                     ...await Promise.all(
@@ -303,6 +328,66 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
             default:
                 throw new EvaluationError(`Unsupported expression type \`${expression.type}\`.`);
         }
+    }
+
+    private async getCallee(expression: Expression, context?: EvaluationContext): Promise<GenericFunction> {
+        if (matches(expression, 'Identifier')) {
+            const fn = context?.functions?.[expression.name];
+
+            if (fn === undefined) {
+                throw new EvaluationError(`Function \`${expression.name}\` does not exist.`);
+            }
+
+            return fn;
+        }
+
+        if (matches(expression, 'MemberExpression')) {
+            const value = await this.evaluateExpression(expression.object, context);
+
+            const property = matches(expression.property, 'Identifier')
+                ? expression.property.name
+                : await this.evaluateExpression(expression.property, context);
+
+            if (typeof property !== 'string') {
+                throw new EvaluationError(`Method name must be a string, got ${typeof property}.`);
+            }
+
+            if (!JsepExpressionEvaluator.isMethodAllowed(value, property)) {
+                throw new EvaluationError(`Method \`${property}\` is not supported.`);
+            }
+
+            return value[property].bind(value);
+        }
+
+        throw new EvaluationError('Callee is not callable.');
+    }
+
+    private static isMethodAllowed<T, M extends string>(value: T, method: M): value is T & Record<M, GenericFunction> {
+        if (typeof value === 'string') {
+            return JsepExpressionEvaluator.ALLOWED_STRING_METHODS.includes(method as any);
+        }
+
+        if (Array.isArray(value)) {
+            return JsepExpressionEvaluator.ALLOWED_ARRAY_METHODS.includes(method as any);
+        }
+
+        return false;
+    }
+
+    private static isPropertyAllowed<T, P extends string>(value: T, property: P): value is T & Record<P, JsonValue> {
+        if (typeof value === 'string') {
+            return JsepExpressionEvaluator.ALLOWED_STRING_PROPERTIES.includes(property as any);
+        }
+
+        if (Array.isArray(value)) {
+            return JsepExpressionEvaluator.ALLOWED_ARRAY_PROPERTIES.includes(property as any);
+        }
+
+        return typeof value === 'object'
+            && value !== null
+            && Object.hasOwn(value, property)
+            && property in value
+            && value[property as unknown as keyof T] !== undefined;
     }
 
     private async resolve(value: Deferrable<JsonValue>): Promise<JsonValue> {

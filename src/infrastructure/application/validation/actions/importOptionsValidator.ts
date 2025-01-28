@@ -2,7 +2,7 @@ import {z, ZodType} from 'zod';
 import {ImportOptions} from '@/application/template/action/importAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
-const schema: ZodType<ImportOptions> = z.object({
+const schema: ZodType<ImportOptions> = z.strictObject({
     template: z.string().min(1),
     input: z.record(z.string().min(1), z.union([
         z.string(),

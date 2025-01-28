@@ -243,13 +243,13 @@ function createProgram(config: Configuration): typeof program {
 
             case 'number':
                 option.argParser(value => {
-                    const parsedValue = Number.parseFloat(value);
+                    const number = Number.parseFloat(value);
 
-                    if (Number.isNaN(parsedValue)) {
+                    if (Number.isNaN(number)) {
                         throw new InvalidArgumentError('The value must be a number.');
                     }
 
-                    return value;
+                    return number;
                 });
 
                 break;

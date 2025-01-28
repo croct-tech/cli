@@ -2,27 +2,27 @@ import {z, ZodType} from 'zod';
 import {LocateFileOptions, Matcher, PatternMatcher} from '@/application/template/action/locateFileAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
-const patternMatcherSchema: ZodType<PatternMatcher> = z.object({
+const patternMatcherSchema: ZodType<PatternMatcher> = z.strictObject({
     pattern: z.string().min(1),
     caseSensitive: z.boolean().optional(),
 });
 
 const matcherSchema: ZodType<Matcher> = z.union([
     patternMatcherSchema,
-    z.object({
+    z.strictObject({
         type: z.enum(['and', 'or']),
         matchers: z.array(z.lazy(() => matcherSchema)).min(1),
     }),
 ]);
 
-const schema: ZodType<LocateFileOptions> = z.object({
+const schema: ZodType<LocateFileOptions> = z.strictObject({
     path: z.string().min(1),
     matcher: matcherSchema.optional(),
     max: z.number()
         .int()
         .positive()
         .optional(),
-    output: z.object({
+    result: z.strictObject({
         paths: z.string()
             .min(1)
             .optional(),

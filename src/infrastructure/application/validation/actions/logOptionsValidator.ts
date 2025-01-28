@@ -2,7 +2,7 @@ import {z, ZodType} from 'zod';
 import {LogOptions} from '@/application/template/action/logAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
-const schema: ZodType<LogOptions> = z.object({
+const schema: ZodType<LogOptions> = z.strictObject({
     semantic: z.enum(['neutral', 'info', 'error', 'warning', 'success']).optional(),
     message: z.string(),
 });

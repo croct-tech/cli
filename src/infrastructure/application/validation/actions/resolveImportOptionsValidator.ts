@@ -2,10 +2,10 @@ import {z, ZodType} from 'zod';
 import {ResolveImportOptions} from '@/application/template/action/resolveImportAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
-const schema: ZodType<ResolveImportOptions> = z.object({
+const schema: ZodType<ResolveImportOptions> = z.strictObject({
     target: z.string().min(1),
     source: z.string().min(1),
-    output: z.object({
+    result: z.strictObject({
         importPath: z.string()
             .min(1)
             .optional(),

@@ -3,8 +3,8 @@ import {ActionContext} from '@/application/template/action/context';
 import {Help} from '@/application/error';
 
 export type TryOptions = {
-    run: Promise<unknown>|Array<Promise<unknown>>,
-    else?: Promise<unknown>|Array<Promise<unknown>>,
+    action: Array<Promise<unknown>>,
+    else?: Array<Promise<unknown>>,
     help?: Pick<Help, | 'links' | 'suggestions'> & {
         message?: string,
     },
@@ -19,7 +19,7 @@ export class TryAction implements Action<TryOptions> {
 
     public async execute(options: TryOptions, context: ActionContext): Promise<void> {
         try {
-            await this.run(options.run, context);
+            await this.run(options.action, context);
         } catch (error) {
             if (options.else === undefined) {
                 if (options.help === undefined) {
@@ -33,7 +33,7 @@ export class TryAction implements Action<TryOptions> {
         }
     }
 
-    private run(action: Promise<unknown>|Array<Promise<unknown>>, context: ActionContext): Promise<void> {
-        return this.runner.execute({actions: Array.isArray(action) ? action : [action]}, context);
+    private run(actions: Array<Promise<unknown>>, context: ActionContext): Promise<void> {
+        return this.runner.execute({actions: actions}, context);
     }
 }

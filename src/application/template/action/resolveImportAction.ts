@@ -4,7 +4,7 @@ import {ActionContext} from '@/application/template/action/context';
 export type ResolveImportOptions = {
     target: string,
     source: string,
-    output?: {
+    result?: {
         importPath?: string,
     },
 };
@@ -37,7 +37,7 @@ export class ResolveImportAction implements Action<ResolveImportOptions> {
     private async resolveImport(options: ResolveImportOptions, context: ActionContext): Promise<void> {
         const importPath = await this.resolver(options.target, options.source);
 
-        const variable = options.output?.importPath;
+        const variable = options.result?.importPath;
 
         if (variable !== undefined) {
             context.set(variable, importPath);
