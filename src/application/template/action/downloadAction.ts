@@ -1,9 +1,10 @@
 import {Minimatch} from 'minimatch';
 import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
-import {FileSystem, FileSystemIterator} from '@/application/fs/fileSystem';
+import {FileSystem, FileSystemEntry, FileSystemIterator} from '@/application/fs/fileSystem';
 import {ResourceProvider} from '@/application/provider/resourceProvider';
 import {ErrorReason} from '@/application/error';
+import {Input} from '@/application/cli/io/input';
 
 export type DownloadOptions = {
     source: string,
@@ -41,57 +42,36 @@ export class DownloadAction implements Action<DownloadOptions> {
             });
         }
 
-        const {destination} = options;
-
-        if (await fileSystem.exists(destination)) {
-            if (!await fileSystem.isDirectory(destination) || !await fileSystem.isEmptyDirectory(destination)) {
-                if (
-                    await input?.confirm({
-                        message: 'Destination directory is not empty. Do you want to clear it?',
-                        default: false,
-                    }) !== true
-                ) {
-                    throw new ActionError('Destination directory is not empty.', {
-                        reason: ErrorReason.PRECONDITION,
-                        suggestions: [
-                            'Clear the directory or choose another destination.',
-                        ],
-                    });
-                }
-
-                await fileSystem.delete(destination, {recursive: true});
-            }
-        }
-
-        await fileSystem.createDirectory(destination, {
-            recursive: true,
-        });
-
-        const destinationPath = fileSystem.normalizeSeparators(destination);
+        const destination = fileSystem.normalizeSeparators(options.destination);
 
         const {output} = context;
 
         const notifier = output?.notify('Downloading sources');
 
-        await this.download(
-            sourceUrl,
-            destination,
-            options.filter !== undefined
-                ? new Minimatch(options.filter)
-                : undefined,
-        );
-
-        notifier?.stop();
+        try {
+            await this.download(
+                sourceUrl,
+                destination,
+                options.filter !== undefined
+                    ? new Minimatch(options.filter)
+                    : undefined,
+                input,
+            );
+        } finally {
+            notifier?.stop();
+        }
 
         if (options.result?.destination !== undefined) {
-            context.set(options.result.destination, destinationPath);
+            context.set(options.result.destination, destination);
         }
     }
 
-    private async download(url: URL, destination: string, matcher?: Minimatch): Promise<void> {
+    private async download(url: URL, destination: string, matcher?: Minimatch, input?: Input): Promise<void> {
         const {provider, fileSystem} = this.config;
 
         const iterator = await provider.get(url);
+
+        const entries: FileSystemEntry[] = [];
 
         for await (const entry of iterator) {
             const path = fileSystem.normalizeSeparators(entry.name);
@@ -118,6 +98,51 @@ export class DownloadAction implements Action<DownloadOptions> {
                 entry.target = target;
             }
 
+            entries.push(entry);
+        }
+
+        if (entries.length === 0) {
+            return;
+        }
+
+        if (await fileSystem.exists(destination)) {
+            if (entries.length === 1 && entries[0].type === 'file') {
+                if (
+                    await fileSystem.exists(entries[0].name)
+                    && await input?.confirm({
+                        message: `File ${entries[0].name} already exists. Do you want to overwrite it?`,
+                        default: false,
+                    }) !== true
+                ) {
+                    throw new ActionError('Destination file already exists.', {
+                        reason: ErrorReason.PRECONDITION,
+                        details: [`File: ${entries[0].name}`],
+                        suggestions: ['Delete the file'],
+                    });
+                }
+            } else if (!await fileSystem.isDirectory(destination) || !await fileSystem.isEmptyDirectory(destination)) {
+                if (
+                    await input?.confirm({
+                        message: `Directory ${destination} is not empty. Do you want to clear it?`,
+                        default: false,
+                    }) !== true
+                ) {
+                    throw new ActionError('Destination directory is not empty.', {
+                        reason: ErrorReason.PRECONDITION,
+                        details: [`Directory: ${destination}`],
+                        suggestions: ['Clear the directory'],
+                    });
+                }
+
+                await fileSystem.delete(destination, {recursive: true});
+            }
+        }
+
+        await fileSystem.createDirectory(destination, {
+            recursive: true,
+        });
+
+        for (const entry of entries) {
             await fileSystem.create(entry);
         }
     }

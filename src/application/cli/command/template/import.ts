@@ -5,9 +5,10 @@ import {FileSystem} from '@/application/fs/fileSystem';
 import {OptionMap, Template} from '@/application/template/template';
 import {ResourceProvider} from '@/application/provider/resourceProvider';
 import {VariableMap} from '@/application/template/evaluation';
-import {Action} from '@/application/template/action/action';
+import {Action, ActionError} from '@/application/template/action/action';
 import {ImportOptions} from '@/application/template/action/importAction';
 import {ActionContext} from '@/application/template/action/context';
+import {ErrorReason} from '@/application/error';
 
 export type ImportTemplateInput = {
     template: string,
@@ -50,7 +51,7 @@ export class ImportTemplateCommand implements Command<ImportTemplateInput> {
         return action.execute(
             {
                 template: url.toString(),
-                input: options,
+                options: options,
             },
             new ActionContext({
                 input: io.input,
@@ -75,6 +76,14 @@ export class ImportTemplateCommand implements Command<ImportTemplateInput> {
             path = fileSystem.normalizeSeparators(url.pathname);
         }
 
-        return new URL(`file://${await fileSystem.getRealPath(path)}`);
+        try {
+            return new URL(`file://${await fileSystem.getRealPath(path)}`);
+        } catch (error) {
+            throw new ActionError(`Template file not found at \`${path}\`.`, {
+                reason: ErrorReason.INVALID_INPUT,
+                cause: error,
+                suggestions: ['Check the file path and try again.'],
+            });
+        }
     }
 }

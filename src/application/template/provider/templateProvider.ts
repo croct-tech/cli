@@ -23,10 +23,17 @@ import {
 import {Fragment, JsonExpressionNode, TemplateStringParser} from '@/application/template/templateStringParser';
 import {Deferred, Deferrable} from '@/application/template/deferral';
 
+type TemplateSource<T> = {
+    url: URL,
+    template: T,
+};
+
+type DeferredTemplateSource = TemplateSource<DeferredTemplate>;
+
 export type Configuration<O extends ProviderOptions> = {
     evaluator: ExpressionEvaluator,
     validator: Validator<Template>,
-    provider: ResourceProvider<string, O>,
+    provider: ResourceProvider<TemplateSource<string>, O>,
 };
 
 type DeferredTemplateOptions = DeferredTemplate['options'];
@@ -48,12 +55,12 @@ export class TemplateError extends ResourceProviderError {
     }
 }
 
-export class TemplateProvider<O extends ProviderOptions> implements ResourceProvider<DeferredTemplate, O> {
+export class TemplateProvider<O extends ProviderOptions> implements ResourceProvider<DeferredTemplateSource, O> {
     private readonly evaluator: ExpressionEvaluator;
 
     private readonly validator: Validator<Template>;
 
-    private readonly provider: ResourceProvider<string, O>;
+    private readonly provider: ResourceProvider<TemplateSource<string>, O>;
 
     private readonly loading: string[] = [];
 
@@ -67,8 +74,8 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
         return this.provider.supports(url);
     }
 
-    public async get(url: URL): Promise<DeferredTemplate> {
-        const source = await this.provider.get(url);
+    public async get(url: URL): Promise<DeferredTemplateSource> {
+        const {url: resolvedUrl, template: source} = await this.provider.get(url);
 
         let node: JsonObjectNode;
 
@@ -77,7 +84,7 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
         } catch (error) {
             throw new TemplateError('Failed to parse the JSON template.', {
                 reason: ErrorReason.INVALID_INPUT,
-                url: url,
+                url: resolvedUrl,
                 cause: error,
                 violations: [
                     {
@@ -92,26 +99,33 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
         const validation = await this.validator.validate(data);
 
         if (!validation.valid) {
-            throw new TemplateError('The template contains errors.', {
+            const violations = validation.violations
+                .map(violation => ` • **${violation.path}**: ${violation.message}`)
+                .join('\n\n');
+
+            throw new TemplateError(`The template contains errors:\n\n${violations}`, {
                 reason: ErrorReason.INVALID_INPUT,
-                url: url,
+                url: resolvedUrl,
                 violations: validation.violations,
             });
         }
 
         const {options, actions, ...metadata} = validation.data;
         const actionsNode = node.get('actions', JsonArrayNode);
-        const resolvedOptions = this.parseOptions(node, options, url);
+        const resolvedOptions = this.parseOptions(node, options, resolvedUrl);
 
         return {
-            ...metadata,
-            ...(resolvedOptions !== undefined ? {options: resolvedOptions} : {}),
-            actions: actionsNode.elements.map(
-                (definition, index) => ({
-                    name: actions[index].name,
-                    resolve: variables => this.resolve(definition.cast(JsonObjectNode), variables, url),
-                }),
-            ),
+            url: resolvedUrl,
+            template: {
+                ...metadata,
+                ...(resolvedOptions !== undefined ? {options: resolvedOptions} : {}),
+                actions: actionsNode.elements.map(
+                    (definition, index) => ({
+                        name: actions[index].name,
+                        resolve: variables => this.resolve(definition, variables, resolvedUrl),
+                    }),
+                ),
+            },
         };
     }
 
@@ -276,7 +290,7 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
             return await this.evaluator.evaluate(expression, {
                 variables: variables,
                 functions: {
-                    import: (url?: JsonValue, input?: JsonValue): Deferred<JsonValue> => {
+                    import: (url?: JsonValue, properties?: JsonValue): Deferred<JsonValue> => {
                         if (typeof url !== 'string') {
                             const location = node.location.start;
 
@@ -295,8 +309,8 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
                         }
 
                         if (
-                            input !== undefined
-                            && (typeof input !== 'object' || input === null || Array.isArray(input))
+                            properties !== undefined
+                            && (typeof properties !== 'object' || properties === null || Array.isArray(properties))
                         ) {
                             const location = node.location.start;
 
@@ -318,11 +332,11 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
                             TemplateProvider.getSourceUrl(url, baseUrl),
                             {
                                 ...variables,
-                                input: {
-                                    ...input,
+                                this: {
+                                    ...properties,
                                     ...(
-                                        typeof variables.input === 'object' && variables.input !== null
-                                            ? variables.input
+                                        typeof variables.this === 'object' && variables.this !== null
+                                            ? variables.this
                                             : {}
                                     ),
                                 },
@@ -381,7 +395,7 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
             });
         }
 
-        const template = await this.provider.get(url);
+        const {url: resolvedUrl, template} = await this.provider.get(url);
 
         let node: JsonValueNode;
 
@@ -391,7 +405,7 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
             throw new TemplateError('Failed to parse referenced JSON.', {
                 reason: ErrorReason.INVALID_INPUT,
                 cause: error,
-                url: url,
+                url: resolvedUrl,
                 violations: [
                     {
                         path: path,
@@ -401,10 +415,10 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
             });
         }
 
-        this.loading.push(url.toString());
+        this.loading.push(resolvedUrl.toString());
 
         try {
-            return this.resolve(node, variables, url, path);
+            return this.resolve(node, variables, resolvedUrl, path);
         } finally {
             this.loading.pop();
         }

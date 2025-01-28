@@ -8,7 +8,7 @@ import {DeferredOptionDefinition, DeferredTemplate} from '@/application/template
 
 export type ImportOptions = {
     template: string,
-    input?: VariableMap,
+    options?: VariableMap,
 };
 
 type DeferredTemplateSource = {
@@ -46,7 +46,7 @@ export class ImportAction implements Action<ImportOptions> {
     private async importTemplate(options: ImportOptions, context: ActionContext): Promise<void> {
         const {template, url} = await this.loadTemplate(options.template, context.baseUrl);
 
-        const input = await this.getInputValues(template, options.input);
+        const input = await this.getInputValues(template, options.options);
 
         if (this.resolving.includes(url.href)) {
             const chain = [...this.resolving, url.href].map((path, index) => ` ${index + 1}. ${path}`)
@@ -140,12 +140,9 @@ export class ImportAction implements Action<ImportOptions> {
             return await provider.get(url);
         } catch (error) {
             if (error instanceof ResourceNotFoundError) {
-                throw new HelpfulError('Template not found.', {
+                throw new HelpfulError(`Template not found at \`${url}\`.`, {
                     cause: error,
                     reason: ErrorReason.INVALID_INPUT,
-                    details: [
-                        `Template: ${name}`,
-                    ],
                     suggestions: [
                         'Check if the template path or URL is correct and try again.',
                     ],

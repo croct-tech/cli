@@ -1,8 +1,9 @@
+import {JsonValue} from '@croct/json';
 import {Action} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 
 export type DefineOptions = {
-    variables: Record<string, string>,
+    variables: Record<string, JsonValue>,
 };
 
 export class DefineAction implements Action<DefineOptions> {

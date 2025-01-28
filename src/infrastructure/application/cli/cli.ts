@@ -2,6 +2,7 @@ import {Readable, Writable} from 'stream';
 import * as process from 'node:process';
 import {
     AdaptedCache,
+    AutoSaveCache,
     CacheProvider,
     InMemoryCache,
     NoopCache,
@@ -121,7 +122,7 @@ import {MultiProvider} from '@/application/template/provider/multiProvider';
 import {FileSystemProvider} from '@/application/template/provider/fileSystemProvider';
 import {GithubProvider} from '@/application/template/provider/githubProvider';
 import {HttpFileProvider} from '@/application/template/provider/httpFileProvider';
-import {ResourceProvider, ProviderOptions} from '@/application/provider/resourceProvider';
+import {ResourceProvider} from '@/application/provider/resourceProvider';
 import {AdaptedProvider} from '@/application/template/provider/adaptedProvider';
 import {HelpfulError, ErrorReason} from '@/application/error';
 import {PartialNpmPackageValidator} from '@/infrastructure/application/validation/partialNpmPackageValidator';
@@ -169,8 +170,8 @@ import {EnumeratedProvider} from '@/application/provider/enumeratedProvider';
 import {ParameterlessProvider} from '@/application/provider/parameterlessProvider';
 import {TestAction, TestOptions} from '@/application/template/action/testAction';
 import {TestOptionsValidator} from '@/infrastructure/application/validation/actions/testOptionsValidator';
-import {LogAction} from '@/application/template/action/logAction';
-import {LogOptionsValidator} from '@/infrastructure/application/validation/actions/logOptionsValidator';
+import {PrintAction} from '@/application/template/action/printAction';
+import {PrintOptionsValidator} from '@/infrastructure/application/validation/actions/printOptionsValidator';
 import {FailAction} from '@/application/template/action/failAction';
 import {FailOptionsValidator} from '@/infrastructure/application/validation/actions/failOptionsValidator';
 import {ParameterlessResourceProvider} from '@/application/provider/parameterlessResourceProvider';
@@ -230,6 +231,11 @@ type AuthenticationMethods = {
 
 type AuthenticationInput = MultiAuthenticationInput<AuthenticationMethods>;
 
+type TemplateSource = {
+    url: URL,
+    template: string,
+};
+
 export class Cli {
     private readonly configuration: Configuration;
 
@@ -262,6 +268,8 @@ export class Cli {
     private httpProvider?: HttpProvider;
 
     private importAction?: Action<ImportOptions>;
+
+    private templateProvider?: ResourceProvider<TemplateSource>;
 
     private fileProvider?: ResourceProvider<FileSystemIterator>;
 
@@ -498,7 +506,10 @@ export class Cli {
     private getImportTemplateCommand(): ImportTemplateCommand {
         return new ImportTemplateCommand({
             templateProvider: new ValidatedProvider({
-                provider: new JsonProvider(this.createTemplateProvider(this.getFileContentProvider())),
+                provider: new JsonProvider(new AdaptedProvider({
+                    provider: this.getTemplateProvider(),
+                    adapter: ({template}) => template,
+                })),
                 validator: new TemplateValidator(),
             }),
             fileSystem: this.getFileSystem(),
@@ -590,23 +601,44 @@ export class Cli {
         return this.output;
     }
 
-    private createTemplateProvider<T, O extends ProviderOptions>(
-        provider: ResourceProvider<T, O>,
-    ): ResourceProvider<T, O> {
-        return new MappedProvider({
-            dataProvider: provider,
-            registryProvider: new ConstantProvider([
-                {
-                    // Any URL not ending with a file extension, excluding the trailing slash
-                    pattern: /^(.+?:\/+[^/]+(\/+[^/.]+|\/[^/]+(?=\/))*)\/*$/,
-                    destination: '$1/template.json',
-                },
-            ]),
-        });
+    private getTemplateProvider(): ResourceProvider<TemplateSource> {
+        if (this.templateProvider === undefined) {
+            this.templateProvider = this.createTemplateProvider();
+        }
+
+        return this.templateProvider;
     }
 
-    private getFileContentProvider(): ResourceProvider<string> {
-        return new FileContentProvider(this.getFileProvider());
+    private createTemplateProvider(): ResourceProvider<TemplateSource> {
+        const fileNames = ['template.json5', 'template.json'];
+        const fileProvider = new AdaptedProvider({
+            provider: new FileContentProvider(this.getFileProvider()),
+            adapter: (content, url): TemplateSource => ({
+                url: url,
+                template: content,
+            }),
+        });
+
+        return new CachedProvider({
+            cache: AdaptedCache.transformKeys(
+                new AutoSaveCache(new InMemoryCache()),
+                (url: string) => url.toString(),
+            ),
+            provider: new MultiProvider(
+                ...fileNames.map(
+                    fileName => new MappedProvider({
+                        dataProvider: fileProvider,
+                        registryProvider: new ConstantProvider([
+                            {
+                                // Any URL not ending with a file extension, excluding the trailing slash
+                                pattern: /^(.+?:\/+[^/]+(\/+[^/.]+|\/[^/]+(?=\/))*)\/*$/,
+                                destination: `$1/${fileName}`,
+                            },
+                        ]),
+                    }),
+                ),
+            ),
+        });
     }
 
     private getFileProvider(): ResourceProvider<FileSystemIterator> {
@@ -629,7 +661,7 @@ export class Cli {
         return new MultiProvider(
             localProvider,
             new MappedProvider({
-                dataProvider: new MultiProvider(remoteProviders[0], ...remoteProviders.slice(1)),
+                dataProvider: new MultiProvider(...remoteProviders),
                 registryProvider: new ParameterlessResourceProvider({
                     url: this.configuration.nameRegistry,
                     provider: new CachedProvider({
@@ -683,9 +715,9 @@ export class Cli {
                 action: new LazyAction((): TestAction => new TestAction(actions.run)),
                 validator: new TestOptionsValidator(),
             }),
-            log: new ValidatedAction({
-                action: new LogAction(),
-                validator: new LogOptionsValidator(),
+            print: new ValidatedAction({
+                action: new PrintAction(),
+                validator: new PrintOptionsValidator(),
             }),
             fail: new ValidatedAction({
                 action: new FailAction(),
@@ -844,18 +876,10 @@ export class Cli {
                 action: new LazyAction(
                     (): Action<ImportOptions> => new ImportAction({
                         runner: actions.run,
-                        templateProvider: new AdaptedProvider({
-                            provider: this.createTemplateProvider(
-                                new TemplateProvider({
-                                    evaluator: new JsepExpressionEvaluator(),
-                                    validator: new TemplateValidator(),
-                                    provider: this.getFileContentProvider(),
-                                }),
-                            ),
-                            adapter: (template, url) => ({
-                                url: url,
-                                template: template,
-                            }),
+                        templateProvider: new TemplateProvider({
+                            evaluator: new JsepExpressionEvaluator(),
+                            validator: new TemplateValidator(),
+                            provider: this.getTemplateProvider(),
                         }),
                         variables: this.getActionVariables(),
                     }),
@@ -954,10 +978,7 @@ export class Cli {
 
     private getHttpProvider(): HttpProvider {
         if (this.httpProvider === undefined) {
-            this.httpProvider = new CachedProvider({
-                provider: new FetchProvider(),
-                cache: new InMemoryCache(),
-            });
+            this.httpProvider = new FetchProvider();
         }
 
         return this.httpProvider;

@@ -10,19 +10,6 @@ export type Installation = {
     configuration: ResolvedConfiguration,
 };
 
-type Command = {
-    name: string,
-    args: string[],
-};
-
-export type ServerInfo = {
-    protocol: 'http' | 'https',
-    host: string,
-    port?: number,
-    defaultPort?: number,
-    startCommand: Command,
-};
-
 export interface Sdk {
     getPackage(): string;
     getPlatform(): ApplicationPlatform;

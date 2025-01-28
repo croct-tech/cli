@@ -65,26 +65,34 @@ export class GithubProvider<O extends ProviderOptions> implements ResourceProvid
         for await (const entry of extract) {
             const {header} = entry;
 
-            let name = GithubProvider.removeTrailSlash(
+            entry.resume();
+
+            const name = GithubProvider.removeTrailSlash(
                 header.name
                     .split('/')
                     .slice(1)
                     .join('/'),
             );
 
-            if (name === '' || name === targetPath || !name.startsWith(targetPath)) {
+            if (
+                name === ''
+                || !name.startsWith(targetPath)
+                || (entry.header.type === 'directory' && name === targetPath)
+            ) {
                 continue;
             }
 
-            if (targetPath.length > 0) {
-                name = name.slice(targetPath.length + 1);
+            let relativeName = name;
+
+            if (targetPath.length > 0 && name.length > targetPath.length) {
+                relativeName = name.slice(targetPath.length + 1);
             }
 
             switch (header.type) {
                 case 'file':
                     yield {
                         type: 'file',
-                        name: name,
+                        name: relativeName,
                         content: entry,
                     };
 
@@ -93,7 +101,7 @@ export class GithubProvider<O extends ProviderOptions> implements ResourceProvid
                 case 'directory':
                     yield {
                         type: 'directory',
-                        name: name,
+                        name: relativeName,
                     };
 
                     break;
@@ -101,7 +109,7 @@ export class GithubProvider<O extends ProviderOptions> implements ResourceProvid
                 case 'link':
                     yield {
                         type: 'link',
-                        name: name,
+                        name: relativeName,
                         target: header.linkname!,
                     };
 
@@ -110,11 +118,15 @@ export class GithubProvider<O extends ProviderOptions> implements ResourceProvid
                 case 'symlink':
                     yield {
                         type: 'symlink',
-                        name: name,
+                        name: relativeName,
                         target: header.linkname!,
                     };
 
                     break;
+            }
+
+            if (relativeName === targetPath) {
+                break;
             }
         }
     }

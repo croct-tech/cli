@@ -142,7 +142,11 @@ export class LocalFilesystem implements FileSystem {
     }
 
     private async* listRelatively(path: string, root: string, recursive = false): FileSystemIterator {
-        const stats = await this.execute(() => lstat(path));
+        const stats = await this.execute(() => lstat(path)).catch(() => null);
+
+        if (stats === null) {
+            return;
+        }
 
         if (!stats.isDirectory()) {
             return yield* this.createEntry(path, dirname(root), stats, false);

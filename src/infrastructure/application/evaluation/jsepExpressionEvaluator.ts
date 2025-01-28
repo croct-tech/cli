@@ -38,16 +38,15 @@ type Properties<T> = Exclude<
     Exclude<PropertyKey, string>
 >;
 
+type MethodOwner<T, P extends string> = T & Record<P, GenericFunction>;
+type PropertyOwner<T, P extends string> = T & Record<P, Deferrable<JsonValue>>;
+
 export class JsepExpressionEvaluator implements ExpressionEvaluator {
     private static readonly ALLOWED_ARRAY_PROPERTIES: Array<Properties<any[]>> = [
         'length',
     ];
 
     private static readonly ALLOWED_ARRAY_METHODS: Array<Methods<any[]>> = [
-        'map',
-        'filter',
-        'some',
-        'every',
         'slice',
         'join',
     ];
@@ -362,7 +361,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
         throw new EvaluationError('Callee is not callable.');
     }
 
-    private static isMethodAllowed<T, M extends string>(value: T, method: M): value is T & Record<M, GenericFunction> {
+    private static isMethodAllowed<T, M extends string>(value: T, method: M): value is MethodOwner<T, M> {
         if (typeof value === 'string') {
             return JsepExpressionEvaluator.ALLOWED_STRING_METHODS.includes(method as any);
         }
@@ -374,7 +373,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
         return false;
     }
 
-    private static isPropertyAllowed<T, P extends string>(value: T, property: P): value is T & Record<P, JsonValue> {
+    private static isPropertyAllowed<T, P extends string>(value: T, property: P): value is PropertyOwner<T, P> {
         if (typeof value === 'string') {
             return JsepExpressionEvaluator.ALLOWED_STRING_PROPERTIES.includes(property as any);
         }
@@ -386,7 +385,6 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
         return typeof value === 'object'
             && value !== null
             && Object.hasOwn(value, property)
-            && property in value
             && value[property as unknown as keyof T] !== undefined;
     }
 

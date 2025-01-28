@@ -53,7 +53,7 @@ const templateSchema: ZodType<Template> = z.strictObject({
         z.string().min(1),
         optionSchema,
     ).optional(),
-    actions: z.array(z.strictObject({name: z.string().min(1)}).passthrough()),
+    actions: z.array(z.any()),
 });
 
 export class TemplateValidator extends ZodValidator<Template> {

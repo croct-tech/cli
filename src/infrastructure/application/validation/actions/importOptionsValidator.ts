@@ -4,7 +4,7 @@ import {ActionOptionsValidator} from '@/infrastructure/application/validation/ac
 
 const schema: ZodType<ImportOptions> = z.strictObject({
     template: z.string().min(1),
-    input: z.record(z.string().min(1), z.union([
+    options: z.record(z.string().min(1), z.union([
         z.string(),
         z.number(),
         z.boolean(),

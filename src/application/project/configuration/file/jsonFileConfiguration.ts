@@ -38,15 +38,14 @@ export class JsonFileConfiguration implements ConfigurationFile {
     }
 
     public async update(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
-        return this.updateFile(await this.validateConfiguration(configuration));
+        return this.updateFile(await this.validateConfiguration(JsonFileConfiguration.clean(configuration)));
     }
 
     private async updateFile(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
-        const cleanedConfiguration = JsonFileConfiguration.clean(configuration);
         const file = await this.loadFile();
         const data = file.configuration !== null && file.source !== null
-            ? JsonParser.parse(file.source).update(cleanedConfiguration)
-            : JsonObjectNode.of(cleanedConfiguration);
+            ? JsonParser.parse(file.source).update(configuration)
+            : JsonObjectNode.of(configuration);
 
         const json = data.toString({
             indentationCharacter: 'space',
@@ -74,7 +73,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
             throw new Error(`Unable to write configuration file ${file.path}.`);
         }
 
-        return cleanedConfiguration;
+        return configuration;
     }
 
     private async loadFile(): Promise<LoadedFile> {
@@ -94,9 +93,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
         }
 
         if (configuration !== null) {
-            file.configuration = JsonFileConfiguration.clean(
-                await this.validateConfiguration(configuration, file),
-            );
+            file.configuration = await this.validateConfiguration(configuration, file);
         }
 
         return file;

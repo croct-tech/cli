@@ -1,4 +1,4 @@
-import {JsonObject, JsonValue} from '@croct/json';
+import {JsonValue} from '@croct/json';
 import {VariableMap} from '@/application/template/evaluation';
 import {Deferrable} from '@/application/template/deferral';
 
@@ -51,7 +51,7 @@ export type Template = {
 
 export type DeferredActionDefinition = {
     name: string,
-    resolve(variables: VariableMap): Deferrable<JsonObject>,
+    resolve(variables: VariableMap): Deferrable<JsonValue>,
 };
 
 export type DeferredOptionDefinition = {

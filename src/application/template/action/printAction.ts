@@ -2,14 +2,14 @@ import {Action} from '@/application/template/action/action';
 import {Semantic} from '@/application/cli/io/output';
 import {ActionContext} from '@/application/template/action/context';
 
-export type LogOptions = {
+export type PrintOptions = {
     semantic?: Semantic,
     title?: string,
     message: string,
 };
 
-export class LogAction implements Action<LogOptions> {
-    public execute(options: LogOptions, context: ActionContext): Promise<void> {
+export class PrintAction implements Action<PrintOptions> {
+    public execute(options: PrintOptions, context: ActionContext): Promise<void> {
         const logger = context.output;
         const semantic = options.semantic ?? 'neutral';
 

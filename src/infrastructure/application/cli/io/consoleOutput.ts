@@ -70,7 +70,7 @@ export class ConsoleOutput implements Output {
     }
 
     public announce(callout: Callout): void {
-        const content = boxen(callout.message, {
+        const content = boxen(format(callout.message), {
             ...boxenStyle,
             title: callout.title,
             borderColor: colors[callout.semantic],
