@@ -117,13 +117,12 @@ import {ResourceMatcher} from '@/application/template/resourceMatcher';
 import {FetchProvider} from '@/application/template/provider/fetchProvider';
 import {CheckDependencyAction} from '@/application/template/action/checkDependencyAction';
 import {HttpProvider} from '@/application/template/provider/httpProvider';
-import {DenormalizedRegistry, MappedProvider} from '@/application/template/provider/mappedProvider';
+import {MappedProvider} from '@/application/template/provider/mappedProvider';
 import {MultiProvider} from '@/application/template/provider/multiProvider';
 import {FileSystemProvider} from '@/application/template/provider/fileSystemProvider';
 import {GithubProvider} from '@/application/template/provider/githubProvider';
 import {HttpFileProvider} from '@/application/template/provider/httpFileProvider';
 import {ResourceProvider} from '@/application/provider/resourceProvider';
-import {AdaptedProvider} from '@/application/template/provider/adaptedProvider';
 import {HelpfulError, ErrorReason} from '@/application/error';
 import {PartialNpmPackageValidator} from '@/infrastructure/application/validation/partialNpmPackageValidator';
 import {PartialTsconfigValidator} from '@/infrastructure/application/validation/partialTsconfigValidator';
@@ -198,6 +197,7 @@ import {StopServer} from '@/application/template/action/stopServerAction';
 import {StopServerOptionsValidator} from '@/infrastructure/application/validation/actions/stopServerOptionsValidator';
 import {ProcessServerFactory} from '@/application/project/server/factory/processServerFactory';
 import {CachedServerFactory} from '@/application/project/server/factory/cachedServerFactory';
+import {ResourceValueProvider} from '@/application/provider/resourceValueProvider';
 
 export type Configuration = {
     io: {
@@ -230,11 +230,6 @@ type AuthenticationMethods = {
 };
 
 type AuthenticationInput = MultiAuthenticationInput<AuthenticationMethods>;
-
-type TemplateSource = {
-    url: URL,
-    template: string,
-};
 
 export class Cli {
     private readonly configuration: Configuration;
@@ -269,7 +264,7 @@ export class Cli {
 
     private importAction?: Action<ImportOptions>;
 
-    private templateProvider?: ResourceProvider<TemplateSource>;
+    private templateProvider?: ResourceProvider<string>;
 
     private fileProvider?: ResourceProvider<FileSystemIterator>;
 
@@ -506,10 +501,7 @@ export class Cli {
     private getImportTemplateCommand(): ImportTemplateCommand {
         return new ImportTemplateCommand({
             templateProvider: new ValidatedProvider({
-                provider: new JsonProvider(new AdaptedProvider({
-                    provider: this.getTemplateProvider(),
-                    adapter: ({template}) => template,
-                })),
+                provider: new JsonProvider(this.getTemplateProvider()),
                 validator: new TemplateValidator(),
             }),
             fileSystem: this.getFileSystem(),
@@ -601,7 +593,7 @@ export class Cli {
         return this.output;
     }
 
-    private getTemplateProvider(): ResourceProvider<TemplateSource> {
+    private getTemplateProvider(): ResourceProvider<string> {
         if (this.templateProvider === undefined) {
             this.templateProvider = this.createTemplateProvider();
         }
@@ -609,15 +601,9 @@ export class Cli {
         return this.templateProvider;
     }
 
-    private createTemplateProvider(): ResourceProvider<TemplateSource> {
+    private createTemplateProvider(): ResourceProvider<string> {
         const fileNames = ['template.json5', 'template.json'];
-        const fileProvider = new AdaptedProvider({
-            provider: new FileContentProvider(this.getFileProvider()),
-            adapter: (content, url): TemplateSource => ({
-                url: url,
-                template: content,
-            }),
-        });
+        const fileProvider = new FileContentProvider(this.getFileProvider());
 
         return new CachedProvider({
             cache: AdaptedCache.transformKeys(
@@ -662,27 +648,44 @@ export class Cli {
             localProvider,
             new MappedProvider({
                 dataProvider: new MultiProvider(...remoteProviders),
-                registryProvider: new ParameterlessResourceProvider({
-                    url: this.configuration.nameRegistry,
-                    provider: new CachedProvider({
-                        cache: new StaleWhileRevalidateCache<string, DenormalizedRegistry>({
-                            freshPeriod: 60,
-                            cacheProvider: AdaptedCache.transformValues(
-                                this.getCache('name-registry'),
-                                TimestampedCacheEntry.toJSON,
-                                TimestampedCacheEntry.fromJSON,
-                            ),
-                        }),
+                registryProvider: new ResourceValueProvider(
+                    new ParameterlessResourceProvider({
+                        url: this.configuration.nameRegistry,
                         provider: new ValidatedProvider({
-                            provider: new JsonProvider(
-                                new FileContentProvider(
-                                    new MultiProvider(localProvider, ...remoteProviders),
+                            provider: new CachedProvider({
+                                cache: new StaleWhileRevalidateCache({
+                                    freshPeriod: 60,
+                                    cacheProvider: AdaptedCache.transformValues(
+                                        this.getCache('name-registry'),
+                                        ({value: {url, value}, timestamp}) => TimestampedCacheEntry.toJSON({
+                                            timestamp: timestamp,
+                                            value: {
+                                                value: value,
+                                                url: url.toString(),
+                                            },
+                                        }),
+                                        (data: string) => {
+                                            const {value, timestamp} = TimestampedCacheEntry
+                                                .fromJSON<{value: string, url: string}>(data);
+
+                                            return {
+                                                timestamp: timestamp,
+                                                value: {
+                                                    url: new URL(value.url),
+                                                    value: value.value,
+                                                },
+                                            };
+                                        },
+                                    ),
+                                }),
+                                provider: new JsonProvider(
+                                    new FileContentProvider(new MultiProvider(localProvider, ...remoteProviders)),
                                 ),
-                            ),
+                            }),
                             validator: new RegistryValidator(),
                         }),
                     }),
-                }),
+                ),
             }),
         );
     }
@@ -700,11 +703,7 @@ export class Cli {
 
         const actions = {
             run: new ValidatedAction<RunOptions>({
-                action: new LazyAction((): Action<RunOptions> => {
-                    const {run: _, ...otherActions} = actions;
-
-                    return new RunAction(otherActions);
-                }),
+                action: new LazyAction((): RunAction => new RunAction(actions)),
                 validator: new RunOptionsValidator(),
             }),
             try: new ValidatedAction<TryOptions>({

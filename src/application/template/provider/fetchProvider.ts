@@ -1,19 +1,17 @@
-import {HttpProvider, RequestOptions, SuccessResponse} from '@/application/template/provider/httpProvider';
-import {ResourceNotFoundError, ResourceProviderError} from '@/application/provider/resourceProvider';
+import {HttpProvider, SuccessResponse} from '@/application/template/provider/httpProvider';
+import {Resource, ResourceNotFoundError, ResourceProviderError} from '@/application/provider/resourceProvider';
 
 export class FetchProvider implements HttpProvider {
     public supports(url: URL): boolean {
         return ['http:', 'https:'].includes(url.protocol);
     }
 
-    public async get(url: URL, options?: RequestOptions): Promise<SuccessResponse> {
+    public async get(url: URL): Promise<Resource<SuccessResponse>> {
         if (!this.supports(url)) {
             throw new ResourceProviderError('Unsupported protocol.', {url: url});
         }
 
-        const response = await fetch(url, {
-            headers: options?.headers,
-        });
+        const response = await fetch(url);
 
         if (!FetchProvider.isSuccessful(response)) {
             if (response.status === 404) {
@@ -23,7 +21,10 @@ export class FetchProvider implements HttpProvider {
             throw new ResourceProviderError(response.statusText, {url: url});
         }
 
-        return response;
+        return {
+            url: url,
+            value: response,
+        };
     }
 
     private static isSuccessful(response: Response): response is SuccessResponse {

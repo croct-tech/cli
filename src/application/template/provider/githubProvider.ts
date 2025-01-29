@@ -1,7 +1,7 @@
 import tar from 'tar-stream';
 import createGunzip from 'gunzip-maybe';
 import {Readable} from 'stream';
-import {ResourceProvider, ResourceProviderError, ProviderOptions} from '@/application/provider/resourceProvider';
+import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resourceProvider';
 import {HttpProvider, SuccessResponse} from '@/application/template/provider/httpProvider';
 import {FileSystemIterator} from '@/application/fs/fileSystem';
 
@@ -16,7 +16,7 @@ type GithubFile = ParsedUrl & {
     url: URL,
 };
 
-export class GithubProvider<O extends ProviderOptions> implements ResourceProvider<FileSystemIterator, O> {
+export class GithubProvider implements ResourceProvider<FileSystemIterator> {
     private static readonly PROTOCOL = 'github:';
 
     private static readonly API_HOST = 'api.github.com';
@@ -37,20 +37,21 @@ export class GithubProvider<O extends ProviderOptions> implements ResourceProvid
         return file !== null && this.provider.supports(file.url);
     }
 
-    public async get(url: URL, options?: O): Promise<FileSystemIterator> {
+    public async get(url: URL): Promise<Resource<FileSystemIterator>> {
         const file = this.resolveFile(url);
 
         if (file === null) {
             throw new ResourceProviderError('Unsupported GitHub URL.', {url: url});
         }
 
-        const response = await this.provider.get(file.url, options);
+        const {value: response} = await this.provider.get(file.url);
 
-        if (file.url.hostname === GithubProvider.RAW_HOST) {
-            return this.extractFile(response, file);
-        }
-
-        return this.extractTarball(response, file);
+        return {
+            url: url,
+            value: file.url.hostname === GithubProvider.RAW_HOST
+                ? this.extractFile(response, file)
+                : this.extractTarball(response, file),
+        };
     }
 
     private async* extractTarball(response: SuccessResponse, file: GithubFile): FileSystemIterator {

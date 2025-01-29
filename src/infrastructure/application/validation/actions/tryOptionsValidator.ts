@@ -2,9 +2,9 @@ import {z, ZodType} from 'zod';
 import {TryOptions} from '@/application/template/action/tryAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
-const actionsSchema = z.custom<Array<Promise<unknown>>>().transform(
-    value => (Array.isArray(value) ? value : [value]),
-);
+const actionsSchema: ZodType<Array<Promise<unknown>>> = z.any()
+    .transform(value => (Array.isArray(value) ? value : [value]))
+    .pipe(z.array(z.promise(z.unknown())));
 
 const schema: ZodType<TryOptions> = z.strictObject({
     action: actionsSchema,

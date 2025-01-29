@@ -1,38 +1,24 @@
-import {ResourceProvider, ProviderOptions} from '@/application/provider/resourceProvider';
+import {Resource, ResourceProvider} from '@/application/provider/resourceProvider';
 import {ParameterlessProvider} from '@/application/provider/parameterlessProvider';
 
 export type Mapping = {
-    pattern: string|RegExp,
+    pattern: RegExp|string,
     destination: string|URL,
 };
 
-export type NormalizedMapping = {
-    pattern: RegExp,
-    destination: URL,
-};
-
-export type DenormalizedMapping = {
-    pattern: string,
-    destination: string,
-};
-
-export type DenormalizedRegistry = DenormalizedMapping[];
-
-export type NormalizedRegistry = NormalizedMapping[];
-
 export type Registry = Mapping[];
 
-export type Configuration<T, O extends ProviderOptions> = {
-    dataProvider: ResourceProvider<T, O>,
+export type Configuration<T> = {
+    dataProvider: ResourceProvider<T>,
     registryProvider: ParameterlessProvider<Registry>,
 };
 
-export class MappedProvider<T, O extends ProviderOptions> implements ResourceProvider<T, O> {
-    private readonly dataProvider: ResourceProvider<T, O>;
+export class MappedProvider<T> implements ResourceProvider<T> {
+    private readonly dataProvider: ResourceProvider<T>;
 
     private readonly registryProvider: ParameterlessProvider<Mapping[]>;
 
-    public constructor({dataProvider, registryProvider}: Configuration<T, O>) {
+    public constructor({dataProvider, registryProvider}: Configuration<T>) {
         this.dataProvider = dataProvider;
         this.registryProvider = registryProvider;
     }
@@ -41,8 +27,8 @@ export class MappedProvider<T, O extends ProviderOptions> implements ResourcePro
         return this.dataProvider.supports(url);
     }
 
-    public async get(url: URL, options?: O): Promise<T> {
-        return this.dataProvider.get(await this.resolveUrl(url), options);
+    public async get(url: URL): Promise<Resource<T>> {
+        return this.dataProvider.get(await this.resolveUrl(url));
     }
 
     private async resolveUrl(url: URL): Promise<URL> {

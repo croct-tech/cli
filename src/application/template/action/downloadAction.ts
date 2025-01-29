@@ -69,7 +69,7 @@ export class DownloadAction implements Action<DownloadOptions> {
     private async download(url: URL, destination: string, matcher?: Minimatch, input?: Input): Promise<void> {
         const {provider, fileSystem} = this.config;
 
-        const iterator = await provider.get(url);
+        const {value: iterator} = await provider.get(url);
 
         const entries: FileSystemEntry[] = [];
 

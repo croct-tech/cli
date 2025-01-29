@@ -300,7 +300,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                 }
 
                 if (!JsepExpressionEvaluator.isPropertyAllowed(object, property)) {
-                    throw new EvaluationError(`Property \`${property}\` is not supported.`);
+                    throw new EvaluationError(`Property \`${property}\` does not exist or is not accessible.`);
                 }
 
                 return object[property];
@@ -352,7 +352,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
             }
 
             if (!JsepExpressionEvaluator.isMethodAllowed(value, property)) {
-                throw new EvaluationError(`Method \`${property}\` is not supported.`);
+                throw new EvaluationError(`Method \`${property}\` does not exist or is not accessible.`);
             }
 
             return value[property].bind(value);

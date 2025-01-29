@@ -1,17 +1,17 @@
 import {CacheProvider} from '@croct/cache';
-import {ResourceProvider, ProviderOptions} from '@/application/provider/resourceProvider';
+import {Resource, ResourceProvider} from '@/application/provider/resourceProvider';
 
-export type Configuration<T, O extends ProviderOptions> = {
-    provider: ResourceProvider<T, O>,
-    cache: CacheProvider<string, T>,
+export type Configuration<T> = {
+    provider: ResourceProvider<T>,
+    cache: CacheProvider<string, Resource<T>>,
 };
 
-export class CachedProvider<T, O extends ProviderOptions> implements ResourceProvider<T, O> {
-    private readonly provider: ResourceProvider<T, O>;
+export class CachedProvider<T> implements ResourceProvider<T> {
+    private readonly provider: ResourceProvider<T>;
 
-    private readonly cache: CacheProvider<string, T>;
+    private readonly cache: CacheProvider<string, Resource<T>>;
 
-    public constructor({provider, cache}: Configuration<T, O>) {
+    public constructor({provider, cache}: Configuration<T>) {
         this.provider = provider;
         this.cache = cache;
     }
@@ -20,7 +20,7 @@ export class CachedProvider<T, O extends ProviderOptions> implements ResourcePro
         return this.provider.supports(url);
     }
 
-    public get(url: URL, options?: O): Promise<T> {
-        return this.cache.get(url.toString(), () => this.provider.get(url, options));
+    public get(url: URL): Promise<Resource<T>> {
+        return this.cache.get(url.toString(), () => this.provider.get(url));
     }
 }

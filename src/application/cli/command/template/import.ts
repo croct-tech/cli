@@ -36,7 +36,7 @@ export class ImportTemplateCommand implements Command<ImportTemplateInput> {
         const {templateProvider} = this.config;
 
         try {
-            return (await templateProvider.get(await this.resolveUrl(template))).options ?? {};
+            return (await templateProvider.get(await this.resolveUrl(template))).value.options ?? {};
         } catch {
             // Postpone the error handling to the execute method
             return {};

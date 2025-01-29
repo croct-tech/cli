@@ -1,12 +1,10 @@
-import {JsonValue} from '@croct/json';
+import {JsonArray, JsonObject, JsonValue} from '@croct/json';
 import {VariableMap} from '@/application/template/evaluation';
 import {Deferrable} from '@/application/template/deferral';
 
-type ResolvedOptionValue = string | number | boolean | Array<string | number | boolean>;
+type LazyOptionValue<T extends JsonValue> = () => Promise<T> | T;
 
-type LazyOptionValue<T extends ResolvedOptionValue> = () => Promise<T> | T;
-
-export type OptionValue<T extends ResolvedOptionValue = ResolvedOptionValue> = T | LazyOptionValue<T>;
+export type OptionValue<T extends JsonValue = JsonValue> = T | LazyOptionValue<T>;
 
 type OptionTypes = {
     string: {
@@ -20,7 +18,10 @@ type OptionTypes = {
         type: number,
     },
     array: {
-        type: Array<string | number | boolean>,
+        type: JsonArray,
+    },
+    object: {
+        type: JsonObject,
     },
 };
 

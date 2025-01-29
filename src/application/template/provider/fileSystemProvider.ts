@@ -1,4 +1,4 @@
-import {ResourceProvider, ResourceProviderError} from '@/application/provider/resourceProvider';
+import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resourceProvider';
 import {FileSystem, FileSystemIterator} from '@/application/fs/fileSystem';
 
 export class FileSystemProvider implements ResourceProvider<FileSystemIterator> {
@@ -12,11 +12,14 @@ export class FileSystemProvider implements ResourceProvider<FileSystemIterator> 
         return url.protocol === 'file:';
     }
 
-    public get(url: URL): Promise<FileSystemIterator> {
+    public get(url: URL): Promise<Resource<FileSystemIterator>> {
         if (!this.supports(url)) {
             throw new ResourceProviderError('Unsupported protocol.', {url: url});
         }
 
-        return Promise.resolve(this.fileSystem.list(this.fileSystem.normalizeSeparators(url.pathname)));
+        return Promise.resolve({
+            url: url,
+            value: this.fileSystem.list(this.fileSystem.normalizeSeparators(url.pathname)),
+        });
     }
 }

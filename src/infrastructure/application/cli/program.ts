@@ -12,7 +12,7 @@ process.on('SIGINT', () => process.exit(0));
 process.on('SIGTERM', () => process.exit(0));
 
 const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a.run.app';
-const templateRegistry = 'https://github.com/marcospassos/croct-examples/blob/main/registry.json';
+const templateRegistry = 'github:/marcospassos/croct-examples/registry.json';
 const adminUrl = 'https://preview.app.croct.dev/pr-3359';
 
 type Configuration = {

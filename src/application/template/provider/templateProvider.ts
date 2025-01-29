@@ -1,4 +1,4 @@
-import {JsonArray, JsonObject, JsonValue} from '@croct/json';
+import {JsonValue} from '@croct/json';
 import PLazy from 'p-lazy';
 import {
     JsonArrayNode,
@@ -14,26 +14,14 @@ import {ExpressionEvaluator, VariableMap} from '@/application/template/evaluatio
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {Validator, Violation} from '@/application/validation';
 import {DeferredTemplate, Template} from '@/application/template/template';
-import {
-    ResourceProvider,
-    ResourceProviderError,
-    ProviderOptions,
-    ResourceHelp,
-} from '@/application/provider/resourceProvider';
+import {ResourceProvider, ResourceProviderError, ResourceHelp, Resource} from '@/application/provider/resourceProvider';
 import {Fragment, JsonExpressionNode, TemplateStringParser} from '@/application/template/templateStringParser';
 import {Deferred, Deferrable} from '@/application/template/deferral';
 
-type TemplateSource<T> = {
-    url: URL,
-    template: T,
-};
-
-type DeferredTemplateSource = TemplateSource<DeferredTemplate>;
-
-export type Configuration<O extends ProviderOptions> = {
+export type Configuration = {
     evaluator: ExpressionEvaluator,
     validator: Validator<Template>,
-    provider: ResourceProvider<TemplateSource<string>, O>,
+    provider: ResourceProvider<string>,
 };
 
 type DeferredTemplateOptions = DeferredTemplate['options'];
@@ -55,16 +43,16 @@ export class TemplateError extends ResourceProviderError {
     }
 }
 
-export class TemplateProvider<O extends ProviderOptions> implements ResourceProvider<DeferredTemplateSource, O> {
+export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
     private readonly evaluator: ExpressionEvaluator;
 
     private readonly validator: Validator<Template>;
 
-    private readonly provider: ResourceProvider<TemplateSource<string>, O>;
+    private readonly provider: ResourceProvider<string>;
 
     private readonly loading: string[] = [];
 
-    public constructor({evaluator, validator, provider}: Configuration<O>) {
+    public constructor({evaluator, validator, provider}: Configuration) {
         this.evaluator = evaluator;
         this.validator = validator;
         this.provider = provider;
@@ -74,8 +62,8 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
         return this.provider.supports(url);
     }
 
-    public async get(url: URL): Promise<DeferredTemplateSource> {
-        const {url: resolvedUrl, template: source} = await this.provider.get(url);
+    public async get(url: URL): Promise<Resource<DeferredTemplate>> {
+        const {url: resolvedUrl, value: source} = await this.provider.get(url);
 
         let node: JsonObjectNode;
 
@@ -116,7 +104,7 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
 
         return {
             url: resolvedUrl,
-            template: {
+            value: {
                 ...metadata,
                 ...(resolvedOptions !== undefined ? {options: resolvedOptions} : {}),
                 actions: actionsNode.elements.map(
@@ -157,12 +145,6 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
             ),
         );
     }
-
-    private resolve(node: JsonObjectNode, variables: VariableMap, baseUrl: URL, path?: string): Deferrable<JsonObject>;
-
-    private resolve(node: JsonArrayNode, variables: VariableMap, baseUrl: URL, path?: string): Deferrable<JsonArray>;
-
-    private resolve(node: JsonValueNode, variables: VariableMap, baseUrl: URL, path?: string): Deferrable<JsonValue>;
 
     private resolve(node: JsonValueNode, variables: VariableMap, baseUrl: URL, path = ''): Deferrable<JsonValue> {
         if (node instanceof JsonArrayNode) {
@@ -395,12 +377,12 @@ export class TemplateProvider<O extends ProviderOptions> implements ResourceProv
             });
         }
 
-        const {url: resolvedUrl, template} = await this.provider.get(url);
+        const {url: resolvedUrl, value} = await this.provider.get(url);
 
         let node: JsonValueNode;
 
         try {
-            node = JsonParser.parse(template);
+            node = JsonParser.parse(value);
         } catch (error) {
             throw new TemplateError('Failed to parse referenced JSON.', {
                 reason: ErrorReason.INVALID_INPUT,

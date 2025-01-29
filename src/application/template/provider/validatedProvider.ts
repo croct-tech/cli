@@ -1,17 +1,17 @@
-import {ResourceProvider, ResourceProviderError, ProviderOptions} from '@/application/provider/resourceProvider';
+import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resourceProvider';
 import {Validator} from '@/application/validation';
 
-export type Configuration<I, R, O extends ProviderOptions> = {
-    provider: ResourceProvider<R, O>,
+export type Configuration<I, R> = {
+    provider: ResourceProvider<R>,
     validator: Validator<I>,
 };
 
-export class ValidatedProvider<I, R, O extends ProviderOptions> implements ResourceProvider<I, O> {
+export class ValidatedProvider<I, R> implements ResourceProvider<I> {
     private readonly provider: ResourceProvider<R>;
 
     private readonly validator: Validator<I>;
 
-    public constructor({provider, validator}: Configuration<I, R, O>) {
+    public constructor({provider, validator}: Configuration<I, R>) {
         this.provider = provider;
         this.validator = validator;
     }
@@ -20,9 +20,9 @@ export class ValidatedProvider<I, R, O extends ProviderOptions> implements Resou
         return this.provider.supports(url);
     }
 
-    public async get(url: URL, options: O): Promise<I> {
-        const data = await this.provider.get(url, options);
-        const validation = await this.validator.validate(data);
+    public async get(url: URL): Promise<Resource<I>> {
+        const {value, ...resource} = await this.provider.get(url);
+        const validation = await this.validator.validate(value);
 
         if (!validation.valid) {
             const violations = validation.violations
@@ -34,6 +34,9 @@ export class ValidatedProvider<I, R, O extends ProviderOptions> implements Resou
             });
         }
 
-        return validation.data;
+        return {
+            ...resource,
+            value: validation.data,
+        };
     }
 }

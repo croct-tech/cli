@@ -4,6 +4,7 @@ import {
     ZodEffects,
     ZodObject,
     ZodOptional,
+    ZodPipeline,
     ZodPromise,
     ZodRecord,
     ZodTuple,
@@ -172,6 +173,10 @@ export class ActionOptionsValidator<T extends ActionOptions> extends ZodValidato
 
         if (schema instanceof ZodEffects) {
             return this.findPassthroughPaths(schema.innerType(), path);
+        }
+
+        if (schema instanceof ZodPipeline) {
+            return this.findPassthroughPaths(schema._def.out, path);
         }
 
         if (schema instanceof ZodUnion || schema instanceof ZodDiscriminatedUnion) {

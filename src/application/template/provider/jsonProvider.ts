@@ -1,11 +1,11 @@
 import {JsonValue} from '@croct/json';
-import {ResourceProvider, ResourceProviderError, ProviderOptions} from '@/application/provider/resourceProvider';
+import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resourceProvider';
 import {JsonParser} from '@/infrastructure/json';
 
-export class JsonProvider<O extends ProviderOptions> implements ResourceProvider<JsonValue, O> {
-    private readonly provider: ResourceProvider<string, O>;
+export class JsonProvider implements ResourceProvider<JsonValue> {
+    private readonly provider: ResourceProvider<string>;
 
-    public constructor(provider: ResourceProvider<string, O>) {
+    public constructor(provider: ResourceProvider<string>) {
         this.provider = provider;
     }
 
@@ -13,11 +13,14 @@ export class JsonProvider<O extends ProviderOptions> implements ResourceProvider
         return this.provider.supports(url);
     }
 
-    public async get(url: URL, options?: O): Promise<JsonValue> {
-        const source = await this.provider.get(url, options);
+    public async get(url: URL): Promise<Resource<JsonValue>> {
+        const {value, ...resource} = await this.provider.get(url);
 
         try {
-            return JsonParser.parse(source).toJSON();
+            return {
+                ...resource,
+                value: JsonParser.parse(value).toJSON(),
+            };
         } catch (error) {
             throw new ResourceProviderError('Malformed JSON.', {
                 url: url,

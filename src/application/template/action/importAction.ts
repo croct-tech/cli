@@ -2,7 +2,7 @@ import {JsonValue} from '@croct/json';
 import {Action, ActionError, ActionRunner} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {ErrorReason, HelpfulError} from '@/application/error';
-import {ResourceNotFoundError, ResourceProvider} from '@/application/provider/resourceProvider';
+import {Resource, ResourceNotFoundError, ResourceProvider} from '@/application/provider/resourceProvider';
 import {VariableMap} from '@/application/template/evaluation';
 import {DeferredOptionDefinition, DeferredTemplate} from '@/application/template/template';
 
@@ -11,14 +11,9 @@ export type ImportOptions = {
     options?: VariableMap,
 };
 
-type DeferredTemplateSource = {
-    url: URL,
-    template: DeferredTemplate,
-};
-
 export type Configuration = {
     runner: ActionRunner,
-    templateProvider: ResourceProvider<DeferredTemplateSource>,
+    templateProvider: ResourceProvider<DeferredTemplate>,
     variables: VariableMap,
 };
 
@@ -44,7 +39,7 @@ export class ImportAction implements Action<ImportOptions> {
     }
 
     private async importTemplate(options: ImportOptions, context: ActionContext): Promise<void> {
-        const {template, url} = await this.loadTemplate(options.template, context.baseUrl);
+        const {value: template, url} = await this.loadTemplate(options.template, context.baseUrl);
 
         const input = await this.getInputValues(template, options.options);
 
@@ -132,7 +127,7 @@ export class ImportAction implements Action<ImportOptions> {
         }
     }
 
-    private async loadTemplate(name: string, baseUrl: URL): Promise<DeferredTemplateSource> {
+    private async loadTemplate(name: string, baseUrl: URL): Promise<Resource<DeferredTemplate>> {
         const provider = this.config.templateProvider;
         const url = ImportAction.getTemplateUrl(name, baseUrl);
 
@@ -215,16 +210,18 @@ export class ImportAction implements Action<ImportOptions> {
                     );
                 }
 
-                for (const [index, element] of value.entries()) {
-                    if (!['number', 'string', 'boolean'].includes(typeof element)) {
-                        throw new ActionError(
-                            `Expected array elements to be of type number, string, or boolean for option \`${name}\`,`
-                            + `but got ${ImportAction.getType(element)} at index ${index}.`,
-                            {
-                                reason: ErrorReason.INVALID_INPUT,
-                            },
-                        );
-                    }
+                break;
+            }
+
+            case 'object': {
+                if (typeof value !== 'object' || value === null) {
+                    throw new ActionError(
+                        `Expected value of type ${definition.type} for option \`${name}\`,`
+                        + `but got ${ImportAction.getType(value)}.`,
+                        {
+                            reason: ErrorReason.INVALID_INPUT,
+                        },
+                    );
                 }
 
                 break;

@@ -1,7 +1,8 @@
-import {z} from 'zod';
+import {z, ZodType} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
+import {Mapping, Registry} from '@/application/template/provider/mappedProvider';
 
-const mappingSchema = z.strictObject({
+const mappingSchema: ZodType<Mapping> = z.strictObject({
     pattern: z.string().refine(value => {
         try {
             // eslint-disable-next-line no-new -- Fastest way to validate a regular expression
@@ -17,9 +18,9 @@ const mappingSchema = z.strictObject({
     destination: z.string(),
 });
 
-const registrySchema = z.array(mappingSchema);
+const registrySchema: ZodType<Registry> = z.array(mappingSchema);
 
-export class RegistryValidator extends ZodValidator<z.infer<typeof registrySchema>> {
+export class RegistryValidator extends ZodValidator<Registry> {
     public constructor() {
         super(registrySchema);
     }

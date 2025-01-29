@@ -28,10 +28,13 @@ export class ResourceNotFoundError extends ResourceProviderError {
     }
 }
 
-export type ProviderOptions = Record<string, any>;
+export type Resource<T> = {
+    url: URL,
+    value: T,
+};
 
-export interface ResourceProvider<T, O extends ProviderOptions = ProviderOptions> extends Provider<[URL, O], T> {
+export interface ResourceProvider<T> extends Provider<[URL], Resource<T>> {
     supports(url: URL): boolean;
 
-    get(url: URL, options?: O): Promise<T>;
+    get(url: URL): Promise<Resource<T>>;
 }
