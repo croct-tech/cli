@@ -271,7 +271,7 @@ export class InteractiveTaskMonitor implements TaskMonitor {
         const watcher = this.addWatcher(
             {
                 tasks: [{
-                    title: initialStatus ?? 'Loading',
+                    title: initialStatus,
                     task: () => Promise.resolve(),
                 }],
             },

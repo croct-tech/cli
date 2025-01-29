@@ -7,7 +7,7 @@ import {Notifier} from '@/application/cli/io/output';
 export type StartServerOptions = {
     result?: {
         url?: string,
-        initiator?: string,
+        owned?: string,
     },
 };
 
@@ -17,7 +17,7 @@ export type Configuration = {
 
 type ServerInstance = {
     url: URL,
-    initiator: 'action' | 'unknown',
+    owned: boolean,
 };
 
 export class StartServer implements Action<StartServerOptions> {
@@ -44,8 +44,8 @@ export class StartServer implements Action<StartServerOptions> {
             context.set(options.result.url, instance.url.toString());
         }
 
-        if (options.result?.initiator !== undefined) {
-            context.set(options.result.initiator, instance.initiator);
+        if (options.result?.owned !== undefined) {
+            context.set(options.result.owned, instance.owned);
         }
     }
 
@@ -57,7 +57,7 @@ export class StartServer implements Action<StartServerOptions> {
         if (status.running) {
             return {
                 url: status.url,
-                initiator: 'unknown',
+                owned: false,
             };
         }
 
@@ -65,7 +65,7 @@ export class StartServer implements Action<StartServerOptions> {
 
         return {
             url: await server.start(),
-            initiator: 'action',
+            owned: true,
         };
     }
 }

@@ -1,6 +1,6 @@
 import {Action, ActionError, ActionRunner} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
-import {Help} from '@/application/error';
+import {ErrorReason, Help} from '@/application/error';
 
 export type TryOptions = {
     action: Array<Promise<unknown>>,
@@ -26,7 +26,10 @@ export class TryAction implements Action<TryOptions> {
                     throw error;
                 }
 
-                throw ActionError.fromCause(error, options.help);
+                throw ActionError.fromCause(error, {
+                    ...options.help,
+                    reason: ErrorReason.PRECONDITION,
+                });
             }
 
             return this.run(options.else, context);

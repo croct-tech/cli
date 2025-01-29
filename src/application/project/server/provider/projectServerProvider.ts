@@ -53,6 +53,6 @@ export class ProjectServerProvider implements ParameterlessProvider<Server> {
             }
         }
 
-        throw new ProviderError('No server found');
+        throw new ProviderError('No server found.');
     }
 }

@@ -5,7 +5,7 @@ import {ActionOptionsValidator} from '@/infrastructure/application/validation/ac
 const schema: ZodType<StartServerOptions> = z.strictObject({
     result: z.strictObject({
         url: z.string().optional(),
-        initiator: z.string().optional(),
+        owned: z.string().optional(),
     }).optional(),
 });
 
