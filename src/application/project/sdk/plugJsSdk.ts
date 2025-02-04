@@ -1,25 +1,12 @@
-import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
+import {Installation} from '@/application/project/sdk/sdk';
 import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import {PlugJsExampleGenerator} from '@/application/project/example/slot/plugJsExampleGenerator';
 import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
-import {ApplicationPlatform} from '@/application/model/application';
 import {Slot} from '@/application/model/slot';
 
-export class PlugJsSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> {
-    public getPackage(): string {
+export class PlugJsSdk extends JavaScriptSdk {
+    protected getPackage(): string {
         return '@croct/plug';
-    }
-
-    public getPlatform(): ApplicationPlatform {
-        return ApplicationPlatform.JAVASCRIPT;
-    }
-
-    public resolve(hint?: string): Promise<Sdk|null> {
-        if (hint !== undefined) {
-            return Promise.resolve(hint.toLowerCase() === this.getPlatform().toLowerCase() ? this : null);
-        }
-
-        return Promise.resolve(this);
     }
 
     protected generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {

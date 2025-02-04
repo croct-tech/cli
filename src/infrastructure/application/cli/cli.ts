@@ -14,8 +14,8 @@ import PLazy from 'p-lazy';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput, ExitCallback} from '@/infrastructure/application/cli/io/consoleOutput';
 import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
-import {NodeProjectManager} from '@/application/project/manager/nodeProjectManager';
-import {Sdk, SdkResolver} from '@/application/project/sdk/sdk';
+import {Sdk} from '@/application/project/sdk/sdk';
+import {Configuration as JavaScriptSdkConfiguration} from '@/application/project/sdk/javasScriptSdk';
 import {PlugJsSdk} from '@/application/project/sdk/plugJsSdk';
 import {PlugReactSdk} from '@/application/project/sdk/plugReactSdk';
 import {PlugNextSdk} from '@/application/project/sdk/plugNextSdk';
@@ -26,7 +26,6 @@ import {Input} from '@/application/cli/io/input';
 import {JsonFileConfiguration} from '@/application/project/configuration/file/jsonFileConfiguration';
 import {GraphqlClient} from '@/infrastructure/graphql';
 import {FetchGraphqlClient} from '@/infrastructure/graphql/fetchGraphqlClient';
-import {ProjectManager} from '@/application/project/manager/projectManager';
 import {UserApi} from '@/application/api/user';
 import {OrganizationApi} from '@/application/api/organization';
 import {WorkspaceApi} from '@/application/api/workspace';
@@ -49,16 +48,15 @@ import {AuthenticationListener} from '@/application/cli/authentication/authentic
 import {SignUpForm} from '@/application/cli/form/auth/signUpForm';
 import {Command, CommandInput} from '@/application/cli/command/command';
 import {AdminCommand, AdminInput} from '@/application/cli/command/admin';
-import {AddWrapper} from '@/application/project/sdk/code/jsx/addWrapper';
-import {ParseCode} from '@/application/project/sdk/code/parseCode';
-import {ConfigureMiddleware} from '@/application/project/sdk/code/nextjs/configureMiddleware';
-import {Linter} from '@/application/project/linter';
-import {LintCode} from '@/application/project/sdk/code/lintCode';
-import {TransformFile} from '@/application/project/sdk/code/transformFile';
-import {CreateLayoutComponent} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
-import {CreateAppComponent} from '@/application/project/sdk/code/nextjs/createAppComponent';
-import {JavaScriptLinter} from '@/infrastructure/project/javaScriptLinter';
-import {SdkDetector} from '@/application/cli/sdkDetector';
+import {AddWrapper} from '@/application/project/code/codemod/jsx/addWrapper';
+import {ParseCode} from '@/application/project/code/codemod/parseCode';
+import {ConfigureMiddleware} from '@/application/project/code/codemod/nextjs/configureMiddleware';
+import {CodeFormatter} from '@/application/project/code/formatter/formatter';
+import {FormatCode} from '@/application/project/code/codemod/formatCode';
+import {TransformFile} from '@/application/project/code/codemod/transformFile';
+import {CreateLayoutComponent} from '@/application/project/code/codemod/nextjs/createLayoutComponent';
+import {CreateAppComponent} from '@/application/project/code/codemod/nextjs/createAppComponent';
+import {JavaScriptFormatter} from '@/infrastructure/application/project/javaScriptFormatter';
 import {AddSlotCommand, AddSlotInput} from '@/application/cli/command/slot/add';
 import {SlotForm} from '@/application/cli/form/workspace/slotForm';
 import {AddComponentCommand, AddComponentInput} from '@/application/cli/command/component/add';
@@ -80,9 +78,6 @@ import {UpgradeCommand, UpgradeInput} from '@/application/cli/command/upgrade';
 import {ConfigurationError} from '@/application/project/configuration/configuration';
 import {FileSystem, FileSystemIterator} from '@/application/fs/fileSystem';
 import {LocalFilesystem} from '@/application/fs/localFilesystem';
-import {ImportConfigLoader} from '@/application/project/manager/importConfigLoader';
-import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
-import {AntfuPackageManager} from '@/infrastructure/project/antfuPackageManager';
 import {FocusListener} from '@/infrastructure/application/cli/io/focusListener';
 import {EmailLinkGenerator} from '@/application/cli/email/email';
 import {FallbackProviderDetector} from '@/application/cli/email/detector/fallbackProviderDetector';
@@ -110,7 +105,6 @@ import {TryAction, TryOptions} from '@/application/template/action/tryAction';
 import {LazyAction} from '@/application/template/action/lazyAction';
 import {CachedConfigurationManager} from '@/application/project/configuration/manager/cachedConfigurationManager';
 import {ConfigurationFileManager} from '@/application/project/configuration/manager/configurationFileManager';
-import {CachedSdkResolver} from '@/application/project/sdk/cachedSdkResolver';
 import {CreateResourceAction} from '@/application/template/action/createResourceAction';
 import {SlugMappingForm} from '@/application/cli/form/workspace/slugMappingForm';
 import {ResourceMatcher} from '@/application/template/resourceMatcher';
@@ -123,9 +117,8 @@ import {FileSystemProvider} from '@/application/template/provider/fileSystemProv
 import {GithubProvider} from '@/application/template/provider/githubProvider';
 import {HttpFileProvider} from '@/application/template/provider/httpFileProvider';
 import {ResourceProvider} from '@/application/provider/resourceProvider';
-import {HelpfulError, ErrorReason} from '@/application/error';
+import {ErrorReason, HelpfulError} from '@/application/error';
 import {PartialNpmPackageValidator} from '@/infrastructure/application/validation/partialNpmPackageValidator';
-import {PartialTsconfigValidator} from '@/infrastructure/application/validation/partialTsconfigValidator';
 import {CroctConfigurationValidator} from '@/infrastructure/application/validation/croctConfigurationValidator';
 import {ValidatedProvider} from '@/application/template/provider/validatedProvider';
 import {FileContentProvider} from '@/application/template/provider/fileContentProvider';
@@ -136,7 +129,6 @@ import {CachedProvider} from '@/application/template/provider/cachedProvider';
 import {JsepExpressionEvaluator} from '@/infrastructure/application/evaluation/jsepExpressionEvaluator';
 import {TemplateValidator} from '@/infrastructure/application/validation/templateValidator';
 import {ImportAction, ImportOptions} from '@/application/template/action/importAction';
-import {ApplicationPlatform} from '@/application/model/application';
 import {Action} from '@/application/template/action/action';
 import {ValidatedAction} from '@/application/template/action/validatedAction';
 import {TryOptionsValidator} from '@/infrastructure/application/validation/actions/tryOptionsValidator';
@@ -166,18 +158,16 @@ import {TemplateProvider} from '@/application/template/provider/templateProvider
 import {FormatCodeAction} from '@/application/template/action/formatCodeAction';
 import {FormatCodeOptionsValidator} from '@/infrastructure/application/validation/actions/formatCodeOptionsValidator';
 import {EnumeratedProvider} from '@/application/provider/enumeratedProvider';
-import {ParameterlessProvider} from '@/application/provider/parameterlessProvider';
 import {TestAction, TestOptions} from '@/application/template/action/testAction';
 import {TestOptionsValidator} from '@/infrastructure/application/validation/actions/testOptionsValidator';
 import {PrintAction} from '@/application/template/action/printAction';
 import {PrintOptionsValidator} from '@/infrastructure/application/validation/actions/printOptionsValidator';
 import {FailAction} from '@/application/template/action/failAction';
 import {FailOptionsValidator} from '@/infrastructure/application/validation/actions/failOptionsValidator';
-import {ParameterlessResourceProvider} from '@/application/provider/parameterlessResourceProvider';
+import {SpecificResourceProvider} from '@/application/provider/specificResourceProvider';
 import {ConstantProvider} from '@/application/provider/constantProvider';
 import {Server} from '@/application/project/server/server';
-import {ProjectServerProvider} from '@/application/project/server/provider/projectServerProvider';
-import {NodeScriptProvider} from '@/application/project/server/provider/nodeScriptProvider';
+import {ProjectServerProvider, ServerFactory} from '@/application/project/server/provider/projectServerProvider';
 import {NextCommandParser} from '@/application/project/server/provider/parser/nextCommandParser';
 import {ViteCommandParser} from '@/application/project/server/provider/parser/viteCommandParser';
 import {ParcelCommandParser} from '@/application/project/server/provider/parser/parcelCommandParser';
@@ -196,8 +186,52 @@ import {VariableMap} from '@/application/template/evaluation';
 import {StopServer} from '@/application/template/action/stopServerAction';
 import {StopServerOptionsValidator} from '@/infrastructure/application/validation/actions/stopServerOptionsValidator';
 import {ProcessServerFactory} from '@/application/project/server/factory/processServerFactory';
-import {CachedServerFactory} from '@/application/project/server/factory/cachedServerFactory';
 import {ResourceValueProvider} from '@/application/provider/resourceValueProvider';
+import {ConfigurableWorkingDirectory, CurrentWorkingDirectory} from '@/application/fs/workingDirectory';
+import {
+    ChangeDirectoryOptionsValidator,
+} from '@/infrastructure/application/validation/actions/changeDirectoryOptionsValidator';
+import {ChangeDirectoryAction} from '@/application/template/action/changeDirectoryAction';
+import {ExecutePackage} from '@/application/template/action/executePackage';
+import {
+    ExecutePackageOptionsValidator,
+} from '@/infrastructure/application/validation/actions/executePackageOptionsValidator';
+import {
+    Configuration as NodePackageManagerConfiguration,
+    NodePackageManager,
+} from '@/application/project/packageManager/nodePackageManager';
+import {NpmAgent} from '@/application/project/packageManager/agent/npmAgent';
+import {YarnAgent} from '@/application/project/packageManager/agent/yarnAgent';
+import {BunAgent} from '@/application/project/packageManager/agent/bunAgent';
+import {PnpmAgent} from '@/application/project/packageManager/agent/pnpmAgent';
+import {
+    Configuration as ExecutableAgentConfiguration,
+} from '@/application/project/packageManager/agent/executableAgent';
+import {PtyExecutor} from '@/infrastructure/application/command/ptyExecutor';
+import {PackageManager} from '@/application/project/packageManager/packageManager';
+import {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
+import {NodeImportResolver} from '@/application/project/import/nodeImportResolver';
+import {PartialTsconfigValidator} from '@/infrastructure/application/validation/partialTsconfigValidator';
+import {Platform} from '@/application/model/platform';
+import {LazyPackageManager} from '@/application/project/packageManager/lazyPackageManager';
+import {EntryProvider} from '@/application/provider/entryProvider';
+import {MapProvider} from '@/application/provider/mapProvider';
+import {NoopAgent} from '@/application/project/packageManager/agent/noopAgent';
+import {Provider, ProviderError} from '@/application/provider/provider';
+import {FallbackProvider} from '@/application/provider/fallbackProvider';
+import {CallbackProvider} from '@/application/provider/callbackProvider';
+import {ConditionalProvider} from '@/application/provider/conditionalProvider';
+import {FileExists} from '@/application/predicate/fileExists';
+import {HasDependency} from '@/application/predicate/hasDependency';
+import {IsProject} from '@/application/predicate/isProject';
+import {ImportResolver} from '@/application/project/import/importResolver';
+import {LazyImportResolver} from '@/application/project/import/lazyImportResolver';
+import {CommandExecutor, SynchronousCommandExecutor} from '@/application/process/executor';
+import {SpawnExecutor} from '@/infrastructure/application/command/spawnExecutor';
+import {LazyFormatter} from '@/application/project/code/formatter/lazyFormatter';
+import {LazySdk} from '@/application/project/sdk/lazySdk';
+import {MemoizedProvider} from '@/application/provider/memoizedProvider';
+import {CachedServerFactory} from '@/application/project/server/factory/cachedServerFactory';
 
 export type Configuration = {
     io: {
@@ -231,63 +265,30 @@ type AuthenticationMethods = {
 
 type AuthenticationInput = MultiAuthenticationInput<AuthenticationMethods>;
 
+type NodePackageManagers = {
+    npm: NodePackageManager,
+    yarn: NodePackageManager,
+    bun: NodePackageManager,
+    pnpm: NodePackageManager,
+};
+
 export class Cli {
     private readonly configuration: Configuration;
 
-    private fileSystem?: FileSystem;
+    private readonly workingDirectory: CurrentWorkingDirectory;
 
-    private authenticator?: Authenticator<AuthenticationInput>;
-
-    private input?: Input;
-
-    private output?: ConsoleOutput;
-
-    private sdkResolver?: SdkResolver;
-
-    private graphqlClient?: GraphqlClient;
-
-    private userApi?: UserApi;
-
-    private organizationApi?: OrganizationApi;
-
-    private workspaceApi?: WorkspaceApi;
-
-    private applicationApi?: ApplicationApi;
-
-    private authenticationListener?: AuthenticationListener;
-
-    private configurationManager?: ConfigurationManager;
-
-    private emailLinkGenerator?: EmailLinkGenerator;
-
-    private httpProvider?: HttpProvider;
-
-    private importAction?: Action<ImportOptions>;
-
-    private templateProvider?: ResourceProvider<string>;
-
-    private fileProvider?: ResourceProvider<FileSystemIterator>;
-
-    private cache?: CacheProvider<string, string>;
-
-    private projectManagerProvider?: ParameterlessProvider<ProjectManager>;
-
-    private linterProvider?: ParameterlessProvider<Linter>;
-
-    private javaScriptProjectManager?: JavaScriptProjectManager;
-
-    private javaScriptLinter?: JavaScriptLinter;
-
-    private serverProvider?: ParameterlessProvider<Server>;
+    private readonly instances: Map<() => any, any> = new Map();
 
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
+        this.workingDirectory = new ConfigurableWorkingDirectory(configuration.directories.current);
     }
 
     public init(input: InitInput): Promise<void> {
         return this.execute(
             new InitCommand({
-                sdkResolver: this.getSdkResolver(),
+                sdkProvider: this.getSdkProvider(),
+                platformProvider: this.getPlatformProvider(),
                 configurationManager: this.getConfigurationManager(),
                 api: {
                     user: this.getUserApi(),
@@ -323,7 +324,7 @@ export class Cli {
     public install(input: InstallInput): Promise<void> {
         return this.execute(
             new InstallCommand({
-                sdkResolver: this.getSdkResolver(),
+                sdk: this.getSdk(),
                 configurationManager: this.getConfigurationManager(),
                 slotForm: new SlotForm({
                     input: this.getFormInput(),
@@ -342,7 +343,7 @@ export class Cli {
     public upgrade(input: UpgradeInput): Promise<void> {
         return this.execute(
             new UpgradeCommand({
-                sdkResolver: this.getSdkResolver(),
+                sdk: this.getSdk(),
                 configurationManager: this.getConfigurationManager(),
                 form: {
                     slotForm: new SlotForm({
@@ -368,7 +369,7 @@ export class Cli {
     public addSlot(input: AddSlotInput): Promise<void> {
         return this.execute(
             new AddSlotCommand({
-                sdkResolver: this.getSdkResolver(),
+                sdk: this.getSdk(),
                 configurationManager: this.getConfigurationManager(),
                 workspaceApi: this.getWorkspaceApi(),
                 slotForm: new SlotForm({
@@ -388,7 +389,7 @@ export class Cli {
     public removeSlot(input: RemoveSlotInput): Promise<void> {
         return this.execute(
             new RemoveSlotCommand({
-                sdkResolver: this.getSdkResolver(),
+                sdk: this.getSdk(),
                 configurationManager: this.getConfigurationManager(),
                 slotForm: new SlotForm({
                     input: this.getFormInput(),
@@ -407,7 +408,7 @@ export class Cli {
     public addComponent(input: AddComponentInput): Promise<void> {
         return this.execute(
             new AddComponentCommand({
-                sdkResolver: this.getSdkResolver(),
+                sdk: this.getSdk(),
                 configurationManager: this.getConfigurationManager(),
                 componentForm: new ComponentForm({
                     input: this.getFormInput(),
@@ -426,7 +427,7 @@ export class Cli {
     public removeComponent(input: RemoveComponentInput): Promise<void> {
         return this.execute(
             new RemoveComponentCommand({
-                sdkResolver: this.getSdkResolver(),
+                sdk: this.getSdk(),
                 configurationManager: this.getConfigurationManager(),
                 componentForm: new ComponentForm({
                     input: this.getFormInput(),
@@ -556,19 +557,21 @@ export class Cli {
     }
 
     private getInput(): Input | undefined {
-        if (this.input === undefined && this.configuration.interactive) {
+        if (!this.configuration.interactive) {
+            return;
+        }
+
+        return this.share(this.getInput, () => {
             const output = this.getOutput();
 
-            this.input = new ConsoleInput({
+            return new ConsoleInput({
                 input: this.configuration.io.input,
                 output: this.configuration.io.output,
                 onAbort: () => output.exit(),
                 onInteractionStart: () => output.suspend(),
                 onInteractionEnd: () => output.resume(),
             });
-        }
-
-        return this.input;
+        });
     }
 
     private getNonInteractiveOutput(quiet = false): ConsoleOutput {
@@ -581,313 +584,308 @@ export class Cli {
     }
 
     private getOutput(): ConsoleOutput {
-        if (this.output === undefined) {
-            this.output = new ConsoleOutput({
+        return this.share(
+            this.getOutput,
+            () => new ConsoleOutput({
                 output: this.configuration.io.output,
                 interactive: this.configuration.interactive,
                 quiet: this.configuration.quiet,
                 onExit: this.configuration.exitCallback,
-            });
-        }
-
-        return this.output;
-    }
-
-    private getTemplateProvider(): ResourceProvider<string> {
-        if (this.templateProvider === undefined) {
-            this.templateProvider = this.createTemplateProvider();
-        }
-
-        return this.templateProvider;
-    }
-
-    private createTemplateProvider(): ResourceProvider<string> {
-        const fileNames = ['template.json5', 'template.json'];
-        const fileProvider = new FileContentProvider(this.getFileProvider());
-
-        return new CachedProvider({
-            cache: AdaptedCache.transformKeys(
-                new AutoSaveCache(new InMemoryCache()),
-                (url: string) => url.toString(),
-            ),
-            provider: new MultiProvider(
-                ...fileNames.map(
-                    fileName => new MappedProvider({
-                        dataProvider: fileProvider,
-                        registryProvider: new ConstantProvider([
-                            {
-                                // Any URL not ending with a file extension, excluding the trailing slash
-                                pattern: /^(.+?:\/+[^/]+(\/+[^/.]+|\/[^/]+(?=\/))*)\/*$/,
-                                destination: `$1/${fileName}`,
-                            },
-                        ]),
-                    }),
-                ),
-            ),
-        });
-    }
-
-    private getFileProvider(): ResourceProvider<FileSystemIterator> {
-        if (this.fileProvider === undefined) {
-            this.fileProvider = this.createFileProvider();
-        }
-
-        return this.fileProvider;
-    }
-
-    private createFileProvider(): ResourceProvider<FileSystemIterator> {
-        const httpProvider = this.getHttpProvider();
-        const localProvider = new FileSystemProvider(this.getFileSystem());
-
-        const remoteProviders = [
-            new GithubProvider(httpProvider),
-            new HttpFileProvider(httpProvider),
-        ];
-
-        return new MultiProvider(
-            localProvider,
-            new MappedProvider({
-                dataProvider: new MultiProvider(...remoteProviders),
-                registryProvider: new ResourceValueProvider(
-                    new ParameterlessResourceProvider({
-                        url: this.configuration.nameRegistry,
-                        provider: new ValidatedProvider({
-                            provider: new CachedProvider({
-                                cache: new StaleWhileRevalidateCache({
-                                    freshPeriod: 60,
-                                    cacheProvider: AdaptedCache.transformValues(
-                                        this.getCache('name-registry'),
-                                        ({value: {url, value}, timestamp}) => TimestampedCacheEntry.toJSON({
-                                            timestamp: timestamp,
-                                            value: {
-                                                value: value,
-                                                url: url.toString(),
-                                            },
-                                        }),
-                                        (data: string) => {
-                                            const {value, timestamp} = TimestampedCacheEntry
-                                                .fromJSON<{value: string, url: string}>(data);
-
-                                            return {
-                                                timestamp: timestamp,
-                                                value: {
-                                                    url: new URL(value.url),
-                                                    value: value.value,
-                                                },
-                                            };
-                                        },
-                                    ),
-                                }),
-                                provider: new JsonProvider(
-                                    new FileContentProvider(new MultiProvider(localProvider, ...remoteProviders)),
-                                ),
-                            }),
-                            validator: new RegistryValidator(),
-                        }),
-                    }),
-                ),
             }),
         );
     }
 
-    private getImportAction(): Action<ImportOptions> {
-        if (this.importAction === undefined) {
-            this.importAction = this.createImportAction();
-        }
+    private getTemplateProvider(): ResourceProvider<string> {
+        return this.share(this.getTemplateProvider, () => {
+            const fileNames = ['template.json5', 'template.json'];
+            const fileProvider = new FileContentProvider(this.getFileProvider());
 
-        return this.importAction;
+            return new CachedProvider({
+                cache: AdaptedCache.transformKeys(
+                    new AutoSaveCache(new InMemoryCache()),
+                    (url: string) => url.toString(),
+                ),
+                provider: new MultiProvider(
+                    ...fileNames.map(
+                        fileName => new MappedProvider({
+                            dataProvider: fileProvider,
+                            registryProvider: new ConstantProvider([
+                                {
+                                    // Any URL not ending with a file extension, excluding the trailing slash
+                                    pattern: /^(.+?:\/+[^/]+(\/+[^/.]+|\/[^/]+(?=\/))*)\/*$/,
+                                    destination: `$1/${fileName}`,
+                                },
+                            ]),
+                        }),
+                    ),
+                ),
+            });
+        });
     }
 
-    private createImportAction(): Action<ImportOptions> {
-        const fileSystem = this.getFileSystem();
+    private getFileProvider(): ResourceProvider<FileSystemIterator> {
+        return this.share(this.getFileProvider, () => {
+            const httpProvider = this.getHttpProvider();
+            const localProvider = new FileSystemProvider(this.getFileSystem());
 
-        const actions = {
-            run: new ValidatedAction<RunOptions>({
-                action: new LazyAction((): RunAction => new RunAction(actions)),
-                validator: new RunOptionsValidator(),
-            }),
-            try: new ValidatedAction<TryOptions>({
-                action: new LazyAction((): TryAction => new TryAction(actions.run)),
-                validator: new TryOptionsValidator(),
-            }),
-            test: new ValidatedAction<TestOptions>({
-                action: new LazyAction((): TestAction => new TestAction(actions.run)),
-                validator: new TestOptionsValidator(),
-            }),
-            print: new ValidatedAction({
-                action: new PrintAction(),
-                validator: new PrintOptionsValidator(),
-            }),
-            fail: new ValidatedAction({
-                action: new FailAction(),
-                validator: new FailOptionsValidator(),
-            }),
-            define: new ValidatedAction({
-                action: new DefineAction(),
-                validator: new DefineOptionsValidator(),
-            }),
-            prompt: new ValidatedAction({
-                action: new PromptAction(),
-                validator: new PromptOptionsValidator(),
-            }),
-            'open-link': new ValidatedAction({
-                action: new OpenLinkAction(),
-                validator: new OpenLinkOptionsValidator(),
-            }),
-            'start-server': new ValidatedAction({
-                action: new StartServer({
-                    serverProvider: this.getServerProvider(),
-                }),
-                validator: new StartServerOptionsValidator(),
-            }),
-            'stop-server': new ValidatedAction({
-                action: new StopServer({
-                    serverProvider: this.getServerProvider(),
-                }),
-                validator: new StopServerOptionsValidator(),
-            }),
-            'check-dependencies': new ValidatedAction({
-                action: new CheckDependencyAction({
-                    projectManagerProvider: this.getProjectManagerProvider(),
-                }),
-                validator: new CheckDependenciesOptionsValidator(),
-            }),
-            download: new ValidatedAction({
-                action: new DownloadAction({
-                    fileSystem: fileSystem,
-                    provider: this.getFileProvider(),
-                }),
-                validator: new DownloadOptionsValidator(),
-            }),
-            'resolve-import': new ValidatedAction({
-                action: new ResolveImportAction({
-                    importResolver: async (target, source) => (
-                        (await this.getProjectManagerProvider().get()).getImportPath(target, source)
+            const remoteProviders = [
+                new GithubProvider(httpProvider),
+                new HttpFileProvider(httpProvider),
+            ];
+
+            return new MultiProvider(
+                localProvider,
+                new MappedProvider({
+                    dataProvider: new MultiProvider(...remoteProviders),
+                    registryProvider: new ResourceValueProvider(
+                        new SpecificResourceProvider({
+                            url: this.configuration.nameRegistry,
+                            provider: new ValidatedProvider({
+                                provider: new CachedProvider({
+                                    cache: new StaleWhileRevalidateCache({
+                                        freshPeriod: 60,
+                                        cacheProvider: AdaptedCache.transformValues(
+                                            this.getCache('name-registry'),
+                                            ({value: {url, value}, timestamp}) => TimestampedCacheEntry.toJSON({
+                                                timestamp: timestamp,
+                                                value: {
+                                                    value: value,
+                                                    url: url.toString(),
+                                                },
+                                            }),
+                                            (data: string) => {
+                                                const {value, timestamp} = TimestampedCacheEntry
+                                                    .fromJSON<{value: string, url: string}>(data);
+
+                                                return {
+                                                    timestamp: timestamp,
+                                                    value: {
+                                                        url: new URL(value.url),
+                                                        value: value.value,
+                                                    },
+                                                };
+                                            },
+                                        ),
+                                    }),
+                                    provider: new JsonProvider(
+                                        new FileContentProvider(new MultiProvider(localProvider, ...remoteProviders)),
+                                    ),
+                                }),
+                                validator: new RegistryValidator(),
+                            }),
+                        }),
                     ),
                 }),
-                validator: new ResolveImportOptionsValidator(),
-            }),
-            'add-dependency': new ValidatedAction({
-                action: new AddDependencyAction({
-                    installer: async (dependencies, development) => (
-                        (await this.getProjectManagerProvider().get()).installPackage(dependencies, {
-                            dev: development,
-                        })),
-                }),
-                validator: new AddDependencyOptionsValidator(),
-            }),
-            'locate-file': new ValidatedAction({
-                action: new LocateFileAction({
-                    projectDirectory: this.configuration.directories.current,
-                    fileSystem: fileSystem,
-                }),
-                validator: new LocateFileOptionsValidator(),
-            }),
-            'replace-file-content': new ValidatedAction({
-                action: new ReplaceFileContentAction({
-                    fileSystem: fileSystem,
-                }),
-                validator: new ReplaceFileContentOptionsValidator(),
-            }),
-            'add-slot': new ValidatedAction({
-                action: new AddSlotAction({
-                    installer: (slots, example): Promise<void> => {
-                        const output = this.getNonInteractiveOutput(true);
+            );
+        });
+    }
 
-                        return this.execute(
-                            new AddSlotCommand({
-                                sdkResolver: this.getSdkResolver(),
-                                configurationManager: this.getConfigurationManager(),
-                                workspaceApi: this.getWorkspaceApi(),
-                                slotForm: new SlotForm({
-                                    input: this.getNonInteractiveInput(),
-                                    output: output,
+    private getImportAction(): Action<ImportOptions> {
+        return this.share(this.getImportAction, () => {
+            const fileSystem = this.getFileSystem();
+
+            const actions = {
+                run: new ValidatedAction<RunOptions>({
+                    action: new LazyAction(new CallbackProvider((): RunAction => new RunAction(actions))),
+                    validator: new RunOptionsValidator(),
+                }),
+                try: new ValidatedAction<TryOptions>({
+                    action: new LazyAction(new CallbackProvider((): TryAction => new TryAction(actions.run))),
+                    validator: new TryOptionsValidator(),
+                }),
+                test: new ValidatedAction<TestOptions>({
+                    action: new LazyAction(new CallbackProvider((): TestAction => new TestAction(actions.run))),
+                    validator: new TestOptionsValidator(),
+                }),
+                print: new ValidatedAction({
+                    action: new PrintAction(),
+                    validator: new PrintOptionsValidator(),
+                }),
+                fail: new ValidatedAction({
+                    action: new FailAction(),
+                    validator: new FailOptionsValidator(),
+                }),
+                define: new ValidatedAction({
+                    action: new DefineAction(),
+                    validator: new DefineOptionsValidator(),
+                }),
+                prompt: new ValidatedAction({
+                    action: new PromptAction(),
+                    validator: new PromptOptionsValidator(),
+                }),
+                'change-directory': new ValidatedAction({
+                    action: new ChangeDirectoryAction({
+                        fileSystem: fileSystem,
+                        currentDirectory: this.workingDirectory,
+                    }),
+                    validator: new ChangeDirectoryOptionsValidator(),
+                }),
+                'open-link': new ValidatedAction({
+                    action: new OpenLinkAction(),
+                    validator: new OpenLinkOptionsValidator(),
+                }),
+                'start-server': new ValidatedAction({
+                    action: new StartServer({
+                        serverProvider: this.getServerProvider(),
+                    }),
+                    validator: new StartServerOptionsValidator(),
+                }),
+                'stop-server': new ValidatedAction({
+                    action: new StopServer({
+                        serverProvider: this.getServerProvider(),
+                    }),
+                    validator: new StopServerOptionsValidator(),
+                }),
+                'execute-package': new ValidatedAction({
+                    action: new ExecutePackage({
+                        packageManager: this.getPackageManager(),
+                        packageManagerProvider: this.getPackageManagerRegistry(),
+                        workingDirectory: this.workingDirectory,
+                        commandExecutor: new PtyExecutor(),
+                        commandTimeout: 30_000,
+                    }),
+                    validator: new ExecutePackageOptionsValidator(),
+                }),
+                'check-dependencies': new ValidatedAction({
+                    action: new CheckDependencyAction({
+                        packageManager: this.getPackageManager(),
+                    }),
+                    validator: new CheckDependenciesOptionsValidator(),
+                }),
+                download: new ValidatedAction({
+                    action: new DownloadAction({
+                        fileSystem: fileSystem,
+                        provider: this.getFileProvider(),
+                    }),
+                    validator: new DownloadOptionsValidator(),
+                }),
+                'resolve-import': new ValidatedAction({
+                    action: new ResolveImportAction({
+                        importResolver: this.getImportResolver(),
+                    }),
+                    validator: new ResolveImportOptionsValidator(),
+                }),
+                'add-dependency': new ValidatedAction({
+                    action: new AddDependencyAction({
+                        packageManager: this.getPackageManager(),
+                    }),
+                    validator: new AddDependencyOptionsValidator(),
+                }),
+                'locate-file': new ValidatedAction({
+                    action: new LocateFileAction({
+                        projectDirectory: this.workingDirectory,
+                        fileSystem: fileSystem,
+                    }),
+                    validator: new LocateFileOptionsValidator(),
+                }),
+                'replace-file-content': new ValidatedAction({
+                    action: new ReplaceFileContentAction({
+                        fileSystem: fileSystem,
+                    }),
+                    validator: new ReplaceFileContentOptionsValidator(),
+                }),
+                'add-slot': new ValidatedAction({
+                    action: new AddSlotAction({
+                        installer: (slots, example): Promise<void> => {
+                            const output = this.getNonInteractiveOutput(true);
+
+                            return this.execute(
+                                new AddSlotCommand({
+                                    sdk: this.getSdk(),
+                                    configurationManager: this.getConfigurationManager(),
                                     workspaceApi: this.getWorkspaceApi(),
+                                    slotForm: new SlotForm({
+                                        input: this.getNonInteractiveInput(),
+                                        output: output,
+                                        workspaceApi: this.getWorkspaceApi(),
+                                    }),
+                                    io: {
+                                        output: output,
+                                    },
                                 }),
-                                io: {
-                                    output: output,
+                                {
+                                    slots: slots,
+                                    example: example,
                                 },
-                            }),
-                            {
-                                slots: slots,
-                                example: example,
-                            },
-                        );
-                    },
+                            );
+                        },
+                    }),
+                    validator: new AddSlotOptionsValidator(),
                 }),
-                validator: new AddSlotOptionsValidator(),
-            }),
-            'add-component': new ValidatedAction({
-                action: new AddComponentAction({
-                    installer: (components): Promise<void> => {
-                        const output = this.getNonInteractiveOutput(true);
+                'add-component': new ValidatedAction({
+                    action: new AddComponentAction({
+                        installer: (components): Promise<void> => {
+                            const output = this.getNonInteractiveOutput(true);
 
-                        return this.execute(
-                            new AddComponentCommand({
-                                sdkResolver: this.getSdkResolver(),
-                                configurationManager: this.getConfigurationManager(),
-                                componentForm: new ComponentForm({
-                                    input: this.getNonInteractiveInput(),
-                                    output: output,
-                                    workspaceApi: this.getWorkspaceApi(),
+                            return this.execute(
+                                new AddComponentCommand({
+                                    sdk: this.getSdk(),
+                                    configurationManager: this.getConfigurationManager(),
+                                    componentForm: new ComponentForm({
+                                        input: this.getNonInteractiveInput(),
+                                        output: output,
+                                        workspaceApi: this.getWorkspaceApi(),
+                                    }),
+                                    io: {
+                                        output: output,
+                                    },
                                 }),
-                                io: {
-                                    output: output,
+                                {
+                                    components: components,
                                 },
+                            );
+                        },
+                    }),
+                    validator: new AddComponentOptionsValidator(),
+                }),
+                'create-resource': new ValidatedAction({
+                    action: new CreateResourceAction({
+                        configurationManager: this.getConfigurationManager(),
+                        matcher: new ResourceMatcher({
+                            workspaceApi: this.getWorkspaceApi(),
+                        }),
+                        api: {
+                            user: this.getUserApi(),
+                            workspace: this.getWorkspaceApi(),
+                            organization: this.getOrganizationApi(),
+                        },
+                        mappingForm: new SlugMappingForm({
+                            input: this.getFormInput({
+                                message: 'Some resource IDs are in use and interactive mode is '
+                                    + 'required to assign new ones.',
+                                suggestions: ['Retry in interactive mode'],
                             }),
-                            {
-                                components: components,
-                            },
-                        );
-                    },
-                }),
-                validator: new AddComponentOptionsValidator(),
-            }),
-            'create-resource': new ValidatedAction({
-                action: new CreateResourceAction({
-                    configurationManager: this.getConfigurationManager(),
-                    matcher: new ResourceMatcher({
-                        workspaceApi: this.getWorkspaceApi(),
-                    }),
-                    api: {
-                        user: this.getUserApi(),
-                        workspace: this.getWorkspaceApi(),
-                        organization: this.getOrganizationApi(),
-                    },
-                    mappingForm: new SlugMappingForm({
-                        input: this.getFormInput({
-                            message: 'Some resource IDs are in use and interactive mode is '
-                                + 'required to assign new ones.',
-                            suggestions: ['Retry in interactive mode'],
+                            workspaceApi: this.getWorkspaceApi(),
                         }),
-                        workspaceApi: this.getWorkspaceApi(),
                     }),
+                    validator: new CreateResourceOptionsValidator(),
                 }),
-                validator: new CreateResourceOptionsValidator(),
-            }),
-            'format-code': new ValidatedAction({
-                action: new FormatCodeAction({
-                    linterProvider: this.getLinterProvider(),
-                }),
-                validator: new FormatCodeOptionsValidator(),
-            }),
-            import: new ValidatedAction<ImportOptions>({
-                action: new LazyAction(
-                    (): Action<ImportOptions> => new ImportAction({
-                        runner: actions.run,
-                        templateProvider: new TemplateProvider({
-                            evaluator: new JsepExpressionEvaluator(),
-                            validator: new TemplateValidator(),
-                            provider: this.getTemplateProvider(),
-                        }),
-                        variables: this.getActionVariables(),
+                'format-code': new ValidatedAction({
+                    action: new FormatCodeAction({
+                        formatter: this.getCodeFormatter(),
                     }),
-                ),
-                validator: new ImportOptionsValidator(),
-            }),
-        } satisfies Record<string, ValidatedAction<any>>;
+                    validator: new FormatCodeOptionsValidator(),
+                }),
+                import: new ValidatedAction<ImportOptions>({
+                    action: new LazyAction(
+                        new CallbackProvider(
+                            (): Action<ImportOptions> => new ImportAction({
+                                runner: actions.run,
+                                templateProvider: new TemplateProvider({
+                                    evaluator: new JsepExpressionEvaluator(),
+                                    validator: new TemplateValidator(),
+                                    provider: this.getTemplateProvider(),
+                                }),
+                                variables: this.getActionVariables(),
+                            }),
+                        ),
+                    ),
+                    validator: new ImportOptionsValidator(),
+                }),
+            } satisfies Record<string, ValidatedAction<any>>;
 
-        return actions.import;
+            return actions.import;
+        });
     }
 
     private getActionVariables(): VariableMap {
@@ -946,27 +944,24 @@ export class Cli {
                         async () => (await this.getConfigurationManager().resolve()).paths.components,
                     ),
                 },
-                platform: PLazy.from(async (): Promise<string> => {
-                    const sdk = await this.getSdkResolver().resolve();
-
-                    return ApplicationPlatform.getName(sdk.getPlatform())
-                        .toLowerCase()
-                        .replace(/[^a-z0-9]+/g, '-');
-                }),
+                platform: PLazy.from(async () => (await this.getPlatformProvider().get()) ?? 'unknown'),
                 server: PLazy.from(async (): Promise<{running: boolean, url?: string}> => {
                     const serverProvider = this.getServerProvider();
+                    const server = await serverProvider.get();
 
-                    try {
-                        const status = await (await serverProvider.get()).getStatus();
+                    if (server !== null) {
+                        try {
+                            const status = await server.getStatus();
 
-                        if (status.running) {
-                            return {
-                                running: true,
-                                url: status.url.toString(),
-                            };
+                            if (status.running) {
+                                return {
+                                    running: true,
+                                    url: status.url.toString(),
+                                };
+                            }
+                        } catch {
+                            // suppress errors
                         }
-                    } catch {
-                        // suppress errors
                     }
 
                     return {running: false};
@@ -976,272 +971,440 @@ export class Cli {
     }
 
     private getHttpProvider(): HttpProvider {
-        if (this.httpProvider === undefined) {
-            this.httpProvider = new FetchProvider();
-        }
-
-        return this.httpProvider;
+        return this.share(this.getHttpProvider, () => new FetchProvider());
     }
 
     private getAuthenticator(): Authenticator<AuthenticationInput> {
-        if (this.authenticator === undefined) {
+        return this.share(this.getAuthenticator, () => {
+            const input = this.getFormInput();
             const fileSystem = this.getFileSystem();
+            const credentialsAuthenticator = new CredentialsAuthenticator({
+                input: input,
+                output: this.getOutput(),
+                userApi: this.getUserApi(true),
+                form: {
+                    signIn: new SignInForm({
+                        input: input,
+                        output: this.getOutput(),
+                        userApi: this.getUserApi(true),
+                        listener: this.getAuthenticationListener(),
+                        emailLinkGenerator: {
+                            recovery: this.createEmailLinkGenerator('Forgot password'),
+                            verification: this.createEmailLinkGenerator('Welcome to Croct'),
+                        },
+                    }),
+                    signUp: new SignUpForm({
+                        input: input,
+                        output: this.getOutput(),
+                        userApi: this.getUserApi(true),
+                        listener: this.getAuthenticationListener(),
+                        emailLinkGenerator: this.createEmailLinkGenerator('Welcome to Croct'),
+                    }),
+                },
+            });
 
-            this.authenticator = new TokenFileAuthenticator({
+            return new TokenFileAuthenticator({
                 fileSystem: fileSystem,
                 filePath: fileSystem.joinPaths(this.configuration.directories.config, 'token'),
-                authenticator: this.createAuthenticator(),
+                authenticator: new MultiAuthenticator<AuthenticationMethods>({
+                    default: this.configuration.interactive
+                        ? credentialsAuthenticator
+                        : new NonInteractiveAuthenticator({
+                            authenticator: credentialsAuthenticator,
+                            instruction: {
+                                message: 'Authentication required.',
+                                suggestions: ['Run `login` to authenticate'],
+                                reason: ErrorReason.PRECONDITION,
+                            },
+                        }),
+                    credentials: credentialsAuthenticator,
+                }),
             });
-        }
-
-        return this.authenticator;
-    }
-
-    private createAuthenticator(): Authenticator<AuthenticationInput> {
-        const input = this.getFormInput();
-
-        const credentialsAuthenticator = new CredentialsAuthenticator({
-            input: input,
-            output: this.getOutput(),
-            userApi: this.getUserApi(true),
-            form: {
-                signIn: new SignInForm({
-                    input: input,
-                    output: this.getOutput(),
-                    userApi: this.getUserApi(true),
-                    listener: this.getAuthenticationListener(),
-                    emailLinkGenerator: {
-                        recovery: this.createEmailLinkGenerator('Forgot password'),
-                        verification: this.createEmailLinkGenerator('Welcome to Croct'),
-                    },
-                }),
-                signUp: new SignUpForm({
-                    input: input,
-                    output: this.getOutput(),
-                    userApi: this.getUserApi(true),
-                    listener: this.getAuthenticationListener(),
-                    emailLinkGenerator: this.createEmailLinkGenerator('Welcome to Croct'),
-                }),
-            },
-        });
-
-        return new MultiAuthenticator<AuthenticationMethods>({
-            default: this.configuration.interactive
-                ? credentialsAuthenticator
-                : new NonInteractiveAuthenticator({
-                    authenticator: credentialsAuthenticator,
-                    instruction: {
-                        message: 'Authentication required.',
-                        suggestions: ['Run `login` to authenticate'],
-                        reason: ErrorReason.PRECONDITION,
-                    },
-                }),
-            credentials: credentialsAuthenticator,
         });
     }
 
-    private getSdkResolver(): SdkResolver {
-        if (this.sdkResolver === undefined) {
-            this.sdkResolver = new CachedSdkResolver(
-                new SdkDetector({
-                    resolvers: this.createJavaScriptSdkResolvers(),
+    private getSdk(): Sdk {
+        return this.share(this.getSdk, () => {
+            const provider = new FallbackProvider(
+                this.getSdkProvider(),
+                new CallbackProvider(() => {
+                    throw new ProviderError('No suitable SDK detected.', {
+                        reason: ErrorReason.NOT_SUPPORTED,
+                        suggestions: [
+                            'Make sure you are running the command in the project root directory.',
+                        ],
+                    });
                 }),
             );
-        }
 
-        return this.sdkResolver;
+            return new LazySdk(provider);
+        });
     }
 
-    private createJavaScriptSdkResolvers(): Array<SdkResolver<Sdk | null>> {
-        const projectManager = this.getJavaScriptProjectManager();
-        const linter = this.getJavaScriptLinter();
+    private getSdkProvider(): Provider<Sdk|null> {
+        return this.share(this.getSdkProvider, () => {
+            const formatter = this.getJavaScriptFormatter();
+            const fileSystem = this.getFileSystem();
+            const importResolver = this.getNodeImportResolver();
 
-        return [
-            new PlugNextSdk({
-                projectManager: projectManager,
-                fileSystem: this.getFileSystem(),
-                linter: linter,
-                api: {
-                    user: this.getUserApi(),
-                    workspace: this.getWorkspaceApi(),
-                    application: this.getApplicationApi(),
-                },
-                codemod: {
-                    middleware: new LintCode(
-                        new TransformFile(
-                            this.getFileSystem(),
-                            new ParseCode({
-                                languages: ['typescript', 'jsx'],
-                                codemod: new ConfigureMiddleware({
-                                    import: {
-                                        module: '@croct/plug-next/middleware',
-                                        middlewareName: 'middleware',
-                                        middlewareFactoryName: 'withCroct',
-                                        configName: 'config',
-                                        matcherName: 'matcher',
-                                        matcherLocalName: 'croctMatcher',
-                                    },
-                                }),
-                            }),
-                        ),
-                        linter,
-                    ),
-                    appRouterProvider: new LintCode(
-                        new TransformFile(
-                            this.getFileSystem(),
-                            new ParseCode({
-                                languages: ['typescript', 'jsx'],
-                                codemod: new AddWrapper({
-                                    fallbackToNamedExports: false,
-                                    fallbackCodemod: new CreateLayoutComponent({
-                                        provider: {
-                                            component: 'CroctProvider',
-                                            module: '@croct/plug-next/CroctProvider',
-                                        },
+            const config: JavaScriptSdkConfiguration = {
+                projectDirectory: this.workingDirectory,
+                packageManager: this.getNodePackageManager(),
+                fileSystem: fileSystem,
+                formatter: formatter,
+                workspaceApi: this.getWorkspaceApi(),
+                tsConfigLoader: this.getTsConfigLoader(),
+            };
+
+            const unknown = Symbol('unknown');
+
+            return new EnumeratedProvider({
+                discriminator: async () => (await this.getPlatformProvider().get()) ?? unknown,
+                mapping: {
+                    [Platform.JAVASCRIPT]: (): Sdk => new PlugJsSdk(config),
+                    [Platform.REACT]: (): Sdk => new PlugReactSdk({
+                        ...config,
+                        importResolver: importResolver,
+                        codemod: {
+                            provider: new FormatCode(
+                                new TransformFile(
+                                    this.getFileSystem(),
+                                    new ParseCode({
+                                        languages: ['typescript', 'jsx'],
+                                        codemod: new AddWrapper({
+                                            fallbackToNamedExports: true,
+                                            wrapper: {
+                                                module: '@croct/plug-react',
+                                                component: 'CroctProvider',
+                                            },
+                                            targets: {
+                                                variable: 'children',
+                                            },
+                                        }),
                                     }),
-                                    wrapper: {
-                                        module: '@croct/plug-next/CroctProvider',
-                                        component: 'CroctProvider',
-                                    },
-                                    targets: {
-                                        variable: 'children',
-                                    },
-                                }),
-                            }),
-                        ),
-                        linter,
-                    ),
-                    pageRouterProvider: new LintCode(
-                        new TransformFile(
-                            this.getFileSystem(),
-                            new ParseCode({
-                                languages: ['typescript', 'jsx'],
-                                codemod: new AddWrapper({
-                                    fallbackToNamedExports: false,
-                                    fallbackCodemod: new CreateAppComponent({
-                                        provider: {
-                                            component: 'CroctProvider',
-                                            module: '@croct/plug-next/CroctProvider',
-                                        },
+                                ),
+                                formatter,
+                            ),
+                        },
+                        bundlers: [
+                            {
+                                package: 'react-scripts',
+                                prefix: 'process.env.REACT_APP_',
+                            },
+                            {
+                                package: 'vite',
+                                prefix: 'import.meta.env.VITE_',
+                            },
+                            {
+                                package: 'parcel',
+                                prefix: 'process.env.',
+                            },
+                        ],
+                    }),
+                    [Platform.NEXT]: (): Sdk => new PlugNextSdk({
+                        ...config,
+                        userApi: this.getUserApi(),
+                        applicationApi: this.getApplicationApi(),
+                        importResolver: importResolver,
+                        codemod: {
+                            middleware: new FormatCode(
+                                new TransformFile(
+                                    this.getFileSystem(),
+                                    new ParseCode({
+                                        languages: ['typescript', 'jsx'],
+                                        codemod: new ConfigureMiddleware({
+                                            import: {
+                                                module: '@croct/plug-next/middleware',
+                                                middlewareName: 'middleware',
+                                                middlewareFactoryName: 'withCroct',
+                                                configName: 'config',
+                                                matcherName: 'matcher',
+                                                matcherLocalName: 'croctMatcher',
+                                            },
+                                        }),
                                     }),
-                                    wrapper: {
-                                        module: '@croct/plug-next/CroctProvider',
-                                        component: 'CroctProvider',
-                                    },
-                                    targets: {
-                                        component: 'Component',
-                                    },
-                                }),
+                                ),
+                                formatter,
+                            ),
+                            appRouterProvider: new FormatCode(
+                                new TransformFile(
+                                    this.getFileSystem(),
+                                    new ParseCode({
+                                        languages: ['typescript', 'jsx'],
+                                        codemod: new AddWrapper({
+                                            fallbackToNamedExports: false,
+                                            fallbackCodemod: new CreateLayoutComponent({
+                                                provider: {
+                                                    component: 'CroctProvider',
+                                                    module: '@croct/plug-next/CroctProvider',
+                                                },
+                                            }),
+                                            wrapper: {
+                                                module: '@croct/plug-next/CroctProvider',
+                                                component: 'CroctProvider',
+                                            },
+                                            targets: {
+                                                variable: 'children',
+                                            },
+                                        }),
+                                    }),
+                                ),
+                                formatter,
+                            ),
+                            pageRouterProvider: new FormatCode(
+                                new TransformFile(
+                                    this.getFileSystem(),
+                                    new ParseCode({
+                                        languages: ['typescript', 'jsx'],
+                                        codemod: new AddWrapper({
+                                            fallbackToNamedExports: false,
+                                            fallbackCodemod: new CreateAppComponent({
+                                                provider: {
+                                                    component: 'CroctProvider',
+                                                    module: '@croct/plug-next/CroctProvider',
+                                                },
+                                            }),
+                                            wrapper: {
+                                                module: '@croct/plug-next/CroctProvider',
+                                                component: 'CroctProvider',
+                                            },
+                                            targets: {
+                                                component: 'Component',
+                                            },
+                                        }),
+                                    }),
+                                ),
+                                formatter,
+                            ),
+                        },
+                    }),
+                    [unknown]: () => null,
+                },
+            });
+        });
+    }
+
+    private getCodeFormatter(): CodeFormatter {
+        return this.share(this.getCodeFormatter, () => {
+            const unknown = Symbol('unknown');
+
+            return new LazyFormatter(
+                new EnumeratedProvider({
+                    discriminator: async () => (await this.getPlatformProvider().get()) ?? unknown,
+                    mapping: {
+                        [Platform.JAVASCRIPT]: () => this.getJavaScriptFormatter(),
+                        [Platform.REACT]: () => this.getJavaScriptFormatter(),
+                        [Platform.NEXT]: () => this.getJavaScriptFormatter(),
+                        [unknown]: (): never => {
+                            throw new ProviderError('No code formatter detected.', {
+                                reason: ErrorReason.NOT_SUPPORTED,
+                                suggestions: [
+                                    'Make sure you are running the command in the project root directory.',
+                                ],
+                            });
+                        },
+                    },
+                }),
+            );
+        });
+    }
+
+    private share<M extends(() => any)>(method: M, factory: () => ReturnType<M>): ReturnType<M> {
+        const instance = this.instances.get(method);
+
+        if (instance === undefined) {
+            const newInstance = factory();
+
+            this.instances.set(method, newInstance);
+
+            return newInstance;
+        }
+
+        return instance;
+    }
+
+    private getPackageManagerRegistry(): EntryProvider<string, PackageManager> {
+        return this.share(
+            this.getPackageManagerRegistry,
+            () => new MapProvider(new Map(Object.entries(this.getPackageManagers()))),
+        );
+    }
+
+    private getPackageManagers(): Record<string, PackageManager> {
+        return this.getNodePackageManagers();
+    }
+
+    private getPackageManager(): PackageManager {
+        return this.share(
+            this.getPackageManager,
+            () => new LazyPackageManager(
+                new FallbackProvider(
+                    // To add more package managers, wrap the current detector with a SequentialProvider
+                    this.getNodePackageManagerProvider(),
+                    new CallbackProvider(() => {
+                        throw new ProviderError('No package manager detected.', {
+                            reason: ErrorReason.NOT_SUPPORTED,
+                            suggestions: [
+                                'Make sure you are running the command in the project root directory.',
+                                'Initialize your project and retry the command.',
+                            ],
+                        });
+                    }),
+                ),
+            ),
+        );
+    }
+
+    private getNodePackageManager(): PackageManager {
+        return this.share(this.getNodePackageManager, () => {
+            const managers = this.getNodePackageManagers();
+
+            return new LazyPackageManager(
+                new FallbackProvider(
+                    this.getNodePackageManagerProvider(),
+                    new ConstantProvider(managers.npm),
+                ),
+            );
+        });
+    }
+
+    private getNodePackageManagerProvider(): Provider<PackageManager|null> {
+        return this.share(this.getNodePackageManagerProvider, () => {
+            const managers = this.getNodePackageManagers();
+            const fileSystem = this.getFileSystem();
+
+            return new MemoizedProvider(
+                new ConditionalProvider({
+                    candidates: [
+                        {
+                            value: managers.npm,
+                            condition: new FileExists({
+                                fileSystem: fileSystem,
+                                files: ['package-lock.json'],
                             }),
-                        ),
-                        linter,
-                    ),
-                },
-            }),
-            new PlugReactSdk({
-                projectManager: projectManager,
-                fileSystem: this.getFileSystem(),
-                linter: linter,
-                api: {
-                    workspace: this.getWorkspaceApi(),
-                },
-                codemod: {
-                    provider: new LintCode(
-                        new TransformFile(
-                            this.getFileSystem(),
-                            new ParseCode({
-                                languages: ['typescript', 'jsx'],
-                                codemod: new AddWrapper({
-                                    fallbackToNamedExports: true,
-                                    wrapper: {
-                                        module: '@croct/plug-react',
-                                        component: 'CroctProvider',
-                                    },
-                                    targets: {
-                                        variable: 'children',
-                                    },
-                                }),
+                        },
+                        {
+                            value: managers.yarn,
+                            condition: new FileExists({
+                                fileSystem: fileSystem,
+                                files: ['yarn.lock'],
                             }),
-                        ),
-                        linter,
-                    ),
-                },
-                bundlers: [
-                    {
-                        package: 'react-scripts',
-                        prefix: 'process.env.REACT_APP_',
-                    },
-                    {
-                        package: 'vite',
-                        prefix: 'import.meta.env.VITE_',
-                    },
-                    {
-                        package: 'parcel',
-                        prefix: 'process.env.',
-                    },
+                        },
+                        {
+                            value: managers.bun,
+                            condition: new FileExists({
+                                fileSystem: fileSystem,
+                                files: ['bun.lock', 'bun.lockb'],
+                            }),
+                        },
+                        {
+                            value: managers.pnpm,
+                            condition: new FileExists({
+                                fileSystem: fileSystem,
+                                files: ['pnpm-lock.yaml'],
+                            }),
+                        },
+                    ],
+                }),
+                this.workingDirectory,
+            );
+        });
+    }
+
+    private getNodePackageManagers(): NodePackageManagers {
+        return this.share(this.getNodePackageManagers, () => {
+            const agentConfig: ExecutableAgentConfiguration = {
+                projectDirectory: this.workingDirectory,
+                commandRunner: this.getCommandExecutor(),
+            };
+
+            const validator = new PartialNpmPackageValidator();
+            const fileSystem = this.getFileSystem();
+
+            const managerConfig: Omit<NodePackageManagerConfiguration, 'agent'> = {
+                fileSystem: fileSystem,
+                projectDirectory: this.workingDirectory,
+                packageValidator: validator,
+            };
+
+            return {
+                npm: new NodePackageManager({
+                    ...managerConfig,
+                    agent: new NpmAgent(agentConfig),
+                }),
+                yarn: new NodePackageManager({
+                    ...managerConfig,
+                    agent: new YarnAgent(agentConfig),
+                }),
+                bun: new NodePackageManager({
+                    ...managerConfig,
+                    agent: new BunAgent(agentConfig),
+                }),
+                pnpm: new NodePackageManager({
+                    ...managerConfig,
+                    agent: new PnpmAgent(agentConfig),
+                }),
+            };
+        });
+    }
+
+    private getNodeServerProvider(): Provider<Server|null> {
+        return this.share(
+            this.getNodeServerProvider,
+            () => new ProjectServerProvider({
+                packageManager: this.getNodePackageManager(),
+                factory: this.getServerFactory(),
+                parsers: [
+                    new NextCommandParser(),
+                    new ViteCommandParser(),
+                    new ParcelCommandParser(),
+                    new ReactScriptCommandParser(),
                 ],
             }),
-            new PlugJsSdk({
-                projectManager: projectManager,
-                fileSystem: this.getFileSystem(),
-                linter: linter,
-                workspaceApi: this.getWorkspaceApi(),
-            }),
-        ];
+        );
     }
 
-    private getLinterProvider(): ParameterlessProvider<Linter> {
-        if (this.linterProvider === undefined) {
-            this.linterProvider = new EnumeratedProvider({
-                discriminator: async () => (await this.getSdkResolver().resolve()).getPlatform(),
+    private getServerProvider(): Provider<Server|null> {
+        return this.share(this.getServerProvider, () => {
+            const unknown = Symbol('unknown');
+
+            return new EnumeratedProvider({
+                discriminator: async () => (await this.getPlatformProvider().get()) ?? unknown,
                 mapping: {
-                    [ApplicationPlatform.JAVASCRIPT]: () => this.getJavaScriptLinter(),
-                    [ApplicationPlatform.REACT]: () => this.getJavaScriptLinter(),
-                    [ApplicationPlatform.NEXT]: () => this.getJavaScriptLinter(),
+                    [Platform.JAVASCRIPT]: () => this.getNodeServerProvider().get(),
+                    [Platform.REACT]: () => this.getNodeServerProvider().get(),
+                    [Platform.NEXT]: () => this.getNodeServerProvider().get(),
+                    [unknown]: () => null,
                 },
             });
-        }
-
-        return this.linterProvider;
+        });
     }
 
-    private getProjectManagerProvider(): ParameterlessProvider<ProjectManager> {
-        if (this.projectManagerProvider === undefined) {
-            this.projectManagerProvider = new EnumeratedProvider({
-                discriminator: async () => (await this.getSdkResolver().resolve()).getPlatform(),
-                mapping: {
-                    [ApplicationPlatform.JAVASCRIPT]: () => this.getJavaScriptProjectManager(),
-                    [ApplicationPlatform.REACT]: () => this.getJavaScriptProjectManager(),
-                    [ApplicationPlatform.NEXT]: () => this.getJavaScriptProjectManager(),
-                },
-            });
-        }
-
-        return this.projectManagerProvider;
-    }
-
-    private getJavaScriptProjectManager(): JavaScriptProjectManager {
-        if (this.javaScriptProjectManager === undefined) {
-            this.javaScriptProjectManager = new NodeProjectManager({
-                fileSystem: this.getFileSystem(),
-                packageManager: new AntfuPackageManager(this.configuration.directories.current),
-                packageValidator: new PartialNpmPackageValidator(),
-                importConfigLoader: new ImportConfigLoader({
-                    fileSystem: this.getFileSystem(),
-                    tsconfigValidator: new PartialTsconfigValidator(),
+    private getServerFactory(): ServerFactory {
+        return this.share(
+            this.getServerFactory,
+            () => new CachedServerFactory(
+                new ProcessServerFactory({
+                    commandExecutor: this.getCommandExecutor(),
+                    workingDirectory: this.workingDirectory,
+                    startupTimeout: 5000,
+                    startupCheckDelay: 1000,
+                    lookupMaxPorts: 100,
+                    lookupTimeout: 2000,
                 }),
-                directory: this.configuration.directories.current,
-            });
-        }
-
-        return this.javaScriptProjectManager;
+            ),
+        );
     }
 
-    private getJavaScriptLinter(): Linter {
-        if (this.javaScriptLinter === undefined) {
-            this.javaScriptLinter = new JavaScriptLinter({
-                projectManager: this.getJavaScriptProjectManager(),
+    private getJavaScriptFormatter(): CodeFormatter {
+        return this.share(
+            this.getJavaScriptFormatter,
+            () => new JavaScriptFormatter({
+                commandExecutor: this.getCommandExecutor(),
+                workingDirectory: this.workingDirectory,
+                packageManager: this.getNodePackageManager(),
                 fileSystem: this.getFileSystem(),
+                timeout: 10_000,
                 tools: [
                     {
                         package: 'eslint',
@@ -1258,71 +1421,111 @@ export class Cli {
                         args: files => ['format', '--write', ...files],
                     },
                 ],
-            });
-        }
-
-        return this.javaScriptLinter;
+            }),
+        );
     }
 
-    private getServerProvider(): ParameterlessProvider<Server> {
-        if (this.serverProvider === undefined) {
-            this.serverProvider = this.createServerProvider();
-        }
+    private getImportResolver(): ImportResolver {
+        return this.share(this.getImportResolver, () => {
+            const nodeImportResolver = this.getNodeImportResolver();
 
-        return this.serverProvider;
-    }
+            const unknown = Symbol('unknown');
 
-    private createServerProvider(): ParameterlessProvider<Server> {
-        const processServerFactory = new ProcessServerFactory({
-            currentDirectory: this.configuration.directories.current,
-            startupTimeout: 5000,
-            startupCheckDelay: 1000,
-            lookupMaxPorts: 100,
-            lookupTimeout: 2000,
+            return new LazyImportResolver(
+                new EnumeratedProvider({
+                    discriminator: async () => (await this.getPlatformProvider().get()) ?? unknown,
+                    mapping: {
+                        [Platform.JAVASCRIPT]: () => nodeImportResolver,
+                        [Platform.REACT]: () => nodeImportResolver,
+                        [Platform.NEXT]: () => nodeImportResolver,
+                        [unknown]: (): never => {
+                            throw new CallbackProvider(() => {
+                                throw new ProviderError('No import resolver detected.', {
+                                    reason: ErrorReason.NOT_SUPPORTED,
+                                    suggestions: [
+                                        'Make sure you are running the command in the project root directory.',
+                                    ],
+                                });
+                            });
+                        },
+                    },
+                }),
+            );
         });
+    }
 
-        let nodeServerProvider: ProjectServerProvider | undefined;
+    private getNodeImportResolver(): ImportResolver {
+        return this.share(
+            this.getNodeImportResolver,
+            () => new NodeImportResolver({
+                fileSystem: this.getFileSystem(),
+                tsConfigLoader: this.getTsConfigLoader(),
+                projectDirectory: this.workingDirectory,
+            }),
+        );
+    }
 
-        const getNodeServer = (): Promise<Server> => {
-            if (nodeServerProvider === undefined) {
-                const projectManager = this.getJavaScriptProjectManager();
+    private getTsConfigLoader(): TsConfigLoader {
+        return this.share(
+            this.getTsConfigLoader,
+            () => new TsConfigLoader({
+                fileSystem: this.getFileSystem(),
+                tsconfigValidator: new PartialTsconfigValidator(),
+            }),
+        );
+    }
 
-                nodeServerProvider = new ProjectServerProvider({
-                    factory: new CachedServerFactory(processServerFactory),
-                    scriptProvider: new NodeScriptProvider({
-                        fileSystem: this.getFileSystem(),
-                        projectManager: projectManager,
-                    }),
-                    parsers: [
-                        new NextCommandParser(projectManager),
-                        new ViteCommandParser(projectManager),
-                        new ParcelCommandParser(projectManager),
-                        new ReactScriptCommandParser(projectManager),
+    private getCommandExecutor(): CommandExecutor & SynchronousCommandExecutor {
+        return this.share(this.getCommandExecutor, () => new SpawnExecutor());
+    }
+
+    private getPlatformProvider(): Provider<Platform|null> {
+        return this.share(this.getPlatformProvider, () => {
+            const nodePackageManager = new NodePackageManager({
+                projectDirectory: this.workingDirectory,
+                packageValidator: new PartialNpmPackageValidator(),
+                fileSystem: this.getFileSystem(),
+                agent: new NoopAgent(),
+            });
+
+            return new MemoizedProvider(
+                new ConditionalProvider({
+                    candidates: [
+                        {
+                            value: Platform.NEXT,
+                            condition: new HasDependency({
+                                packageManager: nodePackageManager,
+                                dependencies: ['next'],
+                            }),
+                        },
+                        {
+                            value: Platform.REACT,
+                            condition: new HasDependency({
+                                packageManager: nodePackageManager,
+                                dependencies: ['react'],
+                            }),
+                        },
+                        {
+                            value: Platform.JAVASCRIPT,
+                            condition: new IsProject({
+                                packageManager: nodePackageManager,
+                            }),
+                        },
                     ],
-                });
-            }
-
-            return nodeServerProvider.get();
-        };
-
-        return new EnumeratedProvider({
-            discriminator: async () => (await this.getSdkResolver().resolve()).getPlatform(),
-            mapping: {
-                [ApplicationPlatform.JAVASCRIPT]: getNodeServer,
-                [ApplicationPlatform.REACT]: getNodeServer,
-                [ApplicationPlatform.NEXT]: getNodeServer,
-            },
+                }),
+                this.workingDirectory,
+            );
         });
     }
 
     private getConfigurationManager(): ConfigurationManager {
-        if (this.configurationManager === undefined) {
+        return this.share(this.getConfigurationManager, () => {
             const output = this.getOutput();
             const manager = new ConfigurationFileManager({
                 file: new JsonFileConfiguration({
                     fileSystem: this.getFileSystem(),
                     validator: new CroctConfigurationValidator(),
-                    projectDirectory: this.configuration.directories.current,
+                    projectDirectory: this.workingDirectory,
                 }),
                 output: output,
                 api: {
@@ -1332,7 +1535,7 @@ export class Cli {
                 },
             });
 
-            this.configurationManager = new CachedConfigurationManager(
+            return new CachedConfigurationManager(
                 this.configuration.interactive
                     ? new NewConfigurationManager({
                         manager: manager,
@@ -1345,9 +1548,7 @@ export class Cli {
                     })
                     : manager,
             );
-        }
-
-        return this.configurationManager;
+        });
     }
 
     private getUserApi(optionalAuthentication = false): UserApi {
@@ -1355,35 +1556,19 @@ export class Cli {
             return new GraphqlUserApi(this.getGraphqlClient(true));
         }
 
-        if (this.userApi === undefined) {
-            this.userApi = new GraphqlUserApi(this.getGraphqlClient());
-        }
-
-        return this.userApi;
+        return this.share(this.getUserApi, () => new GraphqlUserApi(this.getGraphqlClient()));
     }
 
     private getOrganizationApi(): OrganizationApi {
-        if (this.organizationApi === undefined) {
-            this.organizationApi = new GraphqlOrganizationApi(this.getGraphqlClient());
-        }
-
-        return this.organizationApi;
+        return this.share(this.getOrganizationApi, () => new GraphqlOrganizationApi(this.getGraphqlClient()));
     }
 
     private getWorkspaceApi(): WorkspaceApi {
-        if (this.workspaceApi === undefined) {
-            this.workspaceApi = new GraphqlWorkspaceApi(this.getGraphqlClient());
-        }
-
-        return this.workspaceApi;
+        return this.share(this.getWorkspaceApi, () => new GraphqlWorkspaceApi(this.getGraphqlClient()));
     }
 
     private getApplicationApi(): ApplicationApi {
-        if (this.applicationApi === undefined) {
-            this.applicationApi = new GraphqlApplicationApi(this.getGraphqlClient());
-        }
-
-        return this.applicationApi;
+        return this.share(this.getApplicationApi, () => new GraphqlApplicationApi(this.getGraphqlClient()));
     }
 
     private getGraphqlClient(optionalAuthentication = false): GraphqlClient {
@@ -1396,45 +1581,43 @@ export class Cli {
             });
         }
 
-        if (this.graphqlClient === undefined) {
+        return this.share(this.getGraphqlClient, () => {
             const authenticator = this.getAuthenticator();
 
-            this.graphqlClient = new FetchGraphqlClient({
+            return new FetchGraphqlClient({
                 endpoint: this.configuration.api.graphqlEndpoint,
                 tokenProvider: {
                     getToken: async () => (await authenticator.getToken())
                         ?? (authenticator.login({method: 'default'})),
                 },
             });
-        }
-
-        return this.graphqlClient;
+        });
     }
 
     private getAuthenticationListener(): AuthenticationListener {
-        if (this.authenticationListener === undefined) {
-            this.authenticationListener = new FocusListener(
-                new HttpPollingListener({
+        return this.share(
+            this.getAuthenticationListener,
+            () => new FocusListener({
+                platform: process.platform,
+                commandExecutor: this.getCommandExecutor(),
+                timeout: 2_000,
+                listener: new HttpPollingListener({
                     endpoint: this.configuration.api.tokenEndpoint,
                     parameter: this.configuration.api.tokenParameter,
                     pollingInterval: 1000,
                 }),
-                process.platform,
-            );
-        }
-
-        return this.authenticationListener;
+            }),
+        );
     }
 
     private getFileSystem(): FileSystem {
-        if (this.fileSystem === undefined) {
-            this.fileSystem = new LocalFilesystem({
-                currentDirectory: this.configuration.directories.current,
+        return this.share(
+            this.getFileSystem,
+            () => new LocalFilesystem({
+                workingDirectory: this.workingDirectory,
                 defaultEncoding: 'utf-8',
-            });
-        }
-
-        return this.fileSystem;
+            }),
+        );
     }
 
     private createEmailLinkGenerator(subject?: string): (email: string) => Promise<URL | null> {
@@ -1449,8 +1632,9 @@ export class Cli {
     }
 
     private getEmailLinkGenerator(): EmailLinkGenerator {
-        if (this.emailLinkGenerator === undefined) {
-            this.emailLinkGenerator = new EmailLinkGenerator({
+        return this.share(
+            this.getEmailLinkGenerator,
+            () => new EmailLinkGenerator({
                 detector: new FallbackProviderDetector(
                     new DomainProviderDetector(),
                     new DnsProviderDetector(),
@@ -1462,10 +1646,8 @@ export class Cli {
                     proton: new ProtonTemplate(),
                     yahoo: new YahooTemplate(),
                 },
-            });
-        }
-
-        return this.emailLinkGenerator;
+            }),
+        );
     }
 
     private getCache(namespace: string): CacheProvider<string, string> {
@@ -1473,14 +1655,17 @@ export class Cli {
             return new NoopCache();
         }
 
-        if (this.cache === undefined) {
-            this.cache = new FileSystemCache({
+        return new PrefixedCache(this.getCacheProvider(), namespace);
+    }
+
+    private getCacheProvider(): CacheProvider<string, string> {
+        return this.share(
+            this.getCacheProvider,
+            () => new FileSystemCache({
                 fileSystem: this.getFileSystem(),
                 directory: this.configuration.directories.cache,
-            });
-        }
-
-        return new PrefixedCache(this.cache, namespace);
+            }),
+        );
     }
 
     private async execute<I extends CommandInput>(command: Command<I>, input: I): Promise<void> {

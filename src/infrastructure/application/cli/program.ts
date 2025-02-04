@@ -235,8 +235,8 @@ function createProgram(config: Configuration): typeof program {
 
         switch (definition.type) {
             case 'string':
-                if (definition.choices !== undefined && definition.choices.length > 0) {
-                    option.choices(definition.choices);
+                if (definition.options !== undefined && definition.options.length > 0) {
+                    option.choices(definition.options);
                 }
 
                 break;

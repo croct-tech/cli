@@ -9,7 +9,7 @@ export type OptionValue<T extends JsonValue = JsonValue> = T | LazyOptionValue<T
 type OptionTypes = {
     string: {
         type: string,
-        choices?: string[],
+        options?: string[],
     },
     boolean: {
         type: boolean,
@@ -39,8 +39,8 @@ export type OptionDefinition<T extends OptionType = OptionType> = {
 export type OptionMap = Record<string, OptionDefinition>;
 
 export type ActionDefinition = {
-    [key: string]: unknown,
     name: string,
+    [key: string]: unknown,
 };
 
 export type Template = {
@@ -51,7 +51,6 @@ export type Template = {
 };
 
 export type DeferredActionDefinition = {
-    name: string,
     resolve(variables: VariableMap): Deferrable<JsonValue>,
 };
 

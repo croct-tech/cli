@@ -1,5 +1,5 @@
 import {Resource, ResourceProvider} from '@/application/provider/resourceProvider';
-import {ParameterlessProvider} from '@/application/provider/parameterlessProvider';
+import {Provider} from '@/application/provider/provider';
 
 export type Mapping = {
     pattern: RegExp|string,
@@ -10,13 +10,13 @@ export type Registry = Mapping[];
 
 export type Configuration<T> = {
     dataProvider: ResourceProvider<T>,
-    registryProvider: ParameterlessProvider<Registry>,
+    registryProvider: Provider<Registry>,
 };
 
 export class MappedProvider<T> implements ResourceProvider<T> {
     private readonly dataProvider: ResourceProvider<T>;
 
-    private readonly registryProvider: ParameterlessProvider<Mapping[]>;
+    private readonly registryProvider: Provider<Mapping[]>;
 
     public constructor({dataProvider, registryProvider}: Configuration<T>) {
         this.dataProvider = dataProvider;

@@ -1,11 +1,14 @@
-import {ConsoleInput} from "./src/infrastructure/application/cli/io/consoleInput";
+import {SpawnExecutor} from "./src/infrastructure/application/command/spawnExecutor";
 
 (async () => {
-    const input = new ConsoleInput({
-        input: process.stdin,
-        output: process.stdout,
-        onAbort: () => process.exit(1),
+    const executor = new SpawnExecutor();
+
+    const execution = executor.run("tsx", ['test2.tsx'], {
+        timeout: 1000,
     });
 
-    console.log(await input.wait({message: 'Press any key to continue', key: 'enter'}));
+    console.log('exit code', await execution.wait());
+
+    console.log('result', execution.output);
+
 })();

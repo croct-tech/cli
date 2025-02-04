@@ -1,14 +1,7 @@
-import {ServerConfiguration, ServerCommandParser} from '@/application/project/server/provider/projectServerProvider';
-import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
+import {ServerInfo, ServerCommandParser} from '@/application/project/server/provider/projectServerProvider';
 
 export class ParcelCommandParser implements ServerCommandParser {
-    private readonly projectManager: JavaScriptProjectManager;
-
-    public constructor(projectManager: JavaScriptProjectManager) {
-        this.projectManager = projectManager;
-    }
-
-    public async parse(script: string, command: string): Promise<ServerConfiguration|null> {
+    public parse(command: string): ServerInfo|null {
         if (!command.includes('parcel')) {
             return null;
         }
@@ -20,7 +13,6 @@ export class ParcelCommandParser implements ServerCommandParser {
         const protocol = command.includes('--https') ? 'https' : 'http';
 
         return {
-            command: await this.projectManager.getScriptCommand(script),
             protocol: protocol,
             host: host,
             ...(port !== null ? {port: port} : {}),

@@ -1,14 +1,7 @@
-import {ServerConfiguration, ServerCommandParser} from '@/application/project/server/provider/projectServerProvider';
-import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
+import {ServerInfo, ServerCommandParser} from '@/application/project/server/provider/projectServerProvider';
 
 export class ViteCommandParser implements ServerCommandParser {
-    private readonly projectManager: JavaScriptProjectManager;
-
-    public constructor(projectManager: JavaScriptProjectManager) {
-        this.projectManager = projectManager;
-    }
-
-    public async parse(script: string, command: string): Promise<ServerConfiguration|null> {
+    public parse(command: string): ServerInfo|null {
         if (!command.includes('vite')) {
             return null;
         }
@@ -19,7 +12,6 @@ export class ViteCommandParser implements ServerCommandParser {
         const host = hostMatch !== null ? hostMatch[1] : 'localhost';
 
         return {
-            command: await this.projectManager.getScriptCommand(script),
             protocol: 'http',
             host: host,
             ...(port !== null ? {port: port} : {}),

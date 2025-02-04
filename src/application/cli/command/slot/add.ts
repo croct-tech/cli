@@ -1,12 +1,12 @@
 import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
-import {Installation, SdkResolver} from '@/application/project/sdk/sdk';
+import {Installation, Sdk} from '@/application/project/sdk/sdk';
 import {Form} from '@/application/cli/form/form';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {Configuration as ProjectConfiguration} from '@/application/project/configuration/configuration';
-import {Version} from '@/application/project/version';
+import {Version} from '@/application/model/version';
 import {WorkspaceApi} from '@/application/api/workspace';
 import {Slot} from '@/application/model/slot';
 import {HelpfulError, ErrorReason} from '@/application/error';
@@ -17,7 +17,7 @@ export type AddSlotInput = {
 };
 
 export type AddSlotConfig = {
-    sdkResolver: SdkResolver,
+    sdk: Sdk,
     configurationManager: ConfigurationManager,
     slotForm: Form<Slot[], SlotOptions>,
     workspaceApi: WorkspaceApi,
@@ -37,10 +37,9 @@ export class AddSlotCommand implements Command<AddSlotInput> {
     }
 
     public async execute(input: AddSlotInput): Promise<void> {
-        const {sdkResolver, configurationManager, io} = this.config;
+        const {sdk, configurationManager, io} = this.config;
         const {output} = io;
 
-        const sdk = await sdkResolver.resolve();
         const configuration = await configurationManager.resolve();
         const slots = await this.getSlots(configuration, input);
 
@@ -71,7 +70,13 @@ export class AddSlotCommand implements Command<AddSlotInput> {
         if (input.example === true) {
             const notifier = output.notify('Generating example');
 
-            await Promise.all(slots.map(([slot]) => sdk.generateSlotExample(slot, installation)));
+            try {
+                await Promise.all(slots.map(([slot]) => sdk.generateSlotExample(slot, installation)));
+            } catch (error) {
+                notifier.stop();
+
+                throw error;
+            }
 
             notifier.confirm('Example generated');
         }

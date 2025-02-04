@@ -1,15 +1,16 @@
 import {Provider, ProviderError} from '@/application/provider/provider';
+import {ErrorReason} from '@/application/error';
 
-export type Discriminator<K extends string> = () => Promise<K>;
+export type Discriminator<K extends PropertyKey> = () => Promise<K>;
 
-type Mapping<K extends string, V> = Record<K, V|(() => Promise<V>|V)>;
+type Mapping<K extends PropertyKey, V> = Record<K, (() => Promise<V>|V)|Provider<V>>;
 
-export type Configuration<K extends string, V> = {
+export type Configuration<K extends PropertyKey, V> = {
     discriminator: Discriminator<K>,
     mapping: Mapping<K, V>,
 };
 
-export class EnumeratedProvider<K extends string, V> implements Provider<[], V> {
+export class EnumeratedProvider<K extends PropertyKey, V> implements Provider<V> {
     private readonly discriminator: Discriminator<K>;
 
     private readonly mapping: Mapping<K, V>;
@@ -21,12 +22,19 @@ export class EnumeratedProvider<K extends string, V> implements Provider<[], V> 
 
     public async get(): Promise<V> {
         const key = await this.discriminator();
+
         const value = this.mapping[key];
 
         if (value === undefined) {
-            throw new ProviderError(`No value found for discriminator "${key}".`);
+            throw new ProviderError(`No value found for discriminator "${String(key)}".`, {
+                reason: ErrorReason.NOT_SUPPORTED,
+            });
         }
 
-        return value instanceof Function ? value() : value;
+        if (value instanceof Function) {
+            return value();
+        }
+
+        return value.get();
     }
 }

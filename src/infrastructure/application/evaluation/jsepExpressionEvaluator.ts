@@ -1,6 +1,7 @@
 import {JsonValue} from '@croct/json';
 import jsep, {CoreExpression, Expression} from 'jsep';
-import jsepObject, {ObjectExpression} from '@jsep-plugin/object';
+import jsepObject, {Property} from '@jsep-plugin/object';
+import jsepSpread, {SpreadElement} from '@jsep-plugin/spread';
 import {
     EvaluationContext,
     EvaluationError,
@@ -22,7 +23,12 @@ type BinaryOperator = {
     evaluate: (left: LazyOperand, right: LazyOperand) => Deferred<JsonValue>,
 };
 
-type ExtendedExpression = Expression|CoreExpression|ObjectExpression;
+interface ExtendedObjectExpression extends Expression {
+    type: 'ObjectExpression';
+    properties: Array<Property|SpreadElement>;
+}
+
+type ExtendedExpression = Expression|CoreExpression|SpreadElement|ExtendedObjectExpression;
 
 type JsepExpression<T extends ExtendedExpression['type']> = {
     [K in T]: Extract<ExtendedExpression, {type: K}>;
@@ -171,6 +177,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
         }
 
         jsep.plugins.register(jsepObject);
+        jsep.plugins.register(jsepSpread);
 
         jsep.removeAllUnaryOps();
 
@@ -226,25 +233,56 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                 return value;
             }
 
-            case matches(expression, 'ArrayExpression'):
-                return Promise.all(
-                    expression.elements.flatMap(
-                        element => (element === null ? [] : [this.evaluateExpression(element, context)]),
-                    ),
+            case matches(expression, 'ArrayExpression'): {
+                const elements = await Promise.all(
+                    expression.elements.map(element => {
+                        if (element === null) {
+                            return [];
+                        }
+
+                        if (matches(element, 'SpreadElement')) {
+                            const value = this.evaluateExpression(element.argument, context);
+
+                            if (!(value instanceof Promise) && !Array.isArray(value)) {
+                                throw new EvaluationError(
+                                    `Spread expression must evaluate to an array, got ${typeof value}.`,
+                                );
+                            }
+
+                            return value;
+                        }
+
+                        return [this.evaluateExpression(element, context)];
+                    }),
                 );
+
+                return elements.flat();
+            }
 
             case matches(expression, 'ObjectExpression'):
                 return Object.fromEntries(
                     await Promise.all(
-                        expression.properties.map(
-                            async ({key, value}) => {
-                                if (value === undefined && matches(key, 'Identifier')) {
-                                    return [key.name, await this.evaluateExpression(key, context)];
+                        expression.properties.flatMap(
+                            async property => {
+                                if (matches(property, 'SpreadElement')) {
+                                    const value = await this.evaluateExpression(property.argument, context);
+
+                                    if (typeof value !== 'object' || value === null) {
+                                        throw new EvaluationError(
+                                            `Spread expression must evaluate to an object, got ${typeof value}.`,
+                                        );
+                                    }
+
+                                    return Object.entries(value);
                                 }
 
-                                const name = matches(key, 'Identifier')
-                                    ? key.name
-                                    : this.evaluateExpression(key, context)
+                                if (property.value === undefined && matches(property.key, 'Identifier')) {
+                                    return [property.key.name, await this.evaluateExpression(property.key, context)];
+                                }
+
+                                const name = matches(property.key, 'Identifier')
+                                    ? property.key.name
+                                    : this.evaluateExpression(property.key, context)
                                         .then(result => {
                                             if (typeof result !== 'string' && typeof result !== 'number') {
                                                 throw new EvaluationError(
@@ -255,7 +293,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                                             return result;
                                         });
 
-                                return [name, await this.evaluateExpression(value!, context)];
+                                return [[name, await this.evaluateExpression(property.value!, context)]];
                             },
                         ),
                     ),
@@ -311,9 +349,21 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
 
                 return fn(
                     ...await Promise.all(
-                        expression.arguments.map(
-                            argument => this.resolve(this.evaluateExpression(argument, context)),
-                        ),
+                        expression.arguments.flatMap(argument => {
+                            const value = this.resolve(this.evaluateExpression(argument, context));
+
+                            if (matches(argument, 'SpreadElement')) {
+                                if (!Array.isArray(value)) {
+                                    throw new EvaluationError(
+                                        `Spread argument must evaluate to an array, got ${typeof value}.`,
+                                    );
+                                }
+
+                                return value;
+                            }
+
+                            return [value];
+                        }),
                     ),
                 );
             }
@@ -325,7 +375,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                     : this.evaluateExpression(expression.alternate, context);
 
             default:
-                throw new EvaluationError(`Unsupported expression type \`${expression.type}\`.`);
+                throw new EvaluationError(`Unexpected expression type \`${expression.type}\`.`);
         }
     }
 

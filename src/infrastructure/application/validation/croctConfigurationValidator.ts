@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
-import {Version} from '@/application/project/version';
+import {Version} from '@/application/model/version';
 
 const identifierSchema = z.string().regex(
     /^[a-z]+(-?[a-z0-9]+)*$/i,

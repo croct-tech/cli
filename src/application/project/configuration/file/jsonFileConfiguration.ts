@@ -7,6 +7,7 @@ import {ConfigurationFile} from '@/application/project/configuration/file/config
 import {JsonObjectNode, JsonParser} from '@/infrastructure/json';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {Validator} from '@/application/validation';
+import {WorkingDirectory} from '@/application/fs/workingDirectory';
 
 type LoadedFile = {
     path: string,
@@ -16,14 +17,14 @@ type LoadedFile = {
 
 export type Configuration = {
     fileSystem: FileSystem,
-    projectDirectory: string,
+    projectDirectory: WorkingDirectory,
     validator: Validator<ProjectConfiguration>,
 };
 
 export class JsonFileConfiguration implements ConfigurationFile {
     private readonly fileSystem: FileSystem;
 
-    private readonly projectDirectory: string;
+    private readonly projectDirectory: WorkingDirectory;
 
     private readonly validator: Validator<ProjectConfiguration>;
 
@@ -100,7 +101,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
     }
 
     private getConfigurationFilePath(): string {
-        return this.fileSystem.joinPaths(this.projectDirectory, 'croct.json');
+        return this.fileSystem.joinPaths(this.projectDirectory.get(), 'croct.json');
     }
 
     private async validateConfiguration(value: JsonValue, file?: LoadedFile): Promise<ProjectConfiguration> {
@@ -112,7 +113,7 @@ export class JsonFileConfiguration implements ConfigurationFile {
             throw new ProjectConfigurationError(violation.message, {
                 details: [
                     ...(file !== undefined
-                        ? `Configuration file: ${this.fileSystem.getRelativePath(this.projectDirectory, file.path)}`
+                        ? `Configuration file: ${file.path}`
                         : []
                     ),
                     `Violation path: ${violation.path}`,

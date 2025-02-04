@@ -1,7 +1,7 @@
 import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
-import {SdkResolver} from '@/application/project/sdk/sdk';
+import {Sdk} from '@/application/project/sdk/sdk';
 import {
     Configuration as ProjectConfiguration,
     ResolvedConfiguration,
@@ -9,7 +9,7 @@ import {
 import {Form} from '@/application/cli/form/form';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
-import {Version} from '@/application/project/version';
+import {Version} from '@/application/model/version';
 import {Component} from '@/application/model/component';
 
 export type RemoveComponentInput = {
@@ -17,7 +17,7 @@ export type RemoveComponentInput = {
 };
 
 export type RemoveComponentConfig = {
-    sdkResolver: SdkResolver,
+    sdk: Sdk,
     configurationManager: ConfigurationManager,
     componentForm: Form<Component[], ComponentOptions>,
     io: {
@@ -34,10 +34,9 @@ export class RemoveComponentCommand implements Command<RemoveComponentInput> {
     }
 
     public async execute(input: RemoveComponentInput): Promise<void> {
-        const {sdkResolver, configurationManager, componentForm, io} = this.config;
+        const {sdk, configurationManager, componentForm, io} = this.config;
         const {output} = io;
 
-        const sdk = await sdkResolver.resolve();
         const configuration = await configurationManager.resolve();
 
         const versionedComponents = input.components === undefined

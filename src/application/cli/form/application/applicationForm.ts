@@ -6,7 +6,8 @@ import {NameInput} from '@/application/cli/form/input/nameInput';
 import {UrlInput} from '@/application/cli/form/input/urlInput';
 import {Organization} from '@/application/model/organization';
 import {Workspace} from '@/application/model/workspace';
-import {Application, ApplicationEnvironment, ApplicationPlatform} from '@/application/model/application';
+import {Application, ApplicationEnvironment} from '@/application/model/application';
+import {Platform} from '@/application/model/platform';
 
 export type Configuration = {
     input: Input,
@@ -17,7 +18,7 @@ export type Configuration = {
 export type ApplicationOptions = {
     organization: Organization,
     workspace: Workspace,
-    platform: ApplicationPlatform,
+    platform: Platform,
     environment: ApplicationEnvironment,
     new?: boolean,
     default?: string,

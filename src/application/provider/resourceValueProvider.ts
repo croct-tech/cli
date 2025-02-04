@@ -1,10 +1,10 @@
-import {ParameterlessProvider} from '@/application/provider/parameterlessProvider';
 import {Resource} from '@/application/provider/resourceProvider';
+import {Provider} from '@/application/provider/provider';
 
-export class ResourceValueProvider<T> implements ParameterlessProvider<T> {
-    private readonly provider: ParameterlessProvider<Resource<T>>;
+export class ResourceValueProvider<T> implements Provider<T> {
+    private readonly provider: Provider<Resource<T>>;
 
-    public constructor(provider: ParameterlessProvider<Resource<T>>) {
+    public constructor(provider: Provider<Resource<T>>) {
         this.provider = provider;
     }
 

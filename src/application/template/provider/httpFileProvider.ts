@@ -2,6 +2,7 @@ import {Readable} from 'stream';
 import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resourceProvider';
 import {FileSystemIterator} from '@/application/fs/fileSystem';
 import {HttpProvider, SuccessResponse} from '@/application/template/provider/httpProvider';
+import {ErrorReason} from '@/application/error';
 
 export class HttpFileProvider implements ResourceProvider<FileSystemIterator> {
     private readonly provider: HttpProvider;
@@ -16,7 +17,10 @@ export class HttpFileProvider implements ResourceProvider<FileSystemIterator> {
 
     public async get(url: URL): Promise<Resource<FileSystemIterator>> {
         if (!this.supports(url)) {
-            throw new ResourceProviderError('Unsupported URL.', {url: url});
+            throw new ResourceProviderError('Unsupported URL.', {
+                reason: ErrorReason.NOT_SUPPORTED,
+                url: url,
+            });
         }
 
         const {value, ...resource} = await this.provider.get(url);

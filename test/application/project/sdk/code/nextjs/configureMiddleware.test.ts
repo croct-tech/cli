@@ -1,7 +1,10 @@
 import {resolve} from 'path';
-import {MiddlewareConfiguration, ConfigureMiddleware} from '@/application/project/sdk/code/nextjs/configureMiddleware';
+import {
+    MiddlewareConfiguration,
+    ConfigureMiddleware,
+} from '@/application/project/code/codemod/nextjs/configureMiddleware';
 import {loadFixtures} from '../fixtures';
-import {ParseCode} from '@/application/project/sdk/code/parseCode';
+import {ParseCode} from '@/application/project/code/codemod/parseCode';
 
 describe('ConfigureMiddleware', () => {
     const defaultOptions: MiddlewareConfiguration = {

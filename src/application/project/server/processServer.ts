@@ -1,14 +1,16 @@
-import {ChildProcess, spawn} from 'child_process';
-import {Server, ServerStatus} from '@/application/project/server/server';
+import {Server, ServerError, ServerStatus} from '@/application/project/server/server';
+import {CommandExecutor, Execution} from '@/application/process/executor';
+import {Command} from '@/application/process/command';
+import {WorkingDirectory} from '@/application/fs/workingDirectory';
 
 export type Configuration = {
-    command: string,
-    args: string[],
+    command: Command,
+    commandExecutor: CommandExecutor,
+    workingDirectory: WorkingDirectory,
     startupCheckDelay: number,
     startupTimeout: number,
     lookupTimeout: number,
     lookupMaxPorts: number,
-    currentDirectory: string,
     server: {
         protocol: string,
         host: string,
@@ -20,7 +22,7 @@ export type Configuration = {
 export class ProcessServer implements Server {
     private readonly configuration: Configuration;
 
-    private subprocess?: ChildProcess;
+    private execution?: Execution;
 
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
@@ -40,26 +42,25 @@ export class ProcessServer implements Server {
     }
 
     public async start(): Promise<URL> {
-        await new Promise<void>((resolve, reject) => {
-            this.subprocess = spawn(this.configuration.command, this.configuration.args, {
-                cwd: this.configuration.currentDirectory,
-                stdio: 'ignore',
+        const {commandExecutor, command, workingDirectory} = this.configuration;
+
+        try {
+            this.execution = commandExecutor.run(command, {
+                workingDirectory: workingDirectory.get(),
             });
-
-            this.subprocess.on('error', reject);
-
-            this.subprocess.on('exit', code => {
-                reject(new Error(`Server exited with code ${code}.`));
+        } catch (error) {
+            throw new ServerError('Failed to start server.', {
+                cause: error,
             });
+        }
 
-            if (this.subprocess.pid === undefined) {
-                reject(new Error('Server did not start.'));
-
-                return;
-            }
-
-            resolve();
+        this.execution.onExit(() => {
+            this.execution = undefined;
         });
+
+        if (!this.execution.running) {
+            throw new ServerError('Failed to start server.');
+        }
 
         const url = await this.waitStart();
 
@@ -70,25 +71,13 @@ export class ProcessServer implements Server {
         return url;
     }
 
-    public stop(): Promise<void> {
-        const {subprocess} = this;
+    public async stop(): Promise<void> {
+        await this?.execution?.kill('SIGINT');
 
-        if (subprocess === undefined) {
-            return Promise.resolve();
-        }
-
-        return new Promise<void>(resolve => {
-            subprocess.on('exit', () => {
-                this.subprocess = undefined;
-
-                resolve();
-            });
-
-            subprocess.kill('SIGINT');
-        });
+        this.execution = undefined;
     }
 
-    private async waitStart(): Promise<URL|null> {
+    private async waitStart(): Promise<URL | null> {
         const {startupCheckDelay, startupTimeout} = this.configuration;
         const controller = new AbortController();
 
@@ -96,7 +85,9 @@ export class ProcessServer implements Server {
 
         timer.unref();
 
-        const delay = (): Promise<void> => new Promise(resolve => { setTimeout(resolve, startupCheckDelay); });
+        const delay = (): Promise<void> => new Promise(resolve => {
+            setTimeout(resolve, startupCheckDelay);
+        });
 
         do {
             const address = await this.findAddress(controller);

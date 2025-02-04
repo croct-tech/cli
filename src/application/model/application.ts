@@ -1,23 +1,4 @@
-export enum ApplicationPlatform {
-    NEXT = 'NEXT',
-    REACT = 'REACT',
-    JAVASCRIPT = 'JAVASCRIPT',
-}
-
-export namespace ApplicationPlatform {
-    export function getName(platform: ApplicationPlatform): string {
-        switch (platform) {
-            case ApplicationPlatform.NEXT:
-                return 'Next.js';
-
-            case ApplicationPlatform.REACT:
-                return 'React';
-
-            case ApplicationPlatform.JAVASCRIPT:
-                return 'JavaScript';
-        }
-    }
-}
+import {Platform} from '@/application/model/platform';
 
 export enum ApplicationEnvironment {
     DEVELOPMENT = 'DEVELOPMENT',
@@ -51,7 +32,7 @@ export type Application = {
     timeZone: string,
     website: string,
     environment: ApplicationEnvironment,
-    platform: ApplicationPlatform,
+    platform: Platform,
     trafficStatus: ApplicationTrafficStatus,
 };
 

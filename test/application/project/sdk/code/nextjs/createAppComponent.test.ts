@@ -1,7 +1,7 @@
 import {resolve} from 'path';
 import {loadFixtures} from '../fixtures';
-import {ParseCode} from '@/application/project/sdk/code/parseCode';
-import {AppComponentOptions, CreateAppComponent} from '@/application/project/sdk/code/nextjs/createAppComponent';
+import {ParseCode} from '@/application/project/code/codemod/parseCode';
+import {AppComponentOptions, CreateAppComponent} from '@/application/project/code/codemod/nextjs/createAppComponent';
 
 describe('CreateAppComponent', () => {
     const scenarios = loadFixtures<AppComponentOptions>(

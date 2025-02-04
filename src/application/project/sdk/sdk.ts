@@ -1,8 +1,8 @@
 import {Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
 import {Configuration, ResolvedConfiguration} from '@/application/project/configuration/configuration';
-import {ApplicationPlatform} from '@/application/model/application';
 import {Slot} from '@/application/model/slot';
+import {Help, HelpfulError} from '@/application/error';
 
 export type Installation = {
     input?: Input,
@@ -11,8 +11,6 @@ export type Installation = {
 };
 
 export interface Sdk {
-    getPackage(): string;
-    getPlatform(): ApplicationPlatform;
     install(installation: Installation): Promise<Configuration>;
     update(installation: Installation): Promise<void>;
     updateTypes(installation: Installation): Promise<void>;
@@ -20,6 +18,10 @@ export interface Sdk {
     generateSlotExample(slot: Slot, installation: Installation): Promise<void>;
 }
 
-export interface SdkResolver<T extends Sdk|null = Sdk> {
-    resolve(hint?: string): Promise<T>;
+export class SdkError extends HelpfulError {
+    public constructor(message: string, help?: Help) {
+        super(message, help);
+
+        Object.setPrototypeOf(this, SdkError.prototype);
+    }
 }

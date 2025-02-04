@@ -2,6 +2,7 @@ import {Minimatch} from 'minimatch';
 import {Action} from '@/application/template/action/action';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {ActionContext} from '@/application/template/action/context';
+import {WorkingDirectory} from '@/application/fs/workingDirectory';
 
 export type PatternMatcher = {
     pattern: string,
@@ -26,12 +27,12 @@ export type LocateFileOptions = {
 };
 
 export type Configuration = {
-    projectDirectory: string,
+    projectDirectory: WorkingDirectory,
     fileSystem: FileSystem,
 };
 
 export class LocateFileAction implements Action<LocateFileOptions> {
-    private readonly projectDirectory: string;
+    private readonly projectDirectory: WorkingDirectory;
 
     private readonly fileSystem: FileSystem;
 
@@ -79,7 +80,7 @@ export class LocateFileAction implements Action<LocateFileOptions> {
 
         const matches: string[] = [];
 
-        for await (const file of this.fileSystem.list(this.projectDirectory, true)) {
+        for await (const file of this.fileSystem.list(this.projectDirectory.get(), true)) {
             if (!filter.match(file.name)) {
                 continue;
             }

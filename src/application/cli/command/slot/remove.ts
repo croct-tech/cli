@@ -1,12 +1,12 @@
 import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
-import {Installation, SdkResolver} from '@/application/project/sdk/sdk';
+import {Installation, Sdk} from '@/application/project/sdk/sdk';
 import {Form} from '@/application/cli/form/form';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {Configuration as ProjectConfiguration} from '@/application/project/configuration/configuration';
-import {Version} from '@/application/project/version';
+import {Version} from '@/application/model/version';
 import {Slot} from '@/application/model/slot';
 
 export type RemoveSlotInput = {
@@ -14,7 +14,7 @@ export type RemoveSlotInput = {
 };
 
 export type RemoveSlotConfig = {
-    sdkResolver: SdkResolver,
+    sdk: Sdk,
     configurationManager: ConfigurationManager,
     slotForm: Form<Slot[], SlotOptions>,
     io: {
@@ -31,10 +31,9 @@ export class RemoveSlotCommand implements Command<RemoveSlotInput> {
     }
 
     public async execute(input: RemoveSlotInput): Promise<void> {
-        const {sdkResolver, configurationManager, slotForm, io} = this.config;
+        const {sdk, configurationManager, slotForm, io} = this.config;
         const {output} = io;
 
-        const sdk = await sdkResolver.resolve();
         const configuration = await configurationManager.resolve();
 
         const versionedSlots = input.slots === undefined

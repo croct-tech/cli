@@ -1,8 +1,7 @@
 import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
-import {ProjectManager} from '@/application/project/manager/projectManager';
 import {Help} from '@/application/error';
-import {ParameterlessProvider} from '@/application/provider/parameterlessProvider';
+import {PackageManager} from '@/application/project/packageManager/packageManager';
 
 type Requirement = {
     name: string,
@@ -18,7 +17,7 @@ export type CheckDependencyOptions = {
 };
 
 export type Configuration = {
-    projectManagerProvider: ParameterlessProvider<ProjectManager>,
+    packageManager: PackageManager,
 };
 
 type DependencyCheck = {
@@ -27,10 +26,10 @@ type DependencyCheck = {
 };
 
 export class CheckDependencyAction implements Action<CheckDependencyOptions> {
-    private readonly projectManagerProvider: ParameterlessProvider<ProjectManager>;
+    private readonly packageManager: PackageManager;
 
-    public constructor({projectManagerProvider}: Configuration) {
-        this.projectManagerProvider = projectManagerProvider;
+    public constructor({packageManager}: Configuration) {
+        this.packageManager = packageManager;
     }
 
     public async execute(options: CheckDependencyOptions, context: ActionContext): Promise<void> {
@@ -46,7 +45,9 @@ export class CheckDependencyAction implements Action<CheckDependencyOptions> {
     }
 
     private async checkDependencies(options: CheckDependencyOptions): Promise<void> {
-        const results = await Promise.all(options.dependencies.map(requirement => this.checkRequirement(requirement)));
+        const results = await Promise.all(
+            options.dependencies.map(requirement => this.checkRequirement(requirement)),
+        );
         const missing = results.filter(result => result.issue !== undefined);
 
         if (missing.length > 0) {
@@ -61,16 +62,15 @@ export class CheckDependencyAction implements Action<CheckDependencyOptions> {
 
     private async checkRequirement(requirement: Requirement): Promise<DependencyCheck> {
         const {name, version, optional = false} = requirement;
-        const projectManager = await this.projectManagerProvider.get();
 
         if (
-            (optional && (version === undefined || !await projectManager.isPackageListed(name)))
-            || await projectManager.isPackageListed(name, version)
+            (optional && (version === undefined || !await this.packageManager.hasDependency(name)))
+            || await this.packageManager.hasDependency(name, version)
         ) {
             return {dependency: name};
         }
 
-        const info = await projectManager.getPackageInfo(name);
+        const info = await this.packageManager.getDependency(name);
 
         return {
             dependency: name,

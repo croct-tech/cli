@@ -1,5 +1,4 @@
-import {Installation, Sdk} from '@/application/project/sdk/sdk';
-import {PackageInfo} from '@/application/project/manager/projectManager';
+import {Installation, Sdk, SdkError} from '@/application/project/sdk/sdk';
 import {
     Configuration as ProjectConfiguration,
     ResolvedConfiguration,
@@ -9,14 +8,15 @@ import {TargetSdk, WorkspaceApi} from '@/application/api/workspace';
 import {JsonArrayNode, JsonObjectNode, JsonParser} from '@/infrastructure/json';
 import {formatName} from '@/application/project/utils/formatName';
 import {ExampleFile} from '@/application/project/example/example';
-import {Linter} from '@/application/project/linter';
-import {Version} from '@/application/project/version';
+import {CodeFormatter} from '@/application/project/code/formatter/formatter';
+import {Version} from '@/application/model/version';
 import {FileSystem} from '@/application/fs/fileSystem';
-import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
-import {ApplicationPlatform} from '@/application/model/application';
 import {Slot} from '@/application/model/slot';
 import {LocalizedContent} from '@/application/model/experience';
 import {HelpfulError} from '@/application/error';
+import {Dependency, PackageManager} from '@/application/project/packageManager/packageManager';
+import {WorkingDirectory} from '@/application/fs/workingDirectory';
+import {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
 
 export type InstallationPlan = {
     tasks: Task[],
@@ -24,10 +24,12 @@ export type InstallationPlan = {
 };
 
 export type Configuration = {
-    projectManager: JavaScriptProjectManager,
     workspaceApi: WorkspaceApi,
-    linter: Linter,
+    projectDirectory: WorkingDirectory,
+    packageManager: PackageManager,
+    formatter: CodeFormatter,
     fileSystem: FileSystem,
+    tsConfigLoader: TsConfigLoader,
 };
 
 type VersionedContent = {
@@ -36,35 +38,34 @@ type VersionedContent = {
     list: LocalizedContent[],
 };
 
-export type ServerInfo = {
-    url: URL,
-    startCommand: string,
-};
-
 export abstract class JavaScriptSdk implements Sdk {
     protected static readonly CONTENT_PACKAGE = '@croct/content';
 
-    protected readonly projectManager: JavaScriptProjectManager;
+    protected readonly projectDirectory: WorkingDirectory;
+
+    protected readonly packageManager: PackageManager;
 
     protected readonly workspaceApi: WorkspaceApi;
 
-    protected readonly linter: Linter;
+    protected readonly formatter: CodeFormatter;
 
     protected readonly fileSystem: FileSystem;
 
-    public constructor({projectManager, linter, workspaceApi, fileSystem}: Configuration) {
-        this.projectManager = projectManager;
-        this.workspaceApi = workspaceApi;
-        this.linter = linter;
-        this.fileSystem = fileSystem;
+    private readonly importConfigLoader: TsConfigLoader;
+
+    public constructor(configuration: Configuration) {
+        this.projectDirectory = configuration.projectDirectory;
+        this.packageManager = configuration.packageManager;
+        this.workspaceApi = configuration.workspaceApi;
+        this.formatter = configuration.formatter;
+        this.fileSystem = configuration.fileSystem;
+        this.importConfigLoader = configuration.tsConfigLoader;
     }
 
-    public abstract getPackage(): string;
-
-    public abstract getPlatform(): ApplicationPlatform;
+    protected abstract getPackage(): string;
 
     public async generateSlotExample(slot: Slot, installation: Installation): Promise<void> {
-        const rootPath = this.projectManager.getRootPath();
+        const rootPath = this.projectDirectory.get();
         const files: string[] = [];
 
         for (const file of await this.generateSlotExampleFiles(slot, installation)) {
@@ -81,7 +82,7 @@ export abstract class JavaScriptSdk implements Sdk {
             files.push(filePath);
         }
 
-        await this.linter.fix(files);
+        await this.formatter.format(files);
     }
 
     protected abstract generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]>;
@@ -122,8 +123,8 @@ export abstract class JavaScriptSdk implements Sdk {
                 notifier.update('Installing dependencies');
 
                 try {
-                    await this.projectManager.installPackage('croct', {dev: true});
-                    await this.projectManager.installPackage([this.getPackage(), JavaScriptSdk.CONTENT_PACKAGE]);
+                    await this.packageManager.addDependencies(['croct'], true);
+                    await this.packageManager.addDependencies([this.getPackage(), JavaScriptSdk.CONTENT_PACKAGE]);
 
                     notifier.confirm('Dependencies installed');
                 } catch (error) {
@@ -147,7 +148,7 @@ export abstract class JavaScriptSdk implements Sdk {
             });
         }
 
-        if (await this.projectManager.isTypeScriptProject()) {
+        if (await this.isTypeScriptProject()) {
             tasks.push({
                 title: 'Generate types',
                 task: async notifier => {
@@ -170,7 +171,9 @@ export abstract class JavaScriptSdk implements Sdk {
             title: 'Register script',
             task: async notifier => {
                 try {
-                    await this.registerScript(notifier);
+                    await this.packageManager.addScript('postinstall', 'croct install --no-interaction');
+
+                    notifier.confirm('Script registered');
                 } catch (error) {
                     notifier.alert('Failed to register script', HelpfulError.formatMessage(error));
                 }
@@ -208,7 +211,7 @@ export abstract class JavaScriptSdk implements Sdk {
 
         const parentDirs = ['lib', 'src'];
 
-        const path = await this.projectManager.locateFile(
+        const path = await this.locateFile(
             ...parentDirs.flatMap(dir => directories.map(directory => this.fileSystem.joinPaths(dir, directory))),
             ...directories,
             ...parentDirs,
@@ -230,7 +233,7 @@ export abstract class JavaScriptSdk implements Sdk {
     public async update(installation: Installation): Promise<void> {
         await this.updateContent(installation);
 
-        if (await this.projectManager.isTypeScriptProject()) {
+        if (await this.isTypeScriptProject()) {
             await this.updateTypes(installation);
         }
     }
@@ -393,60 +396,26 @@ export abstract class JavaScriptSdk implements Sdk {
         indicator.confirm('Types updated');
     }
 
-    private async registerScript(notifier: TaskNotifier): Promise<void> {
-        const packageFile = this.projectManager.getProjectPackagePath();
-        const content = await this.fileSystem.readTextFile(packageFile);
-
-        const packageJson = JsonParser.parse(content, JsonObjectNode);
-
-        let command = 'croct install --no-interaction';
-
-        if (packageJson.has('scripts')) {
-            const scripts = packageJson.get('scripts', JsonObjectNode);
-
-            if (scripts.has('postinstall')) {
-                const postInstall = scripts.get('postinstall');
-                const value = postInstall.toJSON();
-
-                if (typeof value === 'string' && value.includes('croct install')) {
-                    return notifier.confirm('Script already registered');
-                }
-
-                command = `${value} && ${command}`;
-            }
-
-            scripts.set('postinstall', command);
-        } else {
-            packageJson.set('scripts', {
-                postinstall: command,
-            });
-        }
-
-        await this.fileSystem.writeTextFile(packageFile, packageJson.toString(), {overwrite: true});
-
-        notifier.confirm('Script registered');
-    }
-
     private async registerTypeFile(sourcePaths: string[], notifier: TaskNotifier): Promise<void> {
         const [configPath, packageInfo] = await Promise.all([
-            this.projectManager.getTypeScriptConfigPath(sourcePaths),
+            this.getTypeScriptConfigPath(sourcePaths),
             this.mountContentPackageFolder(),
         ]);
 
         if (configPath === null) {
-            throw new Error('TypeScript configuration not found');
+            throw new SdkError('TypeScript configuration not found');
         }
 
-        const projectDirectory = this.projectManager.getRootPath();
+        const projectDirectory = this.projectDirectory.get();
 
         if (!this.fileSystem.isSubPath(projectDirectory, configPath)) {
             const relativePath = this.fileSystem.getRelativePath(projectDirectory, configPath);
 
-            throw new Error(`TypeScript configuration is outside the project directory: \`${relativePath}\``);
+            throw new SdkError(`TypeScript configuration is outside the project directory: \`${relativePath}\``);
         }
 
         if (packageInfo === null) {
-            throw new Error(`Package ${JavaScriptSdk.CONTENT_PACKAGE} is not installed`);
+            throw new SdkError(`Package ${JavaScriptSdk.CONTENT_PACKAGE} is not installed`);
         }
 
         const typeFile = this.fileSystem
@@ -536,8 +505,8 @@ export abstract class JavaScriptSdk implements Sdk {
         };
     }
 
-    private async mountContentPackageFolder(): Promise<PackageInfo | null> {
-        const packageInfo = await this.projectManager.getPackageInfo(JavaScriptSdk.CONTENT_PACKAGE);
+    private async mountContentPackageFolder(): Promise<Dependency | null> {
+        const packageInfo = await this.packageManager.getDependency(JavaScriptSdk.CONTENT_PACKAGE);
 
         if (packageInfo === null) {
             return null;
@@ -556,7 +525,57 @@ export abstract class JavaScriptSdk implements Sdk {
         return packageInfo;
     }
 
+    protected async locateFile(...fileNames: string[]): Promise<string | null> {
+        const directory = this.projectDirectory.get();
+
+        for (const filename of fileNames) {
+            if (this.fileSystem.isAbsolutePath(filename)) {
+                throw new SdkError('The file path must be relative');
+            }
+
+            const fullPath = this.fileSystem.joinPaths(directory, filename);
+
+            if (await this.fileSystem.exists(fullPath)) {
+                return filename;
+            }
+        }
+
+        return null;
+    }
+
+    public async readFile(...fileNames: string[]): Promise<string | null> {
+        const filePath = await this.locateFile(...fileNames);
+
+        if (filePath === null) {
+            return null;
+        }
+
+        return this.fileSystem.readTextFile(
+            this.fileSystem.joinPaths(this.projectDirectory.get(), filePath),
+        );
+    }
+
     private getTypeFile(path: string): string {
         return this.fileSystem.joinPaths(path, 'types.d.ts');
+    }
+
+    protected isTypeScriptProject(): Promise<boolean> {
+        return this.packageManager.hasDependency('typescript');
+    }
+
+    private async getTypeScriptConfigPath(sourcePaths: string[] = []): Promise<string | null> {
+        const workingDirectory = this.projectDirectory.get();
+        const config = await this.importConfigLoader.load(workingDirectory, {
+            fileNames: ['tsconfig.json'],
+            sourcePaths: sourcePaths.length === 0
+                ? [workingDirectory]
+                : sourcePaths,
+        });
+
+        if (config === null) {
+            return null;
+        }
+
+        return config.matchedConfigPath;
     }
 }

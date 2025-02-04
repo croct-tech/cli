@@ -1,22 +1,21 @@
 import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
+import {PackageManager} from '@/application/project/packageManager/packageManager';
 
 export type AddDependencyOptions = {
     dependencies: string[],
     development?: boolean,
 };
 
-export type DependencyInstaller = (dependencies: string[], development: boolean) => Promise<void>;
-
 export type Configuration = {
-    installer: DependencyInstaller,
+    packageManager: PackageManager,
 };
 
 export class AddDependencyAction implements Action<AddDependencyOptions> {
-    private readonly installer: DependencyInstaller;
+    private readonly packageManager: PackageManager;
 
-    public constructor({installer}: Configuration) {
-        this.installer = installer;
+    public constructor({packageManager}: Configuration) {
+        this.packageManager = packageManager;
     }
 
     public async execute(options: AddDependencyOptions, context: ActionContext): Promise<void> {
@@ -25,7 +24,7 @@ export class AddDependencyAction implements Action<AddDependencyOptions> {
         const notifier = output?.notify('Installing dependencies');
 
         try {
-            await this.installer(options.dependencies, options.development === true);
+            await this.packageManager.addDependencies(options.dependencies, options.development === true);
         } catch (error) {
             throw ActionError.fromCause(error);
         } finally {

@@ -1,6 +1,6 @@
-import {ParameterlessProvider} from '@/application/provider/parameterlessProvider';
+import {Provider} from '@/application/provider/provider';
 
-export class ConstantProvider<T> implements ParameterlessProvider<T> {
+export class ConstantProvider<T> implements Provider<T> {
     private readonly data: T;
 
     public constructor(data: T) {

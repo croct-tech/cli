@@ -1,16 +1,17 @@
-import {ParameterlessProvider} from '@/application/provider/parameterlessProvider';
 import {Server} from '@/application/project/server/server';
-import {ProviderError} from '@/application/provider/provider';
+import {Provider, ProviderError} from '@/application/provider/provider';
+import {Command} from '@/application/process/command';
+import {PackageManager} from '@/application/project/packageManager/packageManager';
 
-export type ServerConfiguration = {
+export type ServerInfo = {
     protocol: string,
     host: string,
     port?: number,
     defaultPort: number,
-    command: {
-        name: string,
-        args: string[],
-    },
+};
+
+export type ServerConfiguration = ServerInfo & {
+    command: Command,
 };
 
 export type ServerFactory = {
@@ -18,37 +19,40 @@ export type ServerFactory = {
 };
 
 export interface ServerCommandParser {
-    parse(script: string, command: string): Promise<ServerConfiguration|null>;
+    parse(command: string): ServerInfo|null;
 }
 
 export type Configuration = {
-    scriptProvider: ParameterlessProvider<Record<string, string>>,
     factory: ServerFactory,
+    packageManager: PackageManager,
     parsers: ServerCommandParser[],
 };
 
-export class ProjectServerProvider implements ParameterlessProvider<Server> {
-    private readonly factory: ServerFactory;
-
-    private readonly scriptProvider: ParameterlessProvider<Record<string, string>>;
+export class ProjectServerProvider implements Provider<Server> {
+    private readonly packageManager: PackageManager;
 
     private readonly parsers: ServerCommandParser[];
 
-    public constructor({factory, scriptProvider, parsers}: Configuration) {
-        this.factory = factory;
-        this.scriptProvider = scriptProvider;
+    private readonly factory: ServerFactory;
+
+    public constructor({packageManager, parsers, factory}: Configuration) {
+        this.packageManager = packageManager;
         this.parsers = parsers;
+        this.factory = factory;
     }
 
     public async get(): Promise<Server> {
-        const scripts = await this.scriptProvider.get();
+        const scripts = await this.packageManager.getScripts();
 
-        for (const [name, command] of Object.entries(scripts)) {
+        for (const [script, command] of Object.entries(scripts)) {
             for (const parser of this.parsers) {
-                const configuration = await parser.parse(name, command);
+                const info = parser.parse(command);
 
-                if (configuration !== null) {
-                    return this.factory.create(configuration);
+                if (info !== null) {
+                    return this.factory.create({
+                        ...info,
+                        command: await this.packageManager.getScriptCommand(script),
+                    });
                 }
             }
         }

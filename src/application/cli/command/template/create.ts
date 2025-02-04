@@ -73,7 +73,6 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
 
         return {
             title: (await io.input?.prompt({message: 'Enter template title'})) ?? 'My template',
-            description: (await io.input?.prompt({message: 'Enter template description'})) ?? '',
             actions: [
                 {
                     name: 'create-resource',

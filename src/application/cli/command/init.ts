@@ -2,7 +2,7 @@ import {Command} from '@/application/cli/command/command';
 import {WorkspaceApi} from '@/application/api/workspace';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
-import {Sdk, SdkResolver} from '@/application/project/sdk/sdk';
+import {Sdk} from '@/application/project/sdk/sdk';
 import {Configuration, ResolvedConfiguration} from '@/application/project/configuration/configuration';
 import {OrganizationOptions} from '@/application/cli/form/organization/organizationForm';
 import {ApplicationOptions} from '@/application/cli/form/application/applicationForm';
@@ -14,8 +14,10 @@ import {OrganizationApi} from '@/application/api/organization';
 import {ApiError} from '@/application/api/error';
 import {Organization} from '@/application/model/organization';
 import {Workspace} from '@/application/model/workspace';
-import {Application, ApplicationEnvironment, ApplicationPlatform} from '@/application/model/application';
-import {HelpfulError, ErrorReason} from '@/application/error';
+import {Application, ApplicationEnvironment} from '@/application/model/application';
+import {ErrorReason, HelpfulError} from '@/application/error';
+import {Platform} from '@/application/model/platform';
+import {Provider} from '@/application/provider/provider';
 
 export type Resource = 'organization' | 'workspace' | 'application';
 
@@ -30,7 +32,8 @@ export type InitInput = {
 };
 
 export type InitConfig = {
-    sdkResolver: SdkResolver,
+    sdkProvider: Provider<Sdk|null>,
+    platformProvider: Provider<Platform|null>,
     configurationManager: ConfigurationManager,
     form: {
         organization: Form<Organization, OrganizationOptions>,
@@ -56,7 +59,7 @@ export class InitCommand implements Command<InitInput> {
     }
 
     public async execute(input: InitInput): Promise<void> {
-        const {configurationManager, io: {output}} = this.config;
+        const {configurationManager, platformProvider, sdkProvider, io: {output}} = this.config;
         const currentConfiguration = await configurationManager.load();
 
         if (currentConfiguration !== null && input.override !== true) {
@@ -65,14 +68,14 @@ export class InitCommand implements Command<InitInput> {
             });
         }
 
-        const {sdkResolver} = this.config;
+        const platform = await platformProvider.get();
+        const projectName = platform !== null
+            ? `${Platform.getName(platform)} project`
+            : 'project';
 
         output.log('Welcome to **Croct CLI**!');
+        output.log(`Let's configure your ${projectName} to get started.`);
 
-        const sdk = await sdkResolver.resolve(input.sdk);
-        const platform = ApplicationPlatform.getName(sdk.getPlatform());
-
-        output.log(`Let's configure your ${platform} project to get started.`);
         output.break();
 
         const organization = await this.getOrganization(
@@ -97,7 +100,7 @@ export class InitCommand implements Command<InitInput> {
         const applicationOptions: Omit<ApplicationOptions, 'environment'> = {
             organization: organization,
             workspace: workspace,
-            platform: sdk.getPlatform(),
+            platform: platform ?? Platform.JAVASCRIPT,
             new: input.new === 'application',
         };
 
@@ -134,21 +137,39 @@ export class InitCommand implements Command<InitInput> {
             };
         }
 
+        const updatedConfiguration: Configuration = {
+            organization: organization.slug,
+            workspace: workspace.slug,
+            applications: {
+                development: applicationIds.development,
+                production: applicationIds.production,
+            },
+            defaultLocale: workspace.defaultLocale,
+            locales: workspace.locales,
+            slots: {},
+            components: {},
+            paths: {
+                components: 'components',
+                examples: 'examples',
+            },
+        };
+
+        const sdk = await sdkProvider.get();
+
+        if (sdk === null) {
+            await configurationManager.update(updatedConfiguration);
+
+            output.warn('No suitable SDK found, skipping project configuration');
+
+            return;
+        }
+
         await configurationManager.update(
             await this.configure(sdk, {
-                organization: organization.slug,
+                ...updatedConfiguration,
                 organizationId: organization.id,
-                workspace: workspace.slug,
                 workspaceId: workspace.id,
                 applications: applicationIds,
-                defaultLocale: workspace.defaultLocale,
-                locales: workspace.locales,
-                slots: {},
-                components: {},
-                paths: {
-                    components: '',
-                    examples: '',
-                },
             }),
         );
     }

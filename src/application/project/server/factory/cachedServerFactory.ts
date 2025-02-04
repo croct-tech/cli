@@ -1,4 +1,4 @@
-import {ServerConfiguration, ServerFactory} from '@/application/project/server/provider/projectServerProvider';
+import {ServerFactory, ServerConfiguration} from '@/application/project/server/provider/projectServerProvider';
 import {Server} from '@/application/project/server/server';
 
 export class CachedServerFactory implements ServerFactory {
@@ -25,12 +25,15 @@ export class CachedServerFactory implements ServerFactory {
         return server;
     }
 
-    private static getServerId(configuration: ServerConfiguration): string {
+    private static getServerId({command, ...configuration}: ServerConfiguration): string {
         const url = new URL(`${configuration.protocol}://${configuration.host}`);
 
         url.port = `${configuration.port ?? configuration.defaultPort}`;
-        url.searchParams.set('command', configuration.command.name);
-        url.searchParams.set('args', configuration.command.args.join(','));
+        url.searchParams.set('command', command.name);
+
+        if (command.arguments !== undefined && command.arguments.length > 0) {
+            url.searchParams.set('args', command.arguments.join(','));
+        }
 
         return url.toString();
     }

@@ -5,6 +5,7 @@ import {ErrorReason, HelpfulError} from '@/application/error';
 import {Resource, ResourceNotFoundError, ResourceProvider} from '@/application/provider/resourceProvider';
 import {VariableMap} from '@/application/template/evaluation';
 import {DeferredOptionDefinition, DeferredTemplate} from '@/application/template/template';
+import {Deferrable} from '@/application/template/deferral';
 
 export type ImportOptions = {
     template: string,
@@ -97,11 +98,13 @@ export class ImportAction implements Action<ImportOptions> {
         const {runner, variables} = this.config;
         const {output} = context;
 
-        for (const {name, resolve} of template.actions) {
+        for (const {resolve} of template.actions) {
             const notifier = output.notify('Resolving options');
 
+            let action: Deferrable<JsonValue>;
+
             try {
-                const action = await resolve({
+                action = await resolve({
                     ...variables,
                     options: options,
                     get this() {
@@ -110,11 +113,17 @@ export class ImportAction implements Action<ImportOptions> {
                         return context.getVariables();
                     },
                 });
+            } catch (error) {
+                throw ActionError.fromCause('Unable to resolve action definition.');
+            }
 
+            try {
                 notifier.stop();
 
                 await runner.execute({actions: [action]}, context);
             } catch (error) {
+                const name = await ImportAction.getActionName(action);
+
                 throw ActionError.fromCause(error, {
                     details: [
                         `Action: \`${name}\` from ${context.baseUrl}`,
@@ -182,15 +191,15 @@ export class ImportAction implements Action<ImportOptions> {
 
                 if (
                     definition.type === 'string'
-                    && definition.choices !== undefined
-                    && !definition.choices.includes(value as string)
+                    && definition.options !== undefined
+                    && !definition.options.includes(value as string)
                 ) {
                     throw new ActionError(
                         `Invalid value for option \`${name}\`.`,
                         {
                             reason: ErrorReason.INVALID_INPUT,
                             details: [
-                                `Allowed values: \`${definition.choices.join('`, `')}\`.`,
+                                `Allowed values: \`${definition.options.join('`, `')}\`.`,
                             ],
                         },
                     );
@@ -227,6 +236,18 @@ export class ImportAction implements Action<ImportOptions> {
                 break;
             }
         }
+    }
+
+    private static async getActionName(action: Deferrable<JsonValue>): Promise<string> {
+        if (typeof action === 'object' && action !== null && 'name' in action) {
+            const name = await action.name;
+
+            if (typeof name === 'string') {
+                return name;
+            }
+        }
+
+        return 'unknown';
     }
 
     private static getType(value: unknown): string {

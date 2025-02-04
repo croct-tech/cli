@@ -21,7 +21,7 @@ export class ResourceNotFoundError extends ResourceProviderError {
     public constructor(message: string, help: ResourceHelp) {
         super(message, {
             ...help,
-            reason: help.reason ?? ErrorReason.INVALID_INPUT,
+            reason: help.reason ?? ErrorReason.NOT_FOUND,
         });
 
         Object.setPrototypeOf(this, ResourceNotFoundError.prototype);
@@ -33,7 +33,7 @@ export type Resource<T> = {
     value: T,
 };
 
-export interface ResourceProvider<T> extends Provider<[URL], Resource<T>> {
+export interface ResourceProvider<T> extends Provider<Resource<T>, [URL]> {
     supports(url: URL): boolean;
 
     get(url: URL): Promise<Resource<T>>;

@@ -8,6 +8,9 @@ export enum ErrorReason {
     INVALID_CONFIGURATION = 'invalid_configuration',
     ACCESS_DENIED = 'access_denied',
     INVALID_INPUT = 'invalid_input',
+    NOT_FOUND = 'not_found',
+    NOT_SUPPORTED = 'not_supported',
+    UNEXPECTED_RESULT = 'unexpected_result',
     OTHER = 'other',
 }
 

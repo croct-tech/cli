@@ -1,12 +1,12 @@
 import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
-import {Installation, SdkResolver} from '@/application/project/sdk/sdk';
+import {Installation, Sdk} from '@/application/project/sdk/sdk';
 import {Form} from '@/application/cli/form/form';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {Configuration as ProjectConfiguration} from '@/application/project/configuration/configuration';
-import {Version} from '@/application/project/version';
+import {Version} from '@/application/model/version';
 import {Component} from '@/application/model/component';
 import {HelpfulError, ErrorReason} from '@/application/error';
 
@@ -15,7 +15,7 @@ export type AddComponentInput = {
 };
 
 export type AddComponentConfig = {
-    sdkResolver: SdkResolver,
+    sdk: Sdk,
     configurationManager: ConfigurationManager,
     componentForm: Form<Component[], ComponentOptions>,
     io: {
@@ -34,10 +34,9 @@ export class AddComponentCommand implements Command<AddComponentInput> {
     }
 
     public async execute(input: AddComponentInput): Promise<void> {
-        const {sdkResolver, configurationManager, io} = this.config;
+        const {sdk, configurationManager, io} = this.config;
         const {output} = io;
 
-        const sdk = await sdkResolver.resolve();
         const configuration = await configurationManager.resolve();
         const components = await this.getComponents(configuration, input);
 

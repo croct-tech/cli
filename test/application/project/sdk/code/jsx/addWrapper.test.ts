@@ -1,9 +1,9 @@
 import {resolve} from 'path';
 import {addComment, File} from '@babel/types';
-import {AddWrapper, WrapperConfiguration} from '@/application/project/sdk/code/jsx/addWrapper';
+import {AddWrapper, WrapperConfiguration} from '@/application/project/code/codemod/jsx/addWrapper';
 import {loadFixtures} from '../fixtures';
-import {ParseCode} from '@/application/project/sdk/code/parseCode';
-import {Codemod} from '@/application/project/sdk/code/codemod';
+import {ParseCode} from '@/application/project/code/codemod/parseCode';
+import {Codemod} from '@/application/project/code/codemod/codemod';
 
 describe('AddWrapper', () => {
     const defaultOptions: WrapperConfiguration = {

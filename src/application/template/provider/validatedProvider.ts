@@ -1,5 +1,6 @@
 import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resourceProvider';
 import {Validator} from '@/application/validation';
+import {ErrorReason} from '@/application/error';
 
 export type Configuration<I, R> = {
     provider: ResourceProvider<R>,
@@ -30,6 +31,7 @@ export class ValidatedProvider<I, R> implements ResourceProvider<I> {
                 .join('\n\n');
 
             throw new ResourceProviderError(`The response data is invalid:\n\n${violations}`, {
+                reason: ErrorReason.INVALID_INPUT,
                 url: url,
             });
         }

@@ -1,17 +1,17 @@
 import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
-import {SdkResolver} from '@/application/project/sdk/sdk';
 import {Form} from '@/application/cli/form/form';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {Slot} from '@/application/model/slot';
 import {HelpfulError, ErrorReason} from '@/application/error';
+import {Sdk} from '@/application/project/sdk/sdk';
 
 export type InstallInput = Record<string, never>;
 
 export type InstallConfig = {
-    sdkResolver: SdkResolver,
+    sdk: Sdk,
     configurationManager: ConfigurationManager,
     slotForm: Form<Slot[], SlotOptions>,
     io: {
@@ -21,16 +21,16 @@ export type InstallConfig = {
 };
 
 export class InstallCommand implements Command<InstallInput> {
-    private readonly config: InstallConfig;
+    private readonly configuration: InstallConfig;
 
     public constructor(config: InstallConfig) {
-        this.config = config;
+        this.configuration = config;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Keep the same signature as the interface
     public async execute(_: InstallInput): Promise<void> {
-        const {sdkResolver, configurationManager, slotForm, io} = this.config;
-        const sdk = await sdkResolver.resolve();
+        const {sdk, configurationManager, slotForm, io} = this.configuration;
+
         const configuration = await configurationManager.resolve();
         const listedSlots = Object.keys(configuration.slots);
         const slots = listedSlots.length === 0

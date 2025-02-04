@@ -1,30 +1,33 @@
-import {spawnSync} from 'child_process';
 import {AuthenticationListener, Token} from '@/application/cli/authentication';
+import {SynchronousCommandExecutor} from '@/application/process/executor';
+import {Command} from '@/application/process/command';
 
 type Callback = () => Promise<void>;
 
+export type Configuration = {
+    platform: string,
+    listener: AuthenticationListener,
+    commandExecutor: SynchronousCommandExecutor,
+    timeout?: number,
+};
+
 export class FocusListener implements AuthenticationListener {
-    private readonly platform: string;
+    private readonly configuration: Configuration;
 
-    private readonly listener: AuthenticationListener;
-
-    public constructor(listener: AuthenticationListener, platform: string) {
-        this.platform = platform;
-        this.listener = listener;
+    public constructor(configuration: Configuration) {
+        this.configuration = configuration;
     }
 
     public wait(sessionId: string): Promise<Token> {
+        const {listener} = this.configuration;
+
         return new Promise((resolve, reject) => {
-            this.focus(
-                () => this.listener
-                    .wait(sessionId)
-                    .then(resolve, reject),
-            );
+            this.focus(() => listener.wait(sessionId).then(resolve, reject));
         });
     }
 
     private focus(callback: Callback): Promise<void> {
-        switch (this.platform) {
+        switch (this.configuration.platform) {
             case 'darwin':
                 return this.darwinFocus(callback);
 
@@ -40,26 +43,34 @@ export class FocusListener implements AuthenticationListener {
     }
 
     private async darwinFocus(callback: () => Promise<void>): Promise<void> {
-        const name = this.runCommand(
-            'osascript',
-            '-e',
-            'bundle identifier of (info for (path to frontmost application))',
-        );
+        const name = this.runCommand({
+            name: 'osascript',
+            arguments: ['-e', 'bundle identifier of (info for (path to frontmost application))'],
+        });
 
         await callback();
 
         if (name !== null) {
-            this.runCommand('open', '-b', name);
+            this.runCommand({
+                name: 'open',
+                arguments: ['-b', name],
+            });
         }
     }
 
     private async linuxFocus(callback: Callback): Promise<void> {
-        const activeWindow = this.runCommand('xdotool', 'getactivewindow');
+        const activeWindow = this.runCommand({
+            name: 'xdotool',
+            arguments: ['getactivewindow'],
+        });
 
         await callback();
 
         if (activeWindow !== null) {
-            this.runCommand('xdotool', 'windowactivate', activeWindow);
+            this.runCommand({
+                name: 'xdotool',
+                arguments: ['windowactivate', activeWindow],
+            });
         }
     }
 
@@ -81,7 +92,10 @@ export class FocusListener implements AuthenticationListener {
 
         const handleCommand = [...type, '[Window]::GetForegroundWindow()'].join('\n');
 
-        const handle = this.runCommand('powershell', '-Command', `& {${handleCommand}}`);
+        const handle = this.runCommand({
+            name: 'powershell',
+            arguments: ['-Command', `& {${handleCommand}}`],
+        });
 
         await callback();
 
@@ -92,24 +106,26 @@ export class FocusListener implements AuthenticationListener {
                 `[Window]::ShowWindow(${handle}, 9)`,
             ].join('\n');
 
-            this.runCommand('powershell', '-Command', `& {${focusCommand}}`);
+            this.runCommand({
+                name: 'powershell',
+                arguments: ['-Command', `& {${focusCommand}}`],
+            });
         }
     }
 
-    private runCommand(command: string, ...args: string[]): string|null {
+    private runCommand(command: Command): string|null {
+        const {commandExecutor, timeout} = this.configuration;
+
         try {
-            const result = spawnSync(command, args, {
-                timeout: 5000,
-                stdio: ['ignore', 'pipe', 'pipe'],
+            const result = commandExecutor.runSync(command, {
+                timeout: timeout,
             });
 
-            if (result.error !== undefined || result.status !== 0) {
+            if (result.exitCode !== 0) {
                 return null;
             }
 
-            return result.stdout
-                .toString()
-                .trim();
+            return result.output.trim();
         } catch {
             return null;
         }

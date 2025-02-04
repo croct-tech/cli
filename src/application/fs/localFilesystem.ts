@@ -12,7 +12,6 @@ import {
 } from 'fs/promises';
 import {basename, dirname, isAbsolute, join, relative, sep} from 'path';
 import {createReadStream} from 'fs';
-import {Glob} from 'glob';
 import {Stats} from 'node:fs';
 import {
     CopyOptions,
@@ -24,9 +23,10 @@ import {
     FileSystemIterator,
 } from '@/application/fs/fileSystem';
 import {HelpfulError} from '@/application/error';
+import {WorkingDirectory} from '@/application/fs/workingDirectory';
 
 export type Configuration = {
-    currentDirectory: string,
+    workingDirectory: WorkingDirectory,
     defaultEncoding: BufferEncoding,
 };
 
@@ -220,19 +220,6 @@ export class LocalFilesystem implements FileSystem {
         });
     }
 
-    public async* find(pattern: string): FileSystemIterator {
-        const glob = new Glob(pattern, {
-            cwd: this.config.currentDirectory,
-            platform: process.platform,
-        });
-
-        for await (const file of glob) {
-            const path = this.resolvePath(file);
-
-            yield* this.createEntry(file, path, await this.execute(() => lstat(path)), false);
-        }
-    }
-
     public readTextFile(path: string): Promise<string> {
         return this.execute(() => readFile(this.resolvePath(path), this.config.defaultEncoding));
     }
@@ -264,7 +251,7 @@ export class LocalFilesystem implements FileSystem {
     }
 
     private resolvePath(path: string): string {
-        return isAbsolute(path) ? path : join(this.config.currentDirectory, path);
+        return isAbsolute(path) ? path : join(this.config.workingDirectory.get(), path);
     }
 
     private async execute<T>(action: () => Promise<T>|T): Promise<T> {

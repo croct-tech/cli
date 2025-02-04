@@ -1,21 +1,20 @@
-import {Action} from '@/application/template/action/action';
+import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
-import {Linter} from '@/application/project/linter';
-import {ParameterlessProvider} from '@/application/provider/parameterlessProvider';
+import {CodeFormatter} from '@/application/project/code/formatter/formatter';
 
 export type FormatCodeOptions = {
     files: string[],
 };
 
 export type Configuration = {
-    linterProvider: ParameterlessProvider<Linter>,
+    formatter: CodeFormatter,
 };
 
 export class FormatCodeAction implements Action<FormatCodeOptions> {
-    private readonly linterProvider: ParameterlessProvider<Linter>;
+    private readonly formatter: CodeFormatter;
 
-    public constructor({linterProvider}: Configuration) {
-        this.linterProvider = linterProvider;
+    public constructor({formatter}: Configuration) {
+        this.formatter = formatter;
     }
 
     public async execute(options: FormatCodeOptions, context: ActionContext): Promise<void> {
@@ -24,9 +23,9 @@ export class FormatCodeAction implements Action<FormatCodeOptions> {
         const notifier = output.notify('Formatting code');
 
         try {
-            const linter = await this.linterProvider.get();
-
-            await linter.fix(options.files);
+            await this.formatter.format(options.files);
+        } catch (error) {
+            throw ActionError.fromCause(error);
         } finally {
             notifier.stop();
         }

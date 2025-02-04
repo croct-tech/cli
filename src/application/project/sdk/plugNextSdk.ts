@@ -1,29 +1,24 @@
-import {Installation, Sdk, SdkResolver} from '@/application/project/sdk/sdk';
-import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
+import {Installation, SdkError} from '@/application/project/sdk/sdk';
+import {
+    InstallationPlan,
+    JavaScriptSdk,
+    Configuration as JavaScriptSdkConfiguration,
+} from '@/application/project/sdk/javasScriptSdk';
 import {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
 import {WorkspaceApi} from '@/application/api/workspace';
-import {EnvFile} from '@/application/project/envFile';
+import {EnvFile} from '@/application/project/code/envFile';
 import {UserApi} from '@/application/api/user';
-import {NextConfig, parseConfig} from '@/application/project/sdk/code/nextjs/parseConfig';
-import {Codemod, CodemodOptions} from '@/application/project/sdk/code/codemod';
+import {NextConfig, parseConfig} from '@/application/project/code/codemod/nextjs/parseConfig';
+import {Codemod, CodemodOptions} from '@/application/project/code/codemod/codemod';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
-import type {LayoutComponentOptions} from '@/application/project/sdk/code/nextjs/createLayoutComponent';
-import type {AppComponentOptions} from '@/application/project/sdk/code/nextjs/createAppComponent';
+import type {LayoutComponentOptions} from '@/application/project/code/codemod/nextjs/createLayoutComponent';
+import type {AppComponentOptions} from '@/application/project/code/codemod/nextjs/createAppComponent';
 import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {NextExampleRouter, PlugNextExampleGenerator} from '@/application/project/example/slot/plugNextExampleGenerator';
-import {Linter} from '@/application/project/linter';
 import {ApiError} from '@/application/api/error';
-import {FileSystem} from '@/application/fs/fileSystem';
-import {JavaScriptProjectManager} from '@/application/project/manager/javaScriptProjectManager';
-import {ApplicationPlatform} from '@/application/model/application';
 import {Slot} from '@/application/model/slot';
 import {HelpfulError} from '@/application/error';
-
-type ApiConfiguration = {
-    user: UserApi,
-    workspace: WorkspaceApi,
-    application: ApplicationApi,
-};
+import {ImportResolver} from '@/application/project/import/importResolver';
 
 type CodemodConfiguration = {
     middleware: Codemod<string>,
@@ -31,12 +26,12 @@ type CodemodConfiguration = {
     pageRouterProvider: Codemod<string, AppComponentOptions>,
 };
 
-export type Configuration = {
-    projectManager: JavaScriptProjectManager,
-    fileSystem: FileSystem,
-    api: ApiConfiguration,
-    linter: Linter,
+export type Configuration = JavaScriptSdkConfiguration & {
     codemod: CodemodConfiguration,
+    importResolver: ImportResolver,
+    userApi: UserApi,
+    workspaceApi: WorkspaceApi,
+    applicationApi: ApplicationApi,
 };
 
 type NextRouter = 'app' | 'page';
@@ -46,9 +41,6 @@ type NextProjectInfo = {
     router: NextRouter,
     sourceDirectory: string,
     pageDirectory: string,
-    sdk: {
-        package: string,
-    },
     middleware: {
         file: string,
     },
@@ -72,34 +64,31 @@ enum NextEnvVar {
     APP_ID = 'NEXT_PUBLIC_CROCT_APP_ID',
 }
 
-export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> {
-    private readonly api: ApiConfiguration;
+export class PlugNextSdk extends JavaScriptSdk {
+    private readonly userApi: UserApi;
+
+    private readonly applicationApi: ApplicationApi;
 
     private readonly codemod: CodemodConfiguration;
 
-    public constructor(config: Configuration) {
-        super({
-            projectManager: config.projectManager,
-            fileSystem: config.fileSystem,
-            linter: config.linter,
-            workspaceApi: config.api.workspace,
-        });
+    private readonly importResolver: ImportResolver;
 
-        this.api = config.api;
-        this.codemod = config.codemod;
+    public constructor(configuration: Configuration) {
+        super(configuration);
+
+        this.codemod = configuration.codemod;
+        this.importResolver = configuration.importResolver;
+        this.userApi = configuration.userApi;
+        this.applicationApi = configuration.applicationApi;
     }
 
-    public getPackage(): string {
+    protected getPackage(): string {
         return '@croct/plug-next';
-    }
-
-    public getPlatform(): ApplicationPlatform {
-        return ApplicationPlatform.NEXT;
     }
 
     protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
         const router = await this.detectRouter();
-        const componentsImportPath = await this.projectManager.getImportPath(
+        const componentsImportPath = await this.importResolver.getImportPath(
             installation.configuration.paths.components,
             installation.configuration.paths.examples,
         );
@@ -108,7 +97,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
             fileSystem: this.fileSystem,
             options: {
                 router: router === 'page' ? NextExampleRouter.PAGE : NextExampleRouter.APP,
-                language: await this.projectManager.isTypeScriptProject()
+                language: await this.isTypeScriptProject()
                     ? CodeLanguage.TYPESCRIPT_XML
                     : CodeLanguage.JAVASCRIPT_XML,
                 code: {
@@ -144,19 +133,6 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
         return example.files;
     }
 
-    public async resolve(hint?: string): Promise<Sdk | null> {
-        if (hint !== undefined) {
-            return Promise.resolve(hint.toLowerCase() === this.getPlatform().toLowerCase() ? this : null);
-        }
-
-        const hints = await Promise.all([
-            this.projectManager.isPackageListed(this.getPackage()),
-            this.projectManager.isPackageListed('next'),
-        ]);
-
-        return hints.some(Boolean) ? this : null;
-    }
-
     protected async getInstallationPlan(installation: Installation): Promise<InstallationPlan> {
         const {configuration} = installation;
         const [{i18n}, projectInfo] = await Promise.all([this.getConfig(), this.getProjectInfo()]);
@@ -187,7 +163,7 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
 
     private async getProjectInfo(): Promise<NextProjectInfo> {
         const [isTypescript, directory] = await Promise.all([
-            this.projectManager.isTypeScriptProject(),
+            this.isTypeScriptProject(),
             this.getPageDirectory(),
         ]);
 
@@ -198,37 +174,34 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
             pageDirectory: directory,
         };
 
-        const sdkPackage = this.getPackage();
         const [middlewareFile, providerComponentFile] = await Promise.all([
-            this.projectManager.locateFile(
+            this.locateFile(
                 ...['middleware.js', 'middleware.ts']
                     .map(file => this.fileSystem.joinPaths(project.sourceDirectory, file)),
             ),
-            this.projectManager.locateFile(
+            this.locateFile(
                 ...(project.router === 'app' ? ['app/layout.jsx', 'app/layout.tsx'] : ['_app.jsx', '_app.tsx'])
                     .map(file => this.fileSystem.joinPaths(project.sourceDirectory, file)),
             ),
         ]);
 
         const extension = project.typescript ? 'ts' : 'js';
+        const projectDirectory = this.projectDirectory.get();
 
         return {
             ...project,
-            sdk: {
-                package: sdkPackage,
-            },
             env: {
                 localFile: new EnvFile(
                     this.fileSystem,
-                    this.fileSystem.joinPaths(this.projectManager.getRootPath(), '.env.local'),
+                    this.fileSystem.joinPaths(projectDirectory, '.env.local'),
                 ),
                 developmentFile: new EnvFile(
                     this.fileSystem,
-                    this.fileSystem.joinPaths(this.projectManager.getRootPath(), '.env.development'),
+                    this.fileSystem.joinPaths(projectDirectory, '.env.development'),
                 ),
                 productionFile: new EnvFile(
                     this.fileSystem,
-                    this.fileSystem.joinPaths(this.projectManager.getRootPath(), '.env.production'),
+                    this.fileSystem.joinPaths(projectDirectory, '.env.production'),
                 ),
             },
             middleware: {
@@ -313,25 +286,23 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
         path: string,
         options?: O,
     ): Promise<void> {
-        await codemod.apply(this.fileSystem.joinPaths(this.projectManager.getRootPath(), path), options);
+        await codemod.apply(this.fileSystem.joinPaths(this.projectDirectory.get(), path), options);
     }
 
     private async updateEnvVariables(installation: NextInstallation): Promise<void> {
         const {project: {env: plan}, configuration: {applications}, notifier} = installation;
 
-        const {api} = this;
-
         if (!await plan.localFile.hasVariable(NextEnvVar.API_KEY)) {
             notifier.update('Loading information');
 
-            const user = await api.user.getUser();
+            const user = await this.userApi.getUser();
 
             notifier.update('Creating API key');
 
             let apiKey: GeneratedApiKey;
 
             try {
-                apiKey = await api.application.createApiKey({
+                apiKey = await this.applicationApi.createApiKey({
                     name: `${user.username} CLI`,
                     applicationId: applications.developmentId,
                     permissions: {
@@ -339,10 +310,12 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
                     },
                 });
             } catch (error) {
-                if (error instanceof ApiError && error.isAccessDenied()) {
-                    throw new ApiError(
-                        'Your user does not have permission to create an API key',
-                        error.problems,
+                if (error instanceof HelpfulError) {
+                    throw new SdkError(
+                        error instanceof ApiError && error.isAccessDenied()
+                            ? 'Your user does not have permission to create an API key'
+                            : error.message,
+                        error.help,
                     );
                 }
 
@@ -370,17 +343,13 @@ export class PlugNextSdk extends JavaScriptSdk implements SdkResolver<Sdk|null> 
         return (directory ?? await this.getPageDirectory()).endsWith('pages') ? 'page' : 'app';
     }
 
-    private getPageDirectory(): Promise<string> {
-        return this.projectManager
-            .locateFile('app', 'src/app', 'pages', 'src/pages')
-            .then(path => path ?? 'app');
+    private async getPageDirectory(): Promise<string> {
+        return (await this.locateFile('app', 'src/app', 'pages', 'src/pages')) ?? 'app';
     }
 
     private async getConfig(): Promise<NextConfig> {
         const searchPaths = ['js', 'mjs', 'ts', 'mts'].map(ext => `next.config.${ext}`);
-        const config = await this.projectManager
-            .readFile(...searchPaths)
-            .catch(() => null);
+        const config = await this.readFile(...searchPaths).catch(() => null);
 
         if (config === null) {
             return {

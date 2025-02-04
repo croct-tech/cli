@@ -1,4 +1,4 @@
-import {ExportMatcher, hasReexport} from '@/application/project/sdk/code/javascript/hasReexport';
+import {ExportMatcher, hasReexport} from '@/application/project/code/codemod/javascript/hasReexport';
 
 describe('hasReexport', () => {
     type Scenario = {

@@ -1,7 +1,6 @@
 import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
-import {SdkResolver} from '@/application/project/sdk/sdk';
 import {Form} from '@/application/cli/form/form';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
@@ -10,10 +9,11 @@ import {
     ResolvedConfiguration,
 } from '@/application/project/configuration/configuration';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
-import {Version} from '@/application/project/version';
+import {Version} from '@/application/model/version';
 import {Slot} from '@/application/model/slot';
 import {Component} from '@/application/model/component';
 import {HelpfulError, ErrorReason} from '@/application/error';
+import {Sdk} from '@/application/project/sdk/sdk';
 
 export type UpgradeInput = {
     slots?: string[],
@@ -21,7 +21,7 @@ export type UpgradeInput = {
 };
 
 export type UpgradeConfig = {
-    sdkResolver: SdkResolver,
+    sdk: Sdk,
     configurationManager: ConfigurationManager,
     form: {
         slotForm: Form<Slot[], SlotOptions>,
@@ -41,8 +41,7 @@ export class UpgradeCommand implements Command<UpgradeInput> {
     }
 
     public async execute(input: UpgradeInput): Promise<void> {
-        const {sdkResolver, configurationManager, io} = this.config;
-        const sdk = await sdkResolver.resolve();
+        const {sdk, configurationManager, io} = this.config;
         const configuration = await configurationManager.resolve();
 
         const slots = await this.selectSlots(configuration, input.slots);

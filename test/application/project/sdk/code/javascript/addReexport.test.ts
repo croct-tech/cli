@@ -1,8 +1,8 @@
 import generate from '@babel/generator';
 import {cloneNode, File, isNodesEquivalent} from '@babel/types';
 import traverse from '@babel/traverse';
-import {parse} from '@/application/project/sdk/code/parser';
-import {addReexport, ExportDeclaration} from '@/application/project/sdk/code/javascript/addReexport';
+import {parse} from '@/application/project/code/codemod/parser';
+import {addReexport, ExportDeclaration} from '@/application/project/code/codemod/javascript/addReexport';
 
 describe('addReexport', () => {
     type Scenario = {

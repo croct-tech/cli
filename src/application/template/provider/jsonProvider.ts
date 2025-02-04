@@ -1,6 +1,7 @@
 import {JsonValue} from '@croct/json';
 import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resourceProvider';
 import {JsonParser} from '@/infrastructure/json';
+import {ErrorReason} from '@/application/error';
 
 export class JsonProvider implements ResourceProvider<JsonValue> {
     private readonly provider: ResourceProvider<string>;
@@ -23,6 +24,7 @@ export class JsonProvider implements ResourceProvider<JsonValue> {
             };
         } catch (error) {
             throw new ResourceProviderError('Malformed JSON.', {
+                reason: ErrorReason.PRECONDITION,
                 url: url,
                 cause: error,
             });

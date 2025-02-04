@@ -146,10 +146,13 @@ export class ConsoleOutput implements Output {
         }
 
         const titles: Record<ErrorReason, string> = {
-            [ErrorReason.INVALID_INPUT]: 'Invalid input',
-            [ErrorReason.INVALID_CONFIGURATION]: 'Invalid configuration',
-            [ErrorReason.PRECONDITION]: 'Precondition failed',
             [ErrorReason.ACCESS_DENIED]: 'Access denied',
+            [ErrorReason.INVALID_CONFIGURATION]: 'Invalid configuration',
+            [ErrorReason.INVALID_INPUT]: 'Invalid input',
+            [ErrorReason.NOT_FOUND]: 'Not found',
+            [ErrorReason.NOT_SUPPORTED]: 'Not supported',
+            [ErrorReason.PRECONDITION]: 'Precondition failed',
+            [ErrorReason.UNEXPECTED_RESULT]: 'Unexpected result',
             [ErrorReason.OTHER]: 'Error',
         };
 

@@ -4,6 +4,7 @@ import {Readable} from 'stream';
 import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resourceProvider';
 import {HttpProvider, SuccessResponse} from '@/application/template/provider/httpProvider';
 import {FileSystemIterator} from '@/application/fs/fileSystem';
+import {ErrorReason} from '@/application/error';
 
 type ParsedUrl = {
     username: string,
@@ -41,7 +42,10 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
         const file = this.resolveFile(url);
 
         if (file === null) {
-            throw new ResourceProviderError('Unsupported GitHub URL.', {url: url});
+            throw new ResourceProviderError('Unsupported GitHub URL.', {
+                reason: ErrorReason.NOT_SUPPORTED,
+                url: url,
+            });
         }
 
         const {value: response} = await this.provider.get(file.url);

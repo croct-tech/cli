@@ -108,8 +108,7 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
                 ...metadata,
                 ...(resolvedOptions !== undefined ? {options: resolvedOptions} : {}),
                 actions: actionsNode.elements.map(
-                    (definition, index) => ({
-                        name: actions[index].name,
+                    definition => ({
                         resolve: variables => this.resolve(definition, variables, resolvedUrl),
                     }),
                 ),
