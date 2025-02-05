@@ -14,11 +14,11 @@ export class TransformFile<O extends CodemodOptions> implements Codemod<string, 
     public async apply(input: string, options?: O): Promise<ResultCode<string>> {
         let source = '';
 
-        try {
-            source = await this.fileSystem.readTextFile(input);
-        } catch (error) {
-            if (error.code !== 'ENOENT') {
-                throw new CodemodError('Failed to read file', {
+        if (await this.fileSystem.exists(input)) {
+            try {
+                source = await this.fileSystem.readTextFile(input);
+            } catch (error) {
+                throw new CodemodError('Failed to read file.', {
                     cause: error,
                     details: [
                         `File: ${input}`,

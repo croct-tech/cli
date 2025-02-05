@@ -7,6 +7,7 @@ import {WorkingDirectory} from '@/application/fs/workingDirectory';
 import {PackageManager} from '@/application/project/packageManager/packageManager';
 import {Provider} from '@/application/provider/provider';
 import {CommandExecutor} from '@/application/process/executor';
+import {Predicate} from '@/application/predicate/predicate';
 
 export type Interactions = {
     when: string,
@@ -22,6 +23,7 @@ export type ExecutePackageOptions = {
 };
 
 export type Configuration = {
+    sourceChecker: Predicate<[URL]>,
     packageManager: PackageManager,
     packageManagerProvider: Provider<PackageManager, [string]>,
     workingDirectory: WorkingDirectory,
@@ -48,30 +50,33 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
 
     public async execute(options: ExecutePackageOptions, context: ActionContext): Promise<void> {
         const {input, output} = context;
-
-        if (input === undefined) {
-            throw new ActionError('Action requires explicit user confirmation.', {
-                reason: ErrorReason.PRECONDITION,
-                details: [
-                    'Retry in interactive mode.',
-                ],
-            });
-        }
+        const {sourceChecker} = this.configuration;
 
         const packageManager = await this.getPackageManager(options.runner);
         const command = await packageManager.getPackageCommand(options.package, options.arguments);
 
         const fullCommand = [command.name, ...(command.arguments ?? [])].join(' ');
 
-        output.warn(`This template will run the command \`${fullCommand}\``);
+        if (!await sourceChecker.test(context.baseUrl)) {
+            if (input === undefined) {
+                throw new ActionError('Action requires explicit user confirmation.', {
+                    reason: ErrorReason.PRECONDITION,
+                    details: [
+                        'Retry in interactive mode.',
+                    ],
+                });
+            }
 
-        if (!await input.confirm({message: 'Continue?', default: false})) {
-            throw new ActionError('Permission to run command denied.', {
-                reason: ErrorReason.PRECONDITION,
-                details: [
-                    `Command: ${fullCommand}`,
-                ],
-            });
+            output.warn(`This template will run the command \`${fullCommand}\``);
+
+            if (!await input.confirm({message: 'Continue?', default: false})) {
+                throw new ActionError('Permission to run command denied.', {
+                    reason: ErrorReason.PRECONDITION,
+                    details: [
+                        `Command: ${fullCommand}`,
+                    ],
+                });
+            }
         }
 
         const notifier = output.notify(`Running \`${fullCommand}\``);
@@ -108,12 +113,12 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
         let output = '';
 
         for await (const line of execution.output) {
-            const rawText = stripAnsi(line);
+            const lineText = stripAnsi(line);
 
-            output += rawText;
+            output += lineText;
 
             for (const [index, interaction] of nextInteractions.entries()) {
-                if (rawText.includes(interaction.when)) {
+                if (lineText.includes(interaction.when)) {
                     if (interaction.once === true) {
                         nextInteractions.splice(index, 1);
                     }
@@ -127,9 +132,19 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
             }
         }
 
-        if (await execution.wait() !== 0) {
+        let exitCode = -1;
+        let executionError: any;
+
+        try {
+            exitCode = await execution.wait();
+        } catch (error) {
+            executionError = error;
+        }
+
+        if (exitCode !== 0) {
             throw new ActionError(`Command failed with output:\n\n${output}`, {
                 reason: ErrorReason.UNEXPECTED_RESULT,
+                cause: executionError,
             });
         }
     }

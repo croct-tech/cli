@@ -1,37 +1,41 @@
 import {
-    mkdir,
-    rm,
-    lstat,
-    realpath,
     cp,
-    readFile,
-    writeFile,
-    readdir,
-    symlink,
     link,
+    lstat,
+    mkdir,
+    readdir,
+    readFile,
+    realpath,
+    rm,
+    symlink,
+    writeFile,
 } from 'fs/promises';
 import {basename, dirname, isAbsolute, join, relative, sep} from 'path';
 import {createReadStream} from 'fs';
 import {Stats} from 'node:fs';
+import {Readable} from 'stream';
 import {
     CopyOptions,
-    DirectoryCreationOptions,
     DeletionOptions,
+    DirectoryCreationOptions,
     FileSystem,
-    FileWritingOptions,
     FileSystemEntry,
+    FileSystemError,
     FileSystemIterator,
+    FileWritingOptions,
 } from '@/application/fs/fileSystem';
-import {HelpfulError} from '@/application/error';
 import {WorkingDirectory} from '@/application/fs/workingDirectory';
+import {ErrorReason} from '@/application/error';
 
 export type Configuration = {
     workingDirectory: WorkingDirectory,
     defaultEncoding: BufferEncoding,
 };
 
+type FileSystemErrorCode = 'ENOENT' | 'EACCES' | 'EISDIR' | 'ENOTDIR' | 'EPERM' | 'EEXIST' | 'ENOTEMPTY';
+
 export class LocalFilesystem implements FileSystem {
-    private static readonly ERRORS = {
+    private static readonly ERRORS: Record<FileSystemErrorCode, string> = {
         ENOENT: 'The file or directory does not exist.',
         EACCES: 'Unable to access the file or directory.',
         EISDIR: 'Expected a file, but the path is a directory.',
@@ -39,6 +43,16 @@ export class LocalFilesystem implements FileSystem {
         EPERM: 'Operation not permitted.',
         EEXIST: 'The file or directory already exists.',
         ENOTEMPTY: 'The directory is not empty.',
+    };
+
+    private static readonly ERROR_REASONS: Partial<Record<FileSystemErrorCode, ErrorReason>> = {
+        ENOENT: ErrorReason.NOT_FOUND,
+        EACCES: ErrorReason.ACCESS_DENIED,
+        EISDIR: ErrorReason.INVALID_INPUT,
+        ENOTDIR: ErrorReason.INVALID_INPUT,
+        EPERM: ErrorReason.ACCESS_DENIED,
+        EEXIST: ErrorReason.INVALID_INPUT,
+        ENOTEMPTY: ErrorReason.INVALID_INPUT,
     };
 
     private readonly config: Configuration;
@@ -166,10 +180,14 @@ export class LocalFilesystem implements FileSystem {
         const name = relative(root, path);
 
         if (stats.isFile()) {
+            const read = (): Readable => this.execute(() => createReadStream(path));
+
             yield {
                 type: 'file',
                 name: name,
-                content: await this.execute(() => createReadStream(path)),
+                get content(): Readable {
+                    return read();
+                },
             };
         } else if (stats.isDirectory()) {
             yield {
@@ -244,7 +262,7 @@ export class LocalFilesystem implements FileSystem {
     public copy(source: string, destination: string, options?: CopyOptions): Promise<void> {
         return this.execute(
             () => cp(this.resolvePath(source), this.resolvePath(destination), {
-                recursive: options?.recursive ?? false,
+                recursive: true,
                 force: options?.overwrite ?? false,
             }),
         );
@@ -254,9 +272,19 @@ export class LocalFilesystem implements FileSystem {
         return isAbsolute(path) ? path : join(this.config.workingDirectory.get(), path);
     }
 
-    private async execute<T>(action: () => Promise<T>|T): Promise<T> {
+    private execute<T>(action: () => Promise<T>): Promise<T>;
+
+    private execute<T>(action: () => T): T;
+
+    private execute<T>(action: () => Promise<T>|T): Promise<T>|T {
         try {
-            return await action();
+            const result = action();
+
+            if (result instanceof Promise) {
+                return result.catch(error => LocalFilesystem.reportError(error));
+            }
+
+            return result;
         } catch (error) {
             LocalFilesystem.reportError(error);
         }
@@ -264,16 +292,22 @@ export class LocalFilesystem implements FileSystem {
 
     private static reportError(error: unknown): never {
         if (error instanceof Error) {
-            for (const [code, message] of Object.entries(LocalFilesystem.ERRORS)) {
+            const entries = Object.entries(LocalFilesystem.ERRORS) as Array<[FileSystemErrorCode, string]>;
+
+            for (const [code, message] of entries) {
                 if (LocalFilesystem.isErrorCode(error, [code])) {
-                    throw new HelpfulError(message, {
+                    throw new FileSystemError(message, {
+                        reason: LocalFilesystem.ERROR_REASONS[code] ?? ErrorReason.OTHER,
                         cause: error,
+                        details: [`Code: ${code}`],
                     });
                 }
             }
         }
 
-        throw error;
+        throw new FileSystemError('An unexpected error occurred.', {
+            cause: error,
+        });
     }
 
     private static isErrorCode(error: unknown, codes: string[]): error is Error {

@@ -519,7 +519,7 @@ export abstract class JavaScriptSdk implements Sdk {
             const realPath = await this.fileSystem.getRealPath(packageInfo.directory);
 
             await this.fileSystem.delete(packageInfo.directory);
-            await this.fileSystem.copy(realPath, packageInfo.directory, {recursive: true});
+            await this.fileSystem.copy(realPath, packageInfo.directory);
         }
 
         return packageInfo;

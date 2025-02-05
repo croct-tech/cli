@@ -10,7 +10,6 @@ import {
     StaleWhileRevalidateCache,
     TimestampedCacheEntry,
 } from '@croct/cache';
-import PLazy from 'p-lazy';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput, ExitCallback} from '@/infrastructure/application/cli/io/consoleOutput';
 import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
@@ -96,7 +95,7 @@ import {ImportTemplateCommand, ImportTemplateInput} from '@/application/cli/comm
 import {DownloadAction} from '@/application/template/action/downloadAction';
 import {ResolveImportAction} from '@/application/template/action/resolveImportAction';
 import {AddDependencyAction} from '@/application/template/action/addDependencyAction';
-import {LocateFileAction} from '@/application/template/action/locateFileAction';
+import {LocateFileAction, PathMatcher} from '@/application/template/action/locateFileAction';
 import {ReplaceFileContentAction} from '@/application/template/action/replaceFileContentAction';
 import {OptionMap} from '@/application/template/template';
 import {AddSlotAction} from '@/application/template/action/addSlotAction';
@@ -232,6 +231,11 @@ import {LazyFormatter} from '@/application/project/code/formatter/lazyFormatter'
 import {LazySdk} from '@/application/project/sdk/lazySdk';
 import {MemoizedProvider} from '@/application/provider/memoizedProvider';
 import {CachedServerFactory} from '@/application/project/server/factory/cachedServerFactory';
+import {MatchesGlob} from '@/application/predicate/matchesGlob';
+import {And} from '@/application/predicate/and';
+import {Not} from '@/application/predicate/not';
+import {MatchesGitignore} from '@/application/predicate/matchesGitignore';
+import {LazyPromise} from '@/infrastructure/promise';
 
 export type Configuration = {
     io: {
@@ -742,7 +746,11 @@ export class Cli {
                         packageManagerProvider: this.getPackageManagerRegistry(),
                         workingDirectory: this.workingDirectory,
                         commandExecutor: new PtyExecutor(),
-                        commandTimeout: 30_000,
+                        commandTimeout: 50 * 1000, // 2 minutes
+                        sourceChecker: {
+                            // @todo: Add safety check to prevent running arbitrary commands
+                            test: (): boolean => true,
+                        },
                     }),
                     validator: new ExecutePackageOptionsValidator(),
                 }),
@@ -775,6 +783,20 @@ export class Cli {
                     action: new LocateFileAction({
                         projectDirectory: this.workingDirectory,
                         fileSystem: fileSystem,
+                        matcherProvider: {
+                            get: async (pattern): Promise<PathMatcher> => {
+                                const gitignore = fileSystem.joinPaths(this.workingDirectory.get(), '.gitignore');
+                                const predicate = MatchesGlob.fromPattern(pattern);
+
+                                if (await fileSystem.exists(gitignore)) {
+                                    const content = await fileSystem.readTextFile(gitignore);
+
+                                    return new And(new Not(MatchesGitignore.fromPatterns(content)), predicate);
+                                }
+
+                                return predicate;
+                            },
+                        },
                     }),
                     validator: new LocateFileOptionsValidator(),
                 }),
@@ -899,7 +921,7 @@ export class Cli {
 
         return {
             project: {
-                organization: PLazy.from(
+                organization: LazyPromise.transient(
                     async () => {
                         const {organization} = await this.getConfigurationManager().resolve();
 
@@ -909,7 +931,7 @@ export class Cli {
                         };
                     },
                 ),
-                workspace: PLazy.from(
+                workspace: LazyPromise.transient(
                     async () => {
                         const {organization, workspace} = await this.getConfigurationManager().resolve();
 
@@ -919,7 +941,7 @@ export class Cli {
                         };
                     },
                 ),
-                application: PLazy.from(
+                application: LazyPromise.transient(
                     async () => {
                         const {organization, workspace, applications} = await this.getConfigurationManager().resolve();
                         const path = `/organizations/${organization}/workspaces/${workspace}/applications/`;
@@ -937,15 +959,15 @@ export class Cli {
                     },
                 ),
                 path: {
-                    example: PLazy.from(
+                    example: LazyPromise.transient(
                         async () => (await this.getConfigurationManager().resolve()).paths.examples,
                     ),
-                    component: PLazy.from(
+                    component: LazyPromise.transient(
                         async () => (await this.getConfigurationManager().resolve()).paths.components,
                     ),
                 },
-                platform: PLazy.from(async () => (await this.getPlatformProvider().get()) ?? 'unknown'),
-                server: PLazy.from(async (): Promise<{running: boolean, url?: string}> => {
+                platform: LazyPromise.transient(async () => (await this.getPlatformProvider().get()) ?? 'unknown'),
+                server: LazyPromise.transient(async (): Promise<{running: boolean, url?: string}> => {
                     const serverProvider = this.getServerProvider();
                     const server = await serverProvider.get();
 

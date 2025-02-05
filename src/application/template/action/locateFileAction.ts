@@ -1,8 +1,9 @@
-import {Minimatch} from 'minimatch';
 import {Action} from '@/application/template/action/action';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {ActionContext} from '@/application/template/action/context';
 import {WorkingDirectory} from '@/application/fs/workingDirectory';
+import {Provider} from '@/application/provider/provider';
+import {Predicate} from '@/application/predicate/predicate';
 
 export type PatternMatcher = {
     pattern: string,
@@ -11,14 +12,14 @@ export type PatternMatcher = {
 
 export type CombinationMatcher = {
     type: 'and' | 'or',
-    matchers: Matcher[],
+    matchers: ContentMatcher[],
 };
 
-export type Matcher = PatternMatcher | CombinationMatcher;
+export type ContentMatcher = PatternMatcher | CombinationMatcher;
 
 export type LocateFileOptions = {
     path: string,
-    matcher?: Matcher,
+    matcher?: ContentMatcher,
     max?: number,
     result?: {
         paths?: string,
@@ -26,9 +27,12 @@ export type LocateFileOptions = {
     },
 };
 
+export type PathMatcher = Predicate<[string]>;
+
 export type Configuration = {
     projectDirectory: WorkingDirectory,
     fileSystem: FileSystem,
+    matcherProvider: Provider<PathMatcher, [string]>,
 };
 
 export class LocateFileAction implements Action<LocateFileOptions> {
@@ -36,9 +40,12 @@ export class LocateFileAction implements Action<LocateFileOptions> {
 
     private readonly fileSystem: FileSystem;
 
-    public constructor({projectDirectory, fileSystem}: Configuration) {
+    private readonly matcherProvider: Provider<PathMatcher, [string]>;
+
+    public constructor({projectDirectory, fileSystem, matcherProvider}: Configuration) {
         this.projectDirectory = projectDirectory;
         this.fileSystem = fileSystem;
+        this.matcherProvider = matcherProvider;
     }
 
     public async execute(options: LocateFileOptions, context: ActionContext): Promise<void> {
@@ -76,12 +83,12 @@ export class LocateFileAction implements Action<LocateFileOptions> {
     }
 
     private async findMatch(pattern: string, options: LocateFileOptions): Promise<string[]> {
-        const filter = new Minimatch(pattern);
+        const filter = await this.matcherProvider.get(pattern);
 
         const matches: string[] = [];
 
         for await (const file of this.fileSystem.list(this.projectDirectory.get(), true)) {
-            if (!filter.match(file.name)) {
+            if (!await filter.test(file.name)) {
                 continue;
             }
 
@@ -103,7 +110,7 @@ export class LocateFileAction implements Action<LocateFileOptions> {
         return matches;
     }
 
-    private matches(content: string, matcher: Matcher): boolean {
+    private matches(content: string, matcher: ContentMatcher): boolean {
         if ('pattern' in matcher) {
             return new RegExp(matcher.pattern, matcher.caseSensitive === true ? 'i' : undefined).test(content);
         }

@@ -1,4 +1,5 @@
 import {Readable} from 'stream';
+import {Help, HelpfulError} from '@/application/error';
 
 export type FileWritingOptions = {
     overwrite?: boolean,
@@ -9,7 +10,6 @@ export type DirectoryCreationOptions = {
 };
 
 export type CopyOptions = {
-    recursive?: boolean,
     overwrite?: boolean,
 };
 
@@ -62,4 +62,12 @@ export interface FileSystem {
     isEmptyDirectory(path: string): Promise<boolean>;
     create(entry: FileSystemEntry): Promise<void>;
     list(path: string, recursive?: boolean): FileSystemIterator;
+}
+
+export class FileSystemError extends HelpfulError {
+    public constructor(message: string, help?: Help) {
+        super(message, help);
+
+        Object.setPrototypeOf(this, FileSystemError.prototype);
+    }
 }

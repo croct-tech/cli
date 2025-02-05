@@ -75,15 +75,11 @@ export class EnvFile {
     }
 
     private async read(): Promise<string> {
-        try {
-            return await this.fileSystem.readTextFile(this.path);
-        } catch (error) {
-            if (error.code !== 'ENOENT') {
-                throw error;
-            }
-
+        if (!await this.exists()) {
             return '';
         }
+
+        return await this.fileSystem.readTextFile(this.path);
     }
 
     private static escapeRegex(value: string): string {

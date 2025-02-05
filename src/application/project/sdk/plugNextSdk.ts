@@ -227,6 +227,7 @@ export class PlugNextSdk extends JavaScriptSdk {
 
                     notifier.confirm('Middleware configured');
                 } catch (error) {
+                    console.error(error);
                     notifier.alert('Failed to install middleware', HelpfulError.formatMessage(error));
                 }
             },
@@ -259,6 +260,8 @@ export class PlugNextSdk extends JavaScriptSdk {
 
                     notifier.confirm('Environment variables updated');
                 } catch (error) {
+                    console.error(error);
+
                     notifier.alert('Failed to update .env.local', HelpfulError.formatMessage(error));
                 }
             },

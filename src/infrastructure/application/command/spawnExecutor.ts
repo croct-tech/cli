@@ -36,16 +36,10 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
             signal: timeoutSignal,
         });
 
-        subprocess.on('error', error => {
-            if (timeoutSignal?.aborted === true) {
-                throw new ExecutionError('Command timed out.', {
-                    reason: ErrorReason.PRECONDITION,
-                });
-            }
+        let executionError: Error | null = null;
 
-            throw new ExecutionError('Failed to run command.', {
-                cause: error,
-            });
+        subprocess.on('error', error => {
+            executionError = error;
         });
 
         const output = new BufferedIterator<string>();
@@ -95,7 +89,22 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
                     }
                 });
             }),
-            wait: () => new Promise<number>(resolve => {
+            wait: () => new Promise<number>((resolve, reject) => {
+                if (executionError !== null) {
+                    reject(
+                        new ExecutionError(
+                            timeoutSignal?.aborted === true
+                                ? 'Command timed out.'
+                                : 'Failed to run command.',
+                            {
+                                cause: executionError,
+                            },
+                        ),
+                    );
+
+                    return;
+                }
+
                 if (exitCode !== null) {
                     resolve(exitCode);
 

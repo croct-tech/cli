@@ -1,5 +1,5 @@
 import {z, ZodType} from 'zod';
-import {LocateFileOptions, Matcher, PatternMatcher} from '@/application/template/action/locateFileAction';
+import {LocateFileOptions, ContentMatcher, PatternMatcher} from '@/application/template/action/locateFileAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const patternMatcherSchema: ZodType<PatternMatcher> = z.strictObject({
@@ -7,7 +7,7 @@ const patternMatcherSchema: ZodType<PatternMatcher> = z.strictObject({
     caseSensitive: z.boolean().optional(),
 });
 
-const matcherSchema: ZodType<Matcher> = z.union([
+const matcherSchema: ZodType<ContentMatcher> = z.union([
     patternMatcherSchema,
     z.strictObject({
         type: z.enum(['and', 'or']),

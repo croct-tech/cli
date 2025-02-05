@@ -30,8 +30,6 @@ export class FetchGraphqlClient implements GraphqlClient {
         const {tokenProvider, endpoint} = this.configuration;
         const token = tokenProvider !== undefined ? await tokenProvider.getToken() : null;
 
-        console.log(endpoint);
-
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: {

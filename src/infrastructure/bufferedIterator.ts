@@ -1,4 +1,4 @@
-export class BufferedIterator<T> implements AsyncIterable<T> {
+export class BufferedIterator<T> implements AsyncIterator<T>, AsyncIterable<T> {
     private open = true;
 
     private readonly queue: T[] = [];
@@ -6,19 +6,35 @@ export class BufferedIterator<T> implements AsyncIterable<T> {
     private resolve: (() => void) | undefined;
 
     public async* [Symbol.asyncIterator](): AsyncIterator<T> {
-        this.open = true;
+        let next = await this.next();
 
-        while (this.open) {
-            if (this.queue.length > 0) {
-                yield this.queue.shift()!;
+        while (next.done !== true) {
+            yield next.value;
 
-                continue;
-            }
-
-            await new Promise<void>(resolve => {
-                this.resolve = resolve;
-            });
+            next = await this.next();
         }
+    }
+
+    public next(): Promise<IteratorResult<T>> {
+        if (this.queue.length > 0) {
+            return Promise.resolve({done: false, value: this.queue.shift()!});
+        }
+
+        if (!this.open) {
+            return Promise.resolve({done: true, value: undefined});
+        }
+
+        return new Promise<IteratorResult<T>>(resolve => {
+            this.resolve = (): void => {
+                this.resolve = undefined;
+
+                if (this.queue.length === 0) {
+                    resolve({done: true, value: undefined});
+                } else {
+                    resolve({done: false, value: this.queue.shift()!});
+                }
+            };
+        });
     }
 
     public push(data: T): void {

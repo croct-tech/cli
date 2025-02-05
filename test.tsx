@@ -1,14 +1,15 @@
-import {SpawnExecutor} from "./src/infrastructure/application/command/spawnExecutor";
+
 
 (async () => {
-    const executor = new SpawnExecutor();
+    let counter = 0;
 
-    const execution = executor.run("tsx", ['test2.tsx'], {
-        timeout: 1000,
+    const promise = LazyPromise.cached(async () => {
+        return counter++
     });
 
-    console.log('exit code', await execution.wait());
+    console.log(await promise);
+    console.log(await promise);
+    console.log(await promise);
 
-    console.log('result', execution.output);
 
 })();

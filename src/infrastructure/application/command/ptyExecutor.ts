@@ -26,16 +26,23 @@ export class PtyExecutor implements CommandExecutor {
             cwd: options.workingDirectory ?? this.configuration.cwd,
         });
 
+        const output = new BufferedIterator<string>();
+
+        subprocess.onData(data => output.push(data));
+
         let timeout: ReturnType<typeof setTimeout> | undefined;
+
+        let exitCode: number|null = null;
+
+        let timedOut = false;
 
         if (options.timeout !== undefined) {
             timeout = setTimeout(
                 () => {
-                    subprocess.kill('SIGINT');
-
-                    throw new ExecutionError('Command timed out.', {
-                        reason: ErrorReason.PRECONDITION,
-                    });
+                    if (exitCode === null) {
+                        subprocess.kill('SIGINT');
+                        timedOut = true;
+                    }
                 },
                 options.timeout,
             );
@@ -43,11 +50,6 @@ export class PtyExecutor implements CommandExecutor {
             timeout.unref();
         }
 
-        const output = new BufferedIterator<string>();
-
-        subprocess.onData(data => output.push(data));
-
-        let exitCode: number|null = null;
         const exitListeners: ExitCallback[] = [];
 
         subprocess.onExit(result => {
@@ -81,6 +83,14 @@ export class PtyExecutor implements CommandExecutor {
                 return Promise.resolve();
             },
             wait: (): Promise<number> => {
+                if (timedOut) {
+                    return Promise.reject(
+                        new ExecutionError('Command timed out.', {
+                            reason: ErrorReason.PRECONDITION,
+                        }),
+                    );
+                }
+
                 if (exitCode !== null) {
                     return Promise.resolve(exitCode);
                 }

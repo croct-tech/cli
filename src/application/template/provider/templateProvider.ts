@@ -1,5 +1,4 @@
 import {JsonValue} from '@croct/json';
-import PLazy from 'p-lazy';
 import {
     JsonArrayNode,
     JsonIdentifierNode,
@@ -17,6 +16,7 @@ import {DeferredTemplate, Template} from '@/application/template/template';
 import {ResourceProvider, ResourceProviderError, ResourceHelp, Resource} from '@/application/provider/resourceProvider';
 import {Fragment, JsonExpressionNode, TemplateStringParser} from '@/application/template/templateStringParser';
 import {Deferred, Deferrable} from '@/application/template/deferral';
+import {LazyPromise} from '@/infrastructure/promise';
 
 export type Configuration = {
     evaluator: ExpressionEvaluator,
@@ -148,14 +148,14 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
     private resolve(node: JsonValueNode, variables: VariableMap, baseUrl: URL, path = ''): Deferrable<JsonValue> {
         if (node instanceof JsonArrayNode) {
             return node.elements.map(
-                (element, index) => PLazy.from(
+                (element, index) => LazyPromise.from(
                     () => this.resolve(element, variables, baseUrl, `${path}[${index}]`),
                 ),
             );
         }
 
         if (node instanceof JsonObjectNode) {
-            return PLazy.from(
+            return LazyPromise.from(
                 async () => Object.fromEntries(
                     await Promise.all(
                         node.properties.map(async property => {
@@ -185,7 +185,7 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
 
                             return [
                                 key,
-                                PLazy.from(() => this.resolve(property.value, variables, baseUrl, propertyPath)),
+                                LazyPromise.from(() => this.resolve(property.value, variables, baseUrl, propertyPath)),
                             ];
                         }),
                     ),
@@ -215,7 +215,7 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
                 return fragment.source;
             }
 
-            return PLazy.from(
+            return LazyPromise.transient(
                 () => this.evaluate(
                     TemplateProvider.createExpressionNode(fragment),
                     variables,
@@ -225,7 +225,7 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
             );
         }
 
-        return PLazy.from(
+        return LazyPromise.from(
             async () => (await Promise.all(
                 fragments.map(async fragment => {
                     if (fragment.type === 'literal') {

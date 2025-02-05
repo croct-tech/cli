@@ -39,22 +39,7 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
 
     public async logout(): Promise<void> {
         await this.authenticator.logout();
-
-        try {
-            await this.fileSystem.delete(this.filePath);
-        } catch (error) {
-            if ((error instanceof Error) && 'code' in error && error.code !== 'ENOENT') {
-                throw new HelpfulError(
-                    'Failed to delete token file.',
-                    {
-                        reason: ErrorReason.OTHER,
-                        suggestions: ['Try to delete the file manually'],
-                        details: [`Token file: ${this.filePath}`],
-                        cause: error,
-                    },
-                );
-            }
-        }
+        await this.fileSystem.delete(this.filePath);
     }
 
     private async saveToken(token: string): Promise<void> {
