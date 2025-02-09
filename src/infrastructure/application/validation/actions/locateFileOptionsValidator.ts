@@ -22,14 +22,7 @@ const schema: ZodType<LocateFileOptions> = z.strictObject({
         .int()
         .positive()
         .optional(),
-    result: z.strictObject({
-        paths: z.string()
-            .min(1)
-            .optional(),
-        extensions: z.string()
-            .min(1)
-            .optional(),
-    }).optional(),
+    result: z.string().optional(),
 });
 
 export class LocateFileOptionsValidator extends ActionOptionsValidator<LocateFileOptions> {

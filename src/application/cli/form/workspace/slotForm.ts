@@ -1,4 +1,4 @@
-import {Input} from '@/application/cli/io/input';
+import {Confirmation, Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
 import {Form} from '@/application/cli/form/form';
 import {WorkspaceApi} from '@/application/api/workspace';
@@ -16,7 +16,7 @@ export type SlotOptions = {
     allowed?: string[],
     preselected?: string[],
     selected?: string[],
-    selectionConfirmation?: string,
+    selectionConfirmation?: Confirmation,
 };
 
 export class SlotForm implements Form<Slot[], SlotOptions> {
@@ -48,7 +48,7 @@ export class SlotForm implements Form<Slot[], SlotOptions> {
         }
 
         if (options.selectionConfirmation !== undefined) {
-            const confirmed = await input.confirm({message: options.selectionConfirmation});
+            const confirmed = await input.confirm(options.selectionConfirmation);
 
             if (!confirmed) {
                 return slots.filter(({slug}) => selected.includes(slug));

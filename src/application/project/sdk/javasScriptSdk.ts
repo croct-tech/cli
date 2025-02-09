@@ -194,8 +194,6 @@ export abstract class JavaScriptSdk implements Sdk {
                 if (!await input.confirm({message: 'Proceed?', default: true})) {
                     return output.exit();
                 }
-            } else {
-                output.log('Installation in progress');
             }
 
             await output.monitor({tasks: tasks});

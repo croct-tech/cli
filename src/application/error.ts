@@ -68,4 +68,21 @@ export class HelpfulError extends Error {
 
         return 'unknown error';
     }
+
+    public static describeType(value: any): string {
+        switch (true) {
+            case value === null:
+                return 'null';
+
+            case typeof value === 'object':
+                if (value.constructor.name !== 'Object') {
+                    return value.constructor.name;
+                }
+
+                return 'object';
+
+            default:
+                return typeof value;
+        }
+    }
 }

@@ -9,7 +9,7 @@ import {
     JsonTokenType,
     JsonValueNode,
 } from '@/infrastructure/json';
-import {ExpressionEvaluator, VariableMap} from '@/application/template/evaluation';
+import {EvaluationError, ExpressionEvaluator, VariableMap} from '@/application/template/evaluation';
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {Validator, Violation} from '@/application/validation';
 import {DeferredTemplate, Template} from '@/application/template/template';
@@ -174,7 +174,7 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
                                                 path: path,
                                                 message: 'Expected object key to resolve to string or number at '
                                                     + `line ${location.line}, column ${location.column} but `
-                                                    + `got ${TemplateProvider.getType(key)}.`,
+                                                    + `got ${HelpfulError.describeType(key)}.`,
                                             },
                                         ],
                                     },
@@ -247,7 +247,7 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
                                     path: path,
                                     message: `Expected expression \`${fragment.expression}\` to resolve to null, `
                                         + `string, number, or boolean value at line ${location.line}, `
-                                        + `column ${location.column}, but got ${TemplateProvider.getType(result)}.`,
+                                        + `column ${location.column}, but got ${HelpfulError.describeType(result)}.`,
                                 },
                             ],
                         });
@@ -271,20 +271,16 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
             return await this.evaluator.evaluate(expression, {
                 variables: variables,
                 functions: {
-                    import: (url?: JsonValue, properties?: JsonValue): Deferred<JsonValue> => {
+                    import: (url?: JsonValue, properties?: JsonValue): Deferrable<JsonValue> => {
                         if (typeof url !== 'string') {
                             const location = node.location.start;
 
-                            throw new TemplateError('Invalid argument for function `import`.', {
+                            throw new EvaluationError('Invalid argument for function `import`.', {
                                 reason: ErrorReason.INVALID_INPUT,
-                                url: baseUrl,
-                                violations: [
-                                    {
-                                        path: path,
-                                        message: 'The first argument of the `import` function must be a string, '
-                                            + `but got ${TemplateProvider.getType(url)} at line ${location.line}, `
-                                            + `column ${location.column}.`,
-                                    },
+                                details: [
+                                    'The `url` argument of the `import` function must be a string, '
+                                    + `but got ${HelpfulError.describeType(url)} at line ${location.line}, `
+                                    + `column ${location.column}.`,
                                 ],
                             });
                         }
@@ -295,16 +291,12 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
                         ) {
                             const location = node.location.start;
 
-                            throw new TemplateError('Invalid argument for function `import`.', {
+                            throw new EvaluationError('Invalid argument for function `import`.', {
                                 reason: ErrorReason.INVALID_INPUT,
-                                url: baseUrl,
-                                violations: [
-                                    {
-                                        path: path,
-                                        message: 'The second argument of the `import` function must be an object. '
-                                            + `but got ${TemplateProvider.getType(url)} at line ${location.line}, `
-                                            + `column ${location.column}.`,
-                                    },
+                                details: [
+                                    'The `properties` argument of the `import` function must be an object, '
+                                    + `but got ${HelpfulError.describeType(url)} at line ${location.line}, `
+                                    + `column ${location.column}.`,
                                 ],
                             });
                         }
@@ -427,17 +419,5 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
         url.pathname = `${url.pathname.replace(/\/([^/]*\.[^/]+)?$/, '')}/${source}`;
 
         return url;
-    }
-
-    private static getType(value: unknown): string {
-        if (value === null) {
-            return 'null';
-        }
-
-        if (Array.isArray(value)) {
-            return 'array';
-        }
-
-        return typeof value;
     }
 }

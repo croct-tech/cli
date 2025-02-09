@@ -9,8 +9,12 @@ import {
     GenericFunction,
     VariableMap,
 } from '@/application/template/evaluation';
-
 import {Deferred, Deferrable} from '@/application/template/deferral';
+import {HelpfulError} from '@/application/error';
+
+export type Configuration = {
+    functions?: Record<string, GenericFunction>,
+};
 
 type LazyOperand = () => Deferred<JsonValue>;
 
@@ -139,7 +143,22 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
         },
         '+': {
             precedence: 9,
-            evaluate: async (left, right) => (await expectNumber(left)) + (await expectNumber(right)),
+            evaluate: async (left, right) => {
+                const [leftValue, rightValue] = await Promise.all([left(), right()]);
+
+                if (typeof leftValue === 'string' || typeof rightValue === 'string') {
+                    return `${leftValue}${rightValue}`;
+                }
+
+                if (typeof leftValue !== 'number' || typeof rightValue !== 'number') {
+                    throw new EvaluationError(
+                        'Operands must be numbers or strings, '
+                        + `got ${HelpfulError.describeType(leftValue)} and ${HelpfulError.describeType(rightValue)}.`,
+                    );
+                }
+
+                return leftValue + rightValue;
+            },
         },
         '-': {
             precedence: 9,
@@ -163,14 +182,20 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
         },
     };
 
-    private readonly parserCache: Map<string, Expression> = new Map();
+    private readonly configuration: Configuration;
+
+    private readonly cache: Map<string, Expression> = new Map();
+
+    public constructor(configuration: Configuration = {}) {
+        this.configuration = configuration;
+    }
 
     public evaluate(expression: string, variables?: VariableMap): Deferred<JsonValue> {
         return this.evaluateExpression(this.parse(expression), variables);
     }
 
     private parse(expression: string): Expression {
-        const cachedExpression = this.parserCache.get(expression);
+        const cachedExpression = this.cache.get(expression);
 
         if (cachedExpression !== undefined) {
             return cachedExpression;
@@ -210,7 +235,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
             });
         }
 
-        this.parserCache.set(expression, parsedExpression);
+        this.cache.set(expression, parsedExpression);
 
         return parsedExpression;
     }
@@ -245,7 +270,8 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
 
                             if (!(value instanceof Promise) && !Array.isArray(value)) {
                                 throw new EvaluationError(
-                                    `Spread expression must evaluate to an array, got ${typeof value}.`,
+                                    'Spread expression must evaluate to an array, '
+                                    + `got ${HelpfulError.describeType(value)}.`,
                                 );
                             }
 
@@ -269,7 +295,8 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
 
                                     if (typeof value !== 'object' || value === null) {
                                         throw new EvaluationError(
-                                            `Spread expression must evaluate to an object, got ${typeof value}.`,
+                                            'Spread expression must evaluate to an object, '
+                                            + `got ${HelpfulError.describeType(value)}.`,
                                         );
                                     }
 
@@ -286,7 +313,8 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                                         .then(result => {
                                             if (typeof result !== 'string' && typeof result !== 'number') {
                                                 throw new EvaluationError(
-                                                    `Property name must be a string or a number, got ${typeof result}.`,
+                                                    'Property name must be a string or a number, '
+                                                    + `got ${HelpfulError.describeType(result)}.`,
                                                 );
                                             }
 
@@ -334,7 +362,10 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                 }
 
                 if (typeof property !== 'string') {
-                    throw new EvaluationError(`Property name must be a string, got ${typeof property}.`);
+                    throw new EvaluationError(
+                        'Property name must be a string, '
+                        + `got ${HelpfulError.describeType(property)}.`,
+                    );
                 }
 
                 if (!JsepExpressionEvaluator.isPropertyAllowed(object, property)) {
@@ -355,7 +386,8 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                             if (matches(argument, 'SpreadElement')) {
                                 if (!Array.isArray(value)) {
                                     throw new EvaluationError(
-                                        `Spread argument must evaluate to an array, got ${typeof value}.`,
+                                        'Spread argument must evaluate to an array, '
+                                        + `got ${HelpfulError.describeType(value)}.`,
                                     );
                                 }
 
@@ -381,7 +413,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
 
     private async getCallee(expression: Expression, context?: EvaluationContext): Promise<GenericFunction> {
         if (matches(expression, 'Identifier')) {
-            const fn = context?.functions?.[expression.name];
+            const fn = context?.functions?.[expression.name] ?? this.configuration.functions?.[expression.name];
 
             if (fn === undefined) {
                 throw new EvaluationError(`Function \`${expression.name}\` does not exist.`);
@@ -398,7 +430,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                 : await this.evaluateExpression(expression.property, context);
 
             if (typeof property !== 'string') {
-                throw new EvaluationError(`Method name must be a string, got ${typeof property}.`);
+                throw new EvaluationError(`Method name must be a string, got ${HelpfulError.describeType(property)}.`);
             }
 
             if (!JsepExpressionEvaluator.isMethodAllowed(value, property)) {
@@ -486,7 +518,7 @@ async function expectNumber(operand: LazyOperand): Promise<number> {
     const value = await operand();
 
     if (typeof value !== 'number') {
-        throw new EvaluationError(`Number expected, got ${typeof value}.`);
+        throw new EvaluationError(`Number expected, got ${HelpfulError.describeType(value)}.`);
     }
 
     return value;
@@ -496,7 +528,7 @@ async function expectBoolean(operand: LazyOperand): Promise<boolean> {
     const value = await operand();
 
     if (typeof value !== 'boolean') {
-        throw new EvaluationError(`Boolean expected, got ${typeof value}.`);
+        throw new EvaluationError(`Boolean expected, got ${HelpfulError.describeType(value)}.`);
     }
 
     return value;

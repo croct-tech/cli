@@ -64,7 +64,12 @@ export class TemplateForm implements Form<TemplateResources, TemplateOptions> {
             template.experiences = experiences;
 
             if (experiences.some(experience => experience.experiment !== undefined)) {
-                if (!await input.confirm({message: 'Do you want to include experiments?', default: true})) {
+                if (
+                    !await input.confirm({
+                        message: 'Do you want to include experiments?',
+                        default: false,
+                    })
+                ) {
                     template.experiences = template.experiences.map(experience => {
                         const {experiment, ...rest} = experience;
 
@@ -78,9 +83,12 @@ export class TemplateForm implements Form<TemplateResources, TemplateOptions> {
             organizationSlug: options.organizationSlug,
             workspaceSlug: options.workspaceSlug,
             selected: preselectedSlots,
-            selectionConfirmation: preselectedSlots.length > 0
-                ? 'Do you want to include other slots?'
-                : 'Do you want to include slots?',
+            selectionConfirmation: {
+                message: preselectedSlots.length > 0
+                    ? 'Do you want to include other slots?'
+                    : 'Do you want to include slots?',
+                default: false,
+            },
         });
 
         const preselectedComponents = [...new Set(template.slots.map(slot => slot.component?.slug ?? ''))];
@@ -90,18 +98,24 @@ export class TemplateForm implements Form<TemplateResources, TemplateOptions> {
             workspaceSlug: options.workspaceSlug,
             includeDependencies: true,
             selected: preselectedComponents,
-            selectionConfirmation: preselectedComponents.length > 0
-                ? 'Do you want to include other components?'
-                : 'Do you want to include components?',
+            selectionConfirmation: {
+                message: preselectedComponents.length > 0
+                    ? 'Do you want to include other components?'
+                    : 'Do you want to include components?',
+                default: false,
+            },
         });
 
         template.audiences = await form.audience.handle({
             organizationSlug: options.organizationSlug,
             workspaceSlug: options.workspaceSlug,
             selected: preselectedAudiences,
-            selectionConfirmation: preselectedAudiences.length > 0
-                ? 'Do you want to include other audiences?'
-                : 'Do you want to include audiences?',
+            selectionConfirmation: {
+                message: preselectedAudiences.length > 0
+                    ? 'Do you want to include other audiences?'
+                    : 'Do you want to include audiences?',
+                default: false,
+            },
         });
 
         return template;

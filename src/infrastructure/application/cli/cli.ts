@@ -1,5 +1,4 @@
 import {Readable, Writable} from 'stream';
-import * as process from 'node:process';
 import {
     AdaptedCache,
     AutoSaveCache,
@@ -10,6 +9,7 @@ import {
     StaleWhileRevalidateCache,
     TimestampedCacheEntry,
 } from '@croct/cache';
+import {EventEmitter} from 'node:events';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput, ExitCallback} from '@/infrastructure/application/cli/io/consoleOutput';
 import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
@@ -236,6 +236,10 @@ import {And} from '@/application/predicate/and';
 import {Not} from '@/application/predicate/not';
 import {MatchesGitignore} from '@/application/predicate/matchesGitignore';
 import {LazyPromise} from '@/infrastructure/promise';
+import {PredicateProvider} from '@/application/provider/predicateProvider';
+import {DefaultChoiceInput} from '@/infrastructure/application/cli/io/defaultChoiceInput';
+import {Or} from '@/application/predicate/or';
+import * as functions from '@/infrastructure/application/evaluation/functions';
 
 export type Configuration = {
     io: {
@@ -258,8 +262,10 @@ export type Configuration = {
     cache: boolean,
     quiet: boolean,
     interactive: boolean,
+    skipPrompts: boolean,
     exitCallback: ExitCallback,
     nameRegistry: URL,
+    process: EventEmitter<{exit: []}>,
 };
 
 type AuthenticationMethods = {
@@ -279,12 +285,15 @@ type NodePackageManagers = {
 export class Cli {
     private readonly configuration: Configuration;
 
+    private readonly skipPrompts: boolean;
+
     private readonly workingDirectory: CurrentWorkingDirectory;
 
     private readonly instances: Map<() => any, any> = new Map();
 
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
+        this.skipPrompts = configuration.skipPrompts;
         this.workingDirectory = new ConfigurableWorkingDirectory(configuration.directories.current);
     }
 
@@ -294,6 +303,16 @@ export class Cli {
                 sdkProvider: this.getSdkProvider(),
                 platformProvider: this.getPlatformProvider(),
                 configurationManager: this.getConfigurationManager(),
+                skipConfirmation: new PredicateProvider(
+                    new Or(
+                        new Not(
+                            new FileExists({
+                                fileSystem: this.getFileSystem(),
+                                files: ['.git'],
+                            }),
+                        ),
+                    ),
+                ),
                 api: {
                     user: this.getUserApi(),
                     organization: this.getOrganizationApi(),
@@ -555,9 +574,11 @@ export class Cli {
     }
 
     private getNonInteractiveInput(instruction?: Instruction): Input {
-        return new NonInteractiveInput(instruction ?? {
-            message: 'Input is not available in non-interactive mode.',
-        });
+        return new DefaultChoiceInput(
+            new NonInteractiveInput(instruction ?? {
+                message: 'Input is not available in non-interactive mode.',
+            }),
+        );
     }
 
     private getInput(): Input | undefined {
@@ -567,14 +588,19 @@ export class Cli {
 
         return this.share(this.getInput, () => {
             const output = this.getOutput();
-
-            return new ConsoleInput({
+            const input = new ConsoleInput({
                 input: this.configuration.io.input,
                 output: this.configuration.io.output,
                 onAbort: () => output.exit(),
                 onInteractionStart: () => output.suspend(),
                 onInteractionEnd: () => output.resume(),
             });
+
+            if (this.skipPrompts) {
+                return new DefaultChoiceInput(input);
+            }
+
+            return input;
         });
     }
 
@@ -746,7 +772,7 @@ export class Cli {
                         packageManagerProvider: this.getPackageManagerRegistry(),
                         workingDirectory: this.workingDirectory,
                         commandExecutor: new PtyExecutor(),
-                        commandTimeout: 50 * 1000, // 2 minutes
+                        commandTimeout: 2 * 60 * 1000, // 2 minutes
                         sourceChecker: {
                             // @todo: Add safety check to prevent running arbitrary commands
                             test: (): boolean => true,
@@ -894,7 +920,9 @@ export class Cli {
                             (): Action<ImportOptions> => new ImportAction({
                                 runner: actions.run,
                                 templateProvider: new TemplateProvider({
-                                    evaluator: new JsepExpressionEvaluator(),
+                                    evaluator: new JsepExpressionEvaluator({
+                                        functions: functions,
+                                    }),
                                     validator: new TemplateValidator(),
                                     provider: this.getTemplateProvider(),
                                 }),
@@ -1413,6 +1441,7 @@ export class Cli {
                     startupCheckDelay: 1000,
                     lookupMaxPorts: 100,
                     lookupTimeout: 2000,
+                    process: this.configuration.process,
                 }),
             ),
         );

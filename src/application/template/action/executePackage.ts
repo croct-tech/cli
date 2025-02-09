@@ -69,7 +69,7 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
 
             output.warn(`This template will run the command \`${fullCommand}\``);
 
-            if (!await input.confirm({message: 'Continue?', default: false})) {
+            if (!await input.confirm({message: 'Continue?', default: true})) {
                 throw new ActionError('Permission to run command denied.', {
                     reason: ErrorReason.PRECONDITION,
                     details: [

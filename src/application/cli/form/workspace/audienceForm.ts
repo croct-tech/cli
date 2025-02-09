@@ -1,4 +1,4 @@
-import {Input} from '@/application/cli/io/input';
+import {Confirmation, Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
 import {Form} from '@/application/cli/form/form';
 import {WorkspaceApi} from '@/application/api/workspace';
@@ -17,7 +17,7 @@ export type AudienceOptions = {
     allowed?: string[],
     selected?: string[],
     preselected?: string[],
-    selectionConfirmation?: string,
+    selectionConfirmation?: Confirmation,
 };
 
 export class AudienceForm implements Form<Audience[], AudienceOptions> {
@@ -49,7 +49,7 @@ export class AudienceForm implements Form<Audience[], AudienceOptions> {
         }
 
         if (options.selectionConfirmation !== undefined) {
-            const confirmed = await input.confirm({message: options.selectionConfirmation});
+            const confirmed = await input.confirm(options.selectionConfirmation);
 
             if (!confirmed) {
                 return audiences.filter(({slug}) => selected.includes(slug));

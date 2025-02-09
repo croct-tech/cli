@@ -1,4 +1,4 @@
-import {Input} from '@/application/cli/io/input';
+import {Confirmation, Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
 import {Form} from '@/application/cli/form/form';
 import {WorkspaceApi} from '@/application/api/workspace';
@@ -16,7 +16,7 @@ export type ComponentOptions = {
     allowed?: string[],
     preselected?: string[],
     selected?: string[],
-    selectionConfirmation?: string,
+    selectionConfirmation?: Confirmation,
     includeDependencies?: boolean,
 };
 
@@ -88,7 +88,7 @@ export class ComponentForm implements Form<Component[], ComponentOptions> {
         }
 
         if (options.selectionConfirmation !== undefined) {
-            const confirmed = await input.confirm({message: options.selectionConfirmation});
+            const confirmed = await input.confirm(options.selectionConfirmation);
 
             if (!confirmed) {
                 return components.filter(({slug}) => selected.includes(slug));

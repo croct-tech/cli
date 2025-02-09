@@ -228,9 +228,6 @@ export class GraphqlUserApi implements UserApi {
 
         const metadata = await this.getOrganizationMetadata(website);
         const resolvedUrl = `${website.protocol}//${metadata.domain}`;
-        const siteName = metadata.siteName.length < 2
-            ? metadata.domain[0].toUpperCase() + metadata.domain.slice(1)
-            : metadata.siteName.slice(0, 30);
 
         const logo = metadata.logo !== null && metadata.logo !== undefined
             && metadata.logo.width >= 64 && metadata.logo.height >= 64
@@ -244,14 +241,14 @@ export class GraphqlUserApi implements UserApi {
             organization: {
                 website: resolvedUrl,
                 email: owner.email,
-                name: siteName,
-                slug: await this.generateOrganizationSlug(siteName, false),
+                name: metadata.siteName,
+                slug: await this.generateOrganizationSlug(metadata.siteName, false),
                 type: OrganizationType.Business,
                 logo: logo,
             },
             workspace: {
-                name: siteName,
-                slug: generateSlug({baseName: siteName, alwaysSuffixed: false}).next().value,
+                name: metadata.siteName,
+                slug: generateSlug({baseName: metadata.siteName, alwaysSuffixed: false}).next().value,
                 logo: logo,
                 website: resolvedUrl,
             },

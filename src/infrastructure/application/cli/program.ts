@@ -4,12 +4,10 @@ import process from 'node:process';
 import {resolve} from 'path';
 import ci from 'ci-info';
 import {JsonPrimitive} from '@croct/json';
+import {EventEmitter} from 'node:events';
 import {Cli} from '@/infrastructure/application/cli/cli';
 import {Resource} from '@/application/cli/command/init';
 import {OptionMap} from '@/application/template/template';
-
-process.on('SIGINT', () => process.exit(0));
-process.on('SIGTERM', () => process.exit(0));
 
 const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a.run.app';
 const templateRegistry = 'github:/marcospassos/croct-examples/registry.json';
@@ -27,9 +25,10 @@ function createProgram(config: Configuration): typeof program {
         .description('Manage your Croct projects')
         .version('0.0.1', '-v, --version', 'Display the version number.')
         .option('-d, --cwd <path>', 'The working directory.')
-        .option('-r, --registry <url>', 'The template registry.')
-        .option('-ni, --no-interaction', 'Disable interaction mode.')
-        .option('-nc, --no-cache', 'Disable cache.')
+        .option('-n, --no-interaction', 'Disable interaction mode.')
+        .option('--registry <url>', 'The template registry.')
+        .option('-s, --skip-prompts', 'Skip prompts with default options.')
+        .option('--no-cache', 'Disable cache.')
         .addOption(
             new Option('-q, --quiet', 'Disable output messages.')
                 .default(false)
@@ -294,6 +293,15 @@ function getTemplate(args: string[]): string | null {
     const {args} = parsedInput;
     const options = parsedInput.opts();
     const appPaths = XDGAppPaths('com.croct.cli');
+    const eventEmitter = new EventEmitter<{exit: []}>();
+
+    const exit = (exitCode: number = 0): never => {
+        eventEmitter.emit('exit');
+        process.exit(exitCode);
+    };
+
+    process.on('SIGTERM', () => exit());
+    process.on('SIGINT', () => exit());
 
     const cli = new Cli({
         io: {
@@ -319,7 +327,9 @@ function getTemplate(args: string[]): string | null {
         cache: options.cache,
         quiet: options.quiet,
         interactive: options.interaction && !ci.isCI,
-        exitCallback: () => process.exit(1),
+        skipPrompts: options.skipPrompts === true,
+        exitCallback: () => exit(1),
+        process: eventEmitter,
     });
 
     const template = getTemplate(args);

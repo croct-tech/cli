@@ -182,7 +182,7 @@ export class ImportAction implements Action<ImportOptions> {
                 if (typeof value !== definition.type) {
                     throw new ActionError(
                         `Expected value of type ${definition.type} for option \`${name}\`, `
-                        + `but got ${ImportAction.getType(value)}.`,
+                        + `but got ${HelpfulError.describeType(value)}.`,
                         {
                             reason: ErrorReason.INVALID_INPUT,
                         },
@@ -212,7 +212,7 @@ export class ImportAction implements Action<ImportOptions> {
                 if (!Array.isArray(value)) {
                     throw new ActionError(
                         `Expected value of type ${definition.type} for option \`${name}\`,`
-                        + `but got ${ImportAction.getType(value)}.`,
+                        + `but got ${HelpfulError.describeType(value)}.`,
                         {
                             reason: ErrorReason.INVALID_INPUT,
                         },
@@ -226,7 +226,7 @@ export class ImportAction implements Action<ImportOptions> {
                 if (typeof value !== 'object' || value === null) {
                     throw new ActionError(
                         `Expected value of type ${definition.type} for option \`${name}\`,`
-                        + `but got ${ImportAction.getType(value)}.`,
+                        + `but got ${HelpfulError.describeType(value)}.`,
                         {
                             reason: ErrorReason.INVALID_INPUT,
                         },
@@ -248,17 +248,5 @@ export class ImportAction implements Action<ImportOptions> {
         }
 
         return 'unknown';
-    }
-
-    private static getType(value: unknown): string {
-        if (value === null) {
-            return 'null';
-        }
-
-        if (Array.isArray(value)) {
-            return 'array';
-        }
-
-        return typeof value;
     }
 }

@@ -35,6 +35,7 @@ export type InitConfig = {
     sdkProvider: Provider<Sdk|null>,
     platformProvider: Provider<Platform|null>,
     configurationManager: ConfigurationManager,
+    skipConfirmation: Provider<boolean>,
     form: {
         organization: Form<Organization, OrganizationOptions>,
         workspace: Form<Workspace, WorkspaceOptions>,
@@ -73,8 +74,14 @@ export class InitCommand implements Command<InitInput> {
             ? `${Platform.getName(platform)} project`
             : 'project';
 
-        output.log('Welcome to **Croct CLI**!');
-        output.log(`Let's configure your ${projectName} to get started.`);
+        output.break();
+
+        output.announce({
+            semantic: 'success',
+            title: 'Welcome to Croct',
+            alignment: 'center',
+            message: `Let's configure your ${projectName} to get started.`,
+        });
 
         output.break();
 
@@ -277,13 +284,16 @@ export class InitCommand implements Command<InitInput> {
     }
 
     private async configure(sdk: Sdk, configuration: ResolvedConfiguration): Promise<Configuration> {
+        const {skipConfirmation} = this.config;
         const updatedConfiguration: ResolvedConfiguration = {
             ...configuration,
             slots: await this.getSlots(configuration.organization, configuration.workspace),
         };
 
         return sdk.install({
-            input: this.config.io.input,
+            input: this.config.io.input === undefined || await skipConfirmation.get()
+                ? undefined
+                : this.config.io.input,
             output: this.config.io.output,
             configuration: updatedConfiguration,
         });

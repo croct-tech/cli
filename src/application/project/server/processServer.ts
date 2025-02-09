@@ -1,3 +1,4 @@
+import {EventEmitter} from 'node:events';
 import {Server, ServerError, ServerStatus} from '@/application/project/server/server';
 import {CommandExecutor, Execution} from '@/application/process/executor';
 import {Command} from '@/application/process/command';
@@ -17,6 +18,7 @@ export type Configuration = {
         defaultPort: number,
         port?: number,
     },
+    process: EventEmitter<{exit: []}>,
 };
 
 export class ProcessServer implements Server {
@@ -42,7 +44,7 @@ export class ProcessServer implements Server {
     }
 
     public async start(): Promise<URL> {
-        const {commandExecutor, command, workingDirectory} = this.configuration;
+        const {commandExecutor, command, workingDirectory, process} = this.configuration;
 
         try {
             this.execution = commandExecutor.run(command, {
@@ -54,18 +56,25 @@ export class ProcessServer implements Server {
             });
         }
 
+        const callback = (): void => {
+            this.execution?.kill('SIGINT');
+        };
+
         this.execution.onExit(() => {
             this.execution = undefined;
+            process.off('exit', callback);
         });
 
         if (!this.execution.running) {
             throw new ServerError('Failed to start server.');
         }
 
+        process.on('exit', callback);
+
         const url = await this.waitStart();
 
         if (url === null) {
-            throw new Error('Server is unreachable.');
+            throw new ServerError('Server is unreachable.');
         }
 
         return url;

@@ -36,6 +36,7 @@ export type Callout = {
     semantic: Semantic,
     title: string,
     message: string,
+    alignment?: 'left' | 'center' | 'right',
 };
 
 export interface Logger {

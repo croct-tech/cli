@@ -12,7 +12,7 @@ export class EvaluationError extends HelpfulError {
     }
 }
 
-export type GenericFunction = (...args: JsonValue[]) => Deferred<JsonValue>;
+export type GenericFunction = (...args: JsonValue[]) => Deferrable<JsonValue>;
 
 export type EvaluationContext = {
     variables?: VariableMap,

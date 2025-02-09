@@ -21,10 +21,7 @@ export type LocateFileOptions = {
     path: string,
     matcher?: ContentMatcher,
     max?: number,
-    result?: {
-        paths?: string,
-        extensions?: string,
-    },
+    result?: string,
 };
 
 export type PathMatcher = Predicate<[string]>;
@@ -64,21 +61,7 @@ export class LocateFileAction implements Action<LocateFileOptions> {
         const matches = await this.findMatch(options.path, options);
 
         if (options.result !== undefined) {
-            const variables = options.result;
-
-            if (variables.paths !== undefined) {
-                context.set(variables.paths, matches);
-            }
-
-            if (variables.extensions !== undefined) {
-                const extensions = matches.map(file => {
-                    const baseName = this.fileSystem.getBaseName(file);
-
-                    return baseName.split('.').pop() ?? '';
-                });
-
-                context.set(variables.extensions, extensions);
-            }
+            context.set(options.result, matches);
         }
     }
 
