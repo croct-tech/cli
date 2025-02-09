@@ -4,6 +4,15 @@ import {Deferred, Deferrable} from '@/application/template/deferral';
 
 export type VariableMap = Exclude<Deferrable<JsonObject>, Deferred<JsonObject>>;
 
+export namespace VariableMap {
+    export function merge(...maps: VariableMap[]): VariableMap {
+        return maps.reduce(
+            (result, map) => Object.defineProperties(result, Object.getOwnPropertyDescriptors(map)),
+            {},
+        );
+    }
+}
+
 export class EvaluationError extends HelpfulError {
     public constructor(message: string, help?: Help) {
         super(message, help);

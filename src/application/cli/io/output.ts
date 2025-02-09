@@ -55,5 +55,5 @@ export interface Output extends Logger {
     notify(status?: string): Notifier;
     report(error: any): void;
     open(url: string): Promise<void>;
-    exit(): never;
+    exit(): Promise<never>;
 }

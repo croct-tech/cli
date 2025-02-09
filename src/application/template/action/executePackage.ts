@@ -55,7 +55,12 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
         const packageManager = await this.getPackageManager(options.runner);
         const command = await packageManager.getPackageCommand(options.package, options.arguments);
 
-        const fullCommand = [command.name, ...(command.arguments ?? [])].join(' ');
+        const fullCommand = [
+            command.name
+                .split(/[\\/]/)
+                .pop(),
+            ...(command.arguments ?? []),
+        ].join(' ');
 
         if (!await sourceChecker.test(context.baseUrl)) {
             if (input === undefined) {

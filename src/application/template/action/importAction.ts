@@ -104,15 +104,19 @@ export class ImportAction implements Action<ImportOptions> {
             let action: Deferrable<JsonValue>;
 
             try {
-                action = await resolve({
-                    ...variables,
-                    options: options,
-                    get this() {
-                        // Defer the variable resolution to the last moment to allow nested actions
-                        // to access variables set by previous actions
-                        return context.getVariables();
-                    },
-                });
+                action = await resolve(
+                    VariableMap.merge(
+                        variables,
+                        {
+                            options: options,
+                            get this() {
+                                // Defer the variable resolution to the last moment to allow nested actions
+                                // to access variables set by previous actions
+                                return context.getVariables();
+                            },
+                        },
+                    ),
+                );
             } catch (error) {
                 throw ActionError.fromCause('Unable to resolve action definition.');
             }

@@ -3,8 +3,8 @@ import {ActionContext} from '@/application/template/action/context';
 
 export type TestOptions = {
     condition: boolean,
-    then: Array<Promise<unknown>>,
-    else?: Array<Promise<unknown>>,
+    then: Promise<unknown>,
+    else?: Promise<unknown>,
 };
 
 export class TestAction implements Action<TestOptions> {
@@ -24,7 +24,7 @@ export class TestAction implements Action<TestOptions> {
             : Promise.resolve();
     }
 
-    private run(actions: Array<Promise<unknown>>, context: ActionContext): Promise<void> {
+    private run(actions: Promise<unknown>, context: ActionContext): Promise<void> {
         return this.runner.execute({actions: actions}, context);
     }
 }

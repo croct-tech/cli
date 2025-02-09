@@ -10,7 +10,7 @@ import {TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
 import {NonInteractiveTaskMonitor} from '@/infrastructure/application/cli/io/nonInteractiveTaskMonitor';
 import {HelpfulError, ErrorReason, Help} from '@/application/error';
 
-export type ExitCallback = () => never;
+export type ExitCallback = () => Promise<never>;
 
 export type Configuration = {
     output: Writable,
@@ -128,9 +128,10 @@ export class ConsoleOutput implements Output {
         this.write(`${this.formatError(error)}\n`, true);
     }
 
-    public exit(): never {
+    public exit(): Promise<never> {
         this.stop();
-        this.onExit();
+
+        return this.onExit();
     }
 
     private formatError(error: any): string {

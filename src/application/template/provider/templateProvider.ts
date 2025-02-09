@@ -148,14 +148,12 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
     private resolve(node: JsonValueNode, variables: VariableMap, baseUrl: URL, path = ''): Deferrable<JsonValue> {
         if (node instanceof JsonArrayNode) {
             return node.elements.map(
-                (element, index) => LazyPromise.from(
-                    () => this.resolve(element, variables, baseUrl, `${path}[${index}]`),
-                ),
+                (element, index) => this.resolve(element, variables, baseUrl, `${path}[${index}]`),
             );
         }
 
         if (node instanceof JsonObjectNode) {
-            return LazyPromise.from(
+            return LazyPromise.transient(
                 async () => Object.fromEntries(
                     await Promise.all(
                         node.properties.map(async property => {
@@ -185,7 +183,9 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
 
                             return [
                                 key,
-                                LazyPromise.from(() => this.resolve(property.value, variables, baseUrl, propertyPath)),
+                                LazyPromise.transient(
+                                    () => this.resolve(property.value, variables, baseUrl, propertyPath),
+                                ),
                             ];
                         }),
                     ),
@@ -194,7 +194,7 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
         }
 
         if (node instanceof JsonPrimitiveNode && typeof node.value === 'string') {
-            return this.interpolate(node, variables, baseUrl, path);
+            return LazyPromise.transient(() => this.interpolate(node, variables, baseUrl, path));
         }
 
         return node.toJSON();
@@ -215,48 +215,44 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
                 return fragment.source;
             }
 
-            return LazyPromise.transient(
-                () => this.evaluate(
-                    TemplateProvider.createExpressionNode(fragment),
-                    variables,
-                    baseUrl,
-                    path,
-                ),
+            return this.evaluate(
+                TemplateProvider.createExpressionNode(fragment),
+                variables,
+                baseUrl,
+                path,
             );
         }
 
-        return LazyPromise.from(
-            async () => (await Promise.all(
-                fragments.map(async fragment => {
-                    if (fragment.type === 'literal') {
-                        return fragment.source;
-                    }
+        return Promise.all(
+            fragments.map(async fragment => {
+                if (fragment.type === 'literal') {
+                    return fragment.source;
+                }
 
-                    const expressionNode = TemplateProvider.createExpressionNode(fragment);
+                const expressionNode = TemplateProvider.createExpressionNode(fragment);
 
-                    const result = await this.evaluate(expressionNode, variables, baseUrl, path);
+                const result = await this.evaluate(expressionNode, variables, baseUrl, path);
 
-                    if (result !== null && !['string', 'number', 'boolean'].includes(typeof result)) {
-                        const location = node.location.start;
+                if (result !== null && !['string', 'number', 'boolean'].includes(typeof result)) {
+                    const location = node.location.start;
 
-                        throw new TemplateError('Unexpected expression result.', {
-                            reason: ErrorReason.INVALID_INPUT,
-                            url: baseUrl,
-                            violations: [
-                                {
-                                    path: path,
-                                    message: `Expected expression \`${fragment.expression}\` to resolve to null, `
-                                        + `string, number, or boolean value at line ${location.line}, `
-                                        + `column ${location.column}, but got ${HelpfulError.describeType(result)}.`,
-                                },
-                            ],
-                        });
-                    }
+                    throw new TemplateError('Unexpected expression result.', {
+                        reason: ErrorReason.INVALID_INPUT,
+                        url: baseUrl,
+                        violations: [
+                            {
+                                path: path,
+                                message: `Expected expression \`${fragment.expression}\` to resolve to null, `
+                                    + `string, number, or boolean value at line ${location.line}, `
+                                    + `column ${location.column}, but got ${HelpfulError.describeType(result)}.`,
+                            },
+                        ],
+                    });
+                }
 
-                    return `${result ?? ''}`;
-                }),
-            )).join(''),
-        );
+                return `${result ?? ''}`;
+            }),
+        ).then(parts => parts.join(''));
     }
 
     public async evaluate(
@@ -303,17 +299,19 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
 
                         return this.import(
                             TemplateProvider.getSourceUrl(url, baseUrl),
-                            {
-                                ...variables,
-                                this: {
-                                    ...properties,
-                                    ...(
-                                        typeof variables.this === 'object' && variables.this !== null
-                                            ? variables.this
-                                            : {}
+                            properties === undefined
+                                ? variables
+                                : VariableMap.merge(variables, {
+                                    this: Promise.resolve(variables.this).then(
+                                        resolvedValue => (
+                                            typeof resolvedValue === 'object'
+                                                && resolvedValue !== null
+                                                && !Array.isArray(resolvedValue)
+                                                ? VariableMap.merge(resolvedValue, properties)
+                                                : properties
+                                        ),
                                     ),
-                                },
-                            },
+                                }),
                             baseUrl,
                             path,
                         );

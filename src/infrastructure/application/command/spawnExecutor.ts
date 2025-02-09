@@ -122,6 +122,10 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
                     return;
                 }
 
+                subprocess.stdout.destroy();
+                subprocess.stderr.destroy();
+                subprocess.stdin.destroy();
+
                 if (subprocess.kill(signal)) {
                     resolve();
                     exitCode = 1;

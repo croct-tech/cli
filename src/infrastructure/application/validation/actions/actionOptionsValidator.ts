@@ -1,4 +1,5 @@
 import {
+    ZodAny,
     ZodArray,
     ZodDiscriminatedUnion,
     ZodEffects,
@@ -19,7 +20,8 @@ import {TemplateError} from '@/application/template/provider/templateProvider';
 type Segment = string | number | symbol;
 type Path = Segment[];
 
-const ANY = Symbol('any');
+const ANY_PROPERTY = Symbol('any-property');
+const ANY_INDEX = Symbol('any-index');
 const PASSTHROUGH = Symbol('passthrough');
 const RESOLVE = Symbol('resolve');
 
@@ -46,12 +48,16 @@ export class ActionOptionsValidator<T extends ActionOptions> extends ZodValidato
     }
 
     private async resolveOptions(data: unknown, passthroughPaths: Path[], path: Path = []): Promise<unknown> {
-        if (data instanceof Promise && !ActionOptionsValidator.isPassthroughPath(path, passthroughPaths)) {
-            return this.resolveOptions(await data, passthroughPaths, path);
+        if (
+            typeof data !== 'object'
+            || data === null
+            || ActionOptionsValidator.isPassthroughPath(path, passthroughPaths)
+        ) {
+            return data;
         }
 
-        if (typeof data !== 'object' || data === null || data instanceof Promise) {
-            return data;
+        if (data instanceof Promise) {
+            return this.resolveOptions(await data, passthroughPaths, path);
         }
 
         if (Array.isArray(data)) {
@@ -61,7 +67,7 @@ export class ActionOptionsValidator<T extends ActionOptions> extends ZodValidato
             for (const [index, item] of data.entries()) {
                 const subPath = [...path, index];
 
-                if (item instanceof Promise && ActionOptionsValidator.isPassthroughPath(subPath, passthroughPaths)) {
+                if (ActionOptionsValidator.isPassthroughPath(subPath, passthroughPaths)) {
                     result[index] = item;
                 } else {
                     promises[index] = this.resolveOptions(await item, passthroughPaths, subPath);
@@ -85,10 +91,7 @@ export class ActionOptionsValidator<T extends ActionOptions> extends ZodValidato
                         async ([key, value]) => {
                             const subPath = [...path, key];
 
-                            if (
-                                value instanceof Promise
-                                && ActionOptionsValidator.isPassthroughPath(subPath, passthroughPaths)
-                            ) {
+                            if (ActionOptionsValidator.isPassthroughPath(subPath, passthroughPaths)) {
                                 return [key, value];
                             }
 
@@ -107,9 +110,11 @@ export class ActionOptionsValidator<T extends ActionOptions> extends ZodValidato
             }
 
             for (const [index, segment] of passthroughPath.entries()) {
+                const wildcard = (typeof path[index] === 'number' ? ANY_INDEX : ANY_PROPERTY);
+
                 if (
                     index < path.length
-                        ? (segment !== path[index] && segment !== ANY)
+                        ? (segment !== path[index] && segment !== wildcard)
                         : (segment !== RESOLVE && segment !== PASSTHROUGH)
                 ) {
                     break;
@@ -145,14 +150,14 @@ export class ActionOptionsValidator<T extends ActionOptions> extends ZodValidato
         if (schema instanceof ZodArray) {
             return [
                 [...path, RESOLVE],
-                ...this.findPassthroughPaths(schema.element, [...path, ANY]),
+                ...this.findPassthroughPaths(schema.element, [...path, ANY_INDEX]),
             ];
         }
 
         if (schema instanceof ZodRecord) {
             return [
                 [...path, RESOLVE],
-                ...this.findPassthroughPaths(schema.valueSchema, [...path, ANY]),
+                ...this.findPassthroughPaths(schema.valueSchema, [...path, ANY_PROPERTY]),
             ];
         }
 
@@ -165,14 +170,20 @@ export class ActionOptionsValidator<T extends ActionOptions> extends ZodValidato
             ];
 
             if (schema._def.unknownKeys === 'passthrough') {
-                paths.push([...path, ANY, PASSTHROUGH]);
+                paths.push([...path, ANY_PROPERTY, PASSTHROUGH]);
             }
 
             return paths;
         }
 
         if (schema instanceof ZodEffects) {
-            return this.findPassthroughPaths(schema.innerType(), path);
+            const innerSchema = schema.innerType();
+
+            if (innerSchema instanceof ZodAny) {
+                return [[...path, PASSTHROUGH]];
+            }
+
+            return this.findPassthroughPaths(innerSchema, path);
         }
 
         if (schema instanceof ZodPipeline) {

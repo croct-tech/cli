@@ -16,7 +16,7 @@ type PromptInstance = {
     bell(): void,
 };
 
-export type AbortCallback = () => never;
+export type AbortCallback = () => Promise<never>;
 
 export type Configuration = {
     input: Readable,
@@ -28,7 +28,6 @@ export type Configuration = {
 
 type PromptDefinition<T extends string> = Omit<PromptObject<T>, 'onState' | 'name' | 'stdin' | 'stdout'> & {
     onState?: (this: PromptInstance, state: PromptState) => void,
-    onAbort?: AbortCallback,
 };
 
 export class ConsoleInput implements Input {
@@ -165,8 +164,6 @@ export class ConsoleInput implements Input {
                 definition.onState?.apply(this, [state]);
 
                 if (state.aborted) {
-                    definition.onAbort?.();
-
                     // If we don't re-enable the terminal cursor before exiting
                     // the program, the cursor will remain hidden
                     output.write('\x1B[?25h');

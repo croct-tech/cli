@@ -1,8 +1,8 @@
-import {EventEmitter} from 'node:events';
 import {Server, ServerError, ServerStatus} from '@/application/project/server/server';
 import {CommandExecutor, Execution} from '@/application/process/executor';
 import {Command} from '@/application/process/command';
 import {WorkingDirectory} from '@/application/fs/workingDirectory';
+import {ProcessObserver} from '@/application/event';
 
 export type Configuration = {
     command: Command,
@@ -12,13 +12,13 @@ export type Configuration = {
     startupTimeout: number,
     lookupTimeout: number,
     lookupMaxPorts: number,
+    processObserver: ProcessObserver,
     server: {
         protocol: string,
         host: string,
         defaultPort: number,
         port?: number,
     },
-    process: EventEmitter<{exit: []}>,
 };
 
 export class ProcessServer implements Server {
@@ -44,7 +44,7 @@ export class ProcessServer implements Server {
     }
 
     public async start(): Promise<URL> {
-        const {commandExecutor, command, workingDirectory, process} = this.configuration;
+        const {commandExecutor, command, workingDirectory, processObserver} = this.configuration;
 
         try {
             this.execution = commandExecutor.run(command, {
@@ -56,20 +56,18 @@ export class ProcessServer implements Server {
             });
         }
 
-        const callback = (): void => {
-            this.execution?.kill('SIGINT');
-        };
+        const callback = (): Promise<void> => this.stop();
 
         this.execution.onExit(() => {
             this.execution = undefined;
-            process.off('exit', callback);
+            processObserver.off('exit', callback);
         });
 
         if (!this.execution.running) {
             throw new ServerError('Failed to start server.');
         }
 
-        process.on('exit', callback);
+        processObserver.on('exit', callback);
 
         const url = await this.waitStart();
 

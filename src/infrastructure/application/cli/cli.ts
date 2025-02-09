@@ -9,7 +9,7 @@ import {
     StaleWhileRevalidateCache,
     TimestampedCacheEntry,
 } from '@croct/cache';
-import {EventEmitter} from 'node:events';
+import {delimiter} from 'path';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput, ExitCallback} from '@/infrastructure/application/cli/io/consoleOutput';
 import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
@@ -211,7 +211,6 @@ import {PackageManager} from '@/application/project/packageManager/packageManage
 import {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
 import {NodeImportResolver} from '@/application/project/import/nodeImportResolver';
 import {PartialTsconfigValidator} from '@/infrastructure/application/validation/partialTsconfigValidator';
-import {Platform} from '@/application/model/platform';
 import {LazyPackageManager} from '@/application/project/packageManager/lazyPackageManager';
 import {EntryProvider} from '@/application/provider/entryProvider';
 import {MapProvider} from '@/application/provider/mapProvider';
@@ -240,8 +239,25 @@ import {PredicateProvider} from '@/application/provider/predicateProvider';
 import {DefaultChoiceInput} from '@/infrastructure/application/cli/io/defaultChoiceInput';
 import {Or} from '@/application/predicate/or';
 import * as functions from '@/infrastructure/application/evaluation/functions';
+import {ProcessObserver} from '@/application/event';
+import {Platform} from '@/application/model/platform';
+import {RepeatAction} from '@/application/template/action/repeatAction';
+import {RepeatOptionsValidator} from '@/infrastructure/application/validation/actions/repeatOptionsValidator';
 
 export type Configuration = {
+    adminUrl: string,
+    cache: boolean,
+    quiet: boolean,
+    interactive: boolean,
+    skipPrompts: boolean,
+    exitCallback: ExitCallback,
+    nameRegistry: URL,
+    processObserver: ProcessObserver,
+    environment: {
+        platform: NodeJS.Platform,
+        executablePaths: string[],
+        executableExtensions: string[],
+    },
     io: {
         input: Readable,
         output: Writable,
@@ -258,14 +274,7 @@ export type Configuration = {
         authenticationEndpoint: string,
         authenticationParameter: string,
     },
-    adminUrl: string,
-    cache: boolean,
-    quiet: boolean,
-    interactive: boolean,
-    skipPrompts: boolean,
-    exitCallback: ExitCallback,
-    nameRegistry: URL,
-    process: EventEmitter<{exit: []}>,
+
 };
 
 type AuthenticationMethods = {
@@ -726,6 +735,10 @@ export class Cli {
                 test: new ValidatedAction<TestOptions>({
                     action: new LazyAction(new CallbackProvider((): TestAction => new TestAction(actions.run))),
                     validator: new TestOptionsValidator(),
+                }),
+                repeat: new ValidatedAction({
+                    action: new LazyAction(new CallbackProvider((): RepeatAction => new RepeatAction(actions.run))),
+                    validator: new RepeatOptionsValidator(),
                 }),
                 print: new ValidatedAction({
                     action: new PrintAction(),
@@ -1363,13 +1376,23 @@ export class Cli {
 
     private getNodePackageManagers(): NodePackageManagers {
         return this.share(this.getNodePackageManagers, () => {
+            const cache = new AutoSaveCache(new InMemoryCache());
+            const fileSystem = this.getFileSystem();
+
             const agentConfig: ExecutableAgentConfiguration = {
                 projectDirectory: this.workingDirectory,
-                commandRunner: this.getCommandExecutor(),
+                fileSystem: fileSystem,
+                commandExecutor: this.getCommandExecutor(),
+                executableCache: cache,
+                executablePaths: process.env
+                    .PATH
+                    ?.split(delimiter) ?? [],
+                executableExtensions: process.env
+                    .PATHEXT
+                    ?.split(delimiter),
             };
 
             const validator = new PartialNpmPackageValidator();
-            const fileSystem = this.getFileSystem();
 
             const managerConfig: Omit<NodePackageManagerConfiguration, 'agent'> = {
                 fileSystem: fileSystem,
@@ -1437,11 +1460,11 @@ export class Cli {
                 new ProcessServerFactory({
                     commandExecutor: this.getCommandExecutor(),
                     workingDirectory: this.workingDirectory,
-                    startupTimeout: 5000,
-                    startupCheckDelay: 1000,
-                    lookupMaxPorts: 100,
-                    lookupTimeout: 2000,
-                    process: this.configuration.process,
+                    startupTimeout: 20_000,
+                    startupCheckDelay: 1500,
+                    lookupMaxPorts: 30,
+                    lookupTimeout: 2_000,
+                    processObserver: this.configuration.processObserver,
                 }),
             ),
         );

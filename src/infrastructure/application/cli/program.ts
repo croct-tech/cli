@@ -1,13 +1,13 @@
 import {Command, InvalidArgumentError, Option} from '@commander-js/extra-typings';
 import XDGAppPaths from 'xdg-app-paths';
 import process from 'node:process';
-import {resolve} from 'path';
+import {delimiter, resolve} from 'path';
 import ci from 'ci-info';
 import {JsonPrimitive} from '@croct/json';
-import {EventEmitter} from 'node:events';
 import {Cli} from '@/infrastructure/application/cli/cli';
 import {Resource} from '@/application/cli/command/init';
 import {OptionMap} from '@/application/template/template';
+import {EventDispatcher, ProcessEvents} from '@/application/event';
 
 const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a.run.app';
 const templateRegistry = 'github:/marcospassos/croct-examples/registry.json';
@@ -293,11 +293,12 @@ function getTemplate(args: string[]): string | null {
     const {args} = parsedInput;
     const options = parsedInput.opts();
     const appPaths = XDGAppPaths('com.croct.cli');
-    const eventEmitter = new EventEmitter<{exit: []}>();
+    const eventEmitter = new EventDispatcher<ProcessEvents>();
 
-    const exit = (exitCode: number = 0): never => {
-        eventEmitter.emit('exit');
-        process.exit(exitCode);
+    const exit = async (exitCode: number = 0): Promise<never> => {
+        await eventEmitter.emit('exit').catch(() => {});
+
+        return process.exit(exitCode);
     };
 
     process.on('SIGTERM', () => exit());
@@ -329,7 +330,16 @@ function getTemplate(args: string[]): string | null {
         interactive: options.interaction && !ci.isCI,
         skipPrompts: options.skipPrompts === true,
         exitCallback: () => exit(1),
-        process: eventEmitter,
+        processObserver: eventEmitter,
+        environment: {
+            platform: process.platform,
+            executablePaths: process.env
+                .PATH
+                ?.split(delimiter) ?? [],
+            executableExtensions: process.env
+                .PATHEXT
+                ?.split(delimiter) ?? [],
+        },
     });
 
     const template = getTemplate(args);

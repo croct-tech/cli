@@ -3,8 +3,8 @@ import {ActionContext} from '@/application/template/action/context';
 import {ErrorReason, Help} from '@/application/error';
 
 export type TryOptions = {
-    action: Array<Promise<unknown>>,
-    else?: Array<Promise<unknown>>,
+    action: Promise<unknown>,
+    else?: Promise<unknown>,
     help?: Pick<Help, | 'links' | 'suggestions'> & {
         message?: string,
     },
@@ -36,7 +36,7 @@ export class TryAction implements Action<TryOptions> {
         }
     }
 
-    private run(actions: Array<Promise<unknown>>, context: ActionContext): Promise<void> {
+    private run(actions: Promise<unknown>, context: ActionContext): Promise<void> {
         return this.runner.execute({actions: actions}, context);
     }
 }

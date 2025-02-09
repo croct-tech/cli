@@ -4,7 +4,7 @@ import {ErrorReason} from '@/application/error';
 import {ActionDefinition} from '@/application/template/template';
 
 export type RunOptions = {
-    actions: ActionDefinition[],
+    actions: ActionDefinition|ActionDefinition[],
 };
 
 export class RunAction implements Action<RunOptions> {
@@ -15,7 +15,7 @@ export class RunAction implements Action<RunOptions> {
     }
 
     public async execute(options: RunOptions, context: ActionContext): Promise<void> {
-        for (const action of options.actions) {
+        for (const action of Array.isArray(options.actions) ? options.actions : [options.actions]) {
             await this.run(action, context);
         }
     }

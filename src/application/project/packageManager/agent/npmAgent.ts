@@ -6,11 +6,11 @@ export class NpmAgent extends ExecutableAgent {
         return 'npm';
     }
 
-    public getPackageCommand(packageName: string, args: string[] = []): Promise<Command> {
+    protected createPackageCommand(packageName: string, args: string[] = []): Promise<Command> {
         return Promise.resolve(this.getCommand('npx', ['--yes', packageName, ...args]));
     }
 
-    public getScriptCommand(script: string, args: string[] = []): Promise<Command> {
+    protected createScriptCommand(script: string, args: string[] = []): Promise<Command> {
         return Promise.resolve(
             this.getCommand(
                 this.getCommandName(),
@@ -19,11 +19,11 @@ export class NpmAgent extends ExecutableAgent {
         );
     }
 
-    protected getAddDependencyCommand(dependencies: string[], dev: boolean): Command {
+    protected createAddDependencyCommand(dependencies: string[], dev: boolean): Command {
         return this.getCommand(this.getCommandName(), ['install', ...(dev ? ['--save-dev'] : []), ...dependencies]);
     }
 
-    protected getInstallDependenciesCommand(): Command {
+    protected createInstallDependenciesCommand(): Command {
         return this.getCommand(this.getCommandName(), ['install']);
     }
 
