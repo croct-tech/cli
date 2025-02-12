@@ -1,6 +1,7 @@
 import {AuthenticationListener, Token} from '@/application/cli/authentication';
-import {SynchronousCommandExecutor} from '@/application/process/executor';
-import {Command} from '@/application/process/command';
+import {SynchronousCommandExecutor} from '@/application/system/process/executor';
+import {Command} from '@/application/system/process/command';
+import {multiline} from '@/application/utils';
 
 type Callback = () => Promise<void>;
 
@@ -75,22 +76,25 @@ export class FocusListener implements AuthenticationListener {
     }
 
     private async win32Focus(callback: Callback): Promise<void> {
-        const type = [
-            'Add-Type @"',
-            'using System;',
-            'using System.Runtime.InteropServices;',
-            'public class Window {',
-            '    [DllImport("user32.dll")]',
-            '    public static extern IntPtr GetForegroundWindow();',
-            '    [DllImport("user32.dll")]',
-            '    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);',
-            '    [DllImport("user32.dll")]',
-            '    public static extern bool SetForegroundWindow(IntPtr hWnd);',
-            '}',
-            '"@',
-        ];
+        const type = multiline`
+            Add-Type @"
+            using System;
+            using System.Runtime.InteropServices;
+            public class Window {
+                [DllImport("user32.dll")]
+                public static extern IntPtr GetForegroundWindow();
+                [DllImport("user32.dll")]
+                public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+                [DllImport("user32.dll")]
+                public static extern bool SetForegroundWindow(IntPtr hWnd);
+            }
+            "@
+        `;
 
-        const handleCommand = [...type, '[Window]::GetForegroundWindow()'].join('\n');
+        const handleCommand = multiline`
+            ${type}
+            [Window]::GetForegroundWindow()
+        `;
 
         const handle = this.runCommand({
             name: 'powershell',
@@ -100,11 +104,11 @@ export class FocusListener implements AuthenticationListener {
         await callback();
 
         if (handle !== null) {
-            const focusCommand = [
-                ...type,
-                `[Window]::SetForegroundWindow(${handle})`,
-                `[Window]::ShowWindow(${handle}, 9)`,
-            ].join('\n');
+            const focusCommand = multiline`
+                ${type} 
+                [Window]::SetForegroundWindow(${handle}) 
+                [Window]::ShowWindow(${handle}, 9)
+            `;
 
             this.runCommand({
                 name: 'powershell',

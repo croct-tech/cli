@@ -7,9 +7,9 @@ import {
     ExecutionError,
     ExecutionOptions,
     ExitCallback,
-} from '@/application/process/executor';
+} from '@/application/system/process/executor';
 import {ErrorReason} from '@/application/error';
-import {Command} from '@/application/process/command';
+import {Command} from '@/application/system/process/command';
 
 export type Configuration = IPtyForkOptions | IWindowsPtyForkOptions;
 

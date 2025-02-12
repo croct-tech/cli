@@ -1,6 +1,6 @@
 import {Server, ServerError, ServerStatus} from '@/application/project/server/server';
-import {CommandExecutor, Execution} from '@/application/process/executor';
-import {Command} from '@/application/process/command';
+import {CommandExecutor, Execution} from '@/application/system/process/executor';
+import {Command} from '@/application/system/process/command';
 import {WorkingDirectory} from '@/application/fs/workingDirectory';
 import {ProcessObserver} from '@/application/event';
 

@@ -58,6 +58,7 @@ export interface FileSystem {
     isDirectory(path: string): Promise<boolean>;
     getDirectoryName(path: string): string;
     createDirectory(path: string, options?: DirectoryCreationOptions): Promise<void>;
+    createTemporaryDirectory(prefix: string): Promise<string>;
     copy(source: string, destination: string, options?: CopyOptions): Promise<void>;
     isEmptyDirectory(path: string): Promise<boolean>;
     create(entry: FileSystemEntry): Promise<void>;

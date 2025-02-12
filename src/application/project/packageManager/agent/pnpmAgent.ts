@@ -1,5 +1,5 @@
 import {ExecutableAgent} from '@/application/project/packageManager/agent/executableAgent';
-import {Command} from '@/application/process/command';
+import {Command} from '@/application/system/process/command';
 
 export class PnpmAgent extends ExecutableAgent {
     protected getCommandName(): string {

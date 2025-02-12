@@ -1,9 +1,9 @@
 import {CacheProvider, NoopCache} from '@croct/cache';
-import {Command} from '@/application/process/command';
+import {Command} from '@/application/system/process/command';
 import {WorkingDirectory} from '@/application/fs/workingDirectory';
 import {PackageManagerAgent} from '@/application/project/packageManager/agent/packageManagerAgent';
 import {CommandOptions, PackageManagerError} from '@/application/project/packageManager/packageManager';
-import {CommandExecutor} from '@/application/process/executor';
+import {CommandExecutor} from '@/application/system/process/executor';
 import {FileSystem} from '@/application/fs/fileSystem';
 
 export type Configuration = {

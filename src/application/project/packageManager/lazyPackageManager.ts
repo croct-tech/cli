@@ -1,5 +1,5 @@
 import {Dependency, PackageManager, PackageManagerError} from '@/application/project/packageManager/packageManager';
-import {Command} from '@/application/process/command';
+import {Command} from '@/application/system/process/command';
 import {Provider, ProviderError} from '@/application/provider/provider';
 
 export class LazyPackageManager implements PackageManager {

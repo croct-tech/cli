@@ -1,6 +1,6 @@
 import {Server} from '@/application/project/server/server';
 import {Provider, ProviderError} from '@/application/provider/provider';
-import {Command} from '@/application/process/command';
+import {Command} from '@/application/system/process/command';
 import {PackageManager} from '@/application/project/packageManager/packageManager';
 
 export type ServerInfo = {

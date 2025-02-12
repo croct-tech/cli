@@ -1,5 +1,5 @@
 import {Help, HelpfulError} from '@/application/error';
-import {Command} from '@/application/process/command';
+import {Command} from '@/application/system/process/command';
 
 export type Signal = NodeJS.Signals;
 

@@ -8,11 +8,11 @@ import {
     ExecutionResult,
     ExitCallback,
     SynchronousCommandExecutor,
-} from '@/application/process/executor';
+} from '@/application/system/process/executor';
 import {BufferedIterator} from '@/infrastructure/bufferedIterator';
 import {ErrorReason} from '@/application/error';
 import {WorkingDirectory} from '@/application/fs/workingDirectory';
-import {Command} from '@/application/process/command';
+import {Command} from '@/application/system/process/command';
 
 export type Configuration = {
     currentDirectory?: WorkingDirectory,

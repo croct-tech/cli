@@ -6,7 +6,7 @@ import {JsonObjectNode, JsonParser} from '@/infrastructure/json';
 import {ErrorReason} from '@/application/error';
 import {WorkingDirectory} from '@/application/fs/workingDirectory';
 import {PackageManagerAgent} from '@/application/project/packageManager/agent/packageManagerAgent';
-import {Command} from '@/application/process/command';
+import {Command} from '@/application/system/process/command';
 
 export type Configuration = {
     projectDirectory: WorkingDirectory,

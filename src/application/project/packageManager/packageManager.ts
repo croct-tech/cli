@@ -1,6 +1,6 @@
 import {Help, HelpfulError} from '@/application/error';
-import {Command} from '@/application/process/command';
-import {ExecutionOptions} from '@/application/process/executor';
+import {Command} from '@/application/system/process/command';
+import {ExecutionOptions} from '@/application/system/process/executor';
 
 export class PackageManagerError extends HelpfulError {
     public constructor(message: string, help?: Help) {

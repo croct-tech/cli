@@ -1,4 +1,5 @@
 import {Command, InvalidArgumentError, Option} from '@commander-js/extra-typings';
+import {homedir} from 'os';
 import XDGAppPaths from 'xdg-app-paths';
 import process from 'node:process';
 import {delimiter, resolve} from 'path';
@@ -44,6 +45,14 @@ function createProgram(config: Configuration): typeof program {
 
     program.helpCommand(helpCommand.name(), helpCommand.description());
     program.helpOption(helpOption.flags, helpOption.description);
+
+    program.command('launch <target>')
+        .description('Open a deep link.')
+        .action(async target => {
+            await config.cli?.launch({
+                target: target,
+            });
+        });
 
     const loginCommand = program.command('login')
         .description('Authenticate your user.');
@@ -287,10 +296,9 @@ function getTemplate(args: string[]): string | null {
     return null;
 }
 
-(async function main(): Promise<void> {
-    const parsedInput = createProgram({interactive: true}).parse();
+(async function run(args: string[] = process.argv): Promise<void> {
+    const parsedInput = createProgram({interactive: true}).parse(args);
 
-    const {args} = parsedInput;
     const options = parsedInput.opts();
     const appPaths = XDGAppPaths('com.croct.cli');
     const eventEmitter = new EventDispatcher<ProcessEvents>();
@@ -305,6 +313,7 @@ function getTemplate(args: string[]): string | null {
     process.on('SIGINT', () => exit());
 
     const cli = new Cli({
+        program: (parsedArgs: string[]) => run(args.slice(0, 2).concat(parsedArgs)),
         io: {
             input: process.stdin,
             output: process.stdout,
@@ -312,6 +321,8 @@ function getTemplate(args: string[]): string | null {
         directories: {
             config: appPaths.config(),
             cache: appPaths.cache(),
+            data: appPaths.data(),
+            home: homedir(),
             current: options.cwd !== undefined
                 ? resolve(options.cwd)
                 : process.cwd(),
@@ -331,6 +342,7 @@ function getTemplate(args: string[]): string | null {
         skipPrompts: options.skipPrompts === true,
         exitCallback: () => exit(1),
         processObserver: eventEmitter,
+        deepLinkProtocol: 'croct',
         environment: {
             platform: process.platform,
             executablePaths: process.env
@@ -352,5 +364,5 @@ function getTemplate(args: string[]): string | null {
             : undefined,
     });
 
-    await program.parseAsync();
+    await program.parseAsync(args);
 }());

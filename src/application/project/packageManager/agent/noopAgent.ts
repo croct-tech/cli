@@ -1,4 +1,4 @@
-import {Command} from '@/application/process/command';
+import {Command} from '@/application/system/process/command';
 import {PackageManagerAgent} from '@/application/project/packageManager/agent/packageManagerAgent';
 import {PackageManagerError} from '@/application/project/packageManager/packageManager';
 

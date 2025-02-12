@@ -9,7 +9,9 @@ import {
     rm,
     symlink,
     writeFile,
+    mkdtemp,
 } from 'fs/promises';
+import {tmpdir} from 'node:os';
 import {basename, dirname, isAbsolute, join, relative, sep} from 'path';
 import {createReadStream} from 'fs';
 import {Stats} from 'node:fs';
@@ -29,7 +31,7 @@ import {ErrorReason} from '@/application/error';
 
 export type Configuration = {
     workingDirectory: WorkingDirectory,
-    defaultEncoding: BufferEncoding,
+    defaultEncoding?: BufferEncoding,
 };
 
 type FileSystemErrorCode = 'ENOENT' | 'EACCES' | 'EISDIR' | 'ENOTDIR' | 'EPERM' | 'EEXIST' | 'ENOTEMPTY';
@@ -55,10 +57,13 @@ export class LocalFilesystem implements FileSystem {
         ENOTEMPTY: ErrorReason.INVALID_INPUT,
     };
 
-    private readonly config: Configuration;
+    private readonly config: Required<Configuration>;
 
     public constructor(configuration: Configuration) {
-        this.config = configuration;
+        this.config = {
+            ...configuration,
+            defaultEncoding: configuration.defaultEncoding ?? 'utf8',
+        };
     }
 
     public getSeparator(): string {
@@ -257,6 +262,10 @@ export class LocalFilesystem implements FileSystem {
                 recursive: options?.recursive ?? false,
             }),
         );
+    }
+
+    public createTemporaryDirectory(prefix: string): Promise<string> {
+        return this.execute(() => mkdtemp(this.joinPaths(tmpdir(), prefix)));
     }
 
     public copy(source: string, destination: string, options?: CopyOptions): Promise<void> {

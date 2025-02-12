@@ -224,7 +224,7 @@ import {HasDependency} from '@/application/predicate/hasDependency';
 import {IsProject} from '@/application/predicate/isProject';
 import {ImportResolver} from '@/application/project/import/importResolver';
 import {LazyImportResolver} from '@/application/project/import/lazyImportResolver';
-import {CommandExecutor, SynchronousCommandExecutor} from '@/application/process/executor';
+import {CommandExecutor, SynchronousCommandExecutor} from '@/application/system/process/executor';
 import {SpawnExecutor} from '@/infrastructure/application/command/spawnExecutor';
 import {LazyFormatter} from '@/application/project/code/formatter/lazyFormatter';
 import {LazySdk} from '@/application/project/sdk/lazySdk';
@@ -243,6 +243,11 @@ import {ProcessObserver} from '@/application/event';
 import {Platform} from '@/application/model/platform';
 import {RepeatAction} from '@/application/template/action/repeatAction';
 import {RepeatOptionsValidator} from '@/infrastructure/application/validation/actions/repeatOptionsValidator';
+import {ProtocolRegistry} from '@/application/system/protocol/protocolRegistry';
+import {MacOsRegistry} from '@/application/system/protocol/macOsRegistry';
+import {WindowsRegistry} from '@/application/system/protocol/windowsRegistry';
+import {LinuxRegistry} from '@/application/system/protocol/linuxRegistry';
+import {LaunchCommand, LaunchInput, Program} from '@/application/cli/command/launch';
 
 export type Configuration = {
     adminUrl: string,
@@ -250,9 +255,11 @@ export type Configuration = {
     quiet: boolean,
     interactive: boolean,
     skipPrompts: boolean,
+    program: Program,
     exitCallback: ExitCallback,
     nameRegistry: URL,
     processObserver: ProcessObserver,
+    deepLinkProtocol: string,
     environment: {
         platform: NodeJS.Platform,
         executablePaths: string[],
@@ -266,6 +273,8 @@ export type Configuration = {
         current: string,
         config: string,
         cache: string,
+        data: string,
+        home: string,
     },
     api: {
         graphqlEndpoint: string,
@@ -304,6 +313,16 @@ export class Cli {
         this.configuration = configuration;
         this.skipPrompts = configuration.skipPrompts;
         this.workingDirectory = new ConfigurableWorkingDirectory(configuration.directories.current);
+    }
+
+    public launch(input: LaunchInput): Promise<void> {
+        return this.execute(
+            new LaunchCommand({
+                program: this.configuration.program,
+                protocol: this.configuration.deepLinkProtocol,
+            }),
+            input,
+        );
     }
 
     public init(input: InitInput): Promise<void> {
@@ -1739,6 +1758,39 @@ export class Cli {
                 fileSystem: this.getFileSystem(),
                 directory: this.configuration.directories.cache,
             }),
+        );
+    }
+
+    private getProtocolRegistry(): ProtocolRegistry|null {
+        return this.share(
+            this.getProtocolRegistry,
+            () => {
+                const fileSystem = this.getFileSystem();
+
+                switch (this.configuration.environment.platform) {
+                    case 'darwin':
+                        return new MacOsRegistry({
+                            fileSystem: fileSystem,
+                            appDirectory: fileSystem.joinPaths(this.configuration.directories.data, 'apps'),
+                            commandExecutor: this.getCommandExecutor(),
+                        });
+
+                    case 'win32':
+                        return new WindowsRegistry({
+                            commandExecutor: this.getCommandExecutor(),
+                        });
+
+                    case 'linux':
+                        return new LinuxRegistry({
+                            fileSystem: fileSystem,
+                            homeDirectory: this.configuration.directories.home,
+                            commandExecutor: this.getCommandExecutor(),
+                        });
+
+                    default:
+                        return null;
+                }
+            },
         );
     }
 
