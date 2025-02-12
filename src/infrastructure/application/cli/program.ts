@@ -1,14 +1,13 @@
 import {Command, InvalidArgumentError, Option} from '@commander-js/extra-typings';
 import {homedir} from 'os';
 import XDGAppPaths from 'xdg-app-paths';
-import process from 'node:process';
-import {delimiter, resolve} from 'path';
+import {resolve} from 'path';
 import ci from 'ci-info';
 import {JsonPrimitive} from '@croct/json';
 import {Cli} from '@/infrastructure/application/cli/cli';
 import {Resource} from '@/application/cli/command/init';
 import {OptionMap} from '@/application/template/template';
-import {EventDispatcher, ProcessEvents} from '@/application/event';
+import {NodeProcess} from '@/infrastructure/application/system/nodeProcess';
 
 const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a.run.app';
 const templateRegistry = 'github:/marcospassos/croct-examples/registry.json';
@@ -301,23 +300,12 @@ function getTemplate(args: string[]): string | null {
 
     const options = parsedInput.opts();
     const appPaths = XDGAppPaths('com.croct.cli');
-    const eventEmitter = new EventDispatcher<ProcessEvents>();
-
-    const exit = async (exitCode: number = 0): Promise<never> => {
-        await eventEmitter.emit('exit').catch(() => {});
-
-        return process.exit(exitCode);
-    };
-
-    process.on('SIGTERM', () => exit());
-    process.on('SIGINT', () => exit());
+    const process = new NodeProcess();
+    // Todo: make FileSystem configurable
 
     const cli = new Cli({
+        process: new NodeProcess(),
         program: (parsedArgs: string[]) => run(args.slice(0, 2).concat(parsedArgs)),
-        io: {
-            input: process.stdin,
-            output: process.stdout,
-        },
         directories: {
             config: appPaths.config(),
             cache: appPaths.cache(),
@@ -325,7 +313,7 @@ function getTemplate(args: string[]): string | null {
             home: homedir(),
             current: options.cwd !== undefined
                 ? resolve(options.cwd)
-                : process.cwd(),
+                : process.getCurrentDirectory(),
         },
         api: {
             graphqlEndpoint: `${apiEndpoint}/graphql`,
@@ -340,18 +328,7 @@ function getTemplate(args: string[]): string | null {
         quiet: options.quiet,
         interactive: options.interaction && !ci.isCI,
         skipPrompts: options.skipPrompts === true,
-        exitCallback: () => exit(1),
-        processObserver: eventEmitter,
         deepLinkProtocol: 'croct',
-        environment: {
-            platform: process.platform,
-            executablePaths: process.env
-                .PATH
-                ?.split(delimiter) ?? [],
-            executableExtensions: process.env
-                .PATHEXT
-                ?.split(delimiter) ?? [],
-        },
     });
 
     const template = getTemplate(args);

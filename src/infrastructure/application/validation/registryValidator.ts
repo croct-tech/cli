@@ -1,6 +1,6 @@
 import {z, ZodType} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
-import {Mapping, Registry} from '@/application/template/provider/mappedProvider';
+import {Mapping} from '@/application/template/provider/mappedProvider';
 
 const mappingSchema: ZodType<Mapping> = z.strictObject({
     pattern: z.string().refine(value => {
@@ -18,9 +18,9 @@ const mappingSchema: ZodType<Mapping> = z.strictObject({
     destination: z.string(),
 });
 
-const registrySchema: ZodType<Registry> = z.array(mappingSchema);
+const registrySchema: ZodType<Mapping[]> = z.array(mappingSchema);
 
-export class RegistryValidator extends ZodValidator<Registry> {
+export class RegistryValidator extends ZodValidator<Mapping[]> {
     public constructor() {
         super(registrySchema);
     }

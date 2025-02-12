@@ -1,4 +1,3 @@
-import {Readable, Writable} from 'stream';
 import {
     AdaptedCache,
     AutoSaveCache,
@@ -9,9 +8,8 @@ import {
     StaleWhileRevalidateCache,
     TimestampedCacheEntry,
 } from '@croct/cache';
-import {delimiter} from 'path';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
-import {ConsoleOutput, ExitCallback} from '@/infrastructure/application/cli/io/consoleOutput';
+import {ConsoleOutput} from '@/infrastructure/application/cli/io/consoleOutput';
 import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
 import {Sdk} from '@/application/project/sdk/sdk';
 import {Configuration as JavaScriptSdkConfiguration} from '@/application/project/sdk/javasScriptSdk';
@@ -239,7 +237,6 @@ import {PredicateProvider} from '@/application/provider/predicateProvider';
 import {DefaultChoiceInput} from '@/infrastructure/application/cli/io/defaultChoiceInput';
 import {Or} from '@/application/predicate/or';
 import * as functions from '@/infrastructure/application/evaluation/functions';
-import {ProcessObserver} from '@/application/event';
 import {Platform} from '@/application/model/platform';
 import {RepeatAction} from '@/application/template/action/repeatAction';
 import {RepeatOptionsValidator} from '@/infrastructure/application/validation/actions/repeatOptionsValidator';
@@ -248,6 +245,11 @@ import {MacOsRegistry} from '@/application/system/protocol/macOsRegistry';
 import {WindowsRegistry} from '@/application/system/protocol/windowsRegistry';
 import {LinuxRegistry} from '@/application/system/protocol/linuxRegistry';
 import {LaunchCommand, LaunchInput, Program} from '@/application/cli/command/launch';
+import {ProjectIndex} from '@/application/project/index/projectIndex';
+import {FileProjectIndex} from '@/application/project/index/fileProjectIndex';
+import {ProjectIndexValidator} from '@/infrastructure/application/validation/projectIndexValidator';
+import {IndexedConfigurationManager} from '@/application/project/configuration/manager/indexedConfigurationManager';
+import {Process} from '@/application/system/process/process';
 
 export type Configuration = {
     adminUrl: string,
@@ -256,19 +258,9 @@ export type Configuration = {
     interactive: boolean,
     skipPrompts: boolean,
     program: Program,
-    exitCallback: ExitCallback,
     nameRegistry: URL,
-    processObserver: ProcessObserver,
     deepLinkProtocol: string,
-    environment: {
-        platform: NodeJS.Platform,
-        executablePaths: string[],
-        executableExtensions: string[],
-    },
-    io: {
-        input: Readable,
-        output: Writable,
-    },
+    process: Process,
     directories: {
         current: string,
         config: string,
@@ -617,8 +609,12 @@ export class Cli {
         return this.share(this.getInput, () => {
             const output = this.getOutput();
             const input = new ConsoleInput({
-                input: this.configuration.io.input,
-                output: this.configuration.io.output,
+                input: this.configuration
+                    .process
+                    .getStandardInput(),
+                output: this.configuration
+                    .process
+                    .getStandardOutput(),
                 onAbort: () => output.exit(),
                 onInteractionStart: () => output.suspend(),
                 onInteractionEnd: () => output.resume(),
@@ -634,10 +630,14 @@ export class Cli {
 
     private getNonInteractiveOutput(quiet = false): ConsoleOutput {
         return new ConsoleOutput({
-            output: this.configuration.io.output,
+            output: this.configuration
+                .process
+                .getStandardOutput(),
             interactive: false,
             quiet: quiet,
-            onExit: this.configuration.exitCallback,
+            onExit: () => this.configuration
+                .process
+                .exit(),
         });
     }
 
@@ -645,10 +645,14 @@ export class Cli {
         return this.share(
             this.getOutput,
             () => new ConsoleOutput({
-                output: this.configuration.io.output,
+                output: this.configuration
+                    .process
+                    .getStandardOutput(),
                 interactive: this.configuration.interactive,
                 quiet: this.configuration.quiet,
-                onExit: this.configuration.exitCallback,
+                onExit: () => this.configuration
+                    .process
+                    .exit(),
             }),
         );
     }
@@ -1397,18 +1401,15 @@ export class Cli {
         return this.share(this.getNodePackageManagers, () => {
             const cache = new AutoSaveCache(new InMemoryCache());
             const fileSystem = this.getFileSystem();
+            const {process} = this.configuration;
 
             const agentConfig: ExecutableAgentConfiguration = {
                 projectDirectory: this.workingDirectory,
                 fileSystem: fileSystem,
                 commandExecutor: this.getCommandExecutor(),
                 executableCache: cache,
-                executablePaths: process.env
-                    .PATH
-                    ?.split(delimiter) ?? [],
-                executableExtensions: process.env
-                    .PATHEXT
-                    ?.split(delimiter),
+                executablePaths: process.getEnvList('PATH') ?? [],
+                executableExtensions: process.getEnvList('PATHEXT') ?? [],
             };
 
             const validator = new PartialNpmPackageValidator();
@@ -1483,7 +1484,7 @@ export class Cli {
                     startupCheckDelay: 1500,
                     lookupMaxPorts: 30,
                     lookupTimeout: 2_000,
-                    processObserver: this.configuration.processObserver,
+                    processObserver: this.configuration.process,
                 }),
             ),
         );
@@ -1628,19 +1629,35 @@ export class Cli {
                 },
             });
 
-            return new CachedConfigurationManager(
-                this.configuration.interactive
-                    ? new NewConfigurationManager({
-                        manager: manager,
-                        initializer: {
-                            initialize: async (): Promise<void> => {
-                                await this.init({});
-                                output.break();
+            return new IndexedConfigurationManager({
+                workingDirectory: this.workingDirectory,
+                projectIndex: this.getProjectIndex(),
+                manager: new CachedConfigurationManager(
+                    this.configuration.interactive
+                        ? new NewConfigurationManager({
+                            manager: manager,
+                            initializer: {
+                                initialize: async (): Promise<void> => {
+                                    await this.init({});
+                                    output.break();
+                                },
                             },
-                        },
-                    })
-                    : manager,
-            );
+                        })
+                        : manager,
+                ),
+            });
+        });
+    }
+
+    private getProjectIndex(): ProjectIndex {
+        return this.share(this.getProjectIndex, () => {
+            const fileSystem = this.getFileSystem();
+
+            return new FileProjectIndex({
+                fileSystem: fileSystem,
+                validator: new ProjectIndexValidator(),
+                filePath: fileSystem.joinPaths(this.configuration.directories.config, 'projects.json'),
+            });
         });
     }
 
@@ -1766,8 +1783,9 @@ export class Cli {
             this.getProtocolRegistry,
             () => {
                 const fileSystem = this.getFileSystem();
+                const {process} = this.configuration;
 
-                switch (this.configuration.environment.platform) {
+                switch (process.getPlatform()) {
                     case 'darwin':
                         return new MacOsRegistry({
                             fileSystem: fileSystem,

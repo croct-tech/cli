@@ -6,11 +6,9 @@ export type Mapping = {
     destination: string|URL,
 };
 
-export type Registry = Mapping[];
-
 export type Configuration<T> = {
     dataProvider: ResourceProvider<T>,
-    registryProvider: Provider<Registry>,
+    registryProvider: Provider<Mapping[]>,
 };
 
 export class MappedProvider<T> implements ResourceProvider<T> {

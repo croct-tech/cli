@@ -7,13 +7,6 @@ export interface EventObserver<T extends EventMap<T>> {
     off<E extends keyof T>(event: E, listener: EventListener<T[E]>): void;
 }
 
-export type ProcessEvents = {
-    exit: [],
-};
-
-export interface ProcessObserver extends EventObserver<ProcessEvents> {
-}
-
 export class EventDispatcher<T extends EventMap<T>> implements EventObserver<T> {
     private listeners: Partial<Record<keyof T, Set<EventListener<any[]>>>> = {};
 
