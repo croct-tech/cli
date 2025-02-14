@@ -6,7 +6,6 @@ import {
     OrganizationSetup,
     PasswordReset,
     UserApi,
-    UserCredentials,
 } from '@/application/api/user';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
 import {

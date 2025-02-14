@@ -69,6 +69,7 @@ export class CredentialsAuthenticator implements Authenticator<CredentialsInput>
             return form.signIn.handle({
                 email: email,
                 password: credentials.password,
+                retry: true,
             });
         }
 
