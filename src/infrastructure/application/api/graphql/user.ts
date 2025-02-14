@@ -1,6 +1,7 @@
 import {GraphqlClient} from '@/infrastructure/graphql';
 import {
     ActivationRetry,
+    AccessRequest,
     NewUser,
     OrganizationSetup,
     PasswordReset,
@@ -104,26 +105,18 @@ export class GraphqlUserApi implements UserApi {
         return data.createSession;
     }
 
-    public async issueToken(credentials: UserCredentials): Promise<string> {
-        const {headers} = await this.client.execute(signInMutation, {
+    public async issueToken(access: AccessRequest): Promise<string> {
+        const {data} = await this.client.execute(signInMutation, {
             payload: {
-                email: credentials.email,
-                password: credentials.password,
-                remember: true,
+                email: access.email,
+                password: access.password,
+                duration: access.duration,
+                // @todo remove this
+                remember: false,
             },
         });
 
-        const cookie = headers.get('set-cookie') ?? '';
-
-        const token = cookie.split(';')
-            .find(part => part.startsWith('__croctApi='))
-            ?.split('=')[1];
-
-        if (token === undefined) {
-            throw new Error('Token not found');
-        }
-
-        return token;
+        return data.signIn.token!;
     }
 
     public async getOrganization(organizationSlug: string): Promise<Organization | null> {

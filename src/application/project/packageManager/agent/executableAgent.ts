@@ -1,42 +1,31 @@
-import {CacheProvider, NoopCache} from '@croct/cache';
 import {Command} from '@/application/system/process/command';
 import {WorkingDirectory} from '@/application/fs/workingDirectory';
 import {PackageManagerAgent} from '@/application/project/packageManager/agent/packageManagerAgent';
 import {CommandOptions, PackageManagerError} from '@/application/project/packageManager/packageManager';
 import {CommandExecutor} from '@/application/system/process/executor';
 import {FileSystem} from '@/application/fs/fileSystem';
+import {ExecutableLocator} from '@/application/system/executableLocator';
 
 export type Configuration = {
     projectDirectory: WorkingDirectory,
-    executablePaths: string[],
-    executableExtensions?: string[],
     fileSystem: FileSystem,
     commandExecutor: CommandExecutor,
-    executableCache?: CacheProvider<string, string|null>,
+    executableLocator: ExecutableLocator,
 };
 
 export abstract class ExecutableAgent implements PackageManagerAgent {
     private readonly projectDirectory: WorkingDirectory;
 
-    private readonly executablePaths: string[];
-
-    private readonly executableExtensions: string[];
-
-    private readonly fileSystem: FileSystem;
-
     private readonly commandRunner: CommandExecutor;
 
-    private readonly executableCache: CacheProvider<string, string|null>;
+    private readonly executableLocator: ExecutableLocator;
 
     private installed: Promise<boolean>;
 
     public constructor(configuration: Configuration) {
         this.projectDirectory = configuration.projectDirectory;
-        this.executablePaths = configuration.executablePaths;
-        this.executableExtensions = configuration.executableExtensions ?? [];
-        this.fileSystem = configuration.fileSystem;
         this.commandRunner = configuration.commandExecutor;
-        this.executableCache = configuration.executableCache ?? new NoopCache();
+        this.executableLocator = configuration.executableLocator;
     }
 
     public isInstalled(): Promise<boolean> {
@@ -48,20 +37,20 @@ export abstract class ExecutableAgent implements PackageManagerAgent {
         return this.installed;
     }
 
-    public async addDependencies(packages: string[], dev = false): Promise<void> {
-        return this.run(await this.resolveCommand(this.createAddDependencyCommand(packages, dev)));
+    public addDependencies(packages: string[], dev = false): Promise<void> {
+        return this.run(this.createAddDependencyCommand(packages, dev));
     }
 
-    public async installDependencies(): Promise<void> {
-        return this.run(await this.resolveCommand(this.createInstallDependenciesCommand()));
+    public installDependencies(): Promise<void> {
+        return this.run(this.createInstallDependenciesCommand());
     }
 
-    public async getPackageCommand(packageName: string, args?: string[]): Promise<Command> {
-        return this.resolveCommand(await this.createPackageCommand(packageName, args));
+    public getPackageCommand(packageName: string, args?: string[]): Promise<Command> {
+        return this.createPackageCommand(packageName, args);
     }
 
-    public async getScriptCommand(script: string, args?: string[]): Promise<Command> {
-        return this.resolveCommand(await this.createScriptCommand(script, args));
+    public getScriptCommand(script: string, args?: string[]): Promise<Command> {
+        return this.createScriptCommand(script, args);
     }
 
     protected abstract getCommandName(): string;
@@ -75,6 +64,10 @@ export abstract class ExecutableAgent implements PackageManagerAgent {
     protected abstract createInstallDependenciesCommand(): Command;
 
     protected async run(command: Command, options: CommandOptions = {}): Promise<void> {
+        if (!await this.isInstalled()) {
+            throw new PackageManagerError(`Package manager \`${this.getCommandName()}\` is not installed.`);
+        }
+
         const execution = this.commandRunner.run(command, {
             ...options,
             workingDirectory: this.projectDirectory.get(),
@@ -85,34 +78,7 @@ export abstract class ExecutableAgent implements PackageManagerAgent {
         }
     }
 
-    private async resolveCommand(command: Command): Promise<Command> {
-        const executable = await this.getExecutable(command.name);
-
-        if (executable === null) {
-            throw new PackageManagerError(`Unable to find \`${this.getCommandName()}\` executable.`);
-        }
-
-        return {
-            ...command,
-            name: executable,
-        };
-    }
-
     private getExecutable(command: string): Promise<string|null> {
-        return this.executableCache.get(command, name => this.findExecutable(name));
-    }
-
-    private async findExecutable(command: string): Promise<string|null> {
-        for (const path of this.executablePaths) {
-            for (const extension of ['', ...this.executableExtensions]) {
-                const realPath = this.fileSystem.joinPaths(path, command + extension.toLowerCase());
-
-                if (realPath !== null && await this.fileSystem.exists(realPath)) {
-                    return realPath;
-                }
-            }
-        }
-
-        return null;
+        return this.executableLocator.locate(command);
     }
 }

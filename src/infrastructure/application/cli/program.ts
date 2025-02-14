@@ -1,9 +1,9 @@
 import {Command, InvalidArgumentError, Option} from '@commander-js/extra-typings';
 import {homedir} from 'os';
 import XDGAppPaths from 'xdg-app-paths';
-import {resolve} from 'path';
 import ci from 'ci-info';
 import {JsonPrimitive} from '@croct/json';
+import {realpathSync} from 'fs';
 import {Cli} from '@/infrastructure/application/cli/cli';
 import {Resource} from '@/application/cli/command/init';
 import {OptionMap} from '@/application/template/template';
@@ -24,7 +24,13 @@ function createProgram(config: Configuration): typeof program {
         .name('croct')
         .description('Manage your Croct projects')
         .version('0.0.1', '-v, --version', 'Display the version number.')
-        .option('-d, --cwd <path>', 'The working directory.')
+        .option('-d, --cwd <path>', 'The working directory.', path => {
+            try {
+                return realpathSync(path);
+            } catch {
+                throw new InvalidArgumentError('The path does not exist.');
+            }
+        })
         .option('-n, --no-interaction', 'Disable interaction mode.')
         .option('--registry <url>', 'The template registry.')
         .option('-s, --skip-prompts', 'Skip prompts with default options.')
@@ -45,11 +51,11 @@ function createProgram(config: Configuration): typeof program {
     program.helpCommand(helpCommand.name(), helpCommand.description());
     program.helpOption(helpOption.flags, helpOption.description);
 
-    program.command('launch <target>')
+    program.command('open <url>')
         .description('Open a deep link.')
-        .action(async target => {
-            await config.cli?.launch({
-                target: target,
+        .action(async url => {
+            await config.cli?.open({
+                url: url,
             });
         });
 
@@ -295,25 +301,29 @@ function getTemplate(args: string[]): string | null {
     return null;
 }
 
-(async function run(args: string[] = process.argv): Promise<void> {
+(async function run(args: string[] = process.argv, welcome = true): Promise<void> {
     const parsedInput = createProgram({interactive: true}).parse(args);
 
     const options = parsedInput.opts();
     const appPaths = XDGAppPaths('com.croct.cli');
-    const process = new NodeProcess();
-    // Todo: make FileSystem configurable
 
     const cli = new Cli({
         process: new NodeProcess(),
         program: (parsedArgs: string[]) => run(args.slice(0, 2).concat(parsedArgs)),
+        cache: options.cache,
+        quiet: options.quiet,
+        interactive: options.interaction && !ci.isCI,
+        skipPrompts: options.skipPrompts === true,
+        tokenDuration: 90 * 24 * 60 * 60,
+        deepLinkProtocol: 'croct',
+        adminUrl: new URL(adminUrl),
+        templateRegistryUrl: new URL(options.registry ?? templateRegistry),
         directories: {
+            current: options.cwd,
             config: appPaths.config(),
             cache: appPaths.cache(),
             data: appPaths.data(),
             home: homedir(),
-            current: options.cwd !== undefined
-                ? resolve(options.cwd)
-                : process.getCurrentDirectory(),
         },
         api: {
             graphqlEndpoint: `${apiEndpoint}/graphql`,
@@ -322,13 +332,6 @@ function getTemplate(args: string[]): string | null {
             authenticationEndpoint: `${apiEndpoint}/start/`,
             authenticationParameter: 'session',
         },
-        adminUrl: adminUrl,
-        nameRegistry: new URL(options.registry ?? templateRegistry),
-        cache: options.cache,
-        quiet: options.quiet,
-        interactive: options.interaction && !ci.isCI,
-        skipPrompts: options.skipPrompts === true,
-        deepLinkProtocol: 'croct',
     });
 
     const template = getTemplate(args);
@@ -340,6 +343,10 @@ function getTemplate(args: string[]): string | null {
             ? await cli.getTemplateOptions(template)
             : undefined,
     });
+
+    if (welcome) {
+        await cli.welcome({});
+    }
 
     await program.parseAsync(args);
 }());

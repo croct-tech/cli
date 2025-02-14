@@ -12,7 +12,7 @@ export type Configuration = {
 };
 
 export class LinuxRegistry implements ProtocolRegistry {
-    private static readonly COMMAND = 'gnome-terminal -- bash -c ';
+    private static readonly COMMAND = 'gnome-terminal -- bash --login -ic ';
 
     private readonly fileSystem: FileSystem;
 
@@ -130,18 +130,12 @@ export class LinuxRegistry implements ProtocolRegistry {
 
     private async execute(command: Command): Promise<string> {
         const execution = this.commandExecutor.run(command);
-        const result = await execution.wait();
-        let output = '';
 
-        for await (const chunk of execution.output) {
-            output += chunk;
-        }
-
-        if (result !== 0) {
+        if (await execution.wait() !== 0) {
             throw new HelpfulError(`Failed to execute command \`${command.name}\`.`);
         }
 
-        return output;
+        return execution.read();
     }
 
     private static createDesktopEntry(handler: ProtocolHandler): string {

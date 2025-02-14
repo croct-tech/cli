@@ -14,8 +14,8 @@ export interface Process extends ProcessObserver {
     getStandardInput(): Readable;
     getStandardOutput(): Writable;
     getStandardError(): Writable;
-    getEnvValue(name: string): string | undefined;
-    getEnvList(name: string): string[] | undefined;
+    getEnvValue(name: string): string | null;
+    getEnvList(name: string): string[] | null;
     changeDirectory(directory: string): void;
     exit(exitCode?: number): Promise<never>;
 }

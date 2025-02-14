@@ -16,12 +16,12 @@ export class NodeProcess implements Process {
         return process.cwd();
     }
 
-    public getEnvValue(name: string): string | undefined {
-        return process.env[name];
+    public getEnvValue(name: string): string | null {
+        return process.env[name] ?? null;
     }
 
-    public getEnvList(name: string): string[] | undefined {
-        return this.getEnvValue(name)?.split(delimiter);
+    public getEnvList(name: string): string[] | null {
+        return this.getEnvValue(name)?.split(delimiter) ?? null;
     }
 
     public getPlatform(): string {

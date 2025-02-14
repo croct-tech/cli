@@ -9,6 +9,7 @@ const packageSchema: ZodType<PartialNpmManifest> = z.object({
     devDependencies: z.record(z.string()).optional(),
     bin: z.record(z.string()).optional(),
     scripts: z.record(z.string()).optional(),
+    packageManager: z.string().optional(),
 });
 
 export class PartialNpmPackageValidator extends ZodValidator<PartialNpmManifest> {

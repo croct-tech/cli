@@ -3,7 +3,7 @@ import {graphql} from '@/infrastructure/graphql';
 export const signInMutation = graphql(`
     mutation SignIn($payload: SignInPayload!) {
         signIn(payload: $payload) {
-            id
+            token
         }
     }
 `);

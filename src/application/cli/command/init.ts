@@ -77,10 +77,10 @@ export class InitCommand implements Command<InitInput> {
         output.break();
 
         output.announce({
-            semantic: 'success',
-            title: 'Welcome to Croct',
+            semantic: 'info',
+            title: '👋 Welcome to Croct',
             alignment: 'center',
-            message: `Let's configure your ${projectName} to get started.`,
+            message: `Let's configure your ${projectName} to get started!`,
         });
 
         output.break();

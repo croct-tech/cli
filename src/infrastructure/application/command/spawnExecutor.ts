@@ -36,10 +36,21 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
             signal: timeoutSignal,
         });
 
-        let executionError: Error | null = null;
+        const errorCallbacks: Array<(error: unknown) => void> = [];
 
-        subprocess.on('error', error => {
-            executionError = error;
+        subprocess.on('error', (error: unknown) => {
+            for (const callback of errorCallbacks) {
+                callback(
+                    timeoutSignal?.aborted === true
+                        ? new ExecutionError('Command timed out.', {
+                            reason: ErrorReason.PRECONDITION,
+                            cause: error,
+                        })
+                        : new ExecutionError('Failed to run command.', {
+                            cause: error,
+                        }),
+                );
+            }
         });
 
         const output = new BufferedIterator<string>();
@@ -89,27 +100,17 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
                     }
                 });
             }),
+            read: async (): Promise<string> => {
+                let data = '';
+
+                for await (const chunk of output) {
+                    data += chunk;
+                }
+
+                return data;
+            },
             wait: () => new Promise<number>((resolve, reject) => {
-                if (executionError !== null) {
-                    reject(
-                        new ExecutionError(
-                            timeoutSignal?.aborted === true
-                                ? 'Command timed out.'
-                                : 'Failed to run command.',
-                            {
-                                cause: executionError,
-                            },
-                        ),
-                    );
-
-                    return;
-                }
-
-                if (exitCode !== null) {
-                    resolve(exitCode);
-
-                    return;
-                }
+                errorCallbacks.push(reject);
 
                 subprocess.on('exit', code => {
                     resolve(code ?? 1);

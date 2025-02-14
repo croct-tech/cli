@@ -7,24 +7,24 @@ export class YarnAgent extends ExecutableAgent {
     }
 
     protected createPackageCommand(packageName: string, args: string[] = []): Promise<Command> {
-        return Promise.resolve(this.getCommand(['dlx', packageName, ...args]));
+        return Promise.resolve(this.getCommand('npx', ['--yes', packageName, ...args]));
     }
 
     protected createScriptCommand(script: string, args: string[] = []): Promise<Command> {
-        return Promise.resolve(this.getCommand(['run', script, ...args]));
+        return Promise.resolve(this.getCommand(this.getCommandName(), ['run', script, ...args]));
     }
 
     protected createAddDependencyCommand(dependencies: string[], dev: boolean): Command {
-        return this.getCommand(['add', ...(dev ? ['--dev'] : []), ...dependencies]);
+        return this.getCommand(this.getCommandName(), ['add', ...(dev ? ['--dev'] : []), ...dependencies]);
     }
 
     protected createInstallDependenciesCommand(): Command {
-        return this.getCommand(['install']);
+        return this.getCommand(this.getCommandName(), ['install']);
     }
 
-    private getCommand(args: string[] = []): Command {
+    private getCommand(command: string, args: string[] = []): Command {
         return {
-            name: this.getCommandName(),
+            name: command,
             arguments: args,
         };
     }

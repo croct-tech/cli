@@ -90,19 +90,12 @@ export class WindowsRegistry implements ProtocolRegistry {
 
     private async execute(command: Command): Promise<string> {
         const execution = this.commandExecutor.run(command);
-        const result = await execution.wait();
 
-        if (result !== 0) {
+        if (await execution.wait() !== 0) {
             throw new HelpfulError(`Failed to execute command \`${command.name}\`.`);
         }
 
-        let output = '';
-
-        for await (const chunk of execution.output) {
-            output += chunk;
-        }
-
-        return output;
+        return execution.read();
     }
 
     private async findCommand(protocol: string): Promise<string | null> {

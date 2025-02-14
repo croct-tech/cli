@@ -3,6 +3,7 @@ import isUnicodeSupported from 'is-unicode-supported';
 import {render as renderMarkdown} from '@croct/md-lite/rendering';
 import terminalLink from 'terminal-link';
 import {unescape as unescapeMarkdown} from '@croct/md-lite/parsing';
+import {strip} from 'node-emoji';
 import {Semantic} from '@/application/cli/io/output';
 
 const unicodeSupport = isUnicodeSupported();
@@ -24,6 +25,7 @@ const icons: Record<Semantic, string> = {
 };
 
 export type FormatingOptions = {
+    basic?: boolean,
     text?: Semantic,
     icon?: {
         semantic: Semantic,
@@ -35,7 +37,11 @@ export type FormatingOptions = {
 };
 
 export function format(message: string, options: FormatingOptions = {}): string {
-    let result = render(message);
+    let result = options.basic === true ? message : render(message);
+
+    if (!unicodeSupport) {
+        result = strip(result);
+    }
 
     if (options.text !== undefined) {
         result = chalk[colors[options.text]](result);

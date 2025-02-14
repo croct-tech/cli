@@ -7,15 +7,11 @@ import {Form} from '@/application/cli/form/form';
 import {SignInOptions} from '@/application/cli/form/auth/signInForm';
 import {SignUpOptions} from '@/application/cli/form/auth/signUpForm';
 import {EmailInput} from '@/application/cli/form/input/emailInput';
-import {AccessDeniedReason, ApiError} from '@/application/api/error';
-
-import {HelpfulError, ErrorReason} from '@/application/error';
 
 export type Configuration = {
     input: Input,
     output: Output,
     userApi: UserApi,
-
     form: {
         signIn: Form<Token, SignInOptions>,
         signUp: Form<Token, SignUpOptions>,
@@ -38,47 +34,17 @@ export class CredentialsAuthenticator implements Authenticator<CredentialsInput>
         return Promise.resolve(null);
     }
 
-    public async login(credentials: CredentialsInput = {}): Promise<Token> {
+    public login(credentials: CredentialsInput = {}): Promise<Token> {
         if (credentials.username === undefined || credentials.password === undefined) {
             return this.loginInteractively(credentials);
         }
 
-        const {output, userApi} = this.config;
+        const {form} = this.config;
 
-        const notifier = output.notify('Checking credentials');
-
-        try {
-            const token = await userApi.issueToken({
-                email: credentials.username,
-                password: credentials.password,
-            });
-
-            notifier.confirm('Logged in');
-
-            return token;
-        } catch (error) {
-            if (error instanceof ApiError) {
-                if (error.isAccessDenied(AccessDeniedReason.UNVERIFIED_USER)) {
-                    throw new HelpfulError('Email not verified', {
-                        reason: ErrorReason.ACCESS_DENIED,
-                        cause: error,
-                        suggestions: ['Access your email and click on the activation link'],
-                    });
-                }
-
-                if (error.isAccessDenied(AccessDeniedReason.BAD_CREDENTIALS)) {
-                    throw new HelpfulError('Username or password is incorrect', {
-                        reason: ErrorReason.ACCESS_DENIED,
-                        cause: error,
-                        suggestions: ['Check your credentials or reset your password'],
-                    });
-                }
-            }
-
-            throw error;
-        } finally {
-            notifier.stop();
-        }
+        return form.signIn.handle({
+            email: credentials.username,
+            password: credentials.password,
+        });
     }
 
     private async loginInteractively(credentials: CredentialsInput): Promise<Token> {
@@ -89,7 +55,7 @@ export class CredentialsAuthenticator implements Authenticator<CredentialsInput>
             label: 'Enter your email',
         });
 
-        const notifier = output.notify('Checking email');
+        const notifier = output.notify('Finding account');
 
         const isRegistered = await userApi.isEmailRegistered(email);
 
@@ -97,7 +63,7 @@ export class CredentialsAuthenticator implements Authenticator<CredentialsInput>
 
         if (isRegistered) {
             if (credentials.password === undefined) {
-                output.inform('Existing user, please sign in');
+                output.inform('Account found, please sign in');
             }
 
             return form.signIn.handle({
@@ -106,7 +72,7 @@ export class CredentialsAuthenticator implements Authenticator<CredentialsInput>
             });
         }
 
-        output.inform('New user, please sign up');
+        output.inform('New account, please sign up');
 
         return form.signUp.handle({email: email});
     }

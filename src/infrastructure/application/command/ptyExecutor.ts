@@ -66,6 +66,15 @@ export class PtyExecutor implements CommandExecutor {
             get running(): boolean {
                 return exitCode === null;
             },
+            read: async (): Promise<string> => {
+                let data = '';
+
+                for await (const chunk of output) {
+                    data += chunk;
+                }
+
+                return data;
+            },
             onExit: (callback: ExitCallback): DisposableListener => {
                 exitListeners.push(callback);
 

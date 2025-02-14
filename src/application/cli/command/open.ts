@@ -1,38 +1,38 @@
 import {Command} from '@/application/cli/command/command';
 import {ErrorReason, HelpfulError} from '@/application/error';
 
-export type LaunchInput = {
-    target: string,
+export type OpenInput = {
+    url: string,
 };
 
 export type Program = (args: string[]) => Promise<void>;
 
-export type LaunchConfig = {
+export type OpenConfig = {
     protocol: string,
     program: Program,
 };
 
-export class LaunchCommand implements Command<LaunchInput> {
+export class OpenCommand implements Command<OpenInput> {
     private readonly program: Program;
 
     private readonly protocol: string;
 
-    public constructor(config: LaunchConfig) {
+    public constructor(config: OpenConfig) {
         this.program = config.program;
         this.protocol = config.protocol;
     }
 
-    public async execute(input: LaunchInput): Promise<void> {
-        if (!URL.canParse(input.target)) {
-            throw new HelpfulError('The target is not a valid URL.', {
+    public async execute(input: OpenInput): Promise<void> {
+        if (!URL.canParse(input.url)) {
+            throw new HelpfulError('The URL is not valid.', {
                 reason: ErrorReason.INVALID_INPUT,
             });
         }
 
-        const url = new URL(input.target);
+        const url = new URL(input.url);
 
-        if (!this.isValidTarget(url)) {
-            throw new HelpfulError('The target URL is not supported.', {
+        if (!this.isValidUrl(url)) {
+            throw new HelpfulError('The URL is not supported.', {
                 reason: ErrorReason.INVALID_INPUT,
             });
         }
@@ -73,7 +73,7 @@ export class LaunchCommand implements Command<LaunchInput> {
         return args;
     }
 
-    private isValidTarget(url: URL): boolean {
+    private isValidUrl(url: URL): boolean {
         return url.protocol === `${this.protocol}:`
             && url.hostname === ''
             && url.username === ''

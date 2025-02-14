@@ -328,6 +328,7 @@ type BarChart implements Chart {
   colors: [Color!]!
   data(
     applicationId: ApplicationId
+    applicationSlug: ReadableId
     experienceId: ExperienceId
     experimentId: ExperimentId
 
@@ -335,7 +336,8 @@ type BarChart implements Chart {
     Filters applied to the query. Some filters might be ignored by some queries.
     """
     filters: StringMap
-    organizationId: OrganizationId!
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
     timeWindow: TimeWindowInput
 
     """
@@ -343,6 +345,7 @@ type BarChart implements Chart {
     """
     timeZone: String!
     workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
   ): ChartData!
   divisionLabel: String!
   divisionOrder: [String!]
@@ -387,6 +390,7 @@ interface Chart {
   colors: [Color!]!
   data(
     applicationId: ApplicationId
+    applicationSlug: ReadableId
     experienceId: ExperienceId
     experimentId: ExperimentId
 
@@ -394,7 +398,8 @@ interface Chart {
     Filters applied to the query. Some filters might be ignored by some queries.
     """
     filters: StringMap
-    organizationId: OrganizationId!
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
     timeWindow: TimeWindowInput
 
     """
@@ -402,6 +407,7 @@ interface Chart {
     """
     timeZone: String!
     workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
   ): ChartData!
   id: ID!
   legendPlacement: ChartLegendPlacement
@@ -441,6 +447,7 @@ type ChartWidget implements DashboardFilterable & Node & Widget {
   custom: Boolean!
   filterGroup(
     applicationId: ApplicationId
+    applicationSlug: ReadableId
     experienceId: ExperienceId
     experimentId: ExperimentId
 
@@ -448,7 +455,8 @@ type ChartWidget implements DashboardFilterable & Node & Widget {
     Filters applied to the query. Some filters might be ignored by some queries.
     """
     filters: StringMap
-    organizationId: OrganizationId!
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
     timeWindow: TimeWindowInput
 
     """
@@ -456,6 +464,7 @@ type ChartWidget implements DashboardFilterable & Node & Widget {
     """
     timeZone: String!
     workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
   ): DashboardFilterGroup!
   hideTitle: Boolean!
   id: ID!
@@ -473,6 +482,7 @@ enum Color {
   LOVELACE
   NEWTON
   NOETHER
+  NULLUS
   PYTHAGORAS
 }
 
@@ -491,6 +501,7 @@ type ColumnsChart implements Chart {
   colors: [Color!]!
   data(
     applicationId: ApplicationId
+    applicationSlug: ReadableId
     experienceId: ExperienceId
     experimentId: ExperimentId
 
@@ -498,7 +509,8 @@ type ColumnsChart implements Chart {
     Filters applied to the query. Some filters might be ignored by some queries.
     """
     filters: StringMap
-    organizationId: OrganizationId!
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
     timeWindow: TimeWindowInput
 
     """
@@ -506,6 +518,7 @@ type ColumnsChart implements Chart {
     """
     timeZone: String!
     workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
   ): ChartData!
   divisionLabel: String!
   divisionOrder: [String!]
@@ -874,6 +887,7 @@ type Dashboard implements DashboardFilterable & Node {
   defaultTimeWindow: TimeWindow
   filterGroup(
     applicationId: ApplicationId
+    applicationSlug: ReadableId
     experienceId: ExperienceId
     experimentId: ExperimentId
 
@@ -881,7 +895,8 @@ type Dashboard implements DashboardFilterable & Node {
     Filters applied to the query. Some filters might be ignored by some queries.
     """
     filters: StringMap
-    organizationId: OrganizationId!
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
     timeWindow: TimeWindowInput
 
     """
@@ -889,6 +904,7 @@ type Dashboard implements DashboardFilterable & Node {
     """
     timeZone: String!
     workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
   ): DashboardFilterGroup!
   id: ID!
   layout: DashboardLayout!
@@ -924,6 +940,7 @@ type DashboardFilterGroup {
 interface DashboardFilterable implements Node {
   filterGroup(
     applicationId: ApplicationId
+    applicationSlug: ReadableId
     experienceId: ExperienceId
     experimentId: ExperimentId
 
@@ -931,7 +948,8 @@ interface DashboardFilterable implements Node {
     Filters applied to the query. Some filters might be ignored by some queries.
     """
     filters: StringMap
-    organizationId: OrganizationId!
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
     timeWindow: TimeWindowInput
 
     """
@@ -939,6 +957,7 @@ interface DashboardFilterable implements Node {
     """
     timeZone: String!
     workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
   ): DashboardFilterGroup!
   id: ID!
 }
@@ -1016,6 +1035,7 @@ type DonutChart implements Chart {
   colors: [Color!]!
   data(
     applicationId: ApplicationId
+    applicationSlug: ReadableId
     experienceId: ExperienceId
     experimentId: ExperimentId
 
@@ -1023,7 +1043,8 @@ type DonutChart implements Chart {
     Filters applied to the query. Some filters might be ignored by some queries.
     """
     filters: StringMap
-    organizationId: OrganizationId!
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
     timeWindow: TimeWindowInput
 
     """
@@ -1031,6 +1052,7 @@ type DonutChart implements Chart {
     """
     timeZone: String!
     workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
   ): ChartData!
   id: ID!
   legendPlacement: ChartLegendPlacement
@@ -1319,6 +1341,20 @@ type FileMetadata {
   url: String!
 }
 
+enum FrameTimeWindowEnum {
+  FULL
+}
+
+input FrameTimeWindowInput {
+  window: FrameTimeWindowEnum!
+}
+
+type FrameTimeWindowObject {
+  end: LocalDate
+  start: LocalDate
+  window: FrameTimeWindowEnum!
+}
+
 input GenerateTypingPayload {
   components: [VersionSpecifier!]!
   slots: [VersionSpecifier!]!
@@ -1454,6 +1490,7 @@ type LineChart implements Chart {
   colors: [Color!]!
   data(
     applicationId: ApplicationId
+    applicationSlug: ReadableId
     experienceId: ExperienceId
     experimentId: ExperimentId
 
@@ -1461,7 +1498,8 @@ type LineChart implements Chart {
     Filters applied to the query. Some filters might be ignored by some queries.
     """
     filters: StringMap
-    organizationId: OrganizationId!
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
     timeWindow: TimeWindowInput
 
     """
@@ -1469,6 +1507,7 @@ type LineChart implements Chart {
     """
     timeZone: String!
     workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
   ): ChartData!
   filledArea: Boolean!
   hideAxis: Boolean!
@@ -1551,6 +1590,7 @@ type Metric {
   comparison: MetricComparison
   data(
     applicationId: ApplicationId
+    applicationSlug: ReadableId
     experienceId: ExperienceId
     experimentId: ExperimentId
 
@@ -1558,7 +1598,8 @@ type Metric {
     Filters applied to the query. Some filters might be ignored by some queries.
     """
     filters: StringMap
-    organizationId: OrganizationId!
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
     timeWindow: TimeWindowInput
 
     """
@@ -1566,6 +1607,7 @@ type Metric {
     """
     timeZone: String!
     workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
   ): MetricData!
   format: NumberFormat!
   hint: Tooltip
@@ -1593,6 +1635,7 @@ type MetricWidget implements DashboardFilterable & Node & Widget {
   custom: Boolean!
   filterGroup(
     applicationId: ApplicationId
+    applicationSlug: ReadableId
     experienceId: ExperienceId
     experimentId: ExperimentId
 
@@ -1600,7 +1643,8 @@ type MetricWidget implements DashboardFilterable & Node & Widget {
     Filters applied to the query. Some filters might be ignored by some queries.
     """
     filters: StringMap
-    organizationId: OrganizationId!
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
     timeWindow: TimeWindowInput
 
     """
@@ -1608,6 +1652,7 @@ type MetricWidget implements DashboardFilterable & Node & Widget {
     """
     timeZone: String!
     workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
   ): DashboardFilterGroup!
   hideTitle: Boolean!
   id: ID!
@@ -1951,6 +1996,7 @@ type OrganizationSubscription {
   allowOverage: Boolean!
   features: [Feature!]!
   id: ID!
+  organization: Organization!
   planName: String!
   quotas: PlanQuota!
   startTime: Instant!
@@ -2215,6 +2261,7 @@ input SegmentedContentGroupInput {
 }
 
 input SignInPayload {
+  duration: Int
   email: String!
   password: String!
   remember: Boolean!
@@ -2249,6 +2296,7 @@ type SingleBarChart implements Chart {
   colors: [Color!]!
   data(
     applicationId: ApplicationId
+    applicationSlug: ReadableId
     experienceId: ExperienceId
     experimentId: ExperimentId
 
@@ -2256,7 +2304,8 @@ type SingleBarChart implements Chart {
     Filters applied to the query. Some filters might be ignored by some queries.
     """
     filters: StringMap
-    organizationId: OrganizationId!
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
     timeWindow: TimeWindowInput
 
     """
@@ -2264,6 +2313,7 @@ type SingleBarChart implements Chart {
     """
     timeZone: String!
     workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
   ): ChartData!
   divisionLabel: String!
   id: ID!
@@ -2372,6 +2422,7 @@ type SunburstChart implements Chart {
   colors: [Color!]!
   data(
     applicationId: ApplicationId
+    applicationSlug: ReadableId
     experienceId: ExperienceId
     experimentId: ExperimentId
 
@@ -2379,7 +2430,8 @@ type SunburstChart implements Chart {
     Filters applied to the query. Some filters might be ignored by some queries.
     """
     filters: StringMap
-    organizationId: OrganizationId!
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
     timeWindow: TimeWindowInput
 
     """
@@ -2387,6 +2439,7 @@ type SunburstChart implements Chart {
     """
     timeZone: String!
     workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
   ): ChartData!
   id: ID!
   layerLabels: [String!]!
@@ -2401,6 +2454,8 @@ type SymbolTableRowMarker implements TableRowMarker {
   This field is here to comply with GraphQL specification, it cannot be read.
   """
   _placeholder: Boolean!
+  colorProgression: ColorProgression!
+  colors: [Color!]!
   referenceColumn: Int!
 }
 
@@ -2408,6 +2463,7 @@ type Table {
   columns: [TableColumn!]!
   data(
     applicationId: ApplicationId
+    applicationSlug: ReadableId
     experienceId: ExperienceId
     experimentId: ExperimentId
 
@@ -2415,7 +2471,8 @@ type Table {
     Filters applied to the query. Some filters might be ignored by some queries.
     """
     filters: StringMap
-    organizationId: OrganizationId!
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
     timeWindow: TimeWindowInput
 
     """
@@ -2423,6 +2480,7 @@ type Table {
     """
     timeZone: String!
     workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
   ): TableData!
   hideHeader: Boolean!
   id: ID!
@@ -2462,6 +2520,7 @@ type TableWidget implements DashboardFilterable & Node & Widget {
   custom: Boolean!
   filterGroup(
     applicationId: ApplicationId
+    applicationSlug: ReadableId
     experienceId: ExperienceId
     experimentId: ExperimentId
 
@@ -2469,7 +2528,8 @@ type TableWidget implements DashboardFilterable & Node & Widget {
     Filters applied to the query. Some filters might be ignored by some queries.
     """
     filters: StringMap
-    organizationId: OrganizationId!
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
     timeWindow: TimeWindowInput
 
     """
@@ -2477,6 +2537,7 @@ type TableWidget implements DashboardFilterable & Node & Widget {
     """
     timeZone: String!
     workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
   ): DashboardFilterGroup!
   hideTitle: Boolean!
   id: ID!
@@ -2529,11 +2590,13 @@ enum TimeFormat {
 
 type TimeWindow {
   absolute: AbsoluteTimeWindow
+  frame: FrameTimeWindowObject
   relative: RelativeTimeWindow
 }
 
 input TimeWindowInput {
   absolute: AbsoluteTimeWindowInput
+  frame: FrameTimeWindowInput
   relative: RelativeTimeWindow
 }
 
@@ -2855,6 +2918,7 @@ type Viewer {
   The ID of the Viewer is always constant to allow clients to update the correct node.
   """
   id: ID!
+  token: String
   user: User
   userAccount: UserAccount!
 }
@@ -2952,6 +3016,7 @@ interface Widget implements DashboardFilterable & Node {
   custom: Boolean!
   filterGroup(
     applicationId: ApplicationId
+    applicationSlug: ReadableId
     experienceId: ExperienceId
     experimentId: ExperimentId
 
@@ -2959,7 +3024,8 @@ interface Widget implements DashboardFilterable & Node {
     Filters applied to the query. Some filters might be ignored by some queries.
     """
     filters: StringMap
-    organizationId: OrganizationId!
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
     timeWindow: TimeWindowInput
 
     """
@@ -2967,6 +3033,7 @@ interface Widget implements DashboardFilterable & Node {
     """
     timeZone: String!
     workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
   ): DashboardFilterGroup!
   hideTitle: Boolean!
   id: ID!

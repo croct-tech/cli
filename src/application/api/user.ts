@@ -14,6 +14,10 @@ export type UserCredentials = {
     password: string,
 };
 
+export type AccessRequest = UserCredentials & {
+    duration?: number,
+};
+
 export type PasswordReset = {
     email: string,
     sessionId: string,
@@ -38,7 +42,7 @@ export interface UserApi {
 
     registerUser(user: NewUser): Promise<void>;
 
-    issueToken(credentials: UserCredentials): Promise<string>;
+    issueToken(access: AccessRequest): Promise<string>;
 
     retryActivation(retry: ActivationRetry): Promise<void>;
 

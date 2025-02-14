@@ -244,25 +244,31 @@ import {ProtocolRegistry} from '@/application/system/protocol/protocolRegistry';
 import {MacOsRegistry} from '@/application/system/protocol/macOsRegistry';
 import {WindowsRegistry} from '@/application/system/protocol/windowsRegistry';
 import {LinuxRegistry} from '@/application/system/protocol/linuxRegistry';
-import {LaunchCommand, LaunchInput, Program} from '@/application/cli/command/launch';
+import {OpenCommand, OpenInput, Program} from '@/application/cli/command/open';
 import {ProjectIndex} from '@/application/project/index/projectIndex';
 import {FileProjectIndex} from '@/application/project/index/fileProjectIndex';
 import {ProjectIndexValidator} from '@/infrastructure/application/validation/projectIndexValidator';
 import {IndexedConfigurationManager} from '@/application/project/configuration/manager/indexedConfigurationManager';
 import {Process} from '@/application/system/process/process';
+import {ExecutableLocator} from '@/application/system/executableLocator';
+import {IsPreferredNodePackageManager} from '@/application/predicate/isPreferredNodePackageManager';
+import {WelcomeCommand, WelcomeInput} from '@/application/cli/command/welcome';
+import {HasEnvVar} from '@/application/predicate/hasEnvVar';
+import {SequentialProvider} from '@/application/provider/sequentialProvider';
 
 export type Configuration = {
-    adminUrl: string,
+    program: Program,
+    process: Process,
     cache: boolean,
     quiet: boolean,
     interactive: boolean,
     skipPrompts: boolean,
-    program: Program,
-    nameRegistry: URL,
+    adminUrl: URL,
+    templateRegistryUrl: URL,
     deepLinkProtocol: string,
-    process: Process,
+    tokenDuration: number,
     directories: {
-        current: string,
+        current?: string,
         config: string,
         cache: string,
         data: string,
@@ -275,7 +281,6 @@ export type Configuration = {
         authenticationEndpoint: string,
         authenticationParameter: string,
     },
-
 };
 
 type AuthenticationMethods = {
@@ -304,12 +309,34 @@ export class Cli {
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
         this.skipPrompts = configuration.skipPrompts;
-        this.workingDirectory = new ConfigurableWorkingDirectory(configuration.directories.current);
+        this.workingDirectory = new ConfigurableWorkingDirectory(
+            configuration.directories.current ?? configuration.process.getCurrentDirectory(),
+        );
     }
 
-    public launch(input: LaunchInput): Promise<void> {
+    public welcome(input: WelcomeInput): Promise<void> {
         return this.execute(
-            new LaunchCommand({
+            new WelcomeCommand({
+                packageManager: this.getNodePackageManager(),
+                protocolRegistryProvider: this.getProtocolRegistryProvider(),
+                cliPackage: 'croct@latest',
+                protocolHandler: {
+                    id: 'com.croct.cli',
+                    name: 'croct-cli',
+                    protocol: this.configuration.deepLinkProtocol,
+                },
+                io: {
+                    input: this.getInput(),
+                    output: this.getOutput(),
+                },
+            }),
+            input,
+        );
+    }
+
+    public open(input: OpenInput): Promise<void> {
+        return this.execute(
+            new OpenCommand({
                 program: this.configuration.program,
                 protocol: this.configuration.deepLinkProtocol,
             }),
@@ -701,7 +728,7 @@ export class Cli {
                     dataProvider: new MultiProvider(...remoteProviders),
                     registryProvider: new ResourceValueProvider(
                         new SpecificResourceProvider({
-                            url: this.configuration.nameRegistry,
+                            url: this.configuration.templateRegistryUrl,
                             provider: new ValidatedProvider({
                                 provider: new CachedProvider({
                                     cache: new StaleWhileRevalidateCache({
@@ -1074,6 +1101,7 @@ export class Cli {
                         output: this.getOutput(),
                         userApi: this.getUserApi(true),
                         listener: this.getAuthenticationListener(),
+                        tokenDuration: this.configuration.tokenDuration,
                         emailLinkGenerator: {
                             recovery: this.createEmailLinkGenerator('Forgot password'),
                             verification: this.createEmailLinkGenerator('Welcome to Croct'),
@@ -1354,44 +1382,54 @@ export class Cli {
         });
     }
 
-    private getNodePackageManagerProvider(): Provider<PackageManager|null> {
+    public getNodePackageManagerProvider(): Provider<PackageManager|null> {
         return this.share(this.getNodePackageManagerProvider, () => {
             const managers = this.getNodePackageManagers();
             const fileSystem = this.getFileSystem();
 
+            const lockFiles: Record<keyof NodePackageManagers, string[]> = {
+                npm: ['package-lock.json'],
+                yarn: ['yarn.lock'],
+                bun: ['bun.lock', 'bun.lockb'],
+                pnpm: ['pnpm-lock.yaml'],
+            };
+
             return new MemoizedProvider(
-                new ConditionalProvider({
-                    candidates: [
-                        {
-                            value: managers.npm,
-                            condition: new FileExists({
-                                fileSystem: fileSystem,
-                                files: ['package-lock.json'],
+                new SequentialProvider(
+                    // Give higher priority to the package manager detected by the user agent
+                    new ConditionalProvider({
+                        candidates: (Object.entries(managers)).map(
+                            ([name, manager]) => ({
+                                value: manager,
+                                condition: new HasEnvVar({
+                                    process: this.configuration.process,
+                                    variable: 'npm_config_user_agent',
+                                    value: new RegExp(`^${name}`),
+                                }),
                             }),
-                        },
-                        {
-                            value: managers.yarn,
-                            condition: new FileExists({
-                                fileSystem: fileSystem,
-                                files: ['yarn.lock'],
+                        ),
+                    }),
+                    // Then, try to detect the package manager by the `packageManager` field
+                    // in the `package.json` file or by the presence of the lock file
+                    new ConditionalProvider({
+                        candidates: (Object.entries(managers)).map(
+                            ([name, manager]) => ({
+                                value: manager,
+                                condition: new Or(
+                                    new IsPreferredNodePackageManager({
+                                        packageManager: name,
+                                        fileSystem: fileSystem,
+                                        projectDirectory: this.workingDirectory,
+                                    }),
+                                    new FileExists({
+                                        fileSystem: fileSystem,
+                                        files: lockFiles[name as keyof NodePackageManagers],
+                                    }),
+                                ),
                             }),
-                        },
-                        {
-                            value: managers.bun,
-                            condition: new FileExists({
-                                fileSystem: fileSystem,
-                                files: ['bun.lock', 'bun.lockb'],
-                            }),
-                        },
-                        {
-                            value: managers.pnpm,
-                            condition: new FileExists({
-                                fileSystem: fileSystem,
-                                files: ['pnpm-lock.yaml'],
-                            }),
-                        },
-                    ],
-                }),
+                        ),
+                    }),
+                ),
                 this.workingDirectory,
             );
         });
@@ -1399,17 +1437,13 @@ export class Cli {
 
     private getNodePackageManagers(): NodePackageManagers {
         return this.share(this.getNodePackageManagers, () => {
-            const cache = new AutoSaveCache(new InMemoryCache());
             const fileSystem = this.getFileSystem();
-            const {process} = this.configuration;
 
             const agentConfig: ExecutableAgentConfiguration = {
                 projectDirectory: this.workingDirectory,
                 fileSystem: fileSystem,
                 commandExecutor: this.getCommandExecutor(),
-                executableCache: cache,
-                executablePaths: process.getEnvList('PATH') ?? [],
-                executableExtensions: process.getEnvList('PATHEXT') ?? [],
+                executableLocator: this.getExecutableLocator(),
             };
 
             const validator = new PartialNpmPackageValidator();
@@ -1571,6 +1605,22 @@ export class Cli {
 
     private getCommandExecutor(): CommandExecutor & SynchronousCommandExecutor {
         return this.share(this.getCommandExecutor, () => new SpawnExecutor());
+    }
+
+    private getExecutableLocator(): ExecutableLocator {
+        return this.share(
+            this.getExecutableLocator,
+            () => {
+                const {process} = this.configuration;
+
+                return new ExecutableLocator({
+                    fileSystem: this.getFileSystem(),
+                    cache: new AutoSaveCache(new InMemoryCache()),
+                    executablePaths: process.getEnvList('PATH') ?? [],
+                    executableExtensions: process.getEnvList('PATHEXT') ?? [],
+                });
+            },
+        );
     }
 
     private getPlatformProvider(): Provider<Platform|null> {
@@ -1778,10 +1828,10 @@ export class Cli {
         );
     }
 
-    private getProtocolRegistry(): ProtocolRegistry|null {
+    private getProtocolRegistryProvider(): Provider<ProtocolRegistry|null> {
         return this.share(
-            this.getProtocolRegistry,
-            () => {
+            this.getProtocolRegistryProvider,
+            () => new CallbackProvider(() => {
                 const fileSystem = this.getFileSystem();
                 const {process} = this.configuration;
 
@@ -1808,7 +1858,7 @@ export class Cli {
                     default:
                         return null;
                 }
-            },
+            }),
         );
     }
 

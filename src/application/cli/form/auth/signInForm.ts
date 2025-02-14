@@ -6,6 +6,7 @@ import {UserApi} from '@/application/api/user';
 import {PasswordInput} from '@/application/cli/form/input/passwordInput';
 import {AuthenticationListener, Token} from '@/application/cli/authentication/authentication';
 import {AccessDeniedReason, ApiError} from '@/application/api/error';
+import {ErrorReason, HelpfulError} from '@/application/error';
 
 type LinkGenerator = (email: string) => Promise<URL|null>;
 
@@ -14,6 +15,7 @@ export type Configuration = {
     output: Output,
     userApi: UserApi,
     listener: AuthenticationListener,
+    tokenDuration: number,
     emailLinkGenerator: {
         verification: LinkGenerator,
         recovery: LinkGenerator,
@@ -23,6 +25,7 @@ export type Configuration = {
 export type SignInOptions = {
     email?: string,
     password?: string,
+    retry?: boolean,
 };
 
 enum Action {
@@ -45,10 +48,10 @@ export class SignInForm implements Form<Token, SignInOptions> {
             label: 'Enter your email',
         });
 
-        return this.login(email, options.password);
+        return this.login(email, options.password, options.retry);
     }
 
-    private async login(email: string, password?: string): Promise<Token> {
+    private async login(email: string, password?: string, retry = false): Promise<Token> {
         const {input, output, userApi} = this.config;
 
         let action = Action.RETRY_PASSWORD;
@@ -69,6 +72,7 @@ export class SignInForm implements Form<Token, SignInOptions> {
                 const token = await userApi.issueToken({
                     email: email,
                     password: enteredPassword,
+                    duration: this.config.tokenDuration,
                 });
 
                 notifier.confirm('Logged in');
@@ -77,19 +81,35 @@ export class SignInForm implements Form<Token, SignInOptions> {
             } catch (error) {
                 if (error instanceof ApiError) {
                     if (error.isAccessDenied(AccessDeniedReason.UNVERIFIED_USER)) {
+                        if (!retry) {
+                            throw new HelpfulError('Email not verified.', {
+                                reason: ErrorReason.ACCESS_DENIED,
+                                cause: error,
+                                suggestions: ['Access your email and click on the activation link'],
+                            });
+                        }
+
                         notifier.alert('Email not verified');
 
-                        const retry = await input.confirm({
+                        const resend = await input.confirm({
                             message: 'Resend activation link?',
                             default: true,
                         });
 
-                        action = retry ? Action.RETRY_ACTIVATION : Action.CANCEL;
+                        action = resend ? Action.RETRY_ACTIVATION : Action.CANCEL;
 
                         continue;
                     }
 
                     if (error.isAccessDenied(AccessDeniedReason.BAD_CREDENTIALS)) {
+                        if (!retry) {
+                            throw new HelpfulError('Username or password is incorrect.', {
+                                reason: ErrorReason.ACCESS_DENIED,
+                                cause: error,
+                                suggestions: ['Check your credentials or reset your password'],
+                            });
+                        }
+
                         notifier.alert('Wrong password');
 
                         action = await input.select<Action>({

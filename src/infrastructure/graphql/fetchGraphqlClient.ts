@@ -37,7 +37,7 @@ export class FetchGraphqlClient implements GraphqlClient {
                 'content-type': 'application/json',
                 ...(
                     token !== null
-                        ? {cookie: `__croctApi=${token};`}
+                        ? {Authorization: `Bearer ${token}`}
                         : {}
                 ),
             },

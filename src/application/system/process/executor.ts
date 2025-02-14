@@ -15,14 +15,15 @@ export type DisposableListener = () => void;
 
 export type ExitCallback = (exitCode: number) => void;
 
-export type Execution = {
-    running: boolean,
-    output: AsyncIterable<string>,
-    write(data: string): Promise<void>,
-    wait(): Promise<number>,
-    kill(signal?: Signal): Promise<void>,
-    onExit(callback: ExitCallback): DisposableListener,
-};
+export interface Execution {
+    running: boolean;
+    output: AsyncIterable<string>;
+    read(): Promise<string>;
+    write(data: string): Promise<void>;
+    wait(): Promise<number>;
+    kill(signal?: Signal): Promise<void>;
+    onExit(callback: ExitCallback): DisposableListener;
+}
 
 export type ExecutionResult = {
     exitCode: number,
