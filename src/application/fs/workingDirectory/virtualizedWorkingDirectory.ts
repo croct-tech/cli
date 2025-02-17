@@ -1,15 +1,6 @@
-import {Provider} from '@/application/provider/provider';
+import {CurrentWorkingDirectory} from "@/application/fs/workingDirectory/workingDirectory";
 
-export interface WorkingDirectory extends Provider<string>{
-    get(): string;
-    toString(): string;
-}
-
-export interface CurrentWorkingDirectory extends WorkingDirectory {
-    setCurrentDirectory(directory: string): void;
-}
-
-export class ConfigurableWorkingDirectory implements CurrentWorkingDirectory {
+export class VirtualizedWorkingDirectory implements CurrentWorkingDirectory {
     private currentDirectory: string;
 
     public constructor(currentDirectory: string) {

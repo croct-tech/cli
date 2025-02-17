@@ -1,6 +1,6 @@
 import {Installation, Sdk, SdkError} from '@/application/project/sdk/sdk';
 import {Provider, ProviderError} from '@/application/provider/provider';
-import {Configuration} from '@/application/project/configuration/configuration';
+import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Slot} from '@/application/model/slot';
 
 export class LazySdk implements Sdk {
@@ -20,7 +20,7 @@ export class LazySdk implements Sdk {
         });
     }
 
-    public async install(installation: Installation): Promise<Configuration> {
+    public async install(installation: Installation): Promise<ProjectConfiguration> {
         return (await this.sdk).install(installation);
     }
 

@@ -17,7 +17,7 @@ export class PrintAction implements Action<PrintOptions> {
             logger.log(options.message, semantic);
         } else {
             logger.announce({
-                semantic: semantic,
+                semantics: semantic,
                 title: options.title,
                 message: options.message,
             });

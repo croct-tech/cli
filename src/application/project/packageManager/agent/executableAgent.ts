@@ -1,5 +1,5 @@
 import {Command} from '@/application/system/process/command';
-import {WorkingDirectory} from '@/application/fs/workingDirectory';
+import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {PackageManagerAgent} from '@/application/project/packageManager/agent/packageManagerAgent';
 import {CommandOptions, PackageManagerError} from '@/application/project/packageManager/packageManager';
 import {CommandExecutor} from '@/application/system/process/executor';

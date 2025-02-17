@@ -1,7 +1,7 @@
 import {CodeFormatter, CodeFormatterError} from '@/application/project/code/formatter/formatter';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {Dependency, PackageManager} from '@/application/project/packageManager/packageManager';
-import {WorkingDirectory} from '@/application/fs/workingDirectory';
+import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {CommandExecutor} from '@/application/system/process/executor';
 import {Command} from '@/application/system/process/command';
 

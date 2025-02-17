@@ -5,7 +5,7 @@ import {Installation, Sdk} from '@/application/project/sdk/sdk';
 import {Form} from '@/application/cli/form/form';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
-import {Configuration as ProjectConfiguration} from '@/application/project/configuration/configuration';
+import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Version} from '@/application/model/version';
 import {Component} from '@/application/model/component';
 import {HelpfulError, ErrorReason} from '@/application/error';

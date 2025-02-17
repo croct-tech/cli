@@ -1,6 +1,6 @@
 import {ErrorReason, Help, HelpfulError} from '@/application/error';
 
-export type Configuration = {
+export type ProjectConfiguration = {
     organization: string,
     workspace: string,
     applications: {
@@ -35,7 +35,7 @@ type ProductionApplicationIds = {
 
 type ApplicationIds = DevelopmentApplicationIds & ProductionApplicationIds;
 
-export type ResolvedConfiguration = Omit<Configuration, 'applications'> & {
+export type ResolvedConfiguration = Omit<ProjectConfiguration, 'applications'> & {
     organizationId: string,
     workspaceId: string,
     applications: ApplicationIds,

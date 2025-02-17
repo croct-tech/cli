@@ -4,7 +4,7 @@ import {FileSystem} from '@/application/fs/fileSystem';
 import {Validator} from '@/application/validation';
 import {JsonObjectNode, JsonParser} from '@/infrastructure/json';
 import {ErrorReason} from '@/application/error';
-import {WorkingDirectory} from '@/application/fs/workingDirectory';
+import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {PackageManagerAgent} from '@/application/project/packageManager/agent/packageManagerAgent';
 import {Command} from '@/application/system/process/command';
 

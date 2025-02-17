@@ -73,7 +73,7 @@ import {
 } from '@/application/cli/authentication/authenticator/multiAuthenticator';
 import {ApiError} from '@/application/api/error';
 import {UpgradeCommand, UpgradeInput} from '@/application/cli/command/upgrade';
-import {ConfigurationError} from '@/application/project/configuration/configuration';
+import {ConfigurationError} from '@/application/project/configuration/projectConfiguration';
 import {FileSystem, FileSystemIterator} from '@/application/fs/fileSystem';
 import {LocalFilesystem} from '@/application/fs/localFilesystem';
 import {FocusListener} from '@/infrastructure/application/cli/io/focusListener';
@@ -185,7 +185,7 @@ import {StopServer} from '@/application/template/action/stopServerAction';
 import {StopServerOptionsValidator} from '@/infrastructure/application/validation/actions/stopServerOptionsValidator';
 import {ProcessServerFactory} from '@/application/project/server/factory/processServerFactory';
 import {ResourceValueProvider} from '@/application/provider/resourceValueProvider';
-import {ConfigurableWorkingDirectory, CurrentWorkingDirectory} from '@/application/fs/workingDirectory';
+import {CurrentWorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {
     ChangeDirectoryOptionsValidator,
 } from '@/infrastructure/application/validation/actions/changeDirectoryOptionsValidator';
@@ -258,11 +258,13 @@ import {InvitationForm} from '@/application/cli/form/user/invitationForm';
 import {
     InvitationReminderAuthenticator,
 } from '@/application/cli/authentication/authenticator/invitationReminderAuthenticator';
-import {CliSettingsStore} from '@/application/cli/settings/settings';
-import {FileSettingsStore} from '@/application/cli/settings/fileSettingsStore';
-import {NormalizedSettingsStore} from '@/application/cli/settings/normalizedSettingsStore';
+import {CliConfigurationProvider} from '@/application/cli/configuration/store';
+import {FileConfigurationStore} from '@/application/cli/configuration/fileConfigurationStore';
+import {NormalizedConfigurationStore} from '@/application/cli/configuration/normalizedConfigurationStore';
 import {CreateApiKeyCommand, CreateApiKeyInput} from '@/application/cli/command/apiKey/create';
 import {ApiKeyAuthenticator} from '@/application/cli/authentication/authenticator/apiKeyAuthenticator';
+import {VirtualizedWorkingDirectory} from '@/application/fs/workingDirectory/virtualizedWorkingDirectory';
+import {ProcessWorkingDirectory} from '@/application/fs/workingDirectory/processWorkingDirectory';
 
 export type Configuration = {
     program: Program,
@@ -333,7 +335,7 @@ export class Cli {
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
         this.skipPrompts = configuration.skipPrompts;
-        this.workingDirectory = new ConfigurableWorkingDirectory(
+        this.workingDirectory = new VirtualizedWorkingDirectory(
             configuration.directories.current ?? configuration.process.getCurrentDirectory(),
         );
     }
@@ -363,6 +365,13 @@ export class Cli {
             new OpenCommand({
                 program: this.configuration.program,
                 protocol: this.configuration.deepLinkProtocol,
+                configurationProvider: this.getCliConfigurationStore(),
+                workingDirectory: new ProcessWorkingDirectory(this.configuration.process),
+                fileSystem: this.getFileSystem(),
+                io: {
+                    input: this.getInput(),
+                    output: this.getOutput(),
+                },
             }),
             input,
         );
@@ -1743,7 +1752,7 @@ export class Cli {
 
             return new IndexedConfigurationManager({
                 workingDirectory: this.workingDirectory,
-                settingsStore: this.getCliSettingsStore(),
+                store: this.getCliConfigurationStore(),
                 manager: new CachedConfigurationManager(
                     this.configuration.interactive
                         ? new NewConfigurationManager({
@@ -1912,16 +1921,16 @@ export class Cli {
         );
     }
 
-    private getCliSettingsStore(): CliSettingsStore {
-        return this.share(this.getCliSettingsStore, () => {
+    private getCliConfigurationStore(): CliConfigurationProvider {
+        return this.share(this.getCliConfigurationStore, () => {
             const fileSystem = this.getFileSystem();
 
-            return new NormalizedSettingsStore({
+            return new NormalizedConfigurationStore({
                 fileSystem: fileSystem,
-                settingsStore: new FileSettingsStore({
+                store: new FileConfigurationStore({
                     fileSystem: fileSystem,
                     validator: new CliSettingsValidator(),
-                    filePath: fileSystem.joinPaths(this.configuration.directories.config, 'settings.json'),
+                    filePath: fileSystem.joinPaths(this.configuration.directories.config, 'config.json'),
                 }),
             });
         });

@@ -5,7 +5,7 @@ import {Installation, Sdk} from '@/application/project/sdk/sdk';
 import {Form} from '@/application/cli/form/form';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
-import {Configuration as ProjectConfiguration} from '@/application/project/configuration/configuration';
+import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Version} from '@/application/model/version';
 import {Slot} from '@/application/model/slot';
 

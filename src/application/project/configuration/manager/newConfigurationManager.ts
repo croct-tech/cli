@@ -1,7 +1,4 @@
-import {
-    Configuration as ProjectConfiguration,
-    ResolvedConfiguration,
-} from '@/application/project/configuration/configuration';
+import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 
 export interface ConfigurationInitializer {

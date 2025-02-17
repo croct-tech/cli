@@ -3,7 +3,7 @@ import {WorkspaceApi} from '@/application/api/workspace';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
 import {Sdk} from '@/application/project/sdk/sdk';
-import {Configuration, ResolvedConfiguration} from '@/application/project/configuration/configuration';
+import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {OrganizationOptions} from '@/application/cli/form/organization/organizationForm';
 import {ApplicationOptions} from '@/application/cli/form/application/applicationForm';
 import {WorkspaceOptions} from '@/application/cli/form/workspace/workspaceForm';
@@ -77,7 +77,7 @@ export class InitCommand implements Command<InitInput> {
         output.break();
 
         output.announce({
-            semantic: 'info',
+            semantics: 'info',
             title: '👋 Welcome to Croct',
             alignment: 'center',
             message: `Let's configure your ${projectName} to get started!`,
@@ -144,7 +144,7 @@ export class InitCommand implements Command<InitInput> {
             };
         }
 
-        const updatedConfiguration: Configuration = {
+        const updatedConfiguration: ProjectConfiguration = {
             organization: organization.slug,
             workspace: workspace.slug,
             applications: {
@@ -283,7 +283,7 @@ export class InitCommand implements Command<InitInput> {
         return Object.fromEntries(slots.map(slot => [slot.slug, `${slot.version.major}`]));
     }
 
-    private async configure(sdk: Sdk, configuration: ResolvedConfiguration): Promise<Configuration> {
+    private async configure(sdk: Sdk, configuration: ResolvedConfiguration): Promise<ProjectConfiguration> {
         const {skipConfirmation} = this.config;
         const updatedConfiguration: ResolvedConfiguration = {
             ...configuration,

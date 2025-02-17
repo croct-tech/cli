@@ -10,7 +10,7 @@ import {PropertyType, WrapperOptions} from '@/application/project/code/codemod/j
 import {EnvFile} from '@/application/project/code/envFile';
 import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {PlugReactExampleGenerator} from '@/application/project/example/slot/plugReactExampleGenerator';
-import {ResolvedConfiguration} from '@/application/project/configuration/configuration';
+import {ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Slot} from '@/application/model/slot';
 import {HelpfulError} from '@/application/error';
 import {ImportResolver} from '@/application/project/import/importResolver';

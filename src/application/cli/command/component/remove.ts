@@ -2,10 +2,7 @@ import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
 import {Sdk} from '@/application/project/sdk/sdk';
-import {
-    Configuration as ProjectConfiguration,
-    ResolvedConfiguration,
-} from '@/application/project/configuration/configuration';
+import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Form} from '@/application/cli/form/form';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';

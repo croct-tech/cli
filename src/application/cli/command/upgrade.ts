@@ -4,10 +4,7 @@ import {Input} from '@/application/cli/io/input';
 import {Form} from '@/application/cli/form/form';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
-import {
-    Configuration as ProjectConfiguration,
-    ResolvedConfiguration,
-} from '@/application/project/configuration/configuration';
+import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
 import {Version} from '@/application/model/version';
 import {Slot} from '@/application/model/slot';

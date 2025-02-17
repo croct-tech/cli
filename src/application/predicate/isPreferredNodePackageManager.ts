@@ -1,5 +1,5 @@
 import {Predicate} from '@/application/predicate/predicate';
-import {WorkingDirectory} from '@/application/fs/workingDirectory';
+import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {FileSystem} from '@/application/fs/fileSystem';
 
 export type Configuration = {

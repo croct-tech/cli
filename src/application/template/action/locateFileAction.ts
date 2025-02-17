@@ -1,7 +1,7 @@
 import {Action} from '@/application/template/action/action';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {ActionContext} from '@/application/template/action/context';
-import {WorkingDirectory} from '@/application/fs/workingDirectory';
+import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {Provider} from '@/application/provider/provider';
 import {Predicate} from '@/application/predicate/predicate';
 

@@ -1,8 +1,5 @@
 import {WorkspaceApi} from '@/application/api/workspace';
-import {
-    Configuration as ProjectConfiguration,
-    ResolvedConfiguration,
-} from '@/application/project/configuration/configuration';
+import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {UserApi} from '@/application/api/user';
 import {OrganizationApi} from '@/application/api/organization';
 import {Output} from '@/application/cli/io/output';

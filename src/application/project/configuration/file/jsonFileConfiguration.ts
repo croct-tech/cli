@@ -1,13 +1,13 @@
 import {JsonValue} from '@croct/json';
 import {
-    Configuration as ProjectConfiguration,
+    ProjectConfiguration,
     ConfigurationError as ProjectConfigurationError,
-} from '@/application/project/configuration/configuration';
+} from '@/application/project/configuration/projectConfiguration';
 import {ConfigurationFile} from '@/application/project/configuration/file/configurationFile';
 import {JsonObjectNode, JsonParser} from '@/infrastructure/json';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {Validator} from '@/application/validation';
-import {WorkingDirectory} from '@/application/fs/workingDirectory';
+import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 
 type LoadedFile = {
     path: string,

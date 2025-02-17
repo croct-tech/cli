@@ -1,10 +1,10 @@
-import {Configuration, ResolvedConfiguration} from '@/application/project/configuration/configuration';
+import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 
 export class CachedConfigurationManager implements ConfigurationManager {
     private readonly manager: ConfigurationManager;
 
-    private configuration: Promise<Configuration | null> | null = null;
+    private configuration: Promise<ProjectConfiguration | null> | null = null;
 
     private resolvedConfiguration: Promise<ResolvedConfiguration> | null = null;
 
@@ -12,7 +12,7 @@ export class CachedConfigurationManager implements ConfigurationManager {
         this.manager = manager;
     }
 
-    public load(): Promise<Configuration | null> {
+    public load(): Promise<ProjectConfiguration | null> {
         if (this.configuration === null) {
             const promise = this.manager.load();
 
@@ -40,7 +40,7 @@ export class CachedConfigurationManager implements ConfigurationManager {
         return this.resolvedConfiguration;
     }
 
-    public update(configuration: Configuration): Promise<Configuration> {
+    public update(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
         const promise = this.manager.update(configuration);
 
         this.configuration = promise;

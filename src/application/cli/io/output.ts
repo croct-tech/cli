@@ -33,7 +33,7 @@ export type TaskList = TaskOptions & {
 export type Semantic = 'neutral' | 'info' | 'error' | 'warning' | 'success';
 
 export type Callout = {
-    semantic: Semantic,
+    semantics: Semantic,
     title: string,
     message: string,
     alignment?: 'left' | 'center' | 'right',

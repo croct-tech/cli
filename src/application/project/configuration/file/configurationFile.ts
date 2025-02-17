@@ -1,7 +1,7 @@
-import {Configuration} from '@/application/project/configuration/configuration';
+import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 
 export interface ConfigurationFile {
-    load(): Promise<Configuration | null>;
+    load(): Promise<ProjectConfiguration | null>;
 
-    update(configuration: Configuration): Promise<Configuration>;
+    update(configuration: ProjectConfiguration): Promise<ProjectConfiguration>;
 }

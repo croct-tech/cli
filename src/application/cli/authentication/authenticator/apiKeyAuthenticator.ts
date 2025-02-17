@@ -35,12 +35,12 @@ export class ApiKeyAuthenticator implements Authenticator<Record<never, never>> 
         return Promise.resolve();
     }
 
-    private issueToken(): Promise<Token> {
+    private async issueToken(): Promise<Token> {
         const now = Math.trunc(Date.now() / 1000);
 
         return Token.of(
             {
-                kid: `${this.apiKey.getIdentifier()}`,
+                kid: await this.apiKey.getIdentifierHash(),
                 alg: 'ES256',
                 typ: 'JWT',
             },
@@ -49,7 +49,7 @@ export class ApiKeyAuthenticator implements Authenticator<Record<never, never>> 
                 nbf: now,
                 exp: now + this.tokenDuration,
                 iss: 'cli.croct.com',
-                aud: 'croct.com',
+                aud: 'app.croct.com',
                 scope: ['ADMIN'],
             },
         ).signedWith(this.apiKey);

@@ -1,5 +1,5 @@
 import {Action, ActionError} from '@/application/template/action/action';
-import {CurrentWorkingDirectory} from '@/application/fs/workingDirectory';
+import {CurrentWorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {ErrorReason} from '@/application/error';
 

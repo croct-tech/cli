@@ -3,7 +3,7 @@ import {Action, ActionError} from '@/application/template/action/action';
 import {ErrorReason} from '@/application/error';
 import {ActionContext} from '@/application/template/action/context';
 import {Command} from '@/application/system/process/command';
-import {WorkingDirectory} from '@/application/fs/workingDirectory';
+import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {PackageManager} from '@/application/project/packageManager/packageManager';
 import {Provider} from '@/application/provider/provider';
 import {CommandExecutor} from '@/application/system/process/executor';

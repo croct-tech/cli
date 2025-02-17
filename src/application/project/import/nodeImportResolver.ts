@@ -1,5 +1,5 @@
 import {ImportResolver} from '@/application/project/import/importResolver';
-import {WorkingDirectory} from '@/application/fs/workingDirectory';
+import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
 

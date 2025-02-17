@@ -1,8 +1,5 @@
 import {Installation, Sdk, SdkError} from '@/application/project/sdk/sdk';
-import {
-    Configuration as ProjectConfiguration,
-    ResolvedConfiguration,
-} from '@/application/project/configuration/configuration';
+import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {TargetSdk, WorkspaceApi} from '@/application/api/workspace';
 import {JsonArrayNode, JsonObjectNode, JsonParser} from '@/infrastructure/json';
@@ -15,7 +12,7 @@ import {Slot} from '@/application/model/slot';
 import {LocalizedContent} from '@/application/model/experience';
 import {HelpfulError} from '@/application/error';
 import {Dependency, PackageManager} from '@/application/project/packageManager/packageManager';
-import {WorkingDirectory} from '@/application/fs/workingDirectory';
+import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
 
 export type InstallationPlan = {

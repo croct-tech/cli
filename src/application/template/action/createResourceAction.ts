@@ -12,7 +12,7 @@ import {WorkspaceResources, ResourcesAnalysis} from '@/application/template/reso
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {OrganizationApi} from '@/application/api/organization';
 import {Workspace, WorkspaceFeatures} from '@/application/model/workspace';
-import {ResolvedConfiguration} from '@/application/project/configuration/configuration';
+import {ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Form} from '@/application/cli/form/form';
 import {SlugMappingOptions, SlugMapping} from '@/application/cli/form/workspace/slugMappingForm';
 import {ResourceMatches, ResourceMatcher} from '@/application/template/resourceMatcher';

@@ -1,28 +1,25 @@
-import {
-    Configuration as ProjectConfiguration,
-    ResolvedConfiguration,
-} from '@/application/project/configuration/configuration';
+import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
-import {WorkingDirectory} from '@/application/fs/workingDirectory';
-import {CliSettingsStore} from '@/application/cli/settings/settings';
+import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import {CliConfigurationProvider} from '@/application/cli/configuration/store';
 
 export type Configuration = {
     manager: ConfigurationManager,
-    settingsStore: CliSettingsStore,
+    store: CliConfigurationProvider,
     workingDirectory: WorkingDirectory,
 };
 
 export class IndexedConfigurationManager implements ConfigurationManager {
     private readonly manager: ConfigurationManager;
 
-    private readonly settingsTore: CliSettingsStore;
+    private readonly store: CliConfigurationProvider;
 
     private readonly workingDirectory: WorkingDirectory;
 
-    public constructor({manager, workingDirectory, settingsStore}: Configuration) {
+    public constructor({manager, workingDirectory, store}: Configuration) {
         this.manager = manager;
         this.workingDirectory = workingDirectory;
-        this.settingsTore = settingsStore;
+        this.store = store;
     }
 
     public async load(): Promise<ProjectConfiguration | null> {
@@ -52,11 +49,11 @@ export class IndexedConfigurationManager implements ConfigurationManager {
     }
 
     private async recordPath(): Promise<void> {
-        const settings = await this.settingsTore.getSettings();
+        const settings = await this.store.get();
 
-        await this.settingsTore.saveSettings({
+        await this.store.save({
             ...settings,
-            projectPaths: [...settings.projectPaths, this.workingDirectory.get()],
+            projectPaths: [this.workingDirectory.get(), ...settings.projectPaths],
         });
     }
 }

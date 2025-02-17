@@ -1,19 +1,19 @@
 import {FileSystem} from '@/application/fs/fileSystem';
 import {Validator} from '@/application/validation';
-import {CliSettings, CliSettingsStore} from '@/application/cli/settings/settings';
+import {CliConfiguration, CliConfigurationProvider} from '@/application/cli/configuration/store';
 
 export type Configuration = {
     fileSystem: FileSystem,
     filePath: string,
-    validator: Validator<CliSettings>,
+    validator: Validator<CliConfiguration>,
 };
 
-export class FileSettingsStore implements CliSettingsStore {
-    private static readonly EMPTY_SETTINGS: CliSettings = {projectPaths: []};
+export class FileConfigurationStore implements CliConfigurationProvider {
+    private static readonly EMPTY_SETTINGS: CliConfiguration = {projectPaths: []};
 
     private readonly fileSystem: FileSystem;
 
-    private readonly validator: Validator<CliSettings>;
+    private readonly validator: Validator<CliConfiguration>;
 
     private readonly filePath: string;
 
@@ -23,9 +23,9 @@ export class FileSettingsStore implements CliSettingsStore {
         this.filePath = filePath;
     }
 
-    public async getSettings(): Promise<CliSettings> {
+    public async get(): Promise<CliConfiguration> {
         if (!await this.fileSystem.exists(this.filePath)) {
-            return FileSettingsStore.EMPTY_SETTINGS;
+            return FileConfigurationStore.EMPTY_SETTINGS;
         }
 
         let content: string;
@@ -33,15 +33,15 @@ export class FileSettingsStore implements CliSettingsStore {
         try {
             content = await this.fileSystem.readTextFile(this.filePath);
         } catch {
-            return FileSettingsStore.EMPTY_SETTINGS;
+            return FileConfigurationStore.EMPTY_SETTINGS;
         }
 
         const validation = await this.validator.validate(JSON.parse(content));
 
-        return validation.valid ? validation.data : FileSettingsStore.EMPTY_SETTINGS;
+        return validation.valid ? validation.data : FileConfigurationStore.EMPTY_SETTINGS;
     }
 
-    public saveSettings(settings: CliSettings): Promise<void> {
+    public save(settings: CliConfiguration): Promise<void> {
         return this.fileSystem.writeTextFile(
             this.filePath,
             JSON.stringify(settings),

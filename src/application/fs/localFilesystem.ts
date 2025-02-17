@@ -26,7 +26,7 @@ import {
     FileSystemIterator,
     FileWritingOptions,
 } from '@/application/fs/fileSystem';
-import {WorkingDirectory} from '@/application/fs/workingDirectory';
+import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {ErrorReason} from '@/application/error';
 
 export type Configuration = {

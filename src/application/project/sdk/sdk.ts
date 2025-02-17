@@ -1,6 +1,6 @@
 import {Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
-import {Configuration, ResolvedConfiguration} from '@/application/project/configuration/configuration';
+import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Slot} from '@/application/model/slot';
 import {Help, HelpfulError} from '@/application/error';
 
@@ -11,7 +11,7 @@ export type Installation = {
 };
 
 export interface Sdk {
-    install(installation: Installation): Promise<Configuration>;
+    install(installation: Installation): Promise<ProjectConfiguration>;
     update(installation: Installation): Promise<void>;
     updateTypes(installation: Installation): Promise<void>;
     updateContent(installation: Installation): Promise<void>;
