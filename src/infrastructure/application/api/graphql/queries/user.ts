@@ -38,3 +38,33 @@ export const userEmailQuery = graphql(`
         }
     }
 `);
+
+export const acceptInvitationMutation = graphql(`
+    mutation AcceptInvitation($invitationId: InvitationId!) {
+        acceptInvitation(invitationId: $invitationId) {
+            id
+        }
+    }
+`);
+
+export const invitationQuery = graphql(`
+    query Invitations {
+        invitations(first: 100) {
+            edges {
+                node {
+                    id
+                    invitationTime
+                    organization {
+                        id
+                        name
+                        slug
+                        type
+                        website
+                        logo
+                        email
+                    }
+                }
+            }
+        }
+    }
+`);

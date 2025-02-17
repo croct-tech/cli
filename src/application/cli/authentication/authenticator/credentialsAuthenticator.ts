@@ -1,11 +1,10 @@
 import {Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
 import {UserApi} from '@/application/api/user';
-import {Token} from '@/application/cli/authentication/authentication';
 import {Authenticator} from '@/application/cli/authentication/authenticator/index';
 import {Form} from '@/application/cli/form/form';
-import {SignInOptions} from '@/application/cli/form/auth/signInForm';
-import {SignUpOptions} from '@/application/cli/form/auth/signUpForm';
+import {SignInOptions} from '@/application/cli/form/user/signInForm';
+import {SignUpOptions} from '@/application/cli/form/user/signUpForm';
 import {EmailInput} from '@/application/cli/form/input/emailInput';
 
 export type Configuration = {
@@ -13,8 +12,8 @@ export type Configuration = {
     output: Output,
     userApi: UserApi,
     form: {
-        signIn: Form<Token, SignInOptions>,
-        signUp: Form<Token, SignUpOptions>,
+        signIn: Form<string, SignInOptions>,
+        signUp: Form<string, SignUpOptions>,
     },
 };
 
@@ -34,7 +33,7 @@ export class CredentialsAuthenticator implements Authenticator<CredentialsInput>
         return Promise.resolve(null);
     }
 
-    public login(credentials: CredentialsInput = {}): Promise<Token> {
+    public login(credentials: CredentialsInput = {}): Promise<string> {
         if (credentials.username === undefined || credentials.password === undefined) {
             return this.loginInteractively(credentials);
         }
@@ -47,7 +46,7 @@ export class CredentialsAuthenticator implements Authenticator<CredentialsInput>
         });
     }
 
-    private async loginInteractively(credentials: CredentialsInput): Promise<Token> {
+    private async loginInteractively(credentials: CredentialsInput): Promise<string> {
         const {input, output, userApi, form} = this.config;
 
         const email = credentials.username ?? await EmailInput.prompt({

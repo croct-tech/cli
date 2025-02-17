@@ -1,5 +1,3 @@
-export type Token = string;
-
 export interface AuthenticationListener {
-    wait(sessionId: string): Promise<Token>;
+    wait(sessionId: string): Promise<string>;
 }

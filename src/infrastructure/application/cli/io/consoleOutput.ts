@@ -170,7 +170,7 @@ export class ConsoleOutput implements Output {
             const {cause} = error.help;
 
             if (cause !== undefined && error.message.toLowerCase() !== cause.message.toLowerCase()) {
-                body += `\n\n${chalk.bold('Cause')}\n`;
+                body += `\n\n🚨 ${chalk.bold('Cause')}\n`;
                 body += `${format(HelpfulError.formatMessage(error.help.cause))}`;
             }
 
@@ -194,7 +194,7 @@ export class ConsoleOutput implements Output {
         const {details} = error.help;
 
         if (details !== undefined) {
-            message += `\n\n${chalk.bold('Details')}\n`;
+            message += `\n\n🔍 ${chalk.bold('Details:')}\n`;
             message += details
                 .map(detail => ` • ${format(detail)}`)
                 .join('\n');
@@ -213,7 +213,7 @@ export class ConsoleOutput implements Output {
             .map((line => ` › ${line.trim().replace(/^at /, '')}`))
             .slice(1);
 
-        return `\n\n${chalk.bold('Stack trace')}\n${stack.join('\n')}`;
+        return `\n\n📄 ${chalk.bold('Stack trace')}\n${stack.join('\n')}`;
     }
 
     private static formatErrorSuggestions(error: HelpfulError): string {
@@ -221,13 +221,9 @@ export class ConsoleOutput implements Output {
         let message = '';
 
         if (suggestions !== undefined && suggestions.length > 0) {
-            if (suggestions.length === 1) {
-                message += `\n\n${format(suggestions[0])}`;
-            } else {
-                message += `\n\n${chalk.bold('Suggestions')}\n`;
-                message += suggestions.map(suggestion => ` • ${format(suggestion)}`)
-                    .join('\n');
-            }
+            message += `\n\n💡 ${chalk.bold('Suggestions:')}\n`;
+            message += suggestions.map(suggestion => ` • ${format(suggestion)}`)
+                .join('\n');
         }
 
         return message;
@@ -252,7 +248,7 @@ export class ConsoleOutput implements Output {
 
             default:
                 usefulLinks.push({
-                    description: 'Report this issue',
+                    description: 'Open an issue',
                     url: 'https://github.com/croct-tech/croct-cli/issues/new',
                 });
 
@@ -264,7 +260,7 @@ export class ConsoleOutput implements Output {
         }
 
         if (usefulLinks.length > 0) {
-            message += `\n\n${chalk.bold('Useful links')}\n`;
+            message += `\n\n🆘 ${chalk.bold('Useful links:')}\n`;
             message += usefulLinks.map(
                 ({description, url}) => ` • ${terminalLink(description, url, {
                     fallback: () => `${description}: ${url}`,

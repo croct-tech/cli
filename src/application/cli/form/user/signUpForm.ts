@@ -5,7 +5,7 @@ import {EmailInput} from '@/application/cli/form/input/emailInput';
 import {UserApi} from '@/application/api/user';
 import {PasswordInput} from '@/application/cli/form/input/passwordInput';
 import {NameInput} from '@/application/cli/form/input/nameInput';
-import {AuthenticationListener, Token} from '@/application/cli/authentication/authentication';
+import {AuthenticationListener} from '@/application/cli/authentication/authentication';
 import {Expertise} from '@/application/model/user';
 
 type LinkGenerator = (email: string) => Promise<URL|null>;
@@ -23,14 +23,14 @@ export type SignUpOptions = {
     expertise?: Expertise,
 };
 
-export class SignUpForm implements Form<Token, SignUpOptions> {
+export class SignUpForm implements Form<string, SignUpOptions> {
     private readonly config: Configuration;
 
     public constructor(config: Configuration) {
         this.config = config;
     }
 
-    public async handle(options: SignUpOptions): Promise<Token> {
+    public async handle(options: SignUpOptions): Promise<string> {
         const {input, output, listener, userApi} = this.config;
 
         output.inform(

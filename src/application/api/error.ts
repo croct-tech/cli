@@ -20,8 +20,8 @@ export enum ProblemType {
 
 export type Problem = {
     type: ProblemType,
-    message: string,
-    detail: string,
+    title: string,
+    detail?: string,
     status: number,
     reason?: AccessDeniedReason,
 };
@@ -32,7 +32,7 @@ export class ApiError extends HelpfulError {
     public constructor(message: string, errors: Problem[] = [], help: Help = {}) {
         super(message, {
             ...help,
-            details: help.details ?? errors.map(error => error.detail),
+            details: help.details ?? errors.map(error => error.detail ?? error.title),
         });
 
         Object.setPrototypeOf(this, ApiError.prototype);

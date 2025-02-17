@@ -1,4 +1,4 @@
-import {AuthenticationListener, Token} from '@/application/cli/authentication';
+import {AuthenticationListener} from '@/application/cli/authentication';
 import {SynchronousCommandExecutor} from '@/application/system/process/executor';
 import {Command} from '@/application/system/process/command';
 import {multiline} from '@/application/utils';
@@ -19,7 +19,7 @@ export class FocusListener implements AuthenticationListener {
         this.configuration = configuration;
     }
 
-    public wait(sessionId: string): Promise<Token> {
+    public wait(sessionId: string): Promise<string> {
         const {listener} = this.configuration;
 
         return new Promise((resolve, reject) => {

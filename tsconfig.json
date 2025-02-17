@@ -38,7 +38,4 @@
   "ts-node": {
     "require": ["tsconfig-paths/register"]
   },
-  "files": [
-    "node_modules/@croct/content/types.d.ts"
-  ]
 }

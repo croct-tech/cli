@@ -1,17 +1,19 @@
-import {ProjectIndex} from '@/application/project/index/projectIndex';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {Validator} from '@/application/validation';
+import {CliSettings, CliSettingsStore} from '@/application/cli/settings/settings';
 
 export type Configuration = {
     fileSystem: FileSystem,
     filePath: string,
-    validator: Validator<string[]>,
+    validator: Validator<CliSettings>,
 };
 
-export class FileProjectIndex implements ProjectIndex {
+export class FileSettingsStore implements CliSettingsStore {
+    private static readonly EMPTY_SETTINGS: CliSettings = {projectPaths: []};
+
     private readonly fileSystem: FileSystem;
 
-    private readonly validator: Validator<string[]>;
+    private readonly validator: Validator<CliSettings>;
 
     private readonly filePath: string;
 
@@ -21,28 +23,29 @@ export class FileProjectIndex implements ProjectIndex {
         this.filePath = filePath;
     }
 
-    public async getPaths(): Promise<string[]> {
+    public async getSettings(): Promise<CliSettings> {
         if (!await this.fileSystem.exists(this.filePath)) {
-            return [];
+            return FileSettingsStore.EMPTY_SETTINGS;
         }
 
         let content: string;
 
         try {
             content = await this.fileSystem.readTextFile(this.filePath);
-        } catch (error) {
-            return [];
+        } catch {
+            return FileSettingsStore.EMPTY_SETTINGS;
         }
 
         const validation = await this.validator.validate(JSON.parse(content));
 
-        return validation.valid ? validation.data : [];
+        return validation.valid ? validation.data : FileSettingsStore.EMPTY_SETTINGS;
     }
 
-    public async addPath(path: string): Promise<void> {
-        await this.fileSystem.writeTextFile(
+    public saveSettings(settings: CliSettings): Promise<void> {
+        return this.fileSystem.writeTextFile(
             this.filePath,
-            JSON.stringify([...new Set([...await this.getPaths(), path])]),
+            JSON.stringify(settings),
+            {overwrite: true},
         );
     }
 }

@@ -1,5 +1,4 @@
 import {Authenticator} from '@/application/cli/authentication/authenticator/authenticator';
-import {Token} from '@/application/cli/authentication';
 
 type AuthenticationInputs = Record<string, Record<string, any>>;
 
@@ -20,7 +19,7 @@ export class MultiAuthenticator<T extends AuthenticationInputs> implements Authe
         this.authenticators = authenticators;
     }
 
-    public async getToken(): Promise<Token|null> {
+    public async getToken(): Promise<string|null> {
         for (const authenticator of Object.values(this.authenticators)) {
             const token = await authenticator.getToken();
 
@@ -32,7 +31,7 @@ export class MultiAuthenticator<T extends AuthenticationInputs> implements Authe
         return null;
     }
 
-    public login<K extends keyof T>(input: MultiAuthenticationInput<T, K>): Promise<Token> {
+    public login<K extends keyof T>(input: MultiAuthenticationInput<T, K>): Promise<string> {
         const props: T[K] = {...input};
 
         delete props.method;

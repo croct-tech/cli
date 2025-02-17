@@ -52,8 +52,13 @@ export class FetchGraphqlClient implements GraphqlClient {
 
             if (errors !== undefined) {
                 throw new ApiError(
-                    errors[0].message,
-                    errors.map(({extensions}) => extensions),
+                    errors[0].message.replace(/"/g, '`'),
+                    errors.map(
+                        ({extensions}) => ({
+                            ...extensions,
+                            detail: extensions.detail?.replace(/"/g, '`'),
+                        }),
+                    ),
                 );
             }
 

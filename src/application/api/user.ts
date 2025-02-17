@@ -14,9 +14,11 @@ export type UserCredentials = {
     password: string,
 };
 
-export type AccessRequest = UserCredentials & {
-    duration?: number,
+export type TokenOptions = {
+    duration: number,
 };
+
+export type TokenRequest = TokenOptions & UserCredentials;
 
 export type PasswordReset = {
     email: string,
@@ -33,6 +35,12 @@ export type NewUser = Omit<User, 'id' | 'username'> & {
     sessionId?: string,
 };
 
+export type Invitation = {
+    id: string,
+    invitationTime: number,
+    organization: Organization,
+};
+
 export interface UserApi {
     getUser(): Promise<User>;
 
@@ -42,7 +50,9 @@ export interface UserApi {
 
     registerUser(user: NewUser): Promise<void>;
 
-    issueToken(access: AccessRequest): Promise<string>;
+    signIn(request: TokenRequest): Promise<string>;
+
+    issueToken(options: TokenOptions): Promise<string>;
 
     retryActivation(retry: ActivationRetry): Promise<void>;
 
@@ -53,4 +63,8 @@ export interface UserApi {
     getOrganization(organizationSlug: string): Promise<Organization|null>;
 
     setupOrganization(organization: OrganizationSetup): Promise<Organization>;
+
+    getInvitations(): Promise<Invitation[]>;
+
+    acceptInvitation(invitationId: string): Promise<void>;
 }

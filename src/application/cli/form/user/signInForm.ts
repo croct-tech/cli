@@ -4,7 +4,7 @@ import {Form} from '@/application/cli/form/form';
 import {EmailInput} from '@/application/cli/form/input/emailInput';
 import {UserApi} from '@/application/api/user';
 import {PasswordInput} from '@/application/cli/form/input/passwordInput';
-import {AuthenticationListener, Token} from '@/application/cli/authentication/authentication';
+import {AuthenticationListener} from '@/application/cli/authentication/authentication';
 import {AccessDeniedReason, ApiError} from '@/application/api/error';
 import {ErrorReason, HelpfulError} from '@/application/error';
 
@@ -35,14 +35,14 @@ enum Action {
     CANCEL = 'cancel',
 }
 
-export class SignInForm implements Form<Token, SignInOptions> {
+export class SignInForm implements Form<string, SignInOptions> {
     private readonly config: Configuration;
 
     public constructor(config: Configuration) {
         this.config = config;
     }
 
-    public async handle(options: SignInOptions): Promise<Token> {
+    public async handle(options: SignInOptions): Promise<string> {
         const email = options.email ?? await EmailInput.prompt({
             input: this.config.input,
             label: 'Enter your email',
@@ -51,7 +51,7 @@ export class SignInForm implements Form<Token, SignInOptions> {
         return this.login(email, options.password, options.retry);
     }
 
-    private async login(email: string, password?: string, retry = false): Promise<Token> {
+    private async login(email: string, password?: string, retry = false): Promise<string> {
         const {input, output, userApi} = this.config;
 
         let action = Action.RETRY_PASSWORD;
@@ -69,7 +69,7 @@ export class SignInForm implements Form<Token, SignInOptions> {
             const notifier = output.notify('Checking credentials');
 
             try {
-                const token = await userApi.issueToken({
+                const token = await userApi.signIn({
                     email: email,
                     password: enteredPassword,
                     duration: this.config.tokenDuration,

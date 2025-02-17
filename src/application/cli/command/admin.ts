@@ -14,10 +14,9 @@ export type AdminConfig = {
     configurationManager: ConfigurationManager,
     pageForm: Form<string, PageOptions>,
     userApi: UserApi,
-    endpoint: {
-        url: string,
-        parameter: string,
-    },
+    adminUrl: URL,
+    adminTokenParameter: string,
+    adminTokenDuration: number,
 };
 
 export class AdminCommand implements Command<AdminInput> {
@@ -42,15 +41,19 @@ export class AdminCommand implements Command<AdminInput> {
             prodApplicationSlug: configuration.applications.production,
         });
 
-        const notifier = output.notify('Starting session');
+        const notifier = output.notify('Logging in...');
 
-        const sessionId = await userApi.createSession();
+        const token = await userApi.issueToken({
+            duration: this.config.adminTokenDuration,
+        });
 
         notifier.stop();
 
-        const url = new URL(path.startsWith('/') ? path.slice(1) : path, this.config.endpoint.url);
+        const url = new URL(this.config.adminUrl);
 
-        url.searchParams.set(this.config.endpoint.parameter, sessionId);
+        url.pathname += path.startsWith('/') ? path : `/${path}`;
+
+        url.searchParams.set(this.config.adminTokenParameter, token);
 
         await output.open(url.toString());
     }

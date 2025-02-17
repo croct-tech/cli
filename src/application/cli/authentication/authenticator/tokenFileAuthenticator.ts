@@ -1,6 +1,10 @@
-import {AuthenticationInput, Authenticator} from '@/application/cli/authentication/authenticator/index';
+import {
+    AuthenticationError,
+    AuthenticationInput,
+    Authenticator,
+} from '@/application/cli/authentication/authenticator/index';
 import {FileSystem} from '@/application/fs/fileSystem';
-import {HelpfulError, ErrorReason} from '@/application/error';
+import {ErrorReason} from '@/application/error';
 
 export type Configuration<I extends AuthenticationInput>= {
     filePath: string,
@@ -52,7 +56,7 @@ export class TokenFileAuthenticator<I extends AuthenticationInput> implements Au
 
             await this.fileSystem.writeTextFile(this.filePath, token, {overwrite: true});
         } catch (cause) {
-            throw new HelpfulError(
+            throw new AuthenticationError(
                 'Failed to save token to file.',
                 {
                     reason: ErrorReason.OTHER,

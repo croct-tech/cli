@@ -66,7 +66,7 @@ export class TemplateForm implements Form<TemplateResources, TemplateOptions> {
             if (experiences.some(experience => experience.experiment !== undefined)) {
                 if (
                     !await input.confirm({
-                        message: 'Do you want to include experiments?',
+                        message: 'Include experiments?',
                         default: false,
                     })
                 ) {

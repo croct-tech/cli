@@ -259,7 +259,7 @@ export class InitCommand implements Command<InitInput> {
 
         if (application.environment !== options.environment) {
             throw new HelpfulError(
-                `No ${ApplicationEnvironment.getLabel(options.environment)} application `
+                `No ${ApplicationEnvironment.getLabel(options.environment).toUpperCase()} application `
                 + `found with slug "${applicationSlug}".`,
                 {reason: ErrorReason.INVALID_INPUT},
             );

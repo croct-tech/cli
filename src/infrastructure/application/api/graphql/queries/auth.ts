@@ -16,6 +16,12 @@ export const signUpMutation = graphql(`
     }
 `);
 
+export const issueTokenMutation = graphql(`
+    mutation IssueToken($payload: IssueTokenPayload!) {
+        issueToken(payload: $payload) 
+    }
+`);
+
 export const sendResetLink = graphql(`
     mutation SendResetLink($email: String!, $sessionId: String) {
         sendResetLink(email: $email, sessionId: $sessionId)

@@ -8,6 +8,7 @@ import {
     StaleWhileRevalidateCache,
     TimestampedCacheEntry,
 } from '@croct/cache';
+import {ApiKey} from '@croct/sdk/apiKey';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput} from '@/infrastructure/application/cli/io/consoleOutput';
 import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
@@ -40,9 +41,9 @@ import {
     CredentialsAuthenticator,
     CredentialsInput,
 } from '@/application/cli/authentication/authenticator/credentialsAuthenticator';
-import {SignInForm} from '@/application/cli/form/auth/signInForm';
+import {SignInForm} from '@/application/cli/form/user/signInForm';
 import {AuthenticationListener} from '@/application/cli/authentication/authentication';
-import {SignUpForm} from '@/application/cli/form/auth/signUpForm';
+import {SignUpForm} from '@/application/cli/form/user/signUpForm';
 import {Command, CommandInput} from '@/application/cli/command/command';
 import {AdminCommand, AdminInput} from '@/application/cli/command/admin';
 import {AddWrapper} from '@/application/project/code/codemod/jsx/addWrapper';
@@ -245,9 +246,7 @@ import {MacOsRegistry} from '@/application/system/protocol/macOsRegistry';
 import {WindowsRegistry} from '@/application/system/protocol/windowsRegistry';
 import {LinuxRegistry} from '@/application/system/protocol/linuxRegistry';
 import {OpenCommand, OpenInput, Program} from '@/application/cli/command/open';
-import {ProjectIndex} from '@/application/project/index/projectIndex';
-import {FileProjectIndex} from '@/application/project/index/fileProjectIndex';
-import {ProjectIndexValidator} from '@/infrastructure/application/validation/projectIndexValidator';
+import {CliSettingsValidator} from '@/infrastructure/application/validation/cliSettingsValidator';
 import {IndexedConfigurationManager} from '@/application/project/configuration/manager/indexedConfigurationManager';
 import {Process} from '@/application/system/process/process';
 import {ExecutableLocator} from '@/application/system/executableLocator';
@@ -255,6 +254,15 @@ import {IsPreferredNodePackageManager} from '@/application/predicate/isPreferred
 import {WelcomeCommand, WelcomeInput} from '@/application/cli/command/welcome';
 import {HasEnvVar} from '@/application/predicate/hasEnvVar';
 import {SequentialProvider} from '@/application/provider/sequentialProvider';
+import {InvitationForm} from '@/application/cli/form/user/invitationForm';
+import {
+    InvitationReminderAuthenticator,
+} from '@/application/cli/authentication/authenticator/invitationReminderAuthenticator';
+import {CliSettingsStore} from '@/application/cli/settings/settings';
+import {FileSettingsStore} from '@/application/cli/settings/fileSettingsStore';
+import {NormalizedSettingsStore} from '@/application/cli/settings/normalizedSettingsStore';
+import {CreateApiKeyCommand, CreateApiKeyInput} from '@/application/cli/command/apiKey/create';
+import {ApiKeyAuthenticator} from '@/application/cli/authentication/authenticator/apiKeyAuthenticator';
 
 export type Configuration = {
     program: Program,
@@ -262,11 +270,15 @@ export type Configuration = {
     cache: boolean,
     quiet: boolean,
     interactive: boolean,
+    apiKey?: ApiKey,
     skipPrompts: boolean,
     adminUrl: URL,
+    adminTokenParameter: string,
     templateRegistryUrl: URL,
     deepLinkProtocol: string,
-    tokenDuration: number,
+    cliTokenDuration: number,
+    apiKeyTokenDuration: number,
+    adminTokenDuration: number,
     directories: {
         current?: string,
         config: string,
@@ -278,8 +290,6 @@ export type Configuration = {
         graphqlEndpoint: string,
         tokenEndpoint: string,
         tokenParameter: string,
-        authenticationEndpoint: string,
-        authenticationParameter: string,
     },
 };
 
@@ -298,6 +308,20 @@ type NodePackageManagers = {
 };
 
 export class Cli {
+    // eslint-disable-next-line @typescript-eslint/ban-types -- Any function type is acceptable
+    private static readonly READ_ONLY_COMMANDS: Set<Function> = new Set([
+        WelcomeCommand,
+        InstallCommand,
+        UpgradeCommand,
+        AddSlotCommand,
+        AddComponentCommand,
+        RemoveSlotCommand,
+        RemoveComponentCommand,
+        CreateTemplateCommand,
+        OpenCommand,
+        LogoutCommand,
+    ]);
+
     private readonly configuration: Configuration;
 
     private readonly skipPrompts: boolean;
@@ -513,6 +537,37 @@ export class Cli {
         );
     }
 
+    public login(input: LoginInput<AuthenticationInput>): Promise<void> {
+        return this.execute(new LoginCommand({authenticator: this.getAuthenticator()}), input);
+    }
+
+    public logout(): Promise<void> {
+        return this.execute(
+            new LogoutCommand({
+                authenticator: this.getAuthenticator(),
+                output: this.getOutput(),
+            }),
+            {},
+        );
+    }
+
+    public admin(input: AdminInput): Promise<void> {
+        return this.execute(
+            new AdminCommand({
+                output: this.getOutput(),
+                pageForm: new PageForm({
+                    input: this.getFormInput(),
+                }),
+                configurationManager: this.getConfigurationManager(),
+                userApi: this.getUserApi(),
+                adminUrl: this.configuration.adminUrl,
+                adminTokenParameter: this.configuration.adminTokenParameter,
+                adminTokenDuration: this.configuration.adminTokenDuration,
+            }),
+            input,
+        );
+    }
+
     public createTemplate(input: CreateTemplateInput): Promise<void> {
         return this.execute(
             new CreateTemplateCommand({
@@ -584,32 +639,19 @@ export class Cli {
         });
     }
 
-    public login(input: LoginInput<AuthenticationInput>): Promise<void> {
-        return this.execute(new LoginCommand({authenticator: this.getAuthenticator()}), input);
-    }
-
-    public logout(): Promise<void> {
+    public createApiKey(input: CreateApiKeyInput): Promise<void> {
         return this.execute(
-            new LogoutCommand({
-                authenticator: this.getAuthenticator(),
-                output: this.getOutput(),
-            }),
-            {},
-        );
-    }
-
-    public admin(input: AdminInput): Promise<void> {
-        return this.execute(
-            new AdminCommand({
-                output: this.getOutput(),
-                pageForm: new PageForm({
-                    input: this.getFormInput(),
-                }),
+            new CreateApiKeyCommand({
+                fileSystem: this.getFileSystem(),
                 configurationManager: this.getConfigurationManager(),
-                userApi: this.getUserApi(),
-                endpoint: {
-                    url: this.configuration.api.authenticationEndpoint,
-                    parameter: this.configuration.api.authenticationParameter,
+                api: {
+                    user: this.getUserApi(),
+                    workspace: this.getWorkspaceApi(),
+                    application: this.getApplicationApi(),
+                },
+                io: {
+                    input: this.getFormInput(),
+                    output: this.getOutput(),
                 },
             }),
             input,
@@ -1089,6 +1131,13 @@ export class Cli {
 
     private getAuthenticator(): Authenticator<AuthenticationInput> {
         return this.share(this.getAuthenticator, () => {
+            if (this.configuration.apiKey !== undefined) {
+                return new ApiKeyAuthenticator({
+                    apiKey: this.configuration.apiKey,
+                    tokenDuration: this.configuration.apiKeyTokenDuration,
+                });
+            }
+
             const input = this.getFormInput();
             const fileSystem = this.getFileSystem();
             const credentialsAuthenticator = new CredentialsAuthenticator({
@@ -1101,7 +1150,7 @@ export class Cli {
                         output: this.getOutput(),
                         userApi: this.getUserApi(true),
                         listener: this.getAuthenticationListener(),
-                        tokenDuration: this.configuration.tokenDuration,
+                        tokenDuration: this.configuration.cliTokenDuration,
                         emailLinkGenerator: {
                             recovery: this.createEmailLinkGenerator('Forgot password'),
                             verification: this.createEmailLinkGenerator('Welcome to Croct'),
@@ -1117,7 +1166,7 @@ export class Cli {
                 },
             });
 
-            return new TokenFileAuthenticator({
+            const authenticator = new TokenFileAuthenticator({
                 fileSystem: fileSystem,
                 filePath: fileSystem.joinPaths(this.configuration.directories.config, 'token'),
                 authenticator: new MultiAuthenticator<AuthenticationMethods>({
@@ -1134,6 +1183,19 @@ export class Cli {
                     credentials: credentialsAuthenticator,
                 }),
             });
+
+            if (this.configuration.interactive) {
+                return new InvitationReminderAuthenticator({
+                    authenticator: authenticator,
+                    invitationForm: new InvitationForm({
+                        output: this.getOutput(),
+                        input: input,
+                        userApi: this.getUserApi(true),
+                    }),
+                });
+            }
+
+            return authenticator;
         });
     }
 
@@ -1681,7 +1743,7 @@ export class Cli {
 
             return new IndexedConfigurationManager({
                 workingDirectory: this.workingDirectory,
-                projectIndex: this.getProjectIndex(),
+                settingsStore: this.getCliSettingsStore(),
                 manager: new CachedConfigurationManager(
                     this.configuration.interactive
                         ? new NewConfigurationManager({
@@ -1695,18 +1757,6 @@ export class Cli {
                         })
                         : manager,
                 ),
-            });
-        });
-    }
-
-    private getProjectIndex(): ProjectIndex {
-        return this.share(this.getProjectIndex, () => {
-            const fileSystem = this.getFileSystem();
-
-            return new FileProjectIndex({
-                fileSystem: fileSystem,
-                validator: new ProjectIndexValidator(),
-                filePath: fileSystem.joinPaths(this.configuration.directories.config, 'projects.json'),
             });
         });
     }
@@ -1862,22 +1912,50 @@ export class Cli {
         );
     }
 
+    private getCliSettingsStore(): CliSettingsStore {
+        return this.share(this.getCliSettingsStore, () => {
+            const fileSystem = this.getFileSystem();
+
+            return new NormalizedSettingsStore({
+                fileSystem: fileSystem,
+                settingsStore: new FileSettingsStore({
+                    fileSystem: fileSystem,
+                    validator: new CliSettingsValidator(),
+                    filePath: fileSystem.joinPaths(this.configuration.directories.config, 'settings.json'),
+                }),
+            });
+        });
+    }
+
     private async execute<I extends CommandInput>(command: Command<I>, input: I): Promise<void> {
+        if (this.configuration.apiKey !== undefined && !Cli.READ_ONLY_COMMANDS.has(command.constructor)) {
+            return this.reportError(
+                new HelpfulError('This command does not support API key authentication.', {
+                    reason: ErrorReason.PRECONDITION,
+                    suggestions: ['Run the command without specifying an API key.'],
+                }),
+            );
+        }
+
         try {
             await command.execute(input);
         } catch (error) {
-            const output = this.getOutput();
-
             const formattedError = Cli.handleError(error);
 
             if (error instanceof Error && formattedError instanceof Error) {
                 formattedError.stack = error.stack;
             }
 
-            output.report(formattedError);
-
-            return output.exit();
+            return this.reportError(formattedError);
         }
+    }
+
+    private reportError(error: unknown): Promise<never> {
+        const output = this.getOutput();
+
+        output.report(Cli.handleError(error));
+
+        return output.exit();
     }
 
     private static handleError(error: unknown): any {
@@ -1888,7 +1966,7 @@ export class Cli {
                         'Your user lacks the necessary permissions to complete this operation.',
                         {
                             reason: ErrorReason.ACCESS_DENIED,
-                            details: error.problems.map(detail => detail.detail),
+                            details: error.problems.map(detail => detail.detail ?? detail.title),
                             suggestions: ['Contact your organization or workspace administrator for assistance.'],
                             cause: error,
                         },

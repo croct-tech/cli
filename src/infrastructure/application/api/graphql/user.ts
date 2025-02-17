@@ -1,11 +1,12 @@
 import {GraphqlClient} from '@/infrastructure/graphql';
 import {
     ActivationRetry,
-    AccessRequest,
+    TokenRequest,
     NewUser,
     OrganizationSetup,
     PasswordReset,
     UserApi,
+    Invitation,
 } from '@/application/api/user';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
 import {
@@ -24,9 +25,16 @@ import {
     setupOrganizationMutation,
     websiteMetadataQuery,
 } from '@/infrastructure/application/api/graphql/queries/organization';
-import {userEmailQuery, usernameQuery, userQuery} from '@/infrastructure/application/api/graphql/queries/user';
+import {
+    acceptInvitationMutation,
+    invitationQuery,
+    userEmailQuery,
+    usernameQuery,
+    userQuery,
+} from '@/infrastructure/application/api/graphql/queries/user';
 import {
     createSession,
+    issueTokenMutation,
     retryActivationMutation,
     sendResetLink,
     signInMutation,
@@ -94,6 +102,7 @@ export class GraphqlUserApi implements UserApi {
                 lastName: user.lastName,
                 expertise: user.expertise as any,
                 sessionId: user.sessionId,
+                bypassOnboarding: true,
             },
         });
     }
@@ -104,18 +113,28 @@ export class GraphqlUserApi implements UserApi {
         return data.createSession;
     }
 
-    public async issueToken(access: AccessRequest): Promise<string> {
+    public async signIn(request: TokenRequest): Promise<string> {
         const {data} = await this.client.execute(signInMutation, {
             payload: {
-                email: access.email,
-                password: access.password,
-                duration: access.duration,
+                email: request.email,
+                password: request.password,
+                duration: request.duration,
                 // @todo remove this
                 remember: false,
             },
         });
 
         return data.signIn.token!;
+    }
+
+    public async issueToken(options: TokenRequest): Promise<string> {
+        const {data} = await this.client.execute(issueTokenMutation, {
+            payload: {
+                duration: options.duration,
+            },
+        });
+
+        return data.issueToken;
     }
 
     public async getOrganization(organizationSlug: string): Promise<Organization | null> {
@@ -146,20 +165,6 @@ export class GraphqlUserApi implements UserApi {
 
             return [GraphqlUserApi.normalizeOrganization(node)];
         });
-    }
-
-    private static normalizeOrganization(data: OrganizationData): Organization {
-        const {logo = null, website = null} = data;
-
-        return {
-            id: data.id,
-            name: data.name,
-            slug: data.slug,
-            type: data.type as any,
-            email: data.email,
-            ...(logo !== null ? {logo: logo} : {}),
-            ...(website !== null ? {website: website} : {}),
-        };
     }
 
     public async setupOrganization(setup: OrganizationSetup): Promise<Organization> {
@@ -264,6 +269,45 @@ export class GraphqlUserApi implements UserApi {
             experiences: [],
             slots: [],
             redirectUrl: setup.redirectUrl,
+        };
+    }
+
+    public async getInvitations(): Promise<Invitation[]> {
+        const {data} = await this.client.execute(invitationQuery);
+        const edges = data.invitations.edges ?? [];
+
+        return edges.flatMap((edge): Invitation[] => {
+            const node = edge?.node ?? null;
+
+            if (node === null) {
+                return [];
+            }
+
+            return [{
+                id: node.id,
+                invitationTime: node.invitationTime,
+                organization: GraphqlUserApi.normalizeOrganization(node.organization),
+            }];
+        });
+    }
+
+    public async acceptInvitation(invitationId: string): Promise<void> {
+        await this.client.execute(acceptInvitationMutation, {
+            invitationId: invitationId,
+        });
+    }
+
+    private static normalizeOrganization(data: OrganizationData): Organization {
+        const {logo = null, website = null} = data;
+
+        return {
+            id: data.id,
+            name: data.name,
+            slug: data.slug,
+            type: data.type as any,
+            email: data.email,
+            ...(logo !== null ? {logo: logo} : {}),
+            ...(website !== null ? {website: website} : {}),
         };
     }
 

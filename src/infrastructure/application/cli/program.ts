@@ -4,10 +4,12 @@ import XDGAppPaths from 'xdg-app-paths';
 import ci from 'ci-info';
 import {JsonPrimitive} from '@croct/json';
 import {realpathSync} from 'fs';
+import {ApiKey} from '@croct/sdk/apiKey';
 import {Cli} from '@/infrastructure/application/cli/cli';
 import {Resource} from '@/application/cli/command/init';
 import {OptionMap} from '@/application/template/template';
 import {NodeProcess} from '@/infrastructure/application/system/nodeProcess';
+import {ApiKeyPermission, ApplicationEnvironment} from '@/application/model/application';
 
 const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a.run.app';
 const templateRegistry = 'github:/marcospassos/croct-examples/registry.json';
@@ -29,6 +31,13 @@ function createProgram(config: Configuration): typeof program {
                 return realpathSync(path);
             } catch {
                 throw new InvalidArgumentError('The path does not exist.');
+            }
+        })
+        .option('-k, --api-key <key>', 'The API key to use for authentication.', key => {
+            try {
+                return ApiKey.parse(key);
+            } catch {
+                throw new InvalidArgumentError('The API key is malformed.');
             }
         })
         .option('-n, --no-interaction', 'Disable interaction mode.')
@@ -219,6 +228,42 @@ function createProgram(config: Configuration): typeof program {
             });
         });
 
+    const permissionOption = new Option('--permissions <permissions...>', 'The permissions of the API key.')
+        .argParser(
+            value => value.split(',').map(permission => {
+                try {
+                    return ApiKeyPermission.fromValue(permission);
+                } catch {
+                    throw new InvalidArgumentError(`Unknown permission "${permission}".`);
+                }
+            }),
+        );
+
+    const environmentOption = new Option('--env <environment>', 'The environment of the API key.')
+        .choices(['prod', 'dev'])
+        .argParser(
+            value => (
+                value === 'prod'
+                    ? ApplicationEnvironment.PRODUCTION
+                    : ApplicationEnvironment.DEVELOPMENT
+            ),
+        );
+
+    createCommand.command('api-key')
+        .description('Create an API key.')
+        .option('--name <name>', 'The name of the API key.')
+        .addOption(config.interactive ? permissionOption : permissionOption.makeOptionMandatory())
+        .addOption(config.interactive ? environmentOption : environmentOption.makeOptionMandatory())
+        .option('-c, --copy', 'Copy the API key to the clipboard.')
+        .action(async options => {
+            await config.cli?.createApiKey({
+                name: options.name,
+                permissions: options.permissions,
+                environment: options.env,
+                copy: options.copy,
+            });
+        });
+
     const importCommand = program.command('import')
         .enablePositionalOptions(config.cli === undefined)
         .description('Import a resource into your project.');
@@ -313,11 +358,15 @@ function getTemplate(args: string[]): string | null {
         cache: options.cache,
         quiet: options.quiet,
         interactive: options.interaction && !ci.isCI,
+        apiKey: options.apiKey,
         skipPrompts: options.skipPrompts === true,
-        tokenDuration: 90 * 24 * 60 * 60,
+        cliTokenDuration: 90 * 24 * 60 * 60,
+        adminTokenDuration: 7 * 24 * 60 * 60,
+        apiKeyTokenDuration: 60 * 30,
         deepLinkProtocol: 'croct',
-        adminUrl: new URL(adminUrl),
         templateRegistryUrl: new URL(options.registry ?? templateRegistry),
+        adminUrl: new URL(adminUrl),
+        adminTokenParameter: 'accessToken',
         directories: {
             current: options.cwd,
             config: appPaths.config(),
@@ -329,8 +378,6 @@ function getTemplate(args: string[]): string | null {
             graphqlEndpoint: `${apiEndpoint}/graphql`,
             tokenEndpoint: `${apiEndpoint}/account/issue-token`,
             tokenParameter: 'session',
-            authenticationEndpoint: `${apiEndpoint}/start/`,
-            authenticationParameter: 'session',
         },
     });
 

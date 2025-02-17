@@ -3,26 +3,26 @@ import {
     ResolvedConfiguration,
 } from '@/application/project/configuration/configuration';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
-import {ProjectIndex} from '@/application/project/index/projectIndex';
 import {WorkingDirectory} from '@/application/fs/workingDirectory';
+import {CliSettingsStore} from '@/application/cli/settings/settings';
 
 export type Configuration = {
     manager: ConfigurationManager,
-    projectIndex: ProjectIndex,
+    settingsStore: CliSettingsStore,
     workingDirectory: WorkingDirectory,
 };
 
 export class IndexedConfigurationManager implements ConfigurationManager {
     private readonly manager: ConfigurationManager;
 
-    private readonly index: ProjectIndex;
+    private readonly settingsTore: CliSettingsStore;
 
     private readonly workingDirectory: WorkingDirectory;
 
-    public constructor({manager, workingDirectory, projectIndex}: Configuration) {
+    public constructor({manager, workingDirectory, settingsStore}: Configuration) {
         this.manager = manager;
         this.workingDirectory = workingDirectory;
-        this.index = projectIndex;
+        this.settingsTore = settingsStore;
     }
 
     public async load(): Promise<ProjectConfiguration | null> {
@@ -52,6 +52,11 @@ export class IndexedConfigurationManager implements ConfigurationManager {
     }
 
     private async recordPath(): Promise<void> {
-        await this.index.addPath(this.workingDirectory.get());
+        const settings = await this.settingsTore.getSettings();
+
+        await this.settingsTore.saveSettings({
+            ...settings,
+            projectPaths: [...settings.projectPaths, this.workingDirectory.get()],
+        });
     }
 }

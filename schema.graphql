@@ -66,6 +66,7 @@ type ApiKeyEdge {
 scalar ApiKeyId
 
 enum ApiKeyPermission {
+  AUTHENTICATION
   DATA_EXPORT
   TOKEN_ISSUE
 }
@@ -1444,6 +1445,10 @@ type IssueExperiencePreviewTokenResult {
   token: String!
 }
 
+input IssueTokenPayload {
+  duration: Int!
+}
+
 """
 The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
 """
@@ -1718,6 +1723,7 @@ type Mutation {
   inviteOrganizationMember(organizationId: OrganizationId!, payload: InviteOrganizationMemberPayload!): OrganizationMembership!
   inviteWorkspaceMember(payload: InviteWorkspaceMemberPayload!, workspaceId: WorkspaceId!): WorkspaceMembership!
   issueExperiencePreviewToken(audienceId: AudienceId, experienceId: ExperienceId!, locale: String, previewMode: ExperiencePreviewScope!, publishTime: LocalDateTime, variantId: VariantId, workspaceId: WorkspaceId!): IssueExperiencePreviewTokenResult!
+  issueToken(payload: IssueTokenPayload!): String!
   leaveOrganization(organizationId: OrganizationId!): LeaveOrganizationResult!
   markAllNotificationsAsRead: [Notification!]!
   markNotificationsAsRead(payload: MarkNotificationsAsReadPayload!): [Notification!]!
@@ -2269,6 +2275,7 @@ input SignInPayload {
 }
 
 input SignUpPayload {
+  bypassOnboarding: Boolean
   email: String!
   expertise: Expertise!
   firstName: String!

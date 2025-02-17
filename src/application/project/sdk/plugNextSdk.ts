@@ -1,8 +1,8 @@
 import {Installation, SdkError} from '@/application/project/sdk/sdk';
 import {
+    Configuration as JavaScriptSdkConfiguration,
     InstallationPlan,
     JavaScriptSdk,
-    Configuration as JavaScriptSdkConfiguration,
 } from '@/application/project/sdk/javasScriptSdk';
 import {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
 import {WorkspaceApi} from '@/application/api/workspace';
@@ -19,6 +19,7 @@ import {ApiError} from '@/application/api/error';
 import {Slot} from '@/application/model/slot';
 import {HelpfulError} from '@/application/error';
 import {ImportResolver} from '@/application/project/import/importResolver';
+import {ApiKeyPermission} from '@/application/model/application';
 
 type CodemodConfiguration = {
     middleware: Codemod<string>,
@@ -305,9 +306,7 @@ export class PlugNextSdk extends JavaScriptSdk {
                 apiKey = await this.applicationApi.createApiKey({
                     name: `${user.username} CLI`,
                     applicationId: applications.developmentId,
-                    permissions: {
-                        tokenIssue: true,
-                    },
+                    permissions: [ApiKeyPermission.ISSUE_TOKEN],
                 });
             } catch (error) {
                 if (error instanceof HelpfulError) {
