@@ -1775,7 +1775,7 @@ export class Cli {
                 workingDirectory: this.workingDirectory,
                 store: this.getCliConfigurationStore(),
                 manager: new CachedConfigurationManager(
-                    this.configuration.interactive
+                    this.configuration.interactive && !this.isReadOnlyMode()
                         ? new NewConfigurationManager({
                             manager: manager,
                             initializer: {
@@ -1963,7 +1963,7 @@ export class Cli {
     }
 
     private async execute<I extends CommandInput>(command: Command<I>, input: I): Promise<void> {
-        if (this.configuration.apiKey !== undefined && !Cli.READ_ONLY_COMMANDS.has(command.constructor)) {
+        if (this.isReadOnlyMode() && !Cli.READ_ONLY_COMMANDS.has(command.constructor)) {
             return this.reportError(
                 new HelpfulError('This command does not support API key authentication.', {
                     reason: ErrorReason.PRECONDITION,
@@ -1983,6 +1983,10 @@ export class Cli {
 
             return this.reportError(formattedError);
         }
+    }
+
+    private isReadOnlyMode(): boolean {
+        return this.configuration.apiKey !== undefined;
     }
 
     private reportError(error: unknown): Promise<never> {

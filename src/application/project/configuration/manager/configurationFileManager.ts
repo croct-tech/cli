@@ -1,11 +1,17 @@
 import {WorkspaceApi} from '@/application/api/workspace';
-import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
+import {
+    ConfigurationError,
+    ProjectConfiguration,
+    ResolvedConfiguration,
+} from '@/application/project/configuration/projectConfiguration';
 import {UserApi} from '@/application/api/user';
 import {OrganizationApi} from '@/application/api/organization';
 import {Output} from '@/application/cli/io/output';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {ConfigurationFile} from '@/application/project/configuration/file/configurationFile';
-import {HelpfulError, ErrorReason} from '@/application/error';
+import {ErrorReason, HelpfulError} from '@/application/error';
+import {ApiError} from '@/application/api/error';
+import {Application} from '@/application/model/application';
 
 export type Configuration = {
     file: ConfigurationFile,
@@ -16,6 +22,8 @@ export type Configuration = {
     },
     output: Output,
 };
+
+type ApplicationInfo = Pick<Application, 'slug' | 'id' | 'publicId'>;
 
 export class ConfigurationFileManager implements ConfigurationManager {
     private readonly config: Configuration;
@@ -42,7 +50,6 @@ export class ConfigurationFileManager implements ConfigurationManager {
         if (configuration === null) {
             throw new HelpfulError('Project configuration not found.', {
                 reason: ErrorReason.PRECONDITION,
-                // @todo add link to init documentation
                 suggestions: [
                     'Run `init` command to initialize the project',
                 ],
@@ -88,18 +95,25 @@ export class ConfigurationFileManager implements ConfigurationManager {
             });
         }
 
+        const developmentAppSlug = configuration.applications.development;
+        const productionAppSlug = configuration.applications.production;
+
         const [developmentApplication, productionApplication] = await Promise.all([
-            api.workspace.getApplication({
-                organizationSlug: organization.slug,
-                workspaceSlug: workspace.slug,
-                applicationSlug: configuration.applications.development,
-            }),
-            configuration.applications.production !== undefined
-                ? api.workspace.getApplication({
+            api.workspace
+                .getApplication({
                     organizationSlug: organization.slug,
                     workspaceSlug: workspace.slug,
-                    applicationSlug: configuration.applications.production,
+                    applicationSlug: developmentAppSlug,
                 })
+                .catch(error => ConfigurationFileManager.getDeferredInfo(error, developmentAppSlug)),
+            productionAppSlug !== undefined
+                ? api.workspace
+                    .getApplication({
+                        organizationSlug: organization.slug,
+                        workspaceSlug: workspace.slug,
+                        applicationSlug: productionAppSlug,
+                    })
+                    .catch(error => ConfigurationFileManager.getDeferredInfo(error, productionAppSlug))
                 : Promise.resolve(null),
         ]);
 
@@ -121,19 +135,24 @@ export class ConfigurationFileManager implements ConfigurationManager {
             });
         }
 
-        let applicationIds: ResolvedConfiguration['applications'] = {
-            development: developmentApplication.slug,
-            developmentId: developmentApplication.id,
-            developmentPublicId: developmentApplication.publicId,
-        };
+        let applicationIds: ResolvedConfiguration['applications'] = Object.defineProperties(
+            {} as ResolvedConfiguration['applications'],
+            {
+                development: Object.getOwnPropertyDescriptor(developmentApplication, 'slug')!,
+                developmentId: Object.getOwnPropertyDescriptor(developmentApplication, 'id')!,
+                developmentPublicId: Object.getOwnPropertyDescriptor(developmentApplication, 'publicId')!,
+            },
+        );
 
         if ('production' in configuration.applications && productionApplication !== null) {
-            applicationIds = {
-                ...applicationIds,
-                production: productionApplication.slug,
-                productionId: productionApplication.id,
-                productionPublicId: productionApplication.publicId,
-            };
+            applicationIds = Object.defineProperties(
+                applicationIds,
+                {
+                    production: Object.getOwnPropertyDescriptor(productionApplication, 'slug')!,
+                    productionId: Object.getOwnPropertyDescriptor(productionApplication, 'id')!,
+                    productionPublicId: Object.getOwnPropertyDescriptor(productionApplication, 'publicId')!,
+                },
+            );
         }
 
         return {
@@ -141,6 +160,32 @@ export class ConfigurationFileManager implements ConfigurationManager {
             organizationId: organization.id,
             workspaceId: workspace.id,
             applications: applicationIds,
+        };
+    }
+
+    private static getDeferredInfo(error: unknown, slug: string): ApplicationInfo {
+        if (!(error instanceof ApiError) || !error.isAccessDenied()) {
+            throw error;
+        }
+
+        const report = (): never => {
+            throw new ConfigurationError(`Access denied to the application "${slug}".`, {
+                reason: ErrorReason.ACCESS_DENIED,
+                cause: error,
+                suggestions: [
+                    'Check if the your user or API key has access to the application.',
+                ],
+            });
+        };
+
+        return {
+            slug: slug,
+            get publicId(): string {
+                return report();
+            },
+            get id(): string {
+                return report();
+            },
         };
     }
 }

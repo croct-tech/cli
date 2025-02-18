@@ -55,8 +55,8 @@ export class CreateApiKeyCommand implements Command<CreateApiKeyInput> {
         });
 
         const applicationId = environment === ApplicationEnvironment.PRODUCTION
-            ? configuration.applications.developmentId
-            : configuration.applications.productionId;
+            ? configuration.applications.productionId
+            : configuration.applications.developmentId;
 
         if (applicationId === undefined) {
             throw new HelpfulError(
