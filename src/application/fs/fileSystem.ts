@@ -62,7 +62,7 @@ export interface FileSystem {
     copy(source: string, destination: string, options?: CopyOptions): Promise<void>;
     isEmptyDirectory(path: string): Promise<boolean>;
     create(entry: FileSystemEntry): Promise<void>;
-    list(path: string, recursive?: boolean): FileSystemIterator;
+    list(path: string, maxDepth?: number): FileSystemIterator;
 }
 
 export class FileSystemError extends HelpfulError {

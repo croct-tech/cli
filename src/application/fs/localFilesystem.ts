@@ -154,13 +154,17 @@ export class LocalFilesystem implements FileSystem {
         }
     }
 
-    public list(path: string, recursive = false): FileSystemIterator {
+    public list(path: string, maxDepth = Number.POSITIVE_INFINITY): FileSystemIterator {
         const root = this.resolvePath(path);
 
-        return this.listRelatively(root, root, recursive);
+        return this.listRelatively(root, root, maxDepth);
     }
 
-    private async* listRelatively(path: string, root: string, recursive = false): FileSystemIterator {
+    private async* listRelatively(path: string, root: string, maxDepth: number): FileSystemIterator {
+        if (maxDepth < 0) {
+            return;
+        }
+
         const stats = await this.execute(() => lstat(path)).catch(() => null);
 
         if (stats === null) {
@@ -168,7 +172,7 @@ export class LocalFilesystem implements FileSystem {
         }
 
         if (!stats.isDirectory()) {
-            return yield* this.createEntry(path, dirname(root), stats, false);
+            return yield* this.createEntry(path, dirname(root), stats, 0);
         }
 
         const files = await this.execute(() => readdir(path));
@@ -177,11 +181,11 @@ export class LocalFilesystem implements FileSystem {
             const entryPath = join(path, entry);
             const entryStats = await this.execute(() => lstat(entryPath));
 
-            yield* this.createEntry(entryPath, root, entryStats, recursive);
+            yield* this.createEntry(entryPath, root, entryStats, maxDepth);
         }
     }
 
-    private async* createEntry(path: string, root: string, stats: Stats, recursive: boolean): FileSystemIterator {
+    private async* createEntry(path: string, root: string, stats: Stats, maxDepth: number): FileSystemIterator {
         const name = relative(root, path);
 
         if (stats.isFile()) {
@@ -200,8 +204,8 @@ export class LocalFilesystem implements FileSystem {
                 name: name,
             };
 
-            if (recursive) {
-                yield* this.listRelatively(path, root, recursive);
+            if (maxDepth > 0) {
+                yield* this.listRelatively(path, root, maxDepth - 1);
             }
         } else if (stats.isSymbolicLink()) {
             yield {

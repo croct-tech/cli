@@ -348,14 +348,14 @@ function getTemplate(args: string[]): string | null {
 }
 
 (async function run(args: string[] = process.argv, welcome = true): Promise<void> {
-    const parsedInput = createProgram({interactive: true}).parse(args);
+    const invocation = createProgram({interactive: true}).parse(args);
 
-    const options = parsedInput.opts();
+    const options = invocation.opts();
     const appPaths = XDGAppPaths('com.croct.cli');
 
     const cli = new Cli({
         process: new NodeProcess(),
-        program: (parsedArgs: string[]) => run(args.slice(0, 2).concat(parsedArgs)),
+        program: (postfixArgs: string[]) => run(invocation.args.slice(0, 2).concat(postfixArgs)),
         cache: options.cache,
         quiet: options.quiet,
         interactive: options.interaction && !ci.isCI,
@@ -384,7 +384,7 @@ function getTemplate(args: string[]): string | null {
         },
     });
 
-    const template = getTemplate(args);
+    const template = getTemplate(invocation.args);
 
     const program = createProgram({
         cli: cli,

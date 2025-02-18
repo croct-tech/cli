@@ -260,7 +260,7 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
                         reason: ErrorReason.PRECONDITION,
                         links: [
                             {
-                                description: 'Request more quota',
+                                label: 'Request more quota',
                                 url: link.toString(),
                             },
                         ],

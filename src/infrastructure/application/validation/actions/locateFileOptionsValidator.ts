@@ -18,9 +18,13 @@ const matcherSchema: ZodType<ContentMatcher> = z.union([
 const schema: ZodType<LocateFileOptions> = z.strictObject({
     path: z.string().min(1),
     matcher: matcherSchema.optional(),
-    max: z.number()
+    limit: z.number()
         .int()
         .positive()
+        .optional(),
+    maxDepth: z.number()
+        .int()
+        .nonnegative()
         .optional(),
     result: z.string().optional(),
 });

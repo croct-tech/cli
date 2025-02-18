@@ -10,8 +10,8 @@ const schema: ZodType<FailOptions> = z.strictObject({
     message: z.string().min(1),
     links: z.array(
         z.strictObject({
+            label: z.string().min(1),
             url: z.string().url(),
-            description: z.string().min(1),
         }),
     ).optional(),
     suggestions: z.array(z.string().min(1)).optional(),

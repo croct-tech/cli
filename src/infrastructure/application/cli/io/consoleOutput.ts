@@ -237,7 +237,7 @@ export class ConsoleOutput implements Output {
             case ErrorReason.INVALID_INPUT:
             case ErrorReason.PRECONDITION:
                 usefulLinks.push({
-                    description: 'Documentation',
+                    label: 'Documentation',
                     url: 'https://docs.croct.io/sdk/cli',
                 });
 
@@ -248,7 +248,7 @@ export class ConsoleOutput implements Output {
 
             default:
                 usefulLinks.push({
-                    description: 'Open an issue',
+                    label: 'Open an issue',
                     url: 'https://github.com/croct-tech/croct-cli/issues/new',
                 });
 
@@ -262,8 +262,8 @@ export class ConsoleOutput implements Output {
         if (usefulLinks.length > 0) {
             message += `\n\n🔗 ${chalk.bold('Useful links')}\n`;
             message += usefulLinks.map(
-                ({description, url}) => ` • ${terminalLink(description, url, {
-                    fallback: () => `${description}: ${url}`,
+                ({label, url}) => ` • ${terminalLink(label, url, {
+                    fallback: () => `${label}: ${url}`,
                 })}`,
             ).join('\n');
         }

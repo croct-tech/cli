@@ -23,7 +23,7 @@ export class FileSystemProvider implements ResourceProvider<FileSystemIterator> 
 
         return Promise.resolve({
             url: url,
-            value: this.fileSystem.list(this.fileSystem.normalizeSeparators(url.pathname), true),
+            value: this.fileSystem.list(this.fileSystem.normalizeSeparators(url.pathname)),
         });
     }
 }

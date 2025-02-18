@@ -64,7 +64,7 @@ export class InitCommand implements Command<InitInput> {
         const currentConfiguration = await configurationManager.load();
 
         if (currentConfiguration !== null && input.override !== true) {
-            throw new HelpfulError('Configuration file already exists, pass `--override` to reconfigure', {
+            throw new HelpfulError('Configuration file already exists, specify `override` to reconfigure.', {
                 reason: ErrorReason.PRECONDITION,
             });
         }
@@ -156,15 +156,21 @@ export class InitCommand implements Command<InitInput> {
             slots: {},
             components: {},
             paths: {
-                components: 'components',
-                examples: 'examples',
+                components: '',
+                examples: '',
             },
         };
 
         const sdk = await sdkProvider.get();
 
         if (sdk === null) {
-            await configurationManager.update(updatedConfiguration);
+            await configurationManager.update({
+                ...updatedConfiguration,
+                paths: {
+                    components: 'components',
+                    examples: 'examples',
+                },
+            });
 
             output.warn('No suitable SDK found, skipping project configuration');
 

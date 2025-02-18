@@ -1,6 +1,6 @@
 type Link = {
     url: string,
-    description: string,
+    label: string,
 };
 
 export enum ErrorReason {

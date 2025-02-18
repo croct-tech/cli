@@ -1,5 +1,5 @@
 export enum Platform {
-    NEXT = 'next',
+    NEXTJS = 'nextjs',
     REACT = 'react',
     JAVASCRIPT = 'javascript',
 }
@@ -7,7 +7,7 @@ export enum Platform {
 export namespace Platform {
     export function getName(platform: Platform): string {
         switch (platform) {
-            case Platform.NEXT:
+            case Platform.NEXTJS:
                 return 'Next.js';
 
             case Platform.REACT:

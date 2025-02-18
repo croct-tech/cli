@@ -224,10 +224,10 @@ export class PlugReactSdk extends JavaScriptSdk {
     }
 
     private static getAppIdProperty(applicationIds: ResolvedConfiguration['applications'], env?: string): PropertyType {
-        if (env === undefined) {
+        if (env !== undefined) {
             return {
-                type: 'literal',
-                value: applicationIds.developmentPublicId,
+                type: 'reference',
+                path: env.split('.'),
             };
         }
 

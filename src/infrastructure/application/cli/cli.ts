@@ -1114,23 +1114,25 @@ export class Cli {
                     ),
                 },
                 platform: LazyPromise.transient(async () => (await this.getPlatformProvider().get()) ?? 'unknown'),
-                server: LazyPromise.transient(async (): Promise<{running: boolean, url?: string}> => {
+                server: LazyPromise.transient(async (): Promise<{running: boolean, url?: string}|null> => {
                     const serverProvider = this.getServerProvider();
                     const server = await serverProvider.get();
 
-                    if (server !== null) {
-                        try {
-                            const status = await server.getStatus();
+                    if (server === null) {
+                        return null;
+                    }
 
-                            if (status.running) {
-                                return {
-                                    running: true,
-                                    url: status.url.toString(),
-                                };
-                            }
-                        } catch {
-                            // suppress errors
+                    try {
+                        const status = await server.getStatus();
+
+                        if (status.running) {
+                            return {
+                                running: true,
+                                url: status.url.toString(),
+                            };
                         }
+                    } catch {
+                        // Ignore
                     }
 
                     return {running: false};
@@ -1305,7 +1307,7 @@ export class Cli {
                             },
                         ],
                     }),
-                    [Platform.NEXT]: (): Sdk => new PlugNextSdk({
+                    [Platform.NEXTJS]: (): Sdk => new PlugNextSdk({
                         ...config,
                         userApi: this.getUserApi(),
                         applicationApi: this.getApplicationApi(),
@@ -1398,7 +1400,7 @@ export class Cli {
                     mapping: {
                         [Platform.JAVASCRIPT]: () => this.getJavaScriptFormatter(),
                         [Platform.REACT]: () => this.getJavaScriptFormatter(),
-                        [Platform.NEXT]: () => this.getJavaScriptFormatter(),
+                        [Platform.NEXTJS]: () => this.getJavaScriptFormatter(),
                         [unknown]: (): never => {
                             throw new ProviderError('No code formatter detected.', {
                                 reason: ErrorReason.NOT_SUPPORTED,
@@ -1590,7 +1592,7 @@ export class Cli {
                 mapping: {
                     [Platform.JAVASCRIPT]: () => this.getNodeServerProvider().get(),
                     [Platform.REACT]: () => this.getNodeServerProvider().get(),
-                    [Platform.NEXT]: () => this.getNodeServerProvider().get(),
+                    [Platform.NEXTJS]: () => this.getNodeServerProvider().get(),
                     [unknown]: () => null,
                 },
             });
@@ -1655,7 +1657,7 @@ export class Cli {
                     mapping: {
                         [Platform.JAVASCRIPT]: () => nodeImportResolver,
                         [Platform.REACT]: () => nodeImportResolver,
-                        [Platform.NEXT]: () => nodeImportResolver,
+                        [Platform.NEXTJS]: () => nodeImportResolver,
                         [unknown]: (): never => {
                             throw new CallbackProvider(() => {
                                 throw new ProviderError('No import resolver detected.', {
@@ -1726,7 +1728,7 @@ export class Cli {
                 new ConditionalProvider({
                     candidates: [
                         {
-                            value: Platform.NEXT,
+                            value: Platform.NEXTJS,
                             condition: new HasDependency({
                                 packageManager: nodePackageManager,
                                 dependencies: ['next'],

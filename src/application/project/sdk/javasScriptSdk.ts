@@ -204,7 +204,7 @@ export abstract class JavaScriptSdk implements Sdk {
             return currentPath;
         }
 
-        const parentDirs = ['lib', 'src'];
+        const parentDirs = ['src'];
 
         const path = await this.locateFile(
             ...parentDirs.flatMap(dir => directories.map(directory => this.fileSystem.joinPaths(dir, directory))),

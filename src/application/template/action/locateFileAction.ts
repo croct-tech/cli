@@ -20,7 +20,8 @@ export type ContentMatcher = PatternMatcher | CombinationMatcher;
 export type LocateFileOptions = {
     path: string,
     matcher?: ContentMatcher,
-    max?: number,
+    limit?: number,
+    maxDepth?: number,
     result?: string,
 };
 
@@ -70,7 +71,7 @@ export class LocateFileAction implements Action<LocateFileOptions> {
 
         const matches: string[] = [];
 
-        for await (const file of this.fileSystem.list(this.projectDirectory.get(), true)) {
+        for await (const file of this.fileSystem.list(this.projectDirectory.get(), options.maxDepth)) {
             if (!await filter.test(file.name)) {
                 continue;
             }
@@ -85,7 +86,7 @@ export class LocateFileAction implements Action<LocateFileOptions> {
                 }
             }
 
-            if (options.max !== undefined && matches.length >= options.max) {
+            if (options.limit !== undefined && matches.length >= options.limit) {
                 break;
             }
         }
