@@ -1,3 +1,0 @@
-(async () => {
-    console.log('📄 aa');
-})();
