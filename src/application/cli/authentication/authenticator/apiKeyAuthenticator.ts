@@ -1,21 +1,26 @@
 import {ApiKey} from '@croct/sdk/apiKey';
 import {Token} from '@croct/sdk/token';
+import {Clock, Instant} from '@croct/time';
 import {Authenticator} from '@/application/cli/authentication/authenticator/index';
 
 export type Configuration = {
     apiKey: ApiKey,
+    clock: Clock,
     tokenDuration: number,
 };
 
 export class ApiKeyAuthenticator implements Authenticator<Record<never, never>> {
     private readonly apiKey: ApiKey;
 
+    private readonly clock: Clock;
+
     private readonly tokenDuration: number;
 
     private token?: Token;
 
-    public constructor({apiKey, tokenDuration}: Configuration) {
+    public constructor({apiKey, clock, tokenDuration}: Configuration) {
         this.apiKey = apiKey;
+        this.clock = clock;
         this.tokenDuration = tokenDuration;
     }
 
@@ -36,9 +41,8 @@ export class ApiKeyAuthenticator implements Authenticator<Record<never, never>> 
     }
 
     private async issueToken(): Promise<Token> {
-        const now = Math.trunc(Date.now() / 1000);
-
-        return Token.of(
+        const now = Instant.now(this.clock).getSeconds();
+        const token = Token.of(
             {
                 kid: await this.apiKey.getIdentifierHash(),
                 alg: 'ES256',
@@ -52,6 +56,8 @@ export class ApiKeyAuthenticator implements Authenticator<Record<never, never>> 
                 aud: 'app.croct.com',
                 scope: ['ADMIN'],
             },
-        ).signedWith(this.apiKey);
+        );
+
+        return token.signedWith(this.apiKey);
     }
 }

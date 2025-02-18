@@ -5,6 +5,7 @@ import ci from 'ci-info';
 import {JsonPrimitive} from '@croct/json';
 import {realpathSync} from 'fs';
 import {ApiKey} from '@croct/sdk/apiKey';
+import {LocalTime} from '@croct/time';
 import {Cli} from '@/infrastructure/application/cli/cli';
 import {Resource} from '@/application/cli/command/init';
 import {OptionMap} from '@/application/template/template';
@@ -360,9 +361,11 @@ function getTemplate(args: string[]): string | null {
         interactive: options.interaction && !ci.isCI,
         apiKey: options.apiKey,
         skipPrompts: options.skipPrompts === true,
-        cliTokenDuration: 90 * 24 * 60 * 60,
-        adminTokenDuration: 7 * 24 * 60 * 60,
-        apiKeyTokenDuration: 60 * 30,
+        adminTokenDuration: 7 * LocalTime.SECONDS_PER_DAY,
+        apiKeyTokenDuration: 30 * LocalTime.SECONDS_PER_MINUTE,
+        cliTokenDuration: 90 * LocalTime.SECONDS_PER_DAY,
+        cliTokenFreshPeriod: 15 * LocalTime.SECONDS_PER_DAY,
+        cliTokenIssuer: 'croct.com',
         deepLinkProtocol: 'croct',
         templateRegistryUrl: new URL(options.registry ?? templateRegistry),
         adminUrl: new URL(adminUrl),

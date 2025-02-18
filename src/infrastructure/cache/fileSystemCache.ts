@@ -5,6 +5,7 @@ import {FileSystem} from '@/application/fs/fileSystem';
 export type Configuration = {
     fileSystem: FileSystem,
     directory: string,
+    useKeyAsFileName?: boolean,
 };
 
 export class FileSystemCache implements CacheProvider<string, string> {
@@ -12,9 +13,12 @@ export class FileSystemCache implements CacheProvider<string, string> {
 
     private readonly directory: string;
 
-    public constructor({fileSystem, directory}: Configuration) {
+    private readonly useKeyAsFileName: boolean;
+
+    public constructor({fileSystem, directory, useKeyAsFileName}: Configuration) {
         this.fileSystem = fileSystem;
         this.directory = directory;
+        this.useKeyAsFileName = useKeyAsFileName ?? false;
     }
 
     public async delete(key: string): Promise<void> {
@@ -34,10 +38,15 @@ export class FileSystemCache implements CacheProvider<string, string> {
             await this.fileSystem.createDirectory(this.directory, {recursive: true});
         }
 
-        return this.fileSystem.writeTextFile(this.getCacheFile(key), value);
+        return this.fileSystem.writeTextFile(this.getCacheFile(key), value, {
+            overwrite: true,
+        });
     }
 
     private getCacheFile(key: string): string {
-        return this.fileSystem.joinPaths(this.directory, createHash('md5').update(key).digest('hex'));
+        return this.fileSystem.joinPaths(
+            this.directory,
+            this.useKeyAsFileName ? key : createHash('md5').update(key).digest('hex'),
+        );
     }
 }

@@ -77,7 +77,7 @@ export class InitCommand implements Command<InitInput> {
         output.break();
 
         output.announce({
-            semantics: 'info',
+            semantics: 'neutral',
             title: '👋 Welcome to Croct',
             alignment: 'center',
             message: `Let's configure your ${projectName} to get started!`,

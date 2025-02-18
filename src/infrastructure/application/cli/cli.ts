@@ -9,6 +9,8 @@ import {
     TimestampedCacheEntry,
 } from '@croct/cache';
 import {ApiKey} from '@croct/sdk/apiKey';
+import {Clock, Instant} from '@croct/time';
+import {SystemClock} from '@croct/time/clock/systemClock';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput} from '@/infrastructure/application/cli/io/consoleOutput';
 import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
@@ -36,7 +38,6 @@ import {ApplicationForm} from '@/application/cli/form/application/applicationFor
 import {ApplicationApi} from '@/application/api/application';
 import {GraphqlApplicationApi} from '@/infrastructure/application/api/graphql/application';
 import {Authenticator} from '@/application/cli/authentication/authenticator';
-import {TokenFileAuthenticator} from '@/application/cli/authentication/authenticator/tokenFileAuthenticator';
 import {
     CredentialsAuthenticator,
     CredentialsInput,
@@ -122,7 +123,7 @@ import {ValidatedProvider} from '@/application/template/provider/validatedProvid
 import {FileContentProvider} from '@/application/template/provider/fileContentProvider';
 import {JsonProvider} from '@/application/template/provider/jsonProvider';
 import {RegistryValidator} from '@/infrastructure/application/validation/registryValidator';
-import {FileSystemCache} from '@/infrastructure/fileSystemCache';
+import {FileSystemCache} from '@/infrastructure/cache/fileSystemCache';
 import {CachedProvider} from '@/application/template/provider/cachedProvider';
 import {JsepExpressionEvaluator} from '@/infrastructure/application/evaluation/jsepExpressionEvaluator';
 import {TemplateValidator} from '@/infrastructure/application/validation/templateValidator';
@@ -265,6 +266,8 @@ import {CreateApiKeyCommand, CreateApiKeyInput} from '@/application/cli/command/
 import {ApiKeyAuthenticator} from '@/application/cli/authentication/authenticator/apiKeyAuthenticator';
 import {VirtualizedWorkingDirectory} from '@/application/fs/workingDirectory/virtualizedWorkingDirectory';
 import {ProcessWorkingDirectory} from '@/application/fs/workingDirectory/processWorkingDirectory';
+import {CachedAuthenticator} from '@/application/cli/authentication/authenticator/cachedAuthenticator';
+import {TokenCache} from '@/infrastructure/cache/tokenCache';
 
 export type Configuration = {
     program: Program,
@@ -279,6 +282,8 @@ export type Configuration = {
     templateRegistryUrl: URL,
     deepLinkProtocol: string,
     cliTokenDuration: number,
+    cliTokenFreshPeriod: number,
+    cliTokenIssuer: string,
     apiKeyTokenDuration: number,
     adminTokenDuration: number,
     directories: {
@@ -1143,6 +1148,7 @@ export class Cli {
             if (this.configuration.apiKey !== undefined) {
                 return new ApiKeyAuthenticator({
                     apiKey: this.configuration.apiKey,
+                    clock: this.getClock(),
                     tokenDuration: this.configuration.apiKeyTokenDuration,
                 });
             }
@@ -1175,9 +1181,22 @@ export class Cli {
                 },
             });
 
-            const authenticator = new TokenFileAuthenticator({
-                fileSystem: fileSystem,
-                filePath: fileSystem.joinPaths(this.configuration.directories.config, 'token'),
+            const authenticator = new CachedAuthenticator({
+                cacheKey: 'token',
+                cacheProvider: new TokenCache({
+                    userApi: this.getUserApi(true),
+                    clock: this.getClock(),
+                    cliTokenFreshPeriod: this.configuration.cliTokenFreshPeriod,
+                    tokenDuration: this.configuration.cliTokenDuration,
+                    tokenIssuer: this.configuration.cliTokenIssuer,
+                    cacheProvider: new AutoSaveCache(
+                        new FileSystemCache({
+                            fileSystem: fileSystem,
+                            directory: this.configuration.directories.config,
+                            useKeyAsFileName: true,
+                        }),
+                    ),
+                }),
                 authenticator: new MultiAuthenticator<AuthenticationMethods>({
                     default: this.configuration.interactive
                         ? credentialsAuthenticator
@@ -1841,12 +1860,13 @@ export class Cli {
 
     private createEmailLinkGenerator(subject?: string): (email: string) => Promise<URL | null> {
         const generator = this.getEmailLinkGenerator();
+        const clock = this.getClock();
 
         return email => generator.generate({
             recipient: email,
             sender: 'croct.com',
             subject: subject,
-            timestamp: Math.trunc(Date.now() / 1000),
+            timestamp: Instant.now(clock).getSeconds(),
         });
     }
 
@@ -1867,6 +1887,10 @@ export class Cli {
                 },
             }),
         );
+    }
+
+    private getClock(): Clock {
+        return SystemClock.UTC;
     }
 
     private getCache(namespace: string): CacheProvider<string, string> {

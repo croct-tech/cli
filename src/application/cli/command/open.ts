@@ -32,37 +32,22 @@ export class OpenCommand implements Command<OpenInput> {
         this.config = config;
     }
 
-    public async execute(input: OpenInput): Promise<void> {
-        if (!URL.canParse(input.url)) {
+    public async execute({url}: OpenInput): Promise<void> {
+        if (!URL.canParse(url)) {
             throw new HelpfulError('The URL is not valid.', {
                 reason: ErrorReason.INVALID_INPUT,
             });
         }
 
-        const url = new URL(input.url);
+        const parsedUrl = new URL(url);
 
-        if (!this.isValidUrl(url)) {
+        if (!this.isValidUrl(parsedUrl)) {
             throw new HelpfulError('The URL is not supported.', {
                 reason: ErrorReason.INVALID_INPUT,
             });
         }
 
-        const {output} = this.config.io;
-
-        output.announce({
-            semantics: 'info',
-            title: 'Croct CLI',
-            message: `You just clicked a link to a \`Croct CLI\` command.\n\n🔗 ${url}`,
-            alignment: 'center',
-        });
-
-        await this.selectDirectory();
-
-        await this.config.program(this.parseArguments(url));
-    }
-
-    private async selectDirectory(): Promise<void> {
-        const {workingDirectory, configurationProvider, fileSystem, io: {input, output}} = this.config;
+        const {input, output} = this.config.io;
 
         if (input === undefined) {
             throw new HelpfulError('Deep links requires explicit user interaction.', {
@@ -73,6 +58,36 @@ export class OpenCommand implements Command<OpenInput> {
             });
         }
 
+        const args = this.parseArguments(parsedUrl);
+
+        output.announce({
+            semantics: 'neutral',
+            title: '🔗 Croct link',
+            message: 'You just opened a link to a `Croct CLI` command.',
+            alignment: 'center',
+        });
+
+        const command = args.join(' ');
+
+        output.inform(`The command is \`${command}\``);
+
+        if (
+            !await input.confirm({
+                message: 'Continue?',
+                default: true,
+            })
+        ) {
+            return;
+        }
+
+        await this.selectDirectory(input);
+
+        await this.config.program(args);
+    }
+
+    private async selectDirectory(input: Input): Promise<void> {
+        const {workingDirectory, configurationProvider, fileSystem, io: {output}} = this.config;
+
         const currentDirectory = workingDirectory.get();
         const {projectPaths} = await configurationProvider.get();
 
@@ -82,7 +97,7 @@ export class OpenCommand implements Command<OpenInput> {
             const parentDirectory = fileSystem.getDirectoryName(projectPaths[0]);
 
             targetDirectory = await input.select({
-                message: 'Where do you want to run the command from?',
+                message: 'Where should this command run?',
                 options: [
                     {
                         label: `${currentDirectory} (current)`,
