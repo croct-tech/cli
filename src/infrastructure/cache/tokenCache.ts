@@ -2,7 +2,7 @@ import {CacheLoader, CacheProvider} from '@croct/cache';
 import {Clock, Instant} from '@croct/time';
 import {Token} from '@croct/sdk/token';
 
-export type TokenIssuer = (token: Token) => Promise<string>|null;
+export type TokenIssuer = (token: Token) => Promise<string>;
 
 export type Configuration = {
     clock: Clock,
@@ -77,10 +77,6 @@ export class TokenCache implements CacheProvider<string, string|null> {
 
     private async renewToken(key: string, token: Token): Promise<void> {
         const result = this.tokenIssuer(token);
-
-        if (result === null) {
-            return;
-        }
 
         this.revalidating.set(key, true);
 

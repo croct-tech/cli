@@ -1191,15 +1191,9 @@ export class Cli {
                 cacheProvider: new TokenCache({
                     clock: this.getClock(),
                     tokenFreshPeriod: this.configuration.cliTokenFreshPeriod,
-                    tokenIssuer: (token): Promise<string>|null => {
-                        if (token.getIssuer() === this.configuration.cliTokenIssuer) {
-                            return api.issueToken({
-                                duration: this.configuration.cliTokenDuration,
-                            });
-                        }
-
-                        return null;
-                    },
+                    tokenIssuer: () => api.issueToken({
+                        duration: this.configuration.cliTokenDuration,
+                    }),
                     cacheProvider: new FileSystemCache({
                         fileSystem: fileSystem,
                         directory: this.configuration.directories.config,
