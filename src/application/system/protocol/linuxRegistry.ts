@@ -1,7 +1,7 @@
 import {ProtocolHandler, ProtocolRegistry, ProtocolRegistryError} from '@/application/system/protocol/protocolRegistry';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {CommandExecutor} from '@/application/system/process/executor';
-import {multiline} from '@/application/utils';
+import {multiline} from '@/utils/multiline';
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {Command} from '@/application/system/process/command';
 

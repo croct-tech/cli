@@ -13,10 +13,16 @@ import {EvaluationError, ExpressionEvaluator, VariableMap} from '@/application/t
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {Validator, Violation} from '@/application/validation';
 import {DeferredTemplate, Template} from '@/application/template/template';
-import {ResourceProvider, ResourceProviderError, ResourceHelp, Resource} from '@/application/provider/resourceProvider';
+import {
+    ResourceProvider,
+    ResourceProviderError,
+    ResourceHelp,
+    Resource,
+} from '@/application/provider/resource/resourceProvider';
 import {Fragment, JsonExpressionNode, TemplateStringParser} from '@/application/template/templateStringParser';
 import {Deferred, Deferrable} from '@/application/template/deferral';
 import {LazyPromise} from '@/infrastructure/promise';
+import {resolveUrl} from '@/utils/resolveUrl';
 
 export type Configuration = {
     evaluator: ExpressionEvaluator,
@@ -58,7 +64,7 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
         this.provider = provider;
     }
 
-    public supports(url: URL): boolean {
+    public supports(url: URL): Promise<boolean> {
         return this.provider.supports(url);
     }
 
@@ -298,7 +304,7 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
                         }
 
                         return this.import(
-                            TemplateProvider.getSourceUrl(url, baseUrl),
+                            resolveUrl(url, baseUrl),
                             properties === undefined
                                 ? variables
                                 : VariableMap.merge(variables, {
@@ -405,17 +411,5 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
                 location: fragment.location,
             }),
         });
-    }
-
-    private static getSourceUrl(source: string, baseUrl: URL): URL {
-        if (URL.canParse(source)) {
-            return new URL(source);
-        }
-
-        const url = new URL(baseUrl);
-
-        url.pathname = `${url.pathname.replace(/\/([^/]*\.[^/]+)?$/, '')}/${source}`;
-
-        return url;
     }
 }

@@ -1,4 +1,4 @@
-import {Resource, ResourceProvider} from '@/application/provider/resourceProvider';
+import {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
 import {Provider} from '@/application/provider/provider';
 
 export type Configuration<R> = {

@@ -83,11 +83,13 @@ export class AddSlotCommand implements Command<AddSlotInput> {
     }
 
     private async getSlots(configuration: ProjectConfiguration, input: AddSlotInput): Promise<VersionedSlot[]> {
-        const {slotForm, workspaceApi} = this.config;
+        const {slotForm, workspaceApi, io: {output}} = this.config;
 
         const versionedSlots = input.slots === undefined
             ? undefined
             : AddSlotCommand.getVersionMap(input.slots, configuration.slots);
+
+        const currentSlots = Object.keys(configuration.slots);
 
         const slots = await slotForm.handle({
             organizationSlug: configuration.organization,
@@ -95,8 +97,13 @@ export class AddSlotCommand implements Command<AddSlotInput> {
             preselected: versionedSlots === undefined
                 ? undefined
                 : Object.keys(versionedSlots),
-            selected: Object.keys(configuration.slots),
+            selected: currentSlots,
         });
+
+        if (currentSlots.length === slots.length && slots.every(slot => currentSlots.includes(slot.slug))) {
+            // Either no slots were selected or all selected slots are already present
+            output.inform('No new slots to add');
+        }
 
         if (input.slots !== undefined && input.slots.length > 0 && slots.length !== input.slots.length) {
             const missingSlots = input.slots.filter(slug => !slots.some(slot => slot.slug === slug));

@@ -1,7 +1,7 @@
 import {Readable} from 'stream';
-import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resourceProvider';
+import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
 import {FileSystemIterator} from '@/application/fs/fileSystem';
-import {HttpProvider, SuccessResponse} from '@/application/template/provider/httpProvider';
+import {HttpProvider, SuccessResponse} from '@/application/provider/resource/httpProvider';
 import {ErrorReason} from '@/application/error';
 
 export class HttpFileProvider implements ResourceProvider<FileSystemIterator> {
@@ -11,12 +11,16 @@ export class HttpFileProvider implements ResourceProvider<FileSystemIterator> {
         this.provider = provider;
     }
 
-    public supports(url: URL): boolean {
-        return this.provider.supports(url) && url.pathname !== '/';
+    public supports(url: URL): Promise<boolean> {
+        if (!HttpFileProvider.supportsUrl(url)) {
+            return Promise.resolve(false);
+        }
+
+        return this.provider.supports(url);
     }
 
     public async get(url: URL): Promise<Resource<FileSystemIterator>> {
-        if (!this.supports(url)) {
+        if (!HttpFileProvider.supportsUrl(url)) {
             throw new ResourceProviderError('Unsupported URL.', {
                 reason: ErrorReason.NOT_SUPPORTED,
                 url: url,
@@ -29,6 +33,10 @@ export class HttpFileProvider implements ResourceProvider<FileSystemIterator> {
             ...resource,
             value: this.yield(value, url),
         };
+    }
+
+    private static supportsUrl(url: URL): boolean {
+        return url.pathname !== '/';
     }
 
     private async* yield(response: SuccessResponse, url: URL): FileSystemIterator {

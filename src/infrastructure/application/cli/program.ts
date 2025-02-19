@@ -13,7 +13,7 @@ import {NodeProcess} from '@/infrastructure/application/system/nodeProcess';
 import {ApiKeyPermission, ApplicationEnvironment} from '@/application/model/application';
 
 const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a.run.app';
-const templateRegistry = 'github:/marcospassos/croct-examples/registry.json';
+const templateRegistry = 'github:marcospassos/croct-examples/registry.json';
 const adminUrl = 'https://preview.app.croct.dev/pr-3359';
 
 type Configuration = {
@@ -27,7 +27,7 @@ function createProgram(config: Configuration): typeof program {
         .name('croct')
         .description('Manage your Croct projects')
         .version('0.0.1', '-v, --version', 'Display the version number.')
-        .option('-d, --cwd <path>', 'The working directory.', path => {
+        .option('--cwd <path>', 'The working directory.', path => {
             try {
                 return realpathSync(path);
             } catch {
@@ -41,9 +41,15 @@ function createProgram(config: Configuration): typeof program {
                 throw new InvalidArgumentError('The API key is malformed.');
             }
         })
-        .option('-n, --no-interaction', 'Disable interaction mode.')
-        .option('--registry <url>', 'The template registry.')
-        .option('-s, --skip-prompts', 'Skip prompts with default options.')
+        .option('--no-interaction', 'Disable interaction mode.')
+        .option('--registry <url>', 'The template registry.', url => {
+            if (!URL.canParse(url)) {
+                throw new InvalidArgumentError('Malformed URL.');
+            }
+
+            return url;
+        })
+        .option('--skip-prompts', 'Skip prompts with default options.')
         .option('--no-cache', 'Disable cache.')
         .addOption(
             new Option('-q, --quiet', 'Disable output messages.')

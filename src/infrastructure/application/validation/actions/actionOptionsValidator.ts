@@ -15,7 +15,7 @@ import {
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {ActionOptions} from '@/application/template/action/action';
 import {ValidationResult} from '@/application/validation';
-import {TemplateError} from '@/application/template/provider/templateProvider';
+import {TemplateError} from '@/application/template/templateProvider';
 
 type Segment = string | number | symbol;
 type Path = Segment[];

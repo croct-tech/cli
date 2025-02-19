@@ -1,4 +1,4 @@
-import {Resource, ResourceNotFoundError, ResourceProvider} from '@/application/provider/resourceProvider';
+import {Resource, ResourceNotFoundError, ResourceProvider} from '@/application/provider/resource/resourceProvider';
 
 export class MultiProvider<T> implements ResourceProvider<T> {
     private readonly providers: Array<ResourceProvider<T>>;
@@ -7,13 +7,19 @@ export class MultiProvider<T> implements ResourceProvider<T> {
         this.providers = providers;
     }
 
-    public supports(url: URL): boolean {
-        return this.providers.some(provider => provider.supports(url));
+    public async supports(url: URL): Promise<boolean> {
+        for (const provider of this.providers) {
+            if (await provider.supports(url)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public async get(url: URL): Promise<Resource<T>> {
         for (const provider of this.providers) {
-            if (!provider.supports(url)) {
+            if (!await provider.supports(url)) {
                 continue;
             }
 

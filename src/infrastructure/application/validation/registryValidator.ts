@@ -1,6 +1,6 @@
 import {z, ZodType} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
-import {Mapping} from '@/application/template/provider/mappedProvider';
+import {Mapping} from '@/application/provider/resource/mappedProvider';
 
 const mappingSchema: ZodType<Mapping> = z.strictObject({
     pattern: z.string().refine(value => {

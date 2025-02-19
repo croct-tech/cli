@@ -1,7 +1,7 @@
 import {AuthenticationListener} from '@/application/cli/authentication';
 import {SynchronousCommandExecutor} from '@/application/system/process/executor';
 import {Command} from '@/application/system/process/command';
-import {multiline} from '@/application/utils';
+import {multiline} from '@/utils/multiline';
 
 type Callback = () => Promise<void>;
 

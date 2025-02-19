@@ -1,8 +1,8 @@
 import tar from 'tar-stream';
 import createGunzip from 'gunzip-maybe';
 import {Readable} from 'stream';
-import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resourceProvider';
-import {HttpProvider, SuccessResponse} from '@/application/template/provider/httpProvider';
+import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
+import {HttpProvider, SuccessResponse} from '@/application/provider/resource/httpProvider';
 import {FileSystemIterator} from '@/application/fs/fileSystem';
 import {ErrorReason} from '@/application/error';
 
@@ -32,10 +32,14 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
         this.provider = provider;
     }
 
-    public supports(url: URL): boolean {
+    public supports(url: URL): Promise<boolean> {
         const file = this.resolveFile(url);
 
-        return file !== null && this.provider.supports(file.url);
+        if (file === null) {
+            return Promise.resolve(false);
+        }
+
+        return this.provider.supports(file.url);
     }
 
     public async get(url: URL): Promise<Resource<FileSystemIterator>> {
@@ -142,7 +146,7 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
             name: resolvedUrl.url
                 .pathname
                 .split('/')
-                .pop() ?? resolvedUrl.url.pathname,
+                .pop()!,
             content: Readable.fromWeb(response.body),
         };
     }
@@ -177,18 +181,18 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
         let ref: string|null = null;
         let segments: string[];
 
+        const pathname = url.pathname
+            .replace(/^\/+/, '')
+            .split('/');
+
         switch (true) {
             case url.hostname === GithubProvider.MAIN_HOST:
-                [username = null, repository = null, /* tree/blob */, ref = null, ...segments] = url.pathname
-                    .split('/')
-                    .slice(1);
+                [username = null, repository = null, /* tree/blob */, ref = null, ...segments] = pathname;
 
                 break;
 
             default:
-                [username = null, repository = null, ...segments] = url.pathname
-                    .split('/')
-                    .slice(1);
+                [username = null, repository = null, ...segments] = pathname;
 
                 break;
         }

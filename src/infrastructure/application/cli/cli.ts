@@ -107,24 +107,24 @@ import {ConfigurationFileManager} from '@/application/project/configuration/mana
 import {CreateResourceAction} from '@/application/template/action/createResourceAction';
 import {SlugMappingForm} from '@/application/cli/form/workspace/slugMappingForm';
 import {ResourceMatcher} from '@/application/template/resourceMatcher';
-import {FetchProvider} from '@/application/template/provider/fetchProvider';
+import {FetchProvider} from '@/application/provider/resource/fetchProvider';
 import {CheckDependencyAction} from '@/application/template/action/checkDependencyAction';
-import {HttpProvider} from '@/application/template/provider/httpProvider';
-import {MappedProvider} from '@/application/template/provider/mappedProvider';
-import {MultiProvider} from '@/application/template/provider/multiProvider';
-import {FileSystemProvider} from '@/application/template/provider/fileSystemProvider';
-import {GithubProvider} from '@/application/template/provider/githubProvider';
-import {HttpFileProvider} from '@/application/template/provider/httpFileProvider';
-import {ResourceProvider} from '@/application/provider/resourceProvider';
+import {HttpProvider} from '@/application/provider/resource/httpProvider';
+import {MappedProvider} from '@/application/provider/resource/mappedProvider';
+import {MultiProvider} from '@/application/provider/resource/multiProvider';
+import {FileSystemProvider} from '@/application/provider/resource/fileSystemProvider';
+import {GithubProvider} from '@/application/provider/resource/githubProvider';
+import {HttpFileProvider} from '@/application/provider/resource/httpFileProvider';
+import {ResourceProvider} from '@/application/provider/resource/resourceProvider';
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {PartialNpmPackageValidator} from '@/infrastructure/application/validation/partialNpmPackageValidator';
 import {CroctConfigurationValidator} from '@/infrastructure/application/validation/croctConfigurationValidator';
-import {ValidatedProvider} from '@/application/template/provider/validatedProvider';
-import {FileContentProvider} from '@/application/template/provider/fileContentProvider';
-import {JsonProvider} from '@/application/template/provider/jsonProvider';
+import {ValidatedProvider} from '@/application/provider/resource/validatedProvider';
+import {FileContentProvider} from '@/application/provider/resource/fileContentProvider';
+import {Json5Provider} from '@/application/provider/resource/json5Provider';
 import {RegistryValidator} from '@/infrastructure/application/validation/registryValidator';
 import {FileSystemCache} from '@/infrastructure/cache/fileSystemCache';
-import {CachedProvider} from '@/application/template/provider/cachedProvider';
+import {CachedProvider} from '@/application/provider/resource/cachedProvider';
 import {JsepExpressionEvaluator} from '@/infrastructure/application/evaluation/jsepExpressionEvaluator';
 import {TemplateValidator} from '@/infrastructure/application/validation/templateValidator';
 import {ImportAction, ImportOptions} from '@/application/template/action/importAction';
@@ -153,7 +153,7 @@ import {
     CreateResourceOptionsValidator,
 } from '@/infrastructure/application/validation/actions/createResourceOptionsValidator';
 import {ImportOptionsValidator} from '@/infrastructure/application/validation/actions/importOptionsValidator';
-import {TemplateProvider} from '@/application/template/provider/templateProvider';
+import {TemplateProvider} from '@/application/template/templateProvider';
 import {FormatCodeAction} from '@/application/template/action/formatCodeAction';
 import {FormatCodeOptionsValidator} from '@/infrastructure/application/validation/actions/formatCodeOptionsValidator';
 import {EnumeratedProvider} from '@/application/provider/enumeratedProvider';
@@ -641,7 +641,7 @@ export class Cli {
     private getImportTemplateCommand(): ImportTemplateCommand {
         return new ImportTemplateCommand({
             templateProvider: new ValidatedProvider({
-                provider: new JsonProvider(this.getTemplateProvider()),
+                provider: new Json5Provider(this.getTemplateProvider()),
                 validator: new TemplateValidator(),
             }),
             fileSystem: this.getFileSystem(),
@@ -743,7 +743,7 @@ export class Cli {
     private getTemplateProvider(): ResourceProvider<string> {
         return this.share(this.getTemplateProvider, () => {
             const fileNames = ['template.json5', 'template.json'];
-            const fileProvider = new FileContentProvider(this.getFileProvider());
+            const dataProvider = new FileContentProvider(this.getFileProvider());
 
             return new CachedProvider({
                 cache: AdaptedCache.transformKeys(
@@ -753,11 +753,11 @@ export class Cli {
                 provider: new MultiProvider(
                     ...fileNames.map(
                         fileName => new MappedProvider({
-                            dataProvider: fileProvider,
+                            dataProvider: dataProvider,
                             registryProvider: new ConstantProvider([
                                 {
                                     // Any URL not ending with a file extension, excluding the trailing slash
-                                    pattern: /^(.+?:\/+[^/]+(\/+[^/.]+|\/[^/]+(?=\/))*)\/*$/,
+                                    pattern: /^(.+?:\/*[^/]+(\/+[^/.]+|\/[^/]+(?=\/))*)\/*$/,
                                     destination: `$1/${fileName}`,
                                 },
                             ]),
@@ -773,7 +773,8 @@ export class Cli {
             const httpProvider = this.getHttpProvider();
             const localProvider = new FileSystemProvider(this.getFileSystem());
 
-            const remoteProviders = [
+            const providers = [
+                localProvider,
                 new GithubProvider(httpProvider),
                 new HttpFileProvider(httpProvider),
             ];
@@ -781,7 +782,7 @@ export class Cli {
             return new MultiProvider(
                 localProvider,
                 new MappedProvider({
-                    dataProvider: new MultiProvider(...remoteProviders),
+                    dataProvider: new MultiProvider(...providers),
                     registryProvider: new ResourceValueProvider(
                         new SpecificResourceProvider({
                             url: this.configuration.templateRegistryUrl,
@@ -812,8 +813,8 @@ export class Cli {
                                             },
                                         ),
                                     }),
-                                    provider: new JsonProvider(
-                                        new FileContentProvider(new MultiProvider(localProvider, ...remoteProviders)),
+                                    provider: new Json5Provider(
+                                        new FileContentProvider(new MultiProvider(...providers)),
                                     ),
                                 }),
                                 validator: new RegistryValidator(),
@@ -1183,21 +1184,27 @@ export class Cli {
                 },
             });
 
+            const api = this.getUserApi(true);
+
             const authenticator = new CachedAuthenticator({
                 cacheKey: 'token',
                 cacheProvider: new TokenCache({
-                    userApi: this.getUserApi(true),
                     clock: this.getClock(),
-                    cliTokenFreshPeriod: this.configuration.cliTokenFreshPeriod,
-                    tokenDuration: this.configuration.cliTokenDuration,
-                    tokenIssuer: this.configuration.cliTokenIssuer,
-                    cacheProvider: new AutoSaveCache(
-                        new FileSystemCache({
-                            fileSystem: fileSystem,
-                            directory: this.configuration.directories.config,
-                            useKeyAsFileName: true,
-                        }),
-                    ),
+                    tokenFreshPeriod: this.configuration.cliTokenFreshPeriod,
+                    tokenIssuer: (token): Promise<string>|null => {
+                        if (token.getIssuer() === this.configuration.cliTokenIssuer) {
+                            return api.issueToken({
+                                duration: this.configuration.cliTokenDuration,
+                            });
+                        }
+
+                        return null;
+                    },
+                    cacheProvider: new FileSystemCache({
+                        fileSystem: fileSystem,
+                        directory: this.configuration.directories.config,
+                        useKeyAsFileName: true,
+                    }),
                 }),
                 authenticator: new MultiAuthenticator<AuthenticationMethods>({
                     default: this.configuration.interactive

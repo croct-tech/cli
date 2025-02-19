@@ -2,9 +2,10 @@ import {Minimatch} from 'minimatch';
 import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {FileSystem, FileSystemEntry, FileSystemIterator} from '@/application/fs/fileSystem';
-import {ResourceProvider} from '@/application/provider/resourceProvider';
+import {ResourceProvider} from '@/application/provider/resource/resourceProvider';
 import {ErrorReason} from '@/application/error';
 import {Input} from '@/application/cli/io/input';
+import {resolveUrl} from '@/utils/resolveUrl';
 
 export type DownloadOptions = {
     source: string,
@@ -31,7 +32,7 @@ export class DownloadAction implements Action<DownloadOptions> {
         const {fileSystem} = this.config;
         const {input} = context;
 
-        const sourceUrl = DownloadAction.getSourceUrl(options.source, context.baseUrl);
+        const sourceUrl = resolveUrl(options.source, context.baseUrl);
 
         if (sourceUrl.protocol === 'file:' && context.baseUrl.protocol !== 'file:') {
             throw new ActionError('File URL is not allowed from remote sources for security reasons.', {
@@ -145,17 +146,5 @@ export class DownloadAction implements Action<DownloadOptions> {
         for (const entry of entries) {
             await fileSystem.create(entry);
         }
-    }
-
-    private static getSourceUrl(source: string, baseUrl: URL): URL {
-        if (URL.canParse(source)) {
-            return new URL(source);
-        }
-
-        const url = new URL(baseUrl);
-
-        url.pathname = `${url.pathname.replace(/\/([^/]*\.[^/]+)?$/, '')}/${source}`;
-
-        return url;
     }
 }

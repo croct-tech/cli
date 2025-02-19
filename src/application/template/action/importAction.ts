@@ -2,13 +2,15 @@ import {JsonValue} from '@croct/json';
 import {Action, ActionError, ActionRunner} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {ErrorReason, HelpfulError} from '@/application/error';
-import {Resource, ResourceNotFoundError, ResourceProvider} from '@/application/provider/resourceProvider';
+import {Resource, ResourceNotFoundError, ResourceProvider} from '@/application/provider/resource/resourceProvider';
 import {VariableMap} from '@/application/template/evaluation';
 import {DeferredOptionDefinition, DeferredTemplate} from '@/application/template/template';
 import {Deferrable} from '@/application/template/deferral';
+import {resolveUrl} from '@/utils/resolveUrl';
 
 export type ImportOptions = {
     template: string,
+    share?: string[],
     options?: VariableMap,
 };
 
@@ -55,19 +57,21 @@ export class ImportAction implements Action<ImportOptions> {
 
         this.resolving.push(url.toString());
 
+        const subContext = new ActionContext({
+            input: context.input,
+            output: context.output,
+            baseUrl: url,
+        });
+
+        ImportAction.shareVariables(options.share ?? [], context, subContext);
+
         try {
-            await this.run(
-                template,
-                input,
-                new ActionContext({
-                    input: context.input,
-                    output: context.output,
-                    baseUrl: url,
-                }),
-            );
+            await this.run(template, input, subContext);
         } finally {
             this.resolving.pop();
         }
+
+        ImportAction.shareVariables(options.share ?? [], subContext, context);
     }
 
     private async getInputValues(template: DeferredTemplate, input: VariableMap = {}): Promise<VariableMap> {
@@ -142,7 +146,7 @@ export class ImportAction implements Action<ImportOptions> {
 
     private async loadTemplate(name: string, baseUrl: URL): Promise<Resource<DeferredTemplate>> {
         const provider = this.config.templateProvider;
-        const url = ImportAction.getTemplateUrl(name, baseUrl);
+        const url = resolveUrl(name, baseUrl);
 
         try {
             return await provider.get(url);
@@ -159,18 +163,6 @@ export class ImportAction implements Action<ImportOptions> {
 
             throw error;
         }
-    }
-
-    private static getTemplateUrl(source: string, baseUrl: URL): URL {
-        if (URL.canParse(source)) {
-            return new URL(source);
-        }
-
-        const url = new URL(baseUrl);
-
-        url.pathname = `${url.pathname.replace(/\/([^/]*\.[^/]+)?$/, '')}/${source}`;
-
-        return url;
     }
 
     private static checkOptionValue(
@@ -238,6 +230,16 @@ export class ImportAction implements Action<ImportOptions> {
                 }
 
                 break;
+            }
+        }
+    }
+
+    private static shareVariables(variables: string[], source: ActionContext, target: ActionContext): void {
+        const sourceVariables = source.getVariables();
+
+        for (const variable of variables) {
+            if (sourceVariables[variable] !== undefined) {
+                target.set(variable, sourceVariables[variable]);
             }
         }
     }

@@ -1,4 +1,4 @@
-import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resourceProvider';
+import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
 import {Validator} from '@/application/validation';
 import {ErrorReason} from '@/application/error';
 
@@ -17,7 +17,7 @@ export class ValidatedProvider<I, R> implements ResourceProvider<I> {
         this.validator = validator;
     }
 
-    public supports(url: URL): boolean {
+    public supports(url: URL): Promise<boolean> {
         return this.provider.supports(url);
     }
 

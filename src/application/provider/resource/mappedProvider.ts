@@ -1,4 +1,4 @@
-import {Resource, ResourceProvider} from '@/application/provider/resourceProvider';
+import {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
 import {Provider} from '@/application/provider/provider';
 
 export type Mapping = {
@@ -21,8 +21,8 @@ export class MappedProvider<T> implements ResourceProvider<T> {
         this.registryProvider = registryProvider;
     }
 
-    public supports(url: URL): boolean {
-        return this.dataProvider.supports(url);
+    public async supports(url: URL): Promise<boolean> {
+        return this.dataProvider.supports(await this.resolveUrl(url));
     }
 
     public async get(url: URL): Promise<Resource<T>> {

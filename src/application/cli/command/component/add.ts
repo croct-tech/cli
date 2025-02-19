@@ -71,20 +71,29 @@ export class AddComponentCommand implements Command<AddComponentInput> {
         configuration: ProjectConfiguration,
         input: AddComponentInput,
     ): Promise<VersionedComponent[]> {
-        const {componentForm} = this.config;
+        const {componentForm, io: {output}} = this.config;
 
         const versionedComponents = input.components === undefined
             ? undefined
             : AddComponentCommand.getVersionMap(input.components, configuration.components);
 
+        const currentComponents = Object.keys(configuration.components);
         const components = await componentForm.handle({
             organizationSlug: configuration.organization,
             workspaceSlug: configuration.workspace,
             preselected: versionedComponents === undefined
                 ? undefined
                 : Object.keys(versionedComponents),
-            selected: Object.keys(configuration.components),
+            selected: currentComponents,
         });
+
+        if (
+            currentComponents.length === components.length
+            && components.every(component => currentComponents.includes(component.slug))
+        ) {
+            // Either no components were selected or all selected slots are already present
+            output.inform('No new component to add');
+        }
 
         if (
             input.components !== undefined

@@ -21,7 +21,7 @@ export type LocateFileOptions = {
     path: string,
     matcher?: ContentMatcher,
     limit?: number,
-    maxDepth?: number,
+    depth?: number,
     result?: string,
 };
 
@@ -71,7 +71,7 @@ export class LocateFileAction implements Action<LocateFileOptions> {
 
         const matches: string[] = [];
 
-        for await (const file of this.fileSystem.list(this.projectDirectory.get(), options.maxDepth)) {
+        for await (const file of this.fileSystem.list(this.projectDirectory.get(), options.depth)) {
             if (!await filter.test(file.name)) {
                 continue;
             }

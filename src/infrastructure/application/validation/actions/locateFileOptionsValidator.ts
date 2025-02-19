@@ -22,7 +22,7 @@ const schema: ZodType<LocateFileOptions> = z.strictObject({
         .int()
         .positive()
         .optional(),
-    maxDepth: z.number()
+    depth: z.number()
         .int()
         .nonnegative()
         .optional(),

@@ -1,16 +1,16 @@
 import {JsonValue} from '@croct/json';
-import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resourceProvider';
+import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
 import {JsonParser} from '@/infrastructure/json';
 import {ErrorReason} from '@/application/error';
 
-export class JsonProvider implements ResourceProvider<JsonValue> {
+export class Json5Provider implements ResourceProvider<JsonValue> {
     private readonly provider: ResourceProvider<string>;
 
     public constructor(provider: ResourceProvider<string>) {
         this.provider = provider;
     }
 
-    public supports(url: URL): boolean {
+    public supports(url: URL): Promise<boolean> {
         return this.provider.supports(url);
     }
 

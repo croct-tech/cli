@@ -1,13 +1,13 @@
-import {HttpProvider, SuccessResponse} from '@/application/template/provider/httpProvider';
-import {Resource, ResourceNotFoundError, ResourceProviderError} from '@/application/provider/resourceProvider';
+import {HttpProvider, SuccessResponse} from '@/application/provider/resource/httpProvider';
+import {Resource, ResourceNotFoundError, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
 
 export class FetchProvider implements HttpProvider {
-    public supports(url: URL): boolean {
-        return ['http:', 'https:'].includes(url.protocol);
+    public supports(url: URL): Promise<boolean> {
+        return Promise.resolve(FetchProvider.supportsProtocol(url));
     }
 
     public async get(url: URL): Promise<Resource<SuccessResponse>> {
-        if (!this.supports(url)) {
+        if (!FetchProvider.supportsProtocol(url)) {
             throw new ResourceProviderError('Unsupported protocol.', {url: url});
         }
 
@@ -25,6 +25,10 @@ export class FetchProvider implements HttpProvider {
             url: url,
             value: response,
         };
+    }
+
+    private static supportsProtocol(url: URL): boolean {
+        return ['http:', 'https:'].includes(url.protocol);
     }
 
     private static isSuccessful(response: Response): response is SuccessResponse {

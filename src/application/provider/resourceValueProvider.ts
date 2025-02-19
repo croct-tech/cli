@@ -1,4 +1,4 @@
-import {Resource} from '@/application/provider/resourceProvider';
+import {Resource} from '@/application/provider/resource/resourceProvider';
 import {Provider} from '@/application/provider/provider';
 
 export class ResourceValueProvider<T> implements Provider<T> {

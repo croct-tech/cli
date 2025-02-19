@@ -1,4 +1,4 @@
-import {Resource, ResourceNotFoundError, ResourceProvider} from '@/application/provider/resourceProvider';
+import {Resource, ResourceNotFoundError, ResourceProvider} from '@/application/provider/resource/resourceProvider';
 import {FileSystemIterator} from '@/application/fs/fileSystem';
 
 export class FileContentProvider implements ResourceProvider<string> {
@@ -8,7 +8,7 @@ export class FileContentProvider implements ResourceProvider<string> {
         this.provider = provider;
     }
 
-    public supports(url: URL): boolean {
+    public supports(url: URL): Promise<boolean> {
         return this.provider.supports(url);
     }
 

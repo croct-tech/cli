@@ -3,7 +3,7 @@ import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {OptionMap, Template} from '@/application/template/template';
-import {ResourceProvider} from '@/application/provider/resourceProvider';
+import {ResourceProvider} from '@/application/provider/resource/resourceProvider';
 import {VariableMap} from '@/application/template/evaluation';
 import {Action, ActionError} from '@/application/template/action/action';
 import {ImportOptions} from '@/application/template/action/importAction';

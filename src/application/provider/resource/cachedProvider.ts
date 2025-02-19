@@ -1,5 +1,5 @@
 import {CacheProvider} from '@croct/cache';
-import {Resource, ResourceProvider} from '@/application/provider/resourceProvider';
+import {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
 
 export type Configuration<T> = {
     provider: ResourceProvider<T>,
@@ -16,7 +16,7 @@ export class CachedProvider<T> implements ResourceProvider<T> {
         this.cache = cache;
     }
 
-    public supports(url: URL): boolean {
+    public supports(url: URL): Promise<boolean> {
         return this.provider.supports(url);
     }
 
