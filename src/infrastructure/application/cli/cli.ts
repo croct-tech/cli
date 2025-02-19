@@ -315,7 +315,7 @@ type NodePackageManagers = {
 };
 
 export class Cli {
-    // eslint-disable-next-line @typescript-eslint/ban-types -- Any function type is acceptable
+    // eslint-disable-next-line @typescript-eslint/ban-types -- Object.prototype.constructor is a Function
     private static readonly READ_ONLY_COMMANDS: Set<Function> = new Set([
         WelcomeCommand,
         InstallCommand,
@@ -325,7 +325,6 @@ export class Cli {
         RemoveSlotCommand,
         RemoveComponentCommand,
         CreateTemplateCommand,
-        OpenCommand,
         LogoutCommand,
     ]);
 
