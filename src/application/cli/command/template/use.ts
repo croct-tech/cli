@@ -10,12 +10,12 @@ import {ImportOptions} from '@/application/template/action/importAction';
 import {ActionContext} from '@/application/template/action/context';
 import {ErrorReason} from '@/application/error';
 
-export type ImportTemplateInput = {
+export type UseTemplateInput = {
     template: string,
     options: VariableMap,
 };
 
-export type ImportTemplateConfig = {
+export type UseTemplateConfig = {
     fileSystem: FileSystem,
     templateProvider: ResourceProvider<Template>,
     action: Action<ImportOptions>,
@@ -25,25 +25,20 @@ export type ImportTemplateConfig = {
     },
 };
 
-export class ImportTemplateCommand implements Command<ImportTemplateInput> {
-    private readonly config: ImportTemplateConfig;
+export class UseTemplateCommand implements Command<UseTemplateInput> {
+    private readonly config: UseTemplateConfig;
 
-    public constructor(config: ImportTemplateConfig) {
+    public constructor(config: UseTemplateConfig) {
         this.config = config;
     }
 
     public async getOptions(template: string): Promise<OptionMap> {
         const {templateProvider} = this.config;
 
-        try {
-            return (await templateProvider.get(await this.resolveUrl(template))).value.options ?? {};
-        } catch {
-            // Postpone the error handling to the execute method
-            return {};
-        }
+        return (await templateProvider.get(await this.resolveUrl(template))).value.options ?? {};
     }
 
-    public async execute(input: ImportTemplateInput): Promise<void> {
+    public async execute(input: UseTemplateInput): Promise<void> {
         const {action, io} = this.config;
         const {template, options} = input;
         const url = await this.resolveUrl(template);

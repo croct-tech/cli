@@ -18,12 +18,13 @@ const adminUrl = 'https://preview.app.croct.dev/pr-3359';
 
 type Configuration = {
     interactive: boolean,
-    template?: OptionMap,
+    template?: OptionMap|null,
     cli?: Cli,
 };
 
 function createProgram(config: Configuration): typeof program {
     const program = new Command()
+        .enablePositionalOptions()
         .name('croct')
         .description('Manage your Croct projects')
         .version('0.0.1', '-v, --version', 'Display the version number.')
@@ -56,16 +57,6 @@ function createProgram(config: Configuration): typeof program {
                 .default(false)
                 .implies({interaction: false}),
         );
-
-    // Override the help command to not execute in the pre-execution phase
-    // since it exits the process prematurely
-    const helpCommand = new Command('help')
-        .description('Display help for the command.');
-
-    const helpOption = new Option('-h, --help', 'Display help for the command.');
-
-    program.helpCommand(helpCommand.name(), helpCommand.description());
-    program.helpOption(helpOption.flags, helpOption.description);
 
     program.command('open <url>')
         .description('Open a deep link.')
@@ -228,7 +219,7 @@ function createProgram(config: Configuration): typeof program {
 
     createCommand.command('template')
         .argument('path', 'The path to save the template.')
-        .description('Export a template from your project.')
+        .description('Create a template from your project.')
         .action(async (path: string) => {
             await config.cli?.createTemplate({
                 file: path,
@@ -271,19 +262,15 @@ function createProgram(config: Configuration): typeof program {
             });
         });
 
-    const importCommand = program.command('import')
-        .enablePositionalOptions(config.cli === undefined)
-        .description('Import a resource into your project.');
-
     const optionNames: Record<string, string> = {};
 
-    const templateCommand = importCommand.command('template')
+    const useCommand = program.command('use')
         .argument('template', 'The path to the template.')
-        .description('Import a template into your project.')
+        .description('Use a template.')
         .passThroughOptions(config.cli === undefined)
-        .allowUnknownOption(config.cli === undefined)
+        .allowUnknownOption(config.cli === undefined || config.template === null)
         .action(async (template, options) => {
-            await config.cli?.importTemplate({
+            await config.cli?.useTemplate({
                 template: template,
                 options: Object.fromEntries(
                     Object.entries(options)
@@ -327,20 +314,14 @@ function createProgram(config: Configuration): typeof program {
 
         optionNames[option.attributeName()] = name;
 
-        templateCommand.addOption(option);
-    }
-
-    if (config.template === undefined) {
-        importCommand.helpCommand(false);
-        importCommand.addCommand(helpCommand);
-        templateCommand.helpOption(false);
+        useCommand.addOption(option);
     }
 
     return program;
 }
 
 function getTemplate(args: string[]): string | null {
-    const commands = ['import template', 'import help template'];
+    const commands = ['use', 'help use'];
 
     for (const command of commands) {
         const index = command.split(' ').length;
@@ -392,12 +373,14 @@ function getTemplate(args: string[]): string | null {
 
     const template = getTemplate(invocation.args);
 
+    const templateOptions = template !== null
+        ? await cli.getTemplateOptions(template).catch(() => null)
+        : undefined;
+
     const program = createProgram({
         cli: cli,
         interactive: options.interaction,
-        template: template !== null
-            ? await cli.getTemplateOptions(template)
-            : undefined,
+        template: templateOptions,
     });
 
     if (welcome) {

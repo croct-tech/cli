@@ -91,7 +91,7 @@ import {CreateTemplateCommand, CreateTemplateInput} from '@/application/cli/comm
 import {TemplateForm} from '@/application/cli/form/workspace/templateForm';
 import {ExperienceForm} from '@/application/cli/form/workspace/experienceForm';
 import {AudienceForm} from '@/application/cli/form/workspace/audienceForm';
-import {ImportTemplateCommand, ImportTemplateInput} from '@/application/cli/command/template/import';
+import {UseTemplateCommand, UseTemplateInput} from '@/application/cli/command/template/use';
 import {DownloadAction} from '@/application/template/action/downloadAction';
 import {ResolveImportAction} from '@/application/template/action/resolveImportAction';
 import {AddDependencyAction} from '@/application/template/action/addDependencyAction';
@@ -621,12 +621,12 @@ export class Cli {
         );
     }
 
-    public importTemplate(input: ImportTemplateInput): Promise<void> {
-        return this.execute(this.getImportTemplateCommand(), input);
+    public useTemplate(input: UseTemplateInput): Promise<void> {
+        return this.execute(this.getUseTemplateCommand(), input);
     }
 
     public async getTemplateOptions(template: string): Promise<OptionMap> {
-        const command = this.getImportTemplateCommand();
+        const command = this.getUseTemplateCommand();
         const output = this.getOutput();
 
         const notifier = output.notify('Loading template');
@@ -638,8 +638,8 @@ export class Cli {
         }
     }
 
-    private getImportTemplateCommand(): ImportTemplateCommand {
-        return new ImportTemplateCommand({
+    private getUseTemplateCommand(): UseTemplateCommand {
+        return new UseTemplateCommand({
             templateProvider: new ValidatedProvider({
                 provider: new Json5Provider(this.getTemplateProvider()),
                 validator: new TemplateValidator(),
