@@ -1,15 +1,8 @@
 {
   "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "module": "CommonJS",
     "target": "ESNext",
-    "esModuleInterop": true,
-    "isolatedModules": false,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    },
-    "stripInternal": true,
+    "moduleResolution": "Node",
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "noImplicitAny": true,
@@ -23,17 +16,20 @@
     "noEmit": true,
     "downlevelIteration": true,
     "declaration": true,
-    "skipLibCheck": true,
-    "lib": ["es2022"]
+    "lib": ["ES2022"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": [
-    "src/**/*.ts",
-    "test/**/*.ts",
-  ],
   "exclude": [
     "node_modules",
     "build",
     "test/application/project/sdk/code/fixtures/**"
+  ],
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
   ],
   "ts-node": {
     "require": ["tsconfig-paths/register"]

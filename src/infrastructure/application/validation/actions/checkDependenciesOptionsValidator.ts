@@ -19,7 +19,7 @@ const schema: ZodType<CheckDependencyOptions> = z.strictObject({
         links: z.array(
             z.strictObject({
                 url: z.string().url(),
-                description: z.string().min(1),
+                label: z.string().min(1),
             }),
         ).optional(),
         suggestions: z.array(z.string().min(1)).optional(),

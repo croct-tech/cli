@@ -67,7 +67,7 @@ import {NewConfigurationManager} from '@/application/project/configuration/manag
 import {InstallCommand, InstallInput} from '@/application/cli/command/install';
 import {PageForm} from '@/application/cli/form/page';
 import {NonInteractiveAuthenticator} from '@/application/cli/authentication/authenticator/nonInteractiveAuthenticator';
-import {Instruction, NonInteractiveInput} from '@/infrastructure/application/cli/io/nonInteractiveInput';
+import {Instruction, NonInteractiveInput} from '@/application/cli/io/nonInteractiveInput';
 import {
     MultiAuthenticationInput,
     MultiAuthenticator,
@@ -236,7 +236,7 @@ import {Not} from '@/application/predicate/not';
 import {MatchesGitignore} from '@/application/predicate/matchesGitignore';
 import {LazyPromise} from '@/infrastructure/promise';
 import {PredicateProvider} from '@/application/provider/predicateProvider';
-import {DefaultChoiceInput} from '@/infrastructure/application/cli/io/defaultChoiceInput';
+import {DefaultChoiceInput} from '@/application/cli/io/defaultChoiceInput';
 import {Or} from '@/application/predicate/or';
 import * as functions from '@/infrastructure/application/evaluation/functions';
 import {Platform} from '@/application/model/platform';
