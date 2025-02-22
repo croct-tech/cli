@@ -27,7 +27,6 @@ function createProgram(config: Configuration): typeof program {
         .enablePositionalOptions()
         .name('croct')
         .description('Manage your Croct projects')
-        .version('0.0.1', '-v, --version', 'Display the version number.')
         .option('--cwd <path>', 'The working directory.', path => {
             try {
                 return realpathSync(path);
@@ -35,14 +34,17 @@ function createProgram(config: Configuration): typeof program {
                 throw new InvalidArgumentError('The path does not exist.');
             }
         })
-        .option('-k, --api-key <key>', 'The API key to use for authentication.', key => {
-            try {
-                return ApiKey.parse(key);
-            } catch {
-                throw new InvalidArgumentError('The API key is malformed.');
-            }
-        })
-        .option('--no-interaction', 'Disable interaction mode.')
+        .addOption(
+            new Option('--api-key <key>', 'The API key to use for authentication.')
+                .env('CROCT_API_KEY')
+                .argParser(key => {
+                    try {
+                        return ApiKey.parse(key);
+                    } catch {
+                        throw new InvalidArgumentError('The API key is malformed.');
+                    }
+                }),
+        )
         .option('--registry <url>', 'The template registry.', url => {
             if (!URL.canParse(url)) {
                 throw new InvalidArgumentError('Malformed URL.');
@@ -50,13 +52,20 @@ function createProgram(config: Configuration): typeof program {
 
             return url;
         })
-        .option('--skip-prompts', 'Skip prompts with default options.')
+        .option('--no-interaction', 'Disable interaction mode.')
         .option('--no-cache', 'Disable cache.')
+        .addOption(
+            new Option('-s, --skip-prompts', 'Skip prompts with default options.')
+                .default(false),
+        )
         .addOption(
             new Option('-q, --quiet', 'Disable output messages.')
                 .default(false)
                 .implies({interaction: false}),
-        );
+        )
+        .version('0.0.1', '-v, --version', 'Display the version number.')
+        .helpOption('-h, --help', 'Display help for a command.')
+        .helpCommand('help [command]', 'Display help for a command.');
 
     program.command('open <url>')
         .description('Open a deep link.')

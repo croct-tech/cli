@@ -43,7 +43,7 @@ export type SourcePosition = {
 };
 
 export type SourceLocation = {
-    url: string,
+    url: URL,
     start: SourcePosition,
     end: SourcePosition,
 };

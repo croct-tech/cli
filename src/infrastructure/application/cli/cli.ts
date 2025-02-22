@@ -11,6 +11,7 @@ import {
 import {ApiKey} from '@croct/sdk/apiKey';
 import {Clock, Instant} from '@croct/time';
 import {SystemClock} from '@croct/time/clock/systemClock';
+import open from 'open';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput} from '@/infrastructure/application/cli/io/consoleOutput';
 import {Sdk} from '@/application/project/sdk/sdk';
@@ -96,7 +97,7 @@ import {ResolveImportAction} from '@/application/template/action/resolveImportAc
 import {AddDependencyAction} from '@/application/template/action/addDependencyAction';
 import {LocateFileAction, PathMatcher} from '@/application/template/action/locateFileAction';
 import {ReplaceFileContentAction} from '@/application/template/action/replaceFileContentAction';
-import {OptionMap} from '@/application/template/template';
+import {OptionMap, SourceLocation} from '@/application/template/template';
 import {AddSlotAction} from '@/application/template/action/addSlotAction';
 import {AddComponentAction} from '@/application/template/action/addComponentAction';
 import {TryAction, TryOptions} from '@/application/template/action/tryAction';
@@ -268,6 +269,8 @@ import {ProcessWorkingDirectory} from '@/application/fs/workingDirectory/process
 import {CachedAuthenticator} from '@/application/cli/authentication/authenticator/cachedAuthenticator';
 import {TokenCache} from '@/infrastructure/cache/tokenCache';
 import {SessionCloseListener} from '@/infrastructure/application/cli/io/sessionCloseListener';
+import {LogFormatter} from '@/application/cli/io/logFormatter';
+import {BoxenFormatter} from '@/infrastructure/application/cli/io/boxenFormatter';
 
 export type Configuration = {
     program: Program,
@@ -719,32 +722,42 @@ export class Cli {
     }
 
     private getNonInteractiveOutput(quiet = false): ConsoleOutput {
+        const {configuration} = this;
+
         return new ConsoleOutput({
-            output: this.configuration
-                .process
-                .getStandardOutput(),
+            output: configuration.process.getStandardOutput(),
+            formatter: this.getLogFormatter(),
             interactive: false,
             quiet: quiet,
-            onExit: () => this.configuration
-                .process
-                .exit(),
+            onExit: () => configuration.process.exit(),
+            linkOpener: async (url): Promise<void> => {
+                await open(url);
+            },
         });
     }
 
     private getOutput(): ConsoleOutput {
         return this.share(
             this.getOutput,
-            () => new ConsoleOutput({
-                output: this.configuration
-                    .process
-                    .getStandardOutput(),
-                interactive: this.configuration.interactive,
-                quiet: this.configuration.quiet,
-                onExit: () => this.configuration
-                    .process
-                    .exit(),
-            }),
+            () => {
+                const {configuration} = this;
+
+                return new ConsoleOutput({
+                    output: configuration.process.getStandardOutput(),
+                    formatter: this.getLogFormatter(),
+                    interactive: this.configuration.interactive,
+                    quiet: this.configuration.quiet,
+                    onExit: () => configuration.process.exit(),
+                    linkOpener: async (url): Promise<void> => {
+                        await open(url);
+                    },
+                });
+            },
         );
+    }
+
+    private getLogFormatter(): LogFormatter {
+        return this.share(this.getLogFormatter, () => new BoxenFormatter());
     }
 
     private getTemplateProvider(): ResourceProvider<string> {
@@ -2039,12 +2052,12 @@ export class Cli {
             case error instanceof ActionError:
                 if (error.tracing.length > 0) {
                     const trace = error.tracing
-                        .map(({name, source}) => {
+                        .map(({name, source}, index) => {
                             const location = source !== undefined
-                                ? ` at ${source.url}:${source.start.line}:${source.start.column}`
+                                ? ` at ${Cli.getSourceLocation(source)}`
                                 : '';
 
-                            return `↳ Action \`${name}\`${location}`;
+                            return `${' '.repeat(index + 1)}↳ \`${name}\`${location}`;
                         })
                         .join('\n');
 
@@ -2064,5 +2077,17 @@ export class Cli {
         }
 
         return error;
+    }
+
+    private static getSourceLocation(source: SourceLocation): string {
+        if (source.url.protocol === 'file:') {
+            return `${source.url}:${source.start.line}:${source.start.column}`;
+        }
+
+        if (source.url.hostname === 'github.com') {
+            return `${source.url}#L${source.start.line}-L${source.end.line}`;
+        }
+
+        return `${source.url}#${source.start.line}:${source.start.column}-${source.end.line}:${source.end.column}`;
     }
 }

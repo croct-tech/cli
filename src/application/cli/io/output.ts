@@ -1,3 +1,5 @@
+import {Callout} from '@/application/cli/io/logFormatter';
+
 export type Notifier = {
     stop(persist?: boolean): void,
     update(status: string, details?: string): void,
@@ -31,13 +33,6 @@ export type TaskList = TaskOptions & {
 };
 
 export type Semantic = 'neutral' | 'info' | 'error' | 'warning' | 'success';
-
-export type Callout = {
-    semantics: Semantic,
-    title: string,
-    message: string,
-    alignment?: 'left' | 'center' | 'right',
-};
 
 export interface Logger {
     announce(callout: Callout): void;

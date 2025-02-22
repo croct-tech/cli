@@ -153,17 +153,9 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
 
     private resolve(node: JsonValueNode, variables: VariableMap, baseUrl: URL, path = ''): Deferrable<JsonValue> {
         if (node instanceof JsonArrayNode) {
-            const array = node.elements.map(
+            return node.elements.map(
                 (element, index) => this.resolve(element, variables, baseUrl, `${path}[${index}]`),
             );
-
-            SourceLocation.set(array, {
-                url: baseUrl.toString(),
-                start: node.location.start,
-                end: node.location.end,
-            });
-
-            return array;
         }
 
         if (node instanceof JsonObjectNode) {
@@ -207,7 +199,7 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
                     );
 
                     SourceLocation.set(object, {
-                        url: baseUrl.toString(),
+                        url: baseUrl,
                         start: node.location.start,
                         end: node.location.end,
                     });

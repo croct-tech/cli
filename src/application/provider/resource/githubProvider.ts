@@ -11,6 +11,7 @@ type ParsedUrl = {
     repository: string,
     ref: string|null,
     path: string|null,
+    canonicalUrl: URL,
 };
 
 type GithubFile = ParsedUrl & {
@@ -43,19 +44,21 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
     }
 
     public async get(url: URL): Promise<Resource<FileSystemIterator>> {
-        const file = this.resolveFile(url);
+        const info = this.parseUrl(url);
 
-        if (file === null) {
+        if (info === null) {
             throw new ResourceProviderError('Unsupported GitHub URL.', {
                 reason: ErrorReason.NOT_SUPPORTED,
                 url: url,
             });
         }
 
+        const file = this.resolveFile(info);
+
         const {value: response} = await this.provider.get(file.url);
 
         return {
-            url: url,
+            url: info.canonicalUrl,
             value: file.url.hostname === GithubProvider.RAW_HOST
                 ? this.extractFile(response, file)
                 : this.extractTarball(response, file),
@@ -151,8 +154,14 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
         };
     }
 
-    private resolveFile(url: URL): GithubFile|null {
-        const info = this.parseUrl(url);
+    private resolveFile(url: ParsedUrl): GithubFile;
+
+    private resolveFile(url: URL): GithubFile|null;
+
+    private resolveFile(url: URL|ParsedUrl): GithubFile|null {
+        const info = url instanceof URL
+            ? this.parseUrl(url)
+            : url;
 
         if (info === null) {
             return null;
@@ -185,23 +194,28 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
             .replace(/^\/+/, '')
             .split('/');
 
-        switch (true) {
-            case url.hostname === GithubProvider.MAIN_HOST:
-                [username = null, repository = null, /* tree/blob */, ref = null, ...segments] = pathname;
+        let canonicalUrl: URL|null = null;
 
-                break;
-
-            default:
-                [username = null, repository = null, ...segments] = pathname;
-
-                break;
+        if (url.hostname === GithubProvider.MAIN_HOST) {
+            canonicalUrl = url;
+            [username = null, repository = null, /* tree/blob */, ref = null, ...segments] = pathname;
+        } else {
+            [username = null, repository = null, ...segments] = pathname;
         }
 
         if (username === null || repository === null) {
             return null;
         }
 
+        if (canonicalUrl === null) {
+            canonicalUrl = new URL(`https://${GithubProvider.MAIN_HOST}`);
+            // GitHub automatically fixes blob/tree is mismatched,
+            // and redirects master to the default branch
+            canonicalUrl.pathname = `/${username}/${repository}/blob/master/${segments.join('/')}`;
+        }
+
         return {
+            canonicalUrl: canonicalUrl,
             username: username,
             repository: repository,
             ref: ref,

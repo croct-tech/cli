@@ -1,34 +1,22 @@
-import open from 'open';
-import chalk from 'chalk';
-import boxen, {Options as BoxenOptions} from 'boxen';
-import terminalLink from 'terminal-link';
 import {Writable, PassThrough} from 'stream';
-import {Output, Notifier, TaskList, TaskResolver, Semantic, Callout} from '@/application/cli/io/output';
+import {Output, Notifier, TaskList, TaskResolver, Semantic} from '@/application/cli/io/output';
 import {InteractiveTaskMonitor} from '@/infrastructure/application/cli/io/interactiveTaskMonitor';
-import {colors, format} from '@/infrastructure/application/cli/io/formatting';
+import {format} from '@/infrastructure/application/cli/io/formatting';
 import {TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
 import {NonInteractiveTaskMonitor} from '@/infrastructure/application/cli/io/nonInteractiveTaskMonitor';
-import {HelpfulError, ErrorReason, Help} from '@/application/error';
+import {Callout, LogFormatter} from '@/application/cli/io/logFormatter';
 
 export type ExitCallback = () => Promise<never>;
 
+export type LinkOpener = (target: string) => Promise<void>;
+
 export type Configuration = {
     output: Writable,
+    formatter: LogFormatter,
+    linkOpener: LinkOpener,
     onExit: ExitCallback,
     quiet?: boolean,
     interactive?: boolean,
-};
-
-const boxenStyle: BoxenOptions = {
-    titleAlignment: 'center',
-    width: 80,
-    borderStyle: 'round',
-    padding: {
-        top: 1,
-        bottom: 1,
-        right: 2,
-        left: 2,
-    },
 };
 
 export class ConsoleOutput implements Output {
@@ -38,15 +26,21 @@ export class ConsoleOutput implements Output {
 
     private readonly quiet: boolean;
 
+    private readonly formatter: LogFormatter;
+
+    private readonly linkOpener: LinkOpener;
+
     private taskMonitor: TaskMonitor;
 
-    public constructor({output, onExit, quiet = false, interactive = true}: Configuration) {
-        this.output = output;
-        this.onExit = onExit;
-        this.quiet = quiet;
-        this.taskMonitor = interactive && !quiet
-            ? new InteractiveTaskMonitor(output)
-            : new NonInteractiveTaskMonitor(quiet ? new PassThrough() : output);
+    public constructor(configuration: Configuration) {
+        this.output = configuration.output;
+        this.onExit = configuration.onExit;
+        this.quiet = configuration.quiet ?? false;
+        this.formatter = configuration.formatter;
+        this.linkOpener = configuration.linkOpener;
+        this.taskMonitor = (configuration.interactive ?? true) && !this.quiet
+            ? new InteractiveTaskMonitor(this.output)
+            : new NonInteractiveTaskMonitor(this.quiet ? new PassThrough() : this.output);
     }
 
     public suspend(): void {
@@ -62,7 +56,7 @@ export class ConsoleOutput implements Output {
     }
 
     public async open(target: string): Promise<void> {
-        await open(target);
+        await this.linkOpener(target);
     }
 
     public break(): void {
@@ -70,14 +64,7 @@ export class ConsoleOutput implements Output {
     }
 
     public announce(callout: Callout): void {
-        const content = boxen(format(callout.message), {
-            ...boxenStyle,
-            title: format(callout.title, {basic: true}),
-            textAlignment: callout.alignment,
-            borderColor: colors[callout.semantics],
-        });
-
-        this.write(`${content}\n`);
+        this.write(`${this.formatter.formatCallout(callout)}\n`);
     }
 
     public log(text: string, semantic?: Semantic): void {
@@ -125,150 +112,13 @@ export class ConsoleOutput implements Output {
 
     public report(error: any): void {
         this.stop();
-        this.write(`${this.formatError(error)}\n`, true);
+        this.write(`${this.formatter.formatError(error)}\n`, true);
     }
 
     public exit(): Promise<never> {
         this.stop();
 
         return this.onExit();
-    }
-
-    private formatError(error: any): string {
-        return boxen(ConsoleOutput.formatErrorBody(error), {
-            ...boxenStyle,
-            title: ConsoleOutput.formatErrorTitle(error),
-            borderColor: 'red',
-        });
-    }
-
-    private static formatErrorTitle(error: any): string {
-        if (!(error instanceof HelpfulError)) {
-            return 'Unexpected error';
-        }
-
-        const titles: Record<ErrorReason, string> = {
-            [ErrorReason.ACCESS_DENIED]: 'Access denied',
-            [ErrorReason.INVALID_CONFIGURATION]: 'Invalid configuration',
-            [ErrorReason.INVALID_INPUT]: 'Invalid input',
-            [ErrorReason.NOT_FOUND]: 'Not found',
-            [ErrorReason.NOT_SUPPORTED]: 'Not supported',
-            [ErrorReason.PRECONDITION]: 'Precondition failed',
-            [ErrorReason.UNEXPECTED_RESULT]: 'Unexpected result',
-            [ErrorReason.OTHER]: 'Error',
-        };
-
-        return titles[error.reason];
-    }
-
-    private static formatErrorBody(error: unknown): string {
-        let body = format(HelpfulError.formatMessage(error));
-
-        if (error instanceof HelpfulError) {
-            body += ConsoleOutput.formatErrorDetails(error);
-
-            const {cause} = error.help;
-
-            if (cause !== undefined && error.message.toLowerCase() !== cause.message.toLowerCase()) {
-                body += `\n\n🚨 ${chalk.bold('Cause')}\n`;
-                body += `${format(HelpfulError.formatMessage(error.help.cause))}`;
-            }
-
-            body += ConsoleOutput.formatErrorSuggestions(error);
-            body += ConsoleOutput.formatErrorUsefulLinks(error);
-        }
-
-        if (
-            !(error instanceof HelpfulError)
-            || (error.reason === ErrorReason.OTHER && error.help.cause instanceof Error)
-        ) {
-            body += ConsoleOutput.formatStackTrace(error);
-        }
-
-        return body;
-    }
-
-    private static formatErrorDetails(error: HelpfulError): string {
-        let message = '';
-
-        const {details} = error.help;
-
-        if (details !== undefined) {
-            message += `\n\n🔍 ${chalk.bold('Details')}\n`;
-            message += details
-                .map(detail => ` • ${format(detail)}`)
-                .join('\n');
-        }
-
-        return message;
-    }
-
-    private static formatStackTrace(error: unknown): string {
-        if (!(error instanceof Error) || error.stack === undefined) {
-            return '';
-        }
-
-        const stack = error.stack
-            .split('\n')
-            .map((line => ` › ${line.trim().replace(/^at /, '')}`))
-            .slice(1);
-
-        return `\n\n📄 ${chalk.bold('Stack trace')}\n${stack.join('\n')}`;
-    }
-
-    private static formatErrorSuggestions(error: HelpfulError): string {
-        const {suggestions} = error.help;
-        let message = '';
-
-        if (suggestions !== undefined && suggestions.length > 0) {
-            message += `\n\n💡 ${chalk.bold('Suggestions')}\n`;
-            message += suggestions.map(suggestion => ` • ${format(suggestion)}`)
-                .join('\n');
-        }
-
-        return message;
-    }
-
-    private static formatErrorUsefulLinks(error: HelpfulError): string {
-        const usefulLinks: Help['links'] = [];
-        let message = '';
-
-        switch (error.reason) {
-            case ErrorReason.INVALID_INPUT:
-            case ErrorReason.PRECONDITION:
-                usefulLinks.push({
-                    label: 'Documentation',
-                    url: 'https://docs.croct.io/sdk/cli',
-                });
-
-                break;
-
-            case ErrorReason.INVALID_CONFIGURATION:
-                break;
-
-            default:
-                usefulLinks.push({
-                    label: 'Open an issue',
-                    url: 'https://github.com/croct-tech/croct-cli/issues/new',
-                });
-
-                break;
-        }
-
-        if (error.help.links !== undefined) {
-            usefulLinks.push(...error.help.links);
-        }
-
-        if (usefulLinks.length > 0) {
-            message += `\n\n🔗 ${chalk.bold('Useful links')}\n`;
-            message += usefulLinks.map(
-                ({label, url}) => ` • ${terminalLink(label, url, {
-                    fallback: () => `${label}: ${url}`,
-                })}`,
-            ).join('\n');
-        }
-
-        return message;
     }
 
     private writeLog(text: string, semantic: Semantic): void {

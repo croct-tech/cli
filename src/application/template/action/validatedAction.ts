@@ -21,11 +21,17 @@ export class ValidatedAction<T extends ActionOptions> implements Action {
 
         if (!validation.valid) {
             const violations = validation.violations
-                .map(violation => ` • **${violation.path}**: ${violation.message}`)
-                .join('\n\n');
+                .map(violation => {
+                    const message = violation.path === ''
+                        ? violation.message
+                        : `**${violation.path}**: ${violation.message}`;
 
-            throw new ActionError(`Invalid action options:\n\n${violations}`, {
+                    return message.replace(/'/g, '`');
+                });
+
+            throw new ActionError('Invalid action options.', {
                 reason: ErrorReason.INVALID_INPUT,
+                details: violations,
             });
         }
 

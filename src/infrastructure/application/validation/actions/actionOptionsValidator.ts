@@ -208,17 +208,27 @@ export class ActionOptionsValidator<T extends ActionOptions> extends ZodValidato
     }
 
     private static restoreSymbols(left: unknown, right: unknown): void {
-        if (!(Array.isArray(left) && Array.isArray(right)) && !(isPlainObject(left) && isPlainObject(right))) {
+        if (Array.isArray(left) && Array.isArray(right)) {
+            for (const [index, value] of left.entries()) {
+                if (index < right.length) {
+                    ActionOptionsValidator.restoreSymbols(value, right[index]);
+                }
+            }
+
+            return;
+        }
+
+        if (!isPlainObject(left) || !isPlainObject(right)) {
             return;
         }
 
         for (const property of Object.getOwnPropertySymbols(left)) {
-            Object.assign(right, {[property]: left[property as any]});
+            Object.assign(right, {[property]: left[property]});
         }
 
         for (const [key, value] of Object.entries(left)) {
             if (key in right) {
-                this.restoreSymbols(value, right[key as any]);
+                ActionOptionsValidator.restoreSymbols(value, right[key]);
             }
         }
     }
