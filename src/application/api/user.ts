@@ -51,7 +51,7 @@ export type NewSession = {
 };
 
 type SessionStateMap = {
-    awaiting: Record<never, never>,
+    pending: Record<never, never>,
     'access-granted': {
         accessToken: string,
     },

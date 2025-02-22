@@ -19,7 +19,7 @@ export class SessionCloseListener implements AuthenticationListener {
     public async wait(sessionId: string): Promise<string> {
         let state = await this.api.closeSession(sessionId);
 
-        while (state.status === 'awaiting') {
+        while (state.status === 'pending') {
             await this.delay();
 
             state = await this.api.closeSession(sessionId);

@@ -151,7 +151,7 @@ export class GraphqlUserApi implements UserApi {
 
             case 'CloseSessionIncompleteResult':
                 return {
-                    status: 'awaiting',
+                    status: 'pending',
                 };
         }
     }
