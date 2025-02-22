@@ -16,6 +16,7 @@ export type Configuration = {
     userApi: UserApi,
     listener: AuthenticationListener,
     emailLinkGenerator: LinkGenerator,
+    verificationLinkDestination: string,
 };
 
 export type SignUpOptions = {
@@ -83,7 +84,9 @@ export class SignUpForm implements Form<string, SignUpOptions> {
             },
         });
 
-        const sessionId = userApi.createSession();
+        const sessionId = userApi.createSession({
+            destination: this.config.verificationLinkDestination,
+        });
 
         let notifier = output.notify('Creating account');
 
@@ -108,7 +111,7 @@ export class SignUpForm implements Form<string, SignUpOptions> {
                 return null;
             });
 
-        notifier = output.notify('Waiting for verification');
+        notifier = output.notify('Waiting for account activation');
 
         const promise = listener.wait(await sessionId);
 

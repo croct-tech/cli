@@ -122,25 +122,14 @@ export class ImportAction implements Action<ImportOptions> {
                     ),
                 );
             } catch (error) {
-                throw ActionError.fromCause('Unable to resolve action definition.');
-            }
-
-            try {
-                notifier.stop();
-
-                await runner.execute({actions: [action]}, context);
-            } catch (error) {
-                const name = await ImportAction.getActionName(action);
-
                 throw ActionError.fromCause(error, {
-                    details: [
-                        `Action: \`${name}\` from ${context.baseUrl}`,
-                        ...(error instanceof HelpfulError ? error.help.details ?? [] : []),
-                    ],
+                    message: 'Unable to resolve action definition.',
                 });
             } finally {
                 notifier.stop();
             }
+
+            await runner.execute({actions: [action]}, context);
         }
     }
 
@@ -242,17 +231,5 @@ export class ImportAction implements Action<ImportOptions> {
                 target.set(variable, sourceVariables[variable]);
             }
         }
-    }
-
-    private static async getActionName(action: Deferrable<JsonValue>): Promise<string> {
-        if (typeof action === 'object' && action !== null && 'name' in action) {
-            const name = await action.name;
-
-            if (typeof name === 'string') {
-                return name;
-            }
-        }
-
-        return 'unknown';
     }
 }

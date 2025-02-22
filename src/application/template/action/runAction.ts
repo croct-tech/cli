@@ -1,7 +1,7 @@
 import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {ErrorReason} from '@/application/error';
-import {ActionDefinition} from '@/application/template/template';
+import {ActionDefinition, SourceLocation} from '@/application/template/template';
 
 export type RunOptions = {
     actions: ActionDefinition|ActionDefinition[],
@@ -16,7 +16,18 @@ export class RunAction implements Action<RunOptions> {
 
     public async execute(options: RunOptions, context: ActionContext): Promise<void> {
         for (const action of Array.isArray(options.actions) ? options.actions : [options.actions]) {
-            await this.run(action, context);
+            try {
+                await this.run(action, context);
+            } catch (error) {
+                throw ActionError.fromCause(error, {
+                    tracing: [
+                        {
+                            name: action.name,
+                            source: SourceLocation.get(action) ?? undefined,
+                        },
+                    ],
+                });
+            }
         }
     }
 

@@ -128,7 +128,7 @@ import {CachedProvider} from '@/application/provider/resource/cachedProvider';
 import {JsepExpressionEvaluator} from '@/infrastructure/application/evaluation/jsepExpressionEvaluator';
 import {TemplateValidator} from '@/infrastructure/application/validation/templateValidator';
 import {ImportAction, ImportOptions} from '@/application/template/action/importAction';
-import {Action} from '@/application/template/action/action';
+import {Action, ActionError} from '@/application/template/action/action';
 import {ValidatedAction} from '@/application/template/action/validatedAction';
 import {TryOptionsValidator} from '@/infrastructure/application/validation/actions/tryOptionsValidator';
 import {
@@ -297,6 +297,14 @@ export type Configuration = {
         graphqlEndpoint: string,
         tokenEndpoint: string,
         tokenParameter: string,
+    },
+    verificationLinkDestination: {
+        passwordReset: string,
+        accountActivation: string,
+    },
+    emailSubject: {
+        passwordReset: string,
+        accountActivation: string,
     },
 };
 
@@ -1169,8 +1177,16 @@ export class Cli {
                         listener: this.getAuthenticationListener(),
                         tokenDuration: this.configuration.cliTokenDuration,
                         emailLinkGenerator: {
-                            recovery: this.createEmailLinkGenerator('Forgot password'),
-                            verification: this.createEmailLinkGenerator('Welcome to Croct'),
+                            recovery: this.createEmailLinkGenerator(
+                                this.configuration.emailSubject.passwordReset,
+                            ),
+                            verification: this.createEmailLinkGenerator(
+                                this.configuration.emailSubject.accountActivation,
+                            ),
+                        },
+                        verificationLinkDestination: {
+                            accountActivation: this.configuration.verificationLinkDestination.accountActivation,
+                            passwordReset: this.configuration.verificationLinkDestination.passwordReset,
                         },
                     }),
                     signUp: new SignUpForm({
@@ -1178,7 +1194,10 @@ export class Cli {
                         output: this.getOutput(),
                         userApi: this.getUserApi(true),
                         listener: this.getAuthenticationListener(),
-                        emailLinkGenerator: this.createEmailLinkGenerator('Welcome to Croct'),
+                        emailLinkGenerator: this.createEmailLinkGenerator(
+                            this.configuration.emailSubject.accountActivation,
+                        ),
+                        verificationLinkDestination: this.configuration.verificationLinkDestination.accountActivation,
                     }),
                 },
             });
@@ -1844,7 +1863,7 @@ export class Cli {
                 listener: new HttpPollingListener({
                     endpoint: this.configuration.api.tokenEndpoint,
                     parameter: this.configuration.api.tokenParameter,
-                    pollingInterval: 1000,
+                    pollingInterval: 1_000,
                 }),
             }),
         );
@@ -2010,6 +2029,23 @@ export class Cli {
                             cause: error,
                         },
                     );
+                }
+
+                break;
+
+            case error instanceof ActionError:
+                if (error.tracing.length > 0) {
+                    const trace = error.tracing
+                        .map(({name, source}) => {
+                            const location = source !== undefined
+                                ? ` at ${source.url}:${source.start.line}:${source.start.column}`
+                                : '';
+
+                            return `↳ Action \`${name}\`${location}`;
+                        })
+                        .join('\n');
+
+                    return new HelpfulError(`${error.message}\n\n▶️ **Trace**\n${trace}`, error.help);
                 }
 
                 break;

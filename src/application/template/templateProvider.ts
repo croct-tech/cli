@@ -12,7 +12,7 @@ import {
 import {EvaluationError, ExpressionEvaluator, VariableMap} from '@/application/template/evaluation';
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {Validator, Violation} from '@/application/validation';
-import {DeferredTemplate, Template} from '@/application/template/template';
+import {DeferredTemplate, SourceLocation, Template} from '@/application/template/template';
 import {
     ResourceProvider,
     ResourceProviderError,
@@ -153,49 +153,67 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
 
     private resolve(node: JsonValueNode, variables: VariableMap, baseUrl: URL, path = ''): Deferrable<JsonValue> {
         if (node instanceof JsonArrayNode) {
-            return node.elements.map(
+            const array = node.elements.map(
                 (element, index) => this.resolve(element, variables, baseUrl, `${path}[${index}]`),
             );
+
+            SourceLocation.set(array, {
+                url: baseUrl.toString(),
+                start: node.location.start,
+                end: node.location.end,
+            });
+
+            return array;
         }
 
         if (node instanceof JsonObjectNode) {
             return LazyPromise.transient(
-                async () => Object.fromEntries(
-                    await Promise.all(
-                        node.properties.map(async property => {
-                            const key = await this.interpolate(property.key, variables, baseUrl, path);
+                async () => {
+                    const object = Object.fromEntries(
+                        await Promise.all(
+                            node.properties.map(async property => {
+                                const key = await this.interpolate(property.key, variables, baseUrl, path);
 
-                            if (typeof key !== 'string' && typeof key !== 'number') {
-                                const location = property.key.location.start;
+                                if (typeof key !== 'string' && typeof key !== 'number') {
+                                    const location = property.key.location.start;
 
-                                throw new TemplateError(
-                                    'Unexpected object key type.',
-                                    {
-                                        url: baseUrl,
-                                        reason: ErrorReason.INVALID_INPUT,
-                                        violations: [
-                                            {
-                                                path: path,
-                                                message: 'Expected object key to resolve to string or number at '
-                                                    + `line ${location.line}, column ${location.column} but `
-                                                    + `got ${HelpfulError.describeType(key)}.`,
-                                            },
-                                        ],
-                                    },
-                                );
-                            }
+                                    throw new TemplateError(
+                                        'Unexpected object key type.',
+                                        {
+                                            url: baseUrl,
+                                            reason: ErrorReason.INVALID_INPUT,
+                                            violations: [
+                                                {
+                                                    path: path,
+                                                    message: 'Expected object key to resolve to string or number at '
+                                                        + `line ${location.line}, column ${location.column} but `
+                                                        + `got ${HelpfulError.describeType(key)}.`,
+                                                },
+                                            ],
+                                        },
+                                    );
+                                }
 
-                            const propertyPath = path === '' ? `${key}` : `${path}.${key}`;
+                                const propertyPath = path === '' ? `${key}` : `${path}.${key}`;
 
-                            return [
-                                key,
-                                LazyPromise.transient(
-                                    () => this.resolve(property.value, variables, baseUrl, propertyPath),
-                                ),
-                            ];
-                        }),
-                    ),
-                ),
+                                return [
+                                    key,
+                                    LazyPromise.transient(
+                                        () => this.resolve(property.value, variables, baseUrl, propertyPath),
+                                    ),
+                                ];
+                            }),
+                        ),
+                    );
+
+                    SourceLocation.set(object, {
+                        url: baseUrl.toString(),
+                        start: node.location.start,
+                        end: node.location.end,
+                    });
+
+                    return object;
+                },
             );
         }
 

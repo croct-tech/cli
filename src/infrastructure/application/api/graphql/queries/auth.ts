@@ -37,7 +37,7 @@ export const retryActivationMutation = graphql(`
 `);
 
 export const createSession = graphql(`
-    mutation CreateSession {
-        createSession
+    mutation CreateSession($redirectTarget: String) {
+        createSession(redirectTarget: $redirectTarget)
     }
 `);

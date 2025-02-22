@@ -66,8 +66,8 @@ type ApiKeyEdge {
 scalar ApiKeyId
 
 enum ApiKeyPermission {
-  AUTHENTICATION
   DATA_EXPORT
+  RESOURCE_READ_ACCESS
   TOKEN_ISSUE
 }
 
@@ -1701,7 +1701,12 @@ type Mutation {
   createOrganization(payload: CreateOrganizationPayload!): Organization!
 
   """Create a new session"""
-  createSession: String!
+  createSession(
+    """
+    The target URL to redirect to after authentication. If not provided, the user will be redirected to the default location.
+    """
+    redirectTarget: String
+  ): String!
   createSlot(payload: CreateSlotPayload!, workspaceId: WorkspaceId!): Slot!
   createWebApplication(payload: CreateWebApplicationPayload!, workspaceId: WorkspaceId!): WebApplication!
   createWorkspace(organizationId: OrganizationId!, payload: CreateWorkspacePayload!): Workspace!

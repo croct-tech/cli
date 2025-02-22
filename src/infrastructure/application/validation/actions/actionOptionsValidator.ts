@@ -12,6 +12,7 @@ import {
     ZodTypeAny,
     ZodUnion,
 } from 'zod';
+import isPlainObject from 'is-plain-obj';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {ActionOptions} from '@/application/template/action/action';
 import {ValidationResult} from '@/application/validation';
@@ -44,7 +45,13 @@ export class ActionOptionsValidator<T extends ActionOptions> extends ZodValidato
             throw error;
         }
 
-        return super.validate(options);
+        return super.validate(options).then(result => {
+            if (result.valid) {
+                ActionOptionsValidator.restoreSymbols(options, result.data);
+            }
+
+            return result;
+        });
     }
 
     private async resolveOptions(data: unknown, passthroughPaths: Path[], path: Path = []): Promise<unknown> {
@@ -198,5 +205,21 @@ export class ActionOptionsValidator<T extends ActionOptions> extends ZodValidato
         }
 
         return [[...path, RESOLVE]];
+    }
+
+    private static restoreSymbols(left: unknown, right: unknown): void {
+        if (!(Array.isArray(left) && Array.isArray(right)) && !(isPlainObject(left) && isPlainObject(right))) {
+            return;
+        }
+
+        for (const property of Object.getOwnPropertySymbols(left)) {
+            Object.assign(right, {[property]: left[property as any]});
+        }
+
+        for (const [key, value] of Object.entries(left)) {
+            if (key in right) {
+                this.restoreSymbols(value, right[key as any]);
+            }
+        }
     }
 }

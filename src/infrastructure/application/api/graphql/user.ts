@@ -7,6 +7,7 @@ import {
     PasswordReset,
     UserApi,
     Invitation,
+    NewSession,
 } from '@/application/api/user';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
 import {
@@ -107,8 +108,10 @@ export class GraphqlUserApi implements UserApi {
         });
     }
 
-    public async createSession(): Promise<string> {
-        const {data} = await this.client.execute(createSession);
+    public async createSession(session?: NewSession): Promise<string> {
+        const {data} = await this.client.execute(createSession, {
+            redirectTarget: session?.destination,
+        });
 
         return data.createSession;
     }

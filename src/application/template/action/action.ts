@@ -1,13 +1,27 @@
 import {ActionContext} from '@/application/template/action/context';
 import {HelpfulError, Help} from '@/application/error';
+import {SourceLocation} from '@/application/template/template';
 
-type OverridableHelp = Help & {
+export type ActionInfo = {
+    name: string,
+    source?: SourceLocation,
+};
+
+export type ActionHelp = Help & {
+    tracing?: ActionInfo[],
+};
+
+type OverridableHelp = ActionHelp & {
     message?: string,
 };
 
 export class ActionError extends HelpfulError {
-    public constructor(message: string, help?: Help) {
+    public readonly tracing: ActionInfo[];
+
+    public constructor(message: string, {tracing, ...help}: ActionHelp = {}) {
         super(message, help);
+
+        this.tracing = tracing ?? [];
 
         Object.setPrototypeOf(this, ActionError.prototype);
     }
@@ -26,6 +40,10 @@ export class ActionError extends HelpfulError {
             cause: cause,
             ...(cause instanceof HelpfulError ? cause.help : {}),
             ...helpProps,
+            tracing: [
+                ...helpProps.tracing ?? [],
+                ...cause instanceof ActionError ? cause.tracing : [],
+            ],
         });
 
         error.stack = cause.stack;

@@ -20,6 +20,10 @@ export type Configuration = {
         verification: LinkGenerator,
         recovery: LinkGenerator,
     },
+    verificationLinkDestination: {
+        passwordReset: string,
+        accountActivation: string,
+    },
 };
 
 export type SignInOptions = {
@@ -159,7 +163,9 @@ export class SignInForm implements Form<string, SignInOptions> {
 
         const notifier = output.notify('Sending email');
 
-        const sessionId = await userApi.createSession();
+        const sessionId = await userApi.createSession({
+            destination: this.config.verificationLinkDestination.accountActivation,
+        });
 
         await userApi.retryActivation({
             email: email,
@@ -183,7 +189,9 @@ export class SignInForm implements Form<string, SignInOptions> {
 
         const notifier = output.notify('Sending link to reset password');
 
-        const sessionId = await userApi.createSession();
+        const sessionId = await userApi.createSession({
+            destination: this.config.verificationLinkDestination.passwordReset,
+        });
 
         await userApi.resetPassword({
             email: email,

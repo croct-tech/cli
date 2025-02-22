@@ -36,6 +36,31 @@ export type OptionDefinition<T extends OptionType = OptionType> = {
 }
 }[T];
 
+export type SourcePosition = {
+    index: number,
+    line: number,
+    column: number,
+};
+
+export type SourceLocation = {
+    url: string,
+    start: SourcePosition,
+    end: SourcePosition,
+};
+
+export namespace SourceLocation {
+    const key = Symbol('source');
+
+    export function get(value: Record<PropertyKey, any>): SourceLocation|null {
+        return value[key] ?? null;
+    }
+
+    export function set(value: Record<PropertyKey, any>, location: SourceLocation): void {
+        // eslint-disable-next-line no-param-reassign -- Edit in place
+        value[key] = location;
+    }
+}
+
 export type OptionMap = Record<string, OptionDefinition>;
 
 export type ActionDefinition = {

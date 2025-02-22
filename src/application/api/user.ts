@@ -41,6 +41,10 @@ export type Invitation = {
     organization: Organization,
 };
 
+export type NewSession = {
+    destination?: string,
+};
+
 export interface UserApi {
     getUser(): Promise<User>;
 
@@ -56,7 +60,7 @@ export interface UserApi {
 
     retryActivation(retry: ActivationRetry): Promise<void>;
 
-    createSession(): Promise<string>;
+    createSession(session?: NewSession): Promise<string>;
 
     getOrganizations(): Promise<Organization[]>;
 
