@@ -306,19 +306,6 @@ export default function Layout({
 }"
 `;
 
-exports[`AddWrapper should correctly transform providerReferenceProp.tsx: providerReferenceProp.tsx 1`] = `
-"import { CroctProvider } from "@croct/plug-react";
-export default function Layout({
-  children
-}) {
-  return (<CroctProvider appId={process.env.REACT_APP_CROCT_APP_ID}>
-    <>
-            <main>{children}</main>
-        </>
-  </CroctProvider>);
-}"
-`;
-
 exports[`AddWrapper should correctly transform providerTernaryProp.tsx: providerTernaryProp.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 export default function Layout({

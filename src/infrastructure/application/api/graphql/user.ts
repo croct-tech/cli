@@ -7,6 +7,8 @@ import {
     PasswordReset,
     UserApi,
     Invitation,
+    type CloseSessionResult,
+    type PasswordResetRequest,
 } from '@/application/api/user';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
 import {
@@ -33,8 +35,10 @@ import {
     userQuery,
 } from '@/infrastructure/application/api/graphql/queries/user';
 import {
+    closeSession,
     createSession,
     issueTokenMutation,
+    resetPassword,
     retryActivationMutation,
     sendResetLink,
     signInMutation,
@@ -54,6 +58,20 @@ export class GraphqlUserApi implements UserApi {
 
     public constructor(client: GraphqlClient) {
         this.client = client;
+    }
+
+    private static normalizeOrganization(data: OrganizationData): Organization {
+        const {logo = null, website = null} = data;
+
+        return {
+            id: data.id,
+            name: data.name,
+            slug: data.slug,
+            type: data.type as any,
+            email: data.email,
+            ...(logo !== null ? {logo: logo} : {}),
+            ...(website !== null ? {website: website} : {}),
+        };
     }
 
     public async getUser(): Promise<User> {
@@ -78,11 +96,22 @@ export class GraphqlUserApi implements UserApi {
         return !data.checkAvailability.email;
     }
 
-    public async resetPassword(reset: PasswordReset): Promise<void> {
+    public async requestResetPassword(reset: PasswordResetRequest): Promise<void> {
         await this.client.execute(sendResetLink, {
             email: reset.email,
             sessionId: reset.sessionId,
         });
+    }
+
+    public async resetPassword(reset: PasswordReset): Promise<string> {
+        const {data} = await this.client.execute(resetPassword, {
+            payload: {
+                password: reset.password,
+                token: reset.token,
+            },
+        });
+
+        return data.resetPassword.token!;
     }
 
     public async retryActivation(retry: ActivationRetry): Promise<void> {
@@ -107,10 +136,28 @@ export class GraphqlUserApi implements UserApi {
         });
     }
 
-    public async createSession(): Promise<string> {
-        const {data} = await this.client.execute(createSession);
+    public async createSession(redirectDestination?: string): Promise<string> {
+        const {data} = await this.client.execute(createSession, {
+            // TODO: Wire redirect destination correctly
+            redirectDestination: redirectDestination ?? './cli',
+        });
 
         return data.createSession;
+    }
+
+    public async closeSession(sessionId: string): Promise<CloseSessionResult> {
+        const {data: {closeSession: data}} = await this.client.execute(closeSession, {
+            sessionId: sessionId,
+        });
+
+        switch (data.__typename) {
+            case 'CloseSessionIncompleteResult':
+                return {outcome: 'incomplete'};
+            case 'CloseSessionAuthenticatedResult':
+                return {outcome: 'authenticated', accessToken: data.accessToken};
+            case 'CloseSessionRecoveryResult':
+                return {outcome: 'account-recovery', recoveryToken: data.recoveryToken};
+        }
     }
 
     public async signIn(request: TokenRequest): Promise<string> {
@@ -184,6 +231,31 @@ export class GraphqlUserApi implements UserApi {
             ...(logo !== null ? {logo: logo} : {}),
             ...(website !== null ? {website: website} : {}),
         };
+    }
+
+    public async getInvitations(): Promise<Invitation[]> {
+        const {data} = await this.client.execute(invitationQuery);
+        const edges = data.invitations.edges ?? [];
+
+        return edges.flatMap((edge): Invitation[] => {
+            const node = edge?.node ?? null;
+
+            if (node === null) {
+                return [];
+            }
+
+            return [{
+                id: node.id,
+                invitationTime: node.invitationTime,
+                organization: GraphqlUserApi.normalizeOrganization(node.organization),
+            }];
+        });
+    }
+
+    public async acceptInvitation(invitationId: string): Promise<void> {
+        await this.client.execute(acceptInvitationMutation, {
+            invitationId: invitationId,
+        });
     }
 
     private async getOrganizationSetupPayload(setup: OrganizationSetup): Promise<OrganizationSetupPayload> {
@@ -269,45 +341,6 @@ export class GraphqlUserApi implements UserApi {
             experiences: [],
             slots: [],
             redirectUrl: setup.redirectUrl,
-        };
-    }
-
-    public async getInvitations(): Promise<Invitation[]> {
-        const {data} = await this.client.execute(invitationQuery);
-        const edges = data.invitations.edges ?? [];
-
-        return edges.flatMap((edge): Invitation[] => {
-            const node = edge?.node ?? null;
-
-            if (node === null) {
-                return [];
-            }
-
-            return [{
-                id: node.id,
-                invitationTime: node.invitationTime,
-                organization: GraphqlUserApi.normalizeOrganization(node.organization),
-            }];
-        });
-    }
-
-    public async acceptInvitation(invitationId: string): Promise<void> {
-        await this.client.execute(acceptInvitationMutation, {
-            invitationId: invitationId,
-        });
-    }
-
-    private static normalizeOrganization(data: OrganizationData): Organization {
-        const {logo = null, website = null} = data;
-
-        return {
-            id: data.id,
-            name: data.name,
-            slug: data.slug,
-            type: data.type as any,
-            email: data.email,
-            ...(logo !== null ? {logo: logo} : {}),
-            ...(website !== null ? {website: website} : {}),
         };
     }
 

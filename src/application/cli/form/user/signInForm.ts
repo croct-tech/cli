@@ -15,6 +15,7 @@ export type Configuration = {
     output: Output,
     userApi: UserApi,
     listener: AuthenticationListener,
+    recoveryListener: AuthenticationListener,
     tokenDuration: number,
     emailLinkGenerator: {
         verification: LinkGenerator,
@@ -179,13 +180,13 @@ export class SignInForm implements Form<string, SignInOptions> {
     }
 
     private async resetPassword(email: string): Promise<string> {
-        const {output, userApi, emailLinkGenerator: {recovery: generateLink}} = this.config;
+        const {output, input, userApi, emailLinkGenerator: {recovery: generateLink}} = this.config;
 
         const notifier = output.notify('Sending link to reset password');
 
         const sessionId = await userApi.createSession();
 
-        await userApi.resetPassword({
+        await userApi.requestResetPassword({
             email: email,
             sessionId: sessionId,
         });
@@ -193,13 +194,26 @@ export class SignInForm implements Form<string, SignInOptions> {
         notifier.confirm(`Link sent to \`${email}\``);
 
         const link = await this.getInboxLink(generateLink, email);
-        const promise = this.waitToken(sessionId);
 
         if (link !== null) {
             await output.open(link);
         }
 
-        return promise;
+        const recoveryToken = await this.waitRecoveryToken(sessionId);
+
+        const newPassword = await PasswordInput.prompt({
+            input: input,
+            label: 'New Password',
+        });
+
+        const token = await userApi.resetPassword({
+            token: recoveryToken,
+            password: newPassword,
+        });
+
+        output.inform('Password reset');
+
+        return token;
     }
 
     private async getInboxLink(generator: LinkGenerator, email: string): Promise<string|null> {
@@ -221,6 +235,18 @@ export class SignInForm implements Form<string, SignInOptions> {
         const token = await listener.wait(sessionId);
 
         notifier.confirm('Login completed');
+
+        return token;
+    }
+
+    private async waitRecoveryToken(sessionId: string): Promise<string> {
+        const {output, recoveryListener} = this.config;
+
+        const notifier = output.notify('Waiting for confirmation');
+
+        const token = await recoveryListener.wait(sessionId);
+
+        notifier.confirm('Account recovered');
 
         return token;
     }

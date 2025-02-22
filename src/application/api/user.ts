@@ -20,9 +20,14 @@ export type TokenOptions = {
 
 export type TokenRequest = TokenOptions & UserCredentials;
 
-export type PasswordReset = {
+export type PasswordResetRequest = {
     email: string,
     sessionId: string,
+};
+
+export type PasswordReset = {
+    token: string,
+    password: string,
 };
 
 export type ActivationRetry = {
@@ -41,12 +46,24 @@ export type Invitation = {
     organization: Organization,
 };
 
+type CloseSessionOutcome = {
+    incomplete: Record<never, never>,
+    'authenticated': {accessToken: string},
+    'account-recovery': {recoveryToken: string},
+};
+
+export type CloseSessionResult = {
+    [K in keyof CloseSessionOutcome]: {outcome: K} & CloseSessionOutcome[K];
+}[keyof CloseSessionOutcome];
+
 export interface UserApi {
     getUser(): Promise<User>;
 
     isEmailRegistered(email: string): Promise<boolean>;
 
-    resetPassword(reset: PasswordReset): Promise<void>;
+    requestResetPassword(reset: PasswordResetRequest): Promise<void>;
+
+    resetPassword(reset: PasswordReset): Promise<string>;
 
     registerUser(user: NewUser): Promise<void>;
 
@@ -56,7 +73,9 @@ export interface UserApi {
 
     retryActivation(retry: ActivationRetry): Promise<void>;
 
-    createSession(): Promise<string>;
+    createSession(redirectDestination?: string): Promise<string>;
+
+    closeSession(sessionId: string): Promise<CloseSessionResult>;
 
     getOrganizations(): Promise<Organization[]>;
 

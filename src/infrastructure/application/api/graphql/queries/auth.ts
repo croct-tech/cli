@@ -28,6 +28,14 @@ export const sendResetLink = graphql(`
     }
 `);
 
+export const resetPassword = graphql(`
+    mutation ResetPassword($payload: ResetPasswordPayload!) {
+        resetPassword(payload: $payload) {
+            token
+        }
+    }
+`);
+
 export const retryActivationMutation = graphql(`
     mutation RetryActivation($email: String!, $sessionId: String!) {
         retry {
@@ -37,7 +45,21 @@ export const retryActivationMutation = graphql(`
 `);
 
 export const createSession = graphql(`
-    mutation CreateSession {
-        createSession
+    mutation CreateSession($redirectDestination: String) {
+        createSession(redirectDestination: $redirectDestination)
+    }
+`);
+
+export const closeSession = graphql(`
+    mutation CloseSession($sessionId: String!) {
+        closeSession(sessionId: $sessionId) {
+            __typename
+            ... on CloseSessionRecoveryResult {
+                recoveryToken
+            }
+            ... on CloseSessionAuthenticatedResult {
+                accessToken
+            }
+        }
     }
 `);

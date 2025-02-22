@@ -13,7 +13,6 @@ import {Clock, Instant} from '@croct/time';
 import {SystemClock} from '@croct/time/clock/systemClock';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput} from '@/infrastructure/application/cli/io/consoleOutput';
-import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
 import {Sdk} from '@/application/project/sdk/sdk';
 import {Configuration as JavaScriptSdkConfiguration} from '@/application/project/sdk/javasScriptSdk';
 import {PlugJsSdk} from '@/application/project/sdk/plugJsSdk';
@@ -268,6 +267,9 @@ import {VirtualizedWorkingDirectory} from '@/application/fs/workingDirectory/vir
 import {ProcessWorkingDirectory} from '@/application/fs/workingDirectory/processWorkingDirectory';
 import {CachedAuthenticator} from '@/application/cli/authentication/authenticator/cachedAuthenticator';
 import {TokenCache} from '@/infrastructure/cache/tokenCache';
+import {LazyClient} from '../../graphql/lazyClient';
+import {CloseAuthenticationSessionListener} from './io/closeAuthenticationSessionListener';
+import {CloseRecoverySessionListener} from './io/closeRecoverySessionListener';
 
 export type Configuration = {
     program: Program,
@@ -295,8 +297,6 @@ export type Configuration = {
     },
     api: {
         graphqlEndpoint: string,
-        tokenEndpoint: string,
-        tokenParameter: string,
     },
 };
 
@@ -342,6 +342,36 @@ export class Cli {
         this.workingDirectory = new VirtualizedWorkingDirectory(
             configuration.directories.current ?? configuration.process.getCurrentDirectory(),
         );
+    }
+
+    private static handleError(error: unknown): any {
+        switch (true) {
+            case error instanceof ApiError:
+                if (error.isAccessDenied()) {
+                    return new HelpfulError(
+                        'Your user lacks the necessary permissions to complete this operation.',
+                        {
+                            reason: ErrorReason.ACCESS_DENIED,
+                            details: error.problems.map(detail => detail.detail ?? detail.title),
+                            suggestions: ['Contact your organization or workspace administrator for assistance.'],
+                            cause: error,
+                        },
+                    );
+                }
+
+                break;
+
+            case error instanceof ConfigurationError:
+                return new HelpfulError(
+                    error.message,
+                    {
+                        ...error.help,
+                        suggestions: ['Run `init` to create a new configuration.'],
+                    },
+                );
+        }
+
+        return error;
     }
 
     public welcome(input: WelcomeInput): Promise<void> {
@@ -637,21 +667,6 @@ export class Cli {
         }
     }
 
-    private getUseTemplateCommand(): UseTemplateCommand {
-        return new UseTemplateCommand({
-            templateProvider: new ValidatedProvider({
-                provider: new Json5Provider(this.getTemplateProvider()),
-                validator: new TemplateValidator(),
-            }),
-            fileSystem: this.getFileSystem(),
-            action: this.getImportAction(),
-            io: {
-                input: this.getInput(),
-                output: this.getOutput(),
-            },
-        });
-    }
-
     public createApiKey(input: CreateApiKeyInput): Promise<void> {
         return this.execute(
             new CreateApiKeyCommand({
@@ -669,6 +684,74 @@ export class Cli {
             }),
             input,
         );
+    }
+
+    public getNodePackageManagerProvider(): Provider<PackageManager|null> {
+        return this.share(this.getNodePackageManagerProvider, () => {
+            const managers = this.getNodePackageManagers();
+            const fileSystem = this.getFileSystem();
+
+            const lockFiles: Record<keyof NodePackageManagers, string[]> = {
+                npm: ['package-lock.json'],
+                yarn: ['yarn.lock'],
+                bun: ['bun.lock', 'bun.lockb'],
+                pnpm: ['pnpm-lock.yaml'],
+            };
+
+            return new MemoizedProvider(
+                new SequentialProvider(
+                    // Give higher priority to the package manager detected by the user agent
+                    new ConditionalProvider({
+                        candidates: (Object.entries(managers)).map(
+                            ([name, manager]) => ({
+                                value: manager,
+                                condition: new HasEnvVar({
+                                    process: this.configuration.process,
+                                    variable: 'npm_config_user_agent',
+                                    value: new RegExp(`^${name}`),
+                                }),
+                            }),
+                        ),
+                    }),
+                    // Then, try to detect the package manager by the `packageManager` field
+                    // in the `package.json` file or by the presence of the lock file
+                    new ConditionalProvider({
+                        candidates: (Object.entries(managers)).map(
+                            ([name, manager]) => ({
+                                value: manager,
+                                condition: new Or(
+                                    new IsPreferredNodePackageManager({
+                                        packageManager: name,
+                                        fileSystem: fileSystem,
+                                        projectDirectory: this.workingDirectory,
+                                    }),
+                                    new FileExists({
+                                        fileSystem: fileSystem,
+                                        files: lockFiles[name as keyof NodePackageManagers],
+                                    }),
+                                ),
+                            }),
+                        ),
+                    }),
+                ),
+                this.workingDirectory,
+            );
+        });
+    }
+
+    private getUseTemplateCommand(): UseTemplateCommand {
+        return new UseTemplateCommand({
+            templateProvider: new ValidatedProvider({
+                provider: new Json5Provider(this.getTemplateProvider()),
+                validator: new TemplateValidator(),
+            }),
+            fileSystem: this.getFileSystem(),
+            action: this.getImportAction(),
+            io: {
+                input: this.getInput(),
+                output: this.getOutput(),
+            },
+        });
     }
 
     private getFormInput(instruction?: Instruction): Input {
@@ -1167,6 +1250,7 @@ export class Cli {
                         output: this.getOutput(),
                         userApi: this.getUserApi(true),
                         listener: this.getAuthenticationListener(),
+                        recoveryListener: this.getRecoveryTokenListener(),
                         tokenDuration: this.configuration.cliTokenDuration,
                         emailLinkGenerator: {
                             recovery: this.createEmailLinkGenerator('Forgot password'),
@@ -1474,59 +1558,6 @@ export class Cli {
         });
     }
 
-    public getNodePackageManagerProvider(): Provider<PackageManager|null> {
-        return this.share(this.getNodePackageManagerProvider, () => {
-            const managers = this.getNodePackageManagers();
-            const fileSystem = this.getFileSystem();
-
-            const lockFiles: Record<keyof NodePackageManagers, string[]> = {
-                npm: ['package-lock.json'],
-                yarn: ['yarn.lock'],
-                bun: ['bun.lock', 'bun.lockb'],
-                pnpm: ['pnpm-lock.yaml'],
-            };
-
-            return new MemoizedProvider(
-                new SequentialProvider(
-                    // Give higher priority to the package manager detected by the user agent
-                    new ConditionalProvider({
-                        candidates: (Object.entries(managers)).map(
-                            ([name, manager]) => ({
-                                value: manager,
-                                condition: new HasEnvVar({
-                                    process: this.configuration.process,
-                                    variable: 'npm_config_user_agent',
-                                    value: new RegExp(`^${name}`),
-                                }),
-                            }),
-                        ),
-                    }),
-                    // Then, try to detect the package manager by the `packageManager` field
-                    // in the `package.json` file or by the presence of the lock file
-                    new ConditionalProvider({
-                        candidates: (Object.entries(managers)).map(
-                            ([name, manager]) => ({
-                                value: manager,
-                                condition: new Or(
-                                    new IsPreferredNodePackageManager({
-                                        packageManager: name,
-                                        fileSystem: fileSystem,
-                                        projectDirectory: this.workingDirectory,
-                                    }),
-                                    new FileExists({
-                                        fileSystem: fileSystem,
-                                        files: lockFiles[name as keyof NodePackageManagers],
-                                    }),
-                                ),
-                            }),
-                        ),
-                    }),
-                ),
-                this.workingDirectory,
-            );
-        });
-    }
-
     private getNodePackageManagers(): NodePackageManagers {
         return this.share(this.getNodePackageManagers, () => {
             const fileSystem = this.getFileSystem();
@@ -1821,17 +1852,20 @@ export class Cli {
             });
         }
 
-        return this.share(this.getGraphqlClient, () => {
-            const authenticator = this.getAuthenticator();
+        return this.share(
+            this.getGraphqlClient,
+            () => new LazyClient(() => {
+                const authenticator = this.getAuthenticator();
 
-            return new FetchGraphqlClient({
-                endpoint: this.configuration.api.graphqlEndpoint,
-                tokenProvider: {
-                    getToken: async () => (await authenticator.getToken())
+                return new FetchGraphqlClient({
+                    endpoint: this.configuration.api.graphqlEndpoint,
+                    tokenProvider: {
+                        getToken: async () => (await authenticator.getToken())
                         ?? (authenticator.login({method: 'default'})),
-                },
-            });
-        });
+                    },
+                });
+            }),
+        );
     }
 
     private getAuthenticationListener(): AuthenticationListener {
@@ -1841,9 +1875,23 @@ export class Cli {
                 platform: process.platform,
                 commandExecutor: this.getCommandExecutor(),
                 timeout: 2_000,
-                listener: new HttpPollingListener({
-                    endpoint: this.configuration.api.tokenEndpoint,
-                    parameter: this.configuration.api.tokenParameter,
+                listener: new CloseAuthenticationSessionListener({
+                    api: this.getUserApi(true),
+                    pollingInterval: 1000,
+                }),
+            }),
+        );
+    }
+
+    private getRecoveryTokenListener(): AuthenticationListener {
+        return this.share(
+            this.getRecoveryTokenListener,
+            () => new FocusListener({
+                platform: process.platform,
+                commandExecutor: this.getCommandExecutor(),
+                timeout: 2_000,
+                listener: new CloseRecoverySessionListener({
+                    api: this.getUserApi(true),
                     pollingInterval: 1000,
                 }),
             }),
@@ -1995,35 +2043,5 @@ export class Cli {
         output.report(Cli.handleError(error));
 
         return output.exit();
-    }
-
-    private static handleError(error: unknown): any {
-        switch (true) {
-            case error instanceof ApiError:
-                if (error.isAccessDenied()) {
-                    return new HelpfulError(
-                        'Your user lacks the necessary permissions to complete this operation.',
-                        {
-                            reason: ErrorReason.ACCESS_DENIED,
-                            details: error.problems.map(detail => detail.detail ?? detail.title),
-                            suggestions: ['Contact your organization or workspace administrator for assistance.'],
-                            cause: error,
-                        },
-                    );
-                }
-
-                break;
-
-            case error instanceof ConfigurationError:
-                return new HelpfulError(
-                    error.message,
-                    {
-                        ...error.help,
-                        suggestions: ['Run `init` to create a new configuration.'],
-                    },
-                );
-        }
-
-        return error;
     }
 }

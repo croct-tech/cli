@@ -12,7 +12,7 @@ import {OptionMap} from '@/application/template/template';
 import {NodeProcess} from '@/infrastructure/application/system/nodeProcess';
 import {ApiKeyPermission, ApplicationEnvironment} from '@/application/model/application';
 
-const apiEndpoint = 'https://pr-2389-merge---croct-admin-backend-xzexsnymka-rj.a.run.app';
+const apiEndpoint = 'https://pr-2566-merge---croct-admin-backend-xzexsnymka-rj.a.run.app';
 const templateRegistry = 'github:marcospassos/croct-examples/registry.json';
 const adminUrl = 'https://preview.app.croct.dev/pr-3359';
 
@@ -366,8 +366,6 @@ function getTemplate(args: string[]): string | null {
         },
         api: {
             graphqlEndpoint: `${apiEndpoint}/graphql`,
-            tokenEndpoint: `${apiEndpoint}/account/issue-token`,
-            tokenParameter: 'session',
         },
     });
 
