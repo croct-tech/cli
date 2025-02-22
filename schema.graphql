@@ -474,6 +474,33 @@ type ChartWidget implements DashboardFilterable & Node & Widget {
   title: String!
 }
 
+"""
+Session was linked to an authentication process. The access token can be used on following requests to be authenticated as the user.
+"""
+type CloseSessionAuthenticatedResult {
+  """
+  JWT token to be used on following requests to be authenticated as the user.
+  """
+  accessToken: String!
+}
+
+"""Session is not associated with any user nor with any recovery process."""
+type CloseSessionIncompleteResult {
+  outcome: Void!
+}
+
+"""
+Session was linked to a recovery process. The recovery token can be passed to the `resetPassword` mutation to set a new password for the user.
+"""
+type CloseSessionRecoveryResult {
+  """
+  Token to be used on the `resetPassword` mutation to set a new password for the user.
+  """
+  recoveryToken: String!
+}
+
+union CloseSessionResult = CloseSessionAuthenticatedResult | CloseSessionIncompleteResult | CloseSessionRecoveryResult
+
 enum Color {
   BHASKARA
   EUCLID
@@ -1686,11 +1713,11 @@ type Mutation {
   addTrustedOrigin(applicationId: ApplicationId!, origin: TrustedOriginInput!): TrustedOrigin!
   addWorkspaceLocale(payload: AddWorkspaceLocalesPayload!, workspaceId: WorkspaceId!): Locale!
   archiveExperience(experienceId: ExperienceId!, workspaceId: WorkspaceId!): Experience!
-
-  """Issue a token for authenticating a session"""
-  authenticateSession(sessionId: String!): String!
   cancelUserEmailChange: UserAccount!
   changePassword(newPassword: String!, oldPassword: String!, userId: UserId): String!
+
+  """Issue a token for authenticating a session"""
+  closeSession(sessionId: String!): CloseSessionResult!
   completeUpload(payload: CompleteUploadPayload!, workspaceId: WorkspaceId!): CompleteUploadResult!
   createApiKey(applicationId: ApplicationId!, payload: CreateApiKeyPayload!): CreateApiKeyResult!
   createAudience(payload: CreateAudiencePayload!, workspaceId: WorkspaceId!): Audience!
@@ -1703,9 +1730,9 @@ type Mutation {
   """Create a new session"""
   createSession(
     """
-    The target URL to redirect to after authentication. If not provided, the user will be redirected to the default location.
+    The destination URL to redirect to after authentication. If not provided, the user will be redirected to the default location.
     """
-    redirectTarget: String
+    redirectDestination: String
   ): String!
   createSlot(payload: CreateSlotPayload!, workspaceId: WorkspaceId!): Slot!
   createWebApplication(payload: CreateWebApplicationPayload!, workspaceId: WorkspaceId!): WebApplication!
@@ -2934,6 +2961,9 @@ type Viewer {
   user: User
   userAccount: UserAccount!
 }
+
+"""Represents NULL values"""
+scalar Void
 
 type WebApplication implements Application & Node {
   apiKeys(

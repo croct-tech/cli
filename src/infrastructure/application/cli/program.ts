@@ -370,8 +370,8 @@ function getTemplate(args: string[]): string | null {
             tokenParameter: 'session',
         },
         verificationLinkDestination: {
-            accountActivation: '/cli',
-            passwordReset: '/cli',
+            accountActivation: './cli',
+            passwordReset: './cli',
         },
         emailSubject: {
             passwordReset: 'Forgot password',

@@ -8,6 +8,8 @@ import {
     UserApi,
     Invitation,
     NewSession,
+    PasswordResetRequest,
+    SessionState,
 } from '@/application/api/user';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
 import {
@@ -34,10 +36,12 @@ import {
     userQuery,
 } from '@/infrastructure/application/api/graphql/queries/user';
 import {
+    closeSession,
     createSession,
     issueTokenMutation,
+    requestPasswordReset,
+    resetPassword,
     retryActivationMutation,
-    sendResetLink,
     signInMutation,
     signUpMutation,
 } from '@/infrastructure/application/api/graphql/queries/auth';
@@ -79,11 +83,22 @@ export class GraphqlUserApi implements UserApi {
         return !data.checkAvailability.email;
     }
 
-    public async resetPassword(reset: PasswordReset): Promise<void> {
-        await this.client.execute(sendResetLink, {
-            email: reset.email,
-            sessionId: reset.sessionId,
+    public async requestPasswordReset(request: PasswordResetRequest): Promise<void> {
+        await this.client.execute(requestPasswordReset, {
+            email: request.email,
+            sessionId: request.sessionId,
         });
+    }
+
+    public async resetPassword(reset: PasswordReset): Promise<string> {
+        const {data} = await this.client.execute(resetPassword, {
+            payload: {
+                password: reset.password,
+                token: reset.token,
+            },
+        });
+
+        return data.resetPassword.token!;
     }
 
     public async retryActivation(retry: ActivationRetry): Promise<void> {
@@ -110,10 +125,35 @@ export class GraphqlUserApi implements UserApi {
 
     public async createSession(session?: NewSession): Promise<string> {
         const {data} = await this.client.execute(createSession, {
-            redirectTarget: session?.destination,
+            redirectDestination: session?.destination,
         });
 
         return data.createSession;
+    }
+
+    public async closeSession(sessionId: string): Promise<SessionState> {
+        const {data} = await this.client.execute(closeSession, {
+            sessionId: sessionId,
+        });
+
+        switch (data.closeSession.__typename) {
+            case 'CloseSessionAuthenticatedResult':
+                return {
+                    status: 'access-granted',
+                    accessToken: data.closeSession.accessToken,
+                };
+
+            case 'CloseSessionRecoveryResult':
+                return {
+                    status: 'recovery-granted',
+                    recoveryToken: data.closeSession.recoveryToken,
+                };
+
+            case 'CloseSessionIncompleteResult':
+                return {
+                    status: 'awaiting',
+                };
+        }
     }
 
     public async signIn(request: TokenRequest): Promise<string> {

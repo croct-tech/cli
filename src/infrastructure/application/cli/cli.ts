@@ -13,7 +13,6 @@ import {Clock, Instant} from '@croct/time';
 import {SystemClock} from '@croct/time/clock/systemClock';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput} from '@/infrastructure/application/cli/io/consoleOutput';
-import {HttpPollingListener} from '@/infrastructure/application/cli/io/httpPollingListener';
 import {Sdk} from '@/application/project/sdk/sdk';
 import {Configuration as JavaScriptSdkConfiguration} from '@/application/project/sdk/javasScriptSdk';
 import {PlugJsSdk} from '@/application/project/sdk/plugJsSdk';
@@ -268,6 +267,7 @@ import {VirtualizedWorkingDirectory} from '@/application/fs/workingDirectory/vir
 import {ProcessWorkingDirectory} from '@/application/fs/workingDirectory/processWorkingDirectory';
 import {CachedAuthenticator} from '@/application/cli/authentication/authenticator/cachedAuthenticator';
 import {TokenCache} from '@/infrastructure/cache/tokenCache';
+import {SessionCloseListener} from '@/infrastructure/application/cli/io/sessionCloseListener';
 
 export type Configuration = {
     program: Program,
@@ -1174,7 +1174,7 @@ export class Cli {
                         input: input,
                         output: this.getOutput(),
                         userApi: this.getUserApi(true),
-                        listener: this.getAuthenticationListener(),
+                        listener: this.getTokenListener(),
                         tokenDuration: this.configuration.cliTokenDuration,
                         emailLinkGenerator: {
                             recovery: this.createEmailLinkGenerator(
@@ -1193,7 +1193,7 @@ export class Cli {
                         input: input,
                         output: this.getOutput(),
                         userApi: this.getUserApi(true),
-                        listener: this.getAuthenticationListener(),
+                        listener: this.getTokenListener(),
                         emailLinkGenerator: this.createEmailLinkGenerator(
                             this.configuration.emailSubject.accountActivation,
                         ),
@@ -1853,19 +1853,22 @@ export class Cli {
         });
     }
 
-    private getAuthenticationListener(): AuthenticationListener {
+    private getTokenListener(): AuthenticationListener {
         return this.share(
-            this.getAuthenticationListener,
-            () => new FocusListener({
-                platform: process.platform,
-                commandExecutor: this.getCommandExecutor(),
-                timeout: 2_000,
-                listener: new HttpPollingListener({
-                    endpoint: this.configuration.api.tokenEndpoint,
-                    parameter: this.configuration.api.tokenParameter,
-                    pollingInterval: 1_000,
-                }),
-            }),
+            this.getTokenListener,
+            () => {
+                const {configuration} = this;
+
+                return new FocusListener({
+                    platform: configuration.process.getPlatform(),
+                    commandExecutor: this.getCommandExecutor(),
+                    timeout: 2_000,
+                    listener: new SessionCloseListener({
+                        api: this.getUserApi(true),
+                        pollingInterval: 1_000,
+                    }),
+                });
+            },
         );
     }
 

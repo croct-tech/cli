@@ -1,3 +1,4 @@
+import {Instant, LocalDateTime, TimeZone} from '@croct/time';
 import {EmailInfo, EmailLinkTemplate} from '@/application/cli/email/email';
 
 export class GoogleTemplate implements EmailLinkTemplate {
@@ -19,7 +20,11 @@ export class GoogleTemplate implements EmailLinkTemplate {
         }
 
         if (info.timestamp !== undefined) {
-            criteria.push(`after:${new Date(info.timestamp * 1000).toISOString().split('T')[0]}`);
+            const timeZone = TimeZone.of(Intl.DateTimeFormat().resolvedOptions().timeZone);
+            const instant = Instant.ofEpochSecond(info.timestamp);
+            const today = LocalDateTime.ofInstant(instant, timeZone).getLocalDate();
+
+            criteria.push(`after:${today}`);
         }
 
         criteria.push('in:anywhere');

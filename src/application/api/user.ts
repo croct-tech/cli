@@ -20,9 +20,14 @@ export type TokenOptions = {
 
 export type TokenRequest = TokenOptions & UserCredentials;
 
-export type PasswordReset = {
+export type PasswordResetRequest = {
     email: string,
     sessionId: string,
+};
+
+export type PasswordReset = {
+    token: string,
+    password: string,
 };
 
 export type ActivationRetry = {
@@ -45,12 +50,30 @@ export type NewSession = {
     destination?: string,
 };
 
+type SessionStateMap = {
+    awaiting: Record<never, never>,
+    'access-granted': {
+        accessToken: string,
+    },
+    'recovery-granted': {
+        recoveryToken: string,
+    },
+};
+
+export type SessionStatus = keyof SessionStateMap;
+
+export type SessionState<T extends SessionStatus = SessionStatus> = {
+    [K in T]: {status: K} & SessionStateMap[K];
+}[T];
+
 export interface UserApi {
     getUser(): Promise<User>;
 
     isEmailRegistered(email: string): Promise<boolean>;
 
-    resetPassword(reset: PasswordReset): Promise<void>;
+    requestPasswordReset(reset: PasswordResetRequest): Promise<void>;
+
+    resetPassword(reset: PasswordReset): Promise<string>;
 
     registerUser(user: NewUser): Promise<void>;
 
@@ -62,9 +85,11 @@ export interface UserApi {
 
     createSession(session?: NewSession): Promise<string>;
 
+    closeSession(sessionId: string): Promise<SessionState>;
+
     getOrganizations(): Promise<Organization[]>;
 
-    getOrganization(organizationSlug: string): Promise<Organization|null>;
+    getOrganization(organizationSlug: string): Promise<Organization | null>;
 
     setupOrganization(organization: OrganizationSetup): Promise<Organization>;
 

@@ -113,13 +113,15 @@ export class SignUpForm implements Form<string, SignUpOptions> {
 
         notifier = output.notify('Waiting for account activation');
 
-        const promise = listener.wait(await sessionId);
+        // Start the listener before opening the link to allow external
+        // listeners to capture the current window
+        const verification = listener.wait(await sessionId);
 
         if (link !== null) {
             await output.open(link);
         }
 
-        const token = await promise;
+        const token = await verification;
 
         notifier.confirm('Account activated');
 

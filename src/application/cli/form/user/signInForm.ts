@@ -93,7 +93,7 @@ export class SignInForm implements Form<string, SignInOptions> {
                             });
                         }
 
-                        notifier.alert('Email not verified');
+                        notifier.warn('Email not verified');
 
                         const resend = await input.confirm({
                             message: 'Resend activation link?',
@@ -193,7 +193,7 @@ export class SignInForm implements Form<string, SignInOptions> {
             destination: this.config.verificationLinkDestination.passwordReset,
         });
 
-        await userApi.resetPassword({
+        await userApi.requestPasswordReset({
             email: email,
             sessionId: sessionId,
         });
@@ -201,13 +201,47 @@ export class SignInForm implements Form<string, SignInOptions> {
         notifier.confirm(`Link sent to \`${email}\``);
 
         const link = await this.getInboxLink(generateLink, email);
-        const promise = this.waitToken(sessionId);
+
+        // Start the listener before opening the link to allow external
+        // listeners to capture the current window
+        const verification = this.waitToken(sessionId);
 
         if (link !== null) {
             await output.open(link);
         }
 
-        return promise;
+        return userApi.resetPassword({
+            token: await verification,
+            password: await this.createPassword(),
+        });
+    }
+
+    private async createPassword(): Promise<string> {
+        const {input, output} = this.config;
+
+        let password: string|null = null;
+
+        while (password === null) {
+            const enteredPassword = await PasswordInput.prompt({
+                input: input,
+                label: 'Enter your new password',
+            });
+
+            const confirmedPassword = await PasswordInput.prompt({
+                input: input,
+                label: 'Confirm your new password',
+            });
+
+            if (enteredPassword !== confirmedPassword) {
+                output.warn('Passwords do not match, please try again');
+
+                continue;
+            }
+
+            password = enteredPassword;
+        }
+
+        return password;
     }
 
     private async getInboxLink(generator: LinkGenerator, email: string): Promise<string|null> {
