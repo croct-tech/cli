@@ -9,9 +9,12 @@ import {
     TimestampedCacheEntry,
 } from '@croct/cache';
 import {ApiKey} from '@croct/sdk/apiKey';
-import {Clock, Instant} from '@croct/time';
+import {Clock, Instant, LocalTime} from '@croct/time';
 import {SystemClock} from '@croct/time/clock/systemClock';
 import open from 'open';
+import {homedir} from 'os';
+import XDGAppPaths from 'xdg-app-paths';
+import ci from 'ci-info';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput} from '@/infrastructure/application/cli/io/consoleOutput';
 import {Sdk} from '@/application/project/sdk/sdk';
@@ -271,6 +274,7 @@ import {TokenCache} from '@/infrastructure/cache/tokenCache';
 import {SessionCloseListener} from '@/infrastructure/application/cli/io/sessionCloseListener';
 import {LogFormatter} from '@/application/cli/io/logFormatter';
 import {BoxenFormatter} from '@/infrastructure/application/cli/io/boxenFormatter';
+import {NodeProcess} from '@/infrastructure/application/system/nodeProcess';
 
 export type Configuration = {
     program: Program,
@@ -282,6 +286,7 @@ export type Configuration = {
     skipPrompts: boolean,
     adminUrl: URL,
     adminTokenParameter: string,
+    adminGraphqlEndpoint: URL,
     templateRegistryUrl: URL,
     deepLinkProtocol: string,
     cliTokenDuration: number,
@@ -296,11 +301,6 @@ export type Configuration = {
         data: string,
         home: string,
     },
-    api: {
-        graphqlEndpoint: string,
-        tokenEndpoint: string,
-        tokenParameter: string,
-    },
     verificationLinkDestination: {
         passwordReset: string,
         accountActivation: string,
@@ -310,6 +310,14 @@ export type Configuration = {
         accountActivation: string,
     },
 };
+
+export type Options =
+    Partial<Omit<Configuration, | 'directories' | 'verificationLinkDestination' | 'emailSubject'>>
+    & {
+        directories?: Partial<Configuration['directories']>,
+        verificationLinkDestination?: Partial<Configuration['verificationLinkDestination']>,
+        emailSubject?: Partial<Configuration['emailSubject']>,
+    };
 
 type AuthenticationMethods = {
     credentials: CredentialsInput,
@@ -353,6 +361,54 @@ export class Cli {
         this.workingDirectory = new VirtualizedWorkingDirectory(
             configuration.directories.current ?? configuration.process.getCurrentDirectory(),
         );
+    }
+
+    public static fromDefaults(configuration: Options): Cli {
+        const appPaths = XDGAppPaths('com.croct.cli');
+        const process = new NodeProcess();
+
+        return new Cli({
+            program: configuration.program ?? ((): never => {
+                throw new HelpfulError('CLI is running in standalone mode.');
+            }),
+            process: configuration.process ?? process,
+            cache: configuration.cache ?? true,
+            quiet: configuration.quiet ?? false,
+            interactive: configuration.interactive ?? !ci.isCI,
+            apiKey: configuration.apiKey,
+            skipPrompts: configuration.skipPrompts ?? false,
+            adminTokenDuration: configuration.adminTokenDuration ?? 7 * LocalTime.SECONDS_PER_DAY,
+            apiKeyTokenDuration: configuration.apiKeyTokenDuration ?? 30 * LocalTime.SECONDS_PER_MINUTE,
+            cliTokenDuration: configuration.cliTokenDuration ?? 90 * LocalTime.SECONDS_PER_DAY,
+            cliTokenFreshPeriod: configuration.cliTokenFreshPeriod ?? 15 * LocalTime.SECONDS_PER_DAY,
+            cliTokenIssuer: configuration.cliTokenIssuer ?? 'croct.com',
+            deepLinkProtocol: configuration.deepLinkProtocol ?? 'croct',
+            templateRegistryUrl: configuration.templateRegistryUrl
+                // @todo specify the correct URL
+                ?? new URL('github:marcospassos/croct-examples/registry.json'),
+            adminUrl: configuration.adminUrl
+                // @todo specify the correct URL
+                ?? new URL('https://preview.app.croct.dev/pr-3359'),
+            adminTokenParameter: configuration.adminTokenParameter ?? 'accessToken',
+            adminGraphqlEndpoint: configuration?.adminGraphqlEndpoint
+                // @todo specify the correct URL
+                ?? new URL('https://pr-2566-merge---croct-admin-backend-xzexsnymka-rj.a.run.app/graphql'),
+            directories: {
+                current: configuration.directories?.current ?? process.getCurrentDirectory(),
+                config: configuration.directories?.config ?? appPaths.config(),
+                cache: configuration.directories?.cache ?? appPaths.cache(),
+                data: configuration.directories?.data ?? appPaths.data(),
+                home: configuration.directories?.home ?? homedir(),
+            },
+            verificationLinkDestination: {
+                accountActivation: configuration.verificationLinkDestination?.accountActivation ?? './cli',
+                passwordReset: configuration.verificationLinkDestination?.passwordReset ?? './cli',
+            },
+            emailSubject: {
+                passwordReset: configuration.emailSubject?.passwordReset ?? 'Forgot password',
+                accountActivation: configuration.emailSubject?.accountActivation ?? 'Welcome to Croct',
+            },
+        });
     }
 
     public welcome(input: WelcomeInput): Promise<void> {
@@ -1506,7 +1562,7 @@ export class Cli {
         });
     }
 
-    public getNodePackageManagerProvider(): Provider<PackageManager|null> {
+    private getNodePackageManagerProvider(): Provider<PackageManager|null> {
         return this.share(this.getNodePackageManagerProvider, () => {
             const managers = this.getNodePackageManagers();
             const fileSystem = this.getFileSystem();
@@ -1846,7 +1902,7 @@ export class Cli {
     private getGraphqlClient(optionalAuthentication = false): GraphqlClient {
         if (optionalAuthentication) {
             return new FetchGraphqlClient({
-                endpoint: this.configuration.api.graphqlEndpoint,
+                endpoint: this.configuration.adminGraphqlEndpoint,
                 tokenProvider: {
                     getToken: () => this.getAuthenticator().getToken(),
                 },
@@ -1857,7 +1913,7 @@ export class Cli {
             const authenticator = this.getAuthenticator();
 
             return new FetchGraphqlClient({
-                endpoint: this.configuration.api.graphqlEndpoint,
+                endpoint: this.configuration.adminGraphqlEndpoint,
                 tokenProvider: {
                     getToken: async () => (await authenticator.getToken())
                         ?? (authenticator.login({method: 'default'})),

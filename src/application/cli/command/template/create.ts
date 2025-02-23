@@ -18,6 +18,7 @@ import {HelpfulError, ErrorReason} from '@/application/error';
 
 export type CreateTemplateInput = {
     file?: string,
+    empty?: boolean,
 };
 
 export type CreateTemplateConfig = {
@@ -40,7 +41,7 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
     public async execute(input: CreateTemplateInput): Promise<void> {
         const {fileSystem, io} = this.config;
 
-        const template = await this.createTemplate();
+        const template = await this.createTemplate(input.empty ?? false);
         const templateFile = input.file ?? fileSystem.joinPaths('.', 'template.json');
 
         try {
@@ -66,12 +67,21 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
         io.output.confirm(`Template created at \`${templateFile}\``);
     }
 
-    private async createTemplate(): Promise<Template> {
+    private async createTemplate(empty: boolean): Promise<Template> {
         const {io} = this.config;
+
+        if (empty) {
+            return {
+                // @todo: Add $schema property
+                title: 'My template',
+                actions: [],
+            };
+        }
 
         const resources = await this.exportResources();
 
         return {
+            // @todo: Add $schema property
             title: (await io.input?.prompt({message: 'Enter template title'})) ?? 'My template',
             actions: [
                 {

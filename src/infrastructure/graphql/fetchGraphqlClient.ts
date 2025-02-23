@@ -4,7 +4,7 @@ import {TokenProvider} from '@/application/cli/authentication/authenticator';
 import {ApiError, Problem} from '@/application/api/error';
 
 export type Configuration = {
-    endpoint: string,
+    endpoint: URL,
     tokenProvider?: TokenProvider,
 };
 

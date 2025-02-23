@@ -1,20 +1,11 @@
-import {Command, InvalidArgumentError, Option} from '@commander-js/extra-typings';
-import {homedir} from 'os';
-import XDGAppPaths from 'xdg-app-paths';
-import ci from 'ci-info';
+import {Argument, Command, InvalidArgumentError, Option} from '@commander-js/extra-typings';
 import {JsonPrimitive} from '@croct/json';
 import {realpathSync} from 'fs';
 import {ApiKey} from '@croct/sdk/apiKey';
-import {LocalTime} from '@croct/time';
 import {Cli} from '@/infrastructure/application/cli/cli';
 import {Resource} from '@/application/cli/command/init';
 import {OptionMap} from '@/application/template/template';
-import {NodeProcess} from '@/infrastructure/application/system/nodeProcess';
 import {ApiKeyPermission, ApplicationEnvironment} from '@/application/model/application';
-
-const apiEndpoint = 'https://pr-2566-merge---croct-admin-backend-xzexsnymka-rj.a.run.app';
-const templateRegistry = 'github:marcospassos/croct-examples/registry.json';
-const adminUrl = 'https://preview.app.croct.dev/pr-3359';
 
 type Configuration = {
     interactive: boolean,
@@ -24,9 +15,9 @@ type Configuration = {
 
 function createProgram(config: Configuration): typeof program {
     const program = new Command()
-        .enablePositionalOptions()
         .name('croct')
         .description('Manage your Croct projects')
+        .enablePositionalOptions()
         .option('--cwd <path>', 'The working directory.', path => {
             try {
                 return realpathSync(path);
@@ -82,9 +73,9 @@ function createProgram(config: Configuration): typeof program {
     const passwordOption = new Option('-p, --password <password>', 'The password.');
 
     loginCommand.command('credentials', {isDefault: true})
+        .description('Authenticate using credentials.')
         .addOption(config.interactive ? usernameOption : usernameOption.makeOptionMandatory())
         .addOption(config.interactive ? passwordOption : passwordOption.makeOptionMandatory())
-        .description('Authenticate using credentials.')
         .action(async options => {
             await config.cli?.login({
                 method: 'credentials',
@@ -183,9 +174,9 @@ function createProgram(config: Configuration): typeof program {
         .description('Add a resource to your project.');
 
     addCommand.command('slot')
+        .description('Add a slot to your project.')
         .argument(config.interactive ? '[slots...]' : '<slots...>')
         .option('-e, --example', 'Generate an implementation example.')
-        .description('Add a slot to your project.')
         .action(async (args, options) => {
             await config.cli?.addSlot({
                 slots: args,
@@ -194,8 +185,8 @@ function createProgram(config: Configuration): typeof program {
         });
 
     addCommand.command('component')
-        .argument(config.interactive ? '[components...]' : '<components...>')
         .description('Add a component to your project.')
+        .argument(config.interactive ? '[components...]' : '<components...>')
         .action(async args => {
             await config.cli?.addComponent({
                 components: args,
@@ -206,8 +197,8 @@ function createProgram(config: Configuration): typeof program {
         .description('Remove a resource from your project.');
 
     removeCommand.command('slot')
-        .argument(config.interactive ? '[slots...]' : '<slots...>')
         .description('Remove a slot from your project.')
+        .argument(config.interactive ? '[slots...]' : '<slots...>')
         .action(async args => {
             await config.cli?.removeSlot({
                 slots: args,
@@ -215,8 +206,8 @@ function createProgram(config: Configuration): typeof program {
         });
 
     removeCommand.command('component')
-        .argument(config.interactive ? '[components...]' : '<components...>')
         .description('Remove a component from your project.')
+        .argument(config.interactive ? '[components...]' : '<components...>')
         .action(async args => {
             await config.cli?.removeComponent({
                 components: args,
@@ -227,11 +218,16 @@ function createProgram(config: Configuration): typeof program {
         .description('Create a resource in your project.');
 
     createCommand.command('template')
-        .argument('path', 'The path to save the template.')
         .description('Create a template from your project.')
-        .action(async (path: string) => {
+        .addArgument(
+            new Argument('<path>', 'The path to the file.')
+                .argOptional(),
+        )
+        .option('-e, --empty', 'Create an empty template.')
+        .action(async (path, options) => {
             await config.cli?.createTemplate({
                 file: path,
+                empty: options.empty,
             });
         });
 
@@ -274,8 +270,8 @@ function createProgram(config: Configuration): typeof program {
     const optionNames: Record<string, string> = {};
 
     const useCommand = program.command('use')
-        .argument('template', 'The path to the template.')
         .description('Use a template.')
+        .argument('template', 'The path to the template.')
         .passThroughOptions(config.cli === undefined)
         .allowUnknownOption(config.cli === undefined || config.template === null)
         .action(async (template, options) => {
@@ -347,45 +343,17 @@ function getTemplate(args: string[]): string | null {
     const invocation = createProgram({interactive: true}).parse(args);
 
     const options = invocation.opts();
-    const appPaths = XDGAppPaths('com.croct.cli');
 
-    const cli = new Cli({
-        process: new NodeProcess(),
-        program: (postfixArgs: string[]) => run(invocation.args.slice(0, 2).concat(postfixArgs)),
+    const cli = Cli.fromDefaults({
+        program: params => run(invocation.args.slice(0, 2).concat(params)),
         cache: options.cache,
         quiet: options.quiet,
-        interactive: options.interaction && !ci.isCI,
+        interactive: options.interaction ? undefined : false,
         apiKey: options.apiKey,
         skipPrompts: options.skipPrompts === true,
-        adminTokenDuration: 7 * LocalTime.SECONDS_PER_DAY,
-        apiKeyTokenDuration: 30 * LocalTime.SECONDS_PER_MINUTE,
-        cliTokenDuration: 90 * LocalTime.SECONDS_PER_DAY,
-        cliTokenFreshPeriod: 15 * LocalTime.SECONDS_PER_DAY,
-        cliTokenIssuer: 'croct.com',
-        deepLinkProtocol: 'croct',
-        templateRegistryUrl: new URL(options.registry ?? templateRegistry),
-        adminUrl: new URL(adminUrl),
-        adminTokenParameter: 'accessToken',
-        directories: {
-            current: options.cwd,
-            config: appPaths.config(),
-            cache: appPaths.cache(),
-            data: appPaths.data(),
-            home: homedir(),
-        },
-        api: {
-            graphqlEndpoint: `${apiEndpoint}/graphql`,
-            tokenEndpoint: `${apiEndpoint}/account/issue-token`,
-            tokenParameter: 'session',
-        },
-        verificationLinkDestination: {
-            accountActivation: './cli',
-            passwordReset: './cli',
-        },
-        emailSubject: {
-            passwordReset: 'Forgot password',
-            accountActivation: 'Welcome to Croct',
-        },
+        templateRegistryUrl: options.registry === undefined
+            ? undefined
+            : new URL(options.registry),
     });
 
     const template = getTemplate(invocation.args);
