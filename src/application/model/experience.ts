@@ -64,6 +64,7 @@ export type ExperienceDetails = {
     audiences: string[],
     slots: string[],
     experiment?: {
+        status?: ExperimentStatus,
         name?: string,
         goalId?: string,
         crossDevice?: boolean,

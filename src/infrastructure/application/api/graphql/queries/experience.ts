@@ -20,6 +20,7 @@ export const experienceQuery = graphql(`
                         crossDevice,
                         goalId,
                         traffic,
+                        status,
                         variants {
                             variantId
                             name

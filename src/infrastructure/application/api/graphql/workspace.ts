@@ -13,6 +13,7 @@ import {
     PersonalizedContentDefinition,
     SlotCriteria,
     SlotPath,
+    TargetSdk,
     TargetTyping,
     WorkspaceApi,
 } from '@/application/api/workspace';
@@ -25,11 +26,16 @@ import {
     CreateWorkspaceResourcePayload,
     ExperienceQuery,
     ExperiencesQuery,
-    ExperienceStatus,
     Feature,
+    Platform as GraphqlPlatform,
     SlotQuery,
     WorkspaceResourceContentInput,
     WorkspaceResourcesExperienceContentInput,
+    ApplicationEnvironment as GraphqlApplicationEnvironment,
+    ApplicationTrafficStatus as GraphqlApplicationTrafficStatus,
+    TargetSdk as GraphqlTargetSdk,
+    ExperimentStatus as GraphqlExperimentStatus,
+    ExperienceStatus as GraphqlExperienceStatus,
 } from '@/infrastructure/graphql/schema/graphql';
 import {audienceQuery, audiencesQuery} from '@/infrastructure/application/api/graphql/queries/audience';
 import {slotQuery, slotsQuery, slotStaticContentQuery} from '@/infrastructure/application/api/graphql/queries/slot';
@@ -42,7 +48,7 @@ import {
 import {componentQuery, componentsQuery} from '@/infrastructure/application/api/graphql/queries/component';
 import {experienceQuery, experiencesQuery} from '@/infrastructure/application/api/graphql/queries/experience';
 import {generateTypingMutation} from '@/infrastructure/application/api/graphql/queries/typing';
-import {Application, ApplicationEnvironment} from '@/application/model/application';
+import {Application, ApplicationEnvironment, ApplicationTrafficStatus} from '@/application/model/application';
 import {Audience} from '@/application/model/audience';
 import {Slot} from '@/application/model/slot';
 import {Component} from '@/application/model/component';
@@ -52,12 +58,15 @@ import {
     LocalizedContent,
     SlotContentMap,
     Variant,
+    ExperienceStatus,
+    ExperimentStatus,
 } from '@/application/model/experience';
 import {WorkspaceFeatures} from '@/application/model/workspace';
 import {
     createResourcesMutation,
     workspaceFeaturesQuery,
 } from '@/infrastructure/application/api/graphql/queries/workspace';
+import {Platform} from '@/application/model/platform';
 
 type ApplicationData = NonNullable<
     NonNullable<NonNullable<ApplicationQuery['organization']>['workspace']>['application']
@@ -96,6 +105,56 @@ type LocalizedContentData = NonNullable<
         >['settings']
     >['content']
 >['default']['contents'];
+
+type NormalizationMap<M extends string, A extends string> = {
+    model: Record<M, A>,
+    api: Record<A, M>,
+};
+
+function createNormalizationMap<M extends string, A extends string>(map: Record<M, A>): NormalizationMap<M, A> {
+    return {
+        model: map,
+        api: Object.fromEntries(Object.entries(map).map(([key, value]) => [value, key])),
+    };
+}
+
+const platformMap = createNormalizationMap<Platform, GraphqlPlatform>({
+    [Platform.JAVASCRIPT]: GraphqlPlatform.Javascript,
+    [Platform.REACT]: GraphqlPlatform.React,
+    [Platform.NEXTJS]: GraphqlPlatform.Next,
+});
+
+const environmentMap = createNormalizationMap<ApplicationEnvironment, GraphqlApplicationEnvironment>({
+    [ApplicationEnvironment.DEVELOPMENT]: GraphqlApplicationEnvironment.Development,
+    [ApplicationEnvironment.PRODUCTION]: GraphqlApplicationEnvironment.Production,
+});
+
+const trafficStatusMap = createNormalizationMap<ApplicationTrafficStatus, GraphqlApplicationTrafficStatus>({
+    [ApplicationTrafficStatus.NEVER_RECEIVED_TRAFFIC]: GraphqlApplicationTrafficStatus.NeverReceivedTraffic,
+    [ApplicationTrafficStatus.NOT_RECEIVING_TRAFFIC]: GraphqlApplicationTrafficStatus.NotReceivingTraffic,
+    [ApplicationTrafficStatus.RECEIVING_TRAFFIC]: GraphqlApplicationTrafficStatus.ReceivingTraffic,
+});
+
+const targetSdkMap = createNormalizationMap<TargetSdk, GraphqlTargetSdk>({
+    [TargetSdk.JAVASCRIPT]: GraphqlTargetSdk.PlugJs,
+});
+
+const experienceStatusMap = createNormalizationMap<ExperienceStatus, GraphqlExperienceStatus>({
+    [ExperienceStatus.DRAFT]: GraphqlExperienceStatus.Draft,
+    [ExperienceStatus.ACTIVE]: GraphqlExperienceStatus.Active,
+    [ExperienceStatus.SCHEDULED]: GraphqlExperienceStatus.Scheduled,
+    [ExperienceStatus.PAUSED]: GraphqlExperienceStatus.Paused,
+    [ExperienceStatus.ARCHIVED]: GraphqlExperienceStatus.Archived,
+});
+
+const experimentStatusMap = createNormalizationMap<ExperimentStatus, GraphqlExperimentStatus>({
+    [ExperimentStatus.DRAFT]: GraphqlExperimentStatus.Draft,
+    [ExperimentStatus.ACTIVE]: GraphqlExperimentStatus.Active,
+    [ExperimentStatus.SCHEDULED]: GraphqlExperimentStatus.Scheduled,
+    [ExperimentStatus.PAUSED]: GraphqlExperimentStatus.Paused,
+    [ExperimentStatus.FINISHED]: GraphqlExperimentStatus.Finished,
+    [ExperimentStatus.INDIRECTLY_PAUSED]: GraphqlExperimentStatus.IndirectlyPaused,
+});
 
 export class GraphqlWorkspaceApi implements WorkspaceApi {
     private readonly client: GraphqlClient;
@@ -184,10 +243,10 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
             slug: data.slug,
             timeZone: data.settings.timeZone,
             website: data.website,
-            environment: data.environment as any,
-            platform: data.platform as any,
+            environment: environmentMap.api[data.environment],
+            platform: platformMap.api[data.platform ?? GraphqlPlatform.Javascript],
             publicId: data.publicId,
-            trafficStatus: data.applicationStatus as any,
+            trafficStatus: trafficStatusMap.api[data.applicationStatus],
             ...(logo !== null ? {logo: logo} : {}),
         };
     }
@@ -198,8 +257,8 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
             payload: {
                 name: application.name,
                 website: application.website,
-                environment: application.environment as any,
-                platform: application.platform as any,
+                environment: environmentMap.model[application.environment],
+                platform: platformMap.model[application.platform],
                 timeZone: application.timeZone,
                 slug: await this.generateApplicationSlug(
                     application.workspaceId,
@@ -219,10 +278,10 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
             slug: node.slug,
             timeZone: node.settings.timeZone,
             website: node.website,
-            environment: node.environment as any,
-            platform: node.platform as any,
+            environment: environmentMap.api[node.environment],
+            platform: platformMap.api[node.platform ?? GraphqlPlatform.Javascript],
             publicId: node.publicId,
-            trafficStatus: node.applicationStatus as any,
+            trafficStatus: trafficStatusMap.api[node.applicationStatus],
             ...(logo !== null ? {logo: logo} : {}),
         };
     }
@@ -444,7 +503,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         const {data} = await this.client.execute(generateTypingMutation, {
             workspaceId: typing.workspaceId,
             payload: {
-                target: typing.target as any,
+                target: targetSdkMap.model[typing.target],
                 components: typing.components,
                 slots: typing.slots,
             },
@@ -457,7 +516,11 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         const {data} = await this.client.execute(experiencesQuery, {
             organizationSlug: path.organizationSlug,
             workspaceSlug: path.workspaceSlug,
-            status: path.status as unknown as (ExperienceStatus | ExperienceStatus[]),
+            status: path.status === undefined
+                ? undefined
+                : (Array.isArray(path.status) ? path.status : [path.status]).map(
+                    status => experienceStatusMap.model[status],
+                ),
         });
 
         const edges = data.organization?.workspace?.experiences.edges ?? [];
@@ -498,7 +561,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
             id: data.id,
             name: data.name,
             priority: data.priority ?? data.draft?.priority ?? 0,
-            status: data.status as any,
+            status: experienceStatusMap.api[data.status],
             audiences: audiences.map(audience => audience.customId),
             slots: slots.flatMap(({slot = null}) => (slot === null ? [] : [slot.customId])),
             ...(experiment !== null
@@ -527,7 +590,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
             id: data.id,
             name: data.name,
             priority: data.priority ?? data.draft?.priority ?? 0,
-            status: data.status as any,
+            status: experienceStatusMap.api[data.status],
             hasExperiments: data.hasExperiments,
             audiences: audiences.map(audience => audience.customId),
             slots: Object.values(slotMap),
@@ -538,6 +601,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                         ...(goalId !== null ? {goalId: goalId} : {}),
                         ...(crossDevice !== null ? {crossDevice: crossDevice} : {}),
                         ...(traffic !== null ? {traffic: traffic} : {}),
+                        ...('status' in experiment ? {status: experimentStatusMap.api[experiment.status]} : {}),
                         variants: (experiment.variants ?? []).map(
                             (variant): Variant => {
                                 const id = variant.variantId;
