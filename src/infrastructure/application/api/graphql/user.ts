@@ -137,19 +137,19 @@ export class GraphqlUserApi implements UserApi {
         });
 
         switch (data.closeSession.__typename) {
-            case 'CloseSessionAuthenticatedResult':
+            case 'CloseSessionAccessGrantedResult':
                 return {
                     status: 'access-granted',
                     accessToken: data.closeSession.accessToken,
                 };
 
-            case 'CloseSessionRecoveryResult':
+            case 'CloseSessionRecoveryGrantedResult':
                 return {
                     status: 'recovery-granted',
                     recoveryToken: data.closeSession.recoveryToken,
                 };
 
-            case 'CloseSessionIncompleteResult':
+            case 'CloseSessionPendingResult':
                 return {
                     status: 'pending',
                 };
