@@ -199,13 +199,13 @@ class TaskWatcher {
         this.lineCount = 0;
         const terminalWidth = this.output instanceof WriteStream
             ? this.output.columns
-            : Number.POSITIVE_INFINITY;
+            : 0;
 
         for (const task of this.tasks) {
             const line = this.formatTask(task);
 
             const wrappedLines = line.split('\n')
-                .flatMap(subLine => Math.ceil(subLine.length / terminalWidth));
+                .map(subLine => (terminalWidth === 0 ? 1 : Math.ceil([...subLine].length / terminalWidth)));
 
             this.lineCount += wrappedLines.reduce((sum, count) => sum + count, 0);
             this.output.write(`${line}\n`);
