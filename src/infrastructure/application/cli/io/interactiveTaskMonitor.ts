@@ -3,6 +3,7 @@ import cliCursor from 'cli-cursor';
 import chalk from 'chalk';
 import {Writable} from 'stream';
 import readline from 'node:readline';
+import {WriteStream} from 'tty';
 import {Task, TaskList, TaskOptions, Notifier, Semantic} from '@/application/cli/io/output';
 import {format} from '@/infrastructure/application/cli/io/formatting';
 import {TaskExecution, TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
@@ -196,11 +197,17 @@ class TaskWatcher {
 
     private render(): void {
         this.lineCount = 0;
+        const terminalWidth = this.output instanceof WriteStream
+            ? this.output.columns
+            : Number.POSITIVE_INFINITY;
 
         for (const task of this.tasks) {
             const line = this.formatTask(task);
 
-            this.lineCount += line.split('\n').length;
+            const wrappedLines = line.split('\n')
+                .flatMap(subLine => Math.ceil(subLine.length / terminalWidth));
+
+            this.lineCount += wrappedLines.reduce((sum, count) => sum + count, 0);
             this.output.write(`${line}\n`);
         }
     }
