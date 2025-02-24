@@ -11,6 +11,7 @@ type Requirement = {
 
 export type CheckDependencyOptions = {
     dependencies: Requirement[],
+    result?: Record<string, string>,
     help?: Pick<Help, | 'links' | 'suggestions'> & {
         message?: string,
     },
@@ -37,18 +38,29 @@ export class CheckDependencyAction implements Action<CheckDependencyOptions> {
 
         const notifier = output?.notify('Checking dependencies');
 
+        let checks: DependencyCheck[];
+
         try {
-            await this.checkDependencies(options);
+            checks = await Promise.all(options.dependencies.map(requirement => this.checkRequirement(requirement)));
         } finally {
             notifier?.stop();
         }
-    }
 
-    private async checkDependencies(options: CheckDependencyOptions): Promise<void> {
-        const results = await Promise.all(
-            options.dependencies.map(requirement => this.checkRequirement(requirement)),
-        );
-        const missing = results.filter(result => result.issue !== undefined);
+        const missing: DependencyCheck[] = [];
+
+        if (options.result !== undefined) {
+            for (const check of checks) {
+                if (options.result[check.dependency] !== undefined) {
+                    context.set(options.result[check.dependency], check.issue === undefined);
+
+                    continue;
+                }
+
+                if (check.issue !== undefined) {
+                    missing.push(check);
+                }
+            }
+        }
 
         if (missing.length > 0) {
             const {message, ...help} = options.help ?? {};

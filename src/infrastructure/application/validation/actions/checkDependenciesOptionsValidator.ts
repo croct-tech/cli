@@ -24,6 +24,7 @@ const schema: ZodType<CheckDependencyOptions> = z.strictObject({
         ).optional(),
         suggestions: z.array(z.string().min(1)).optional(),
     }).optional(),
+    result: z.record(z.string().min(1)).optional(),
 });
 
 export class CheckDependenciesOptionsValidator extends ActionOptionsValidator<CheckDependencyOptions> {

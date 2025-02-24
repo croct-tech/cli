@@ -275,6 +275,8 @@ import {SessionCloseListener} from '@/infrastructure/application/cli/io/sessionC
 import {LogFormatter} from '@/application/cli/io/logFormatter';
 import {BoxenFormatter} from '@/infrastructure/application/cli/io/boxenFormatter';
 import {NodeProcess} from '@/infrastructure/application/system/nodeProcess';
+import {CallbackAction} from '@/application/template/action/callbackAction';
+import {InitializeOptionsValidator} from '@/infrastructure/application/validation/actions/initializeOptionsValidator';
 
 export type Configuration = {
     program: Program,
@@ -384,14 +386,11 @@ export class Cli {
             cliTokenIssuer: configuration.cliTokenIssuer ?? 'croct.com',
             deepLinkProtocol: configuration.deepLinkProtocol ?? 'croct',
             templateRegistryUrl: configuration.templateRegistryUrl
-                // @todo specify the correct URL
-                ?? new URL('github:marcospassos/croct-examples/registry.json'),
+                ?? new URL('github:/croct-tech/templates/templates/registry.json'),
             adminUrl: configuration.adminUrl
-                // @todo specify the correct URL
                 ?? new URL('https://beta.croct.com'),
             adminTokenParameter: configuration.adminTokenParameter ?? 'accessToken',
             adminGraphqlEndpoint: configuration?.adminGraphqlEndpoint
-                // @todo specify the correct URL
                 ?? new URL('https://beta.croct.com/graphql'),
             directories: {
                 current: configuration.directories?.current ?? process.getCurrentDirectory(),
@@ -409,65 +408,6 @@ export class Cli {
                 accountActivation: configuration.emailSubject?.accountActivation ?? 'Welcome to Croct',
             },
         });
-    }
-
-    private static handleError(error: unknown): any {
-        switch (true) {
-            case error instanceof ApiError:
-                if (error.isAccessDenied()) {
-                    return new HelpfulError(
-                        'Your user lacks the necessary permissions to complete this operation.',
-                        {
-                            reason: ErrorReason.ACCESS_DENIED,
-                            details: error.problems.map(detail => detail.detail ?? detail.title),
-                            suggestions: ['Contact your organization or workspace administrator for assistance.'],
-                            cause: error,
-                        },
-                    );
-                }
-
-                break;
-
-            case error instanceof ActionError:
-                if (error.tracing.length > 0) {
-                    const trace = error.tracing
-                        .map(({name, source}, index) => {
-                            const location = source !== undefined
-                                ? ` at ${Cli.getSourceLocation(source)}`
-                                : '';
-
-                            return `${' '.repeat(index + 1)}↳ \`${name}\`${location}`;
-                        })
-                        .join('\n');
-
-                    return new HelpfulError(`${error.message}\n\n▶️ **Trace**\n${trace}`, error.help);
-                }
-
-                break;
-
-            case error instanceof ConfigurationError:
-                return new HelpfulError(
-                    error.message,
-                    {
-                        ...error.help,
-                        suggestions: ['Run `init` to create a new configuration.'],
-                    },
-                );
-        }
-
-        return error;
-    }
-
-    private static getSourceLocation(source: SourceLocation): string {
-        if (source.url.protocol === 'file:') {
-            return `${source.url}:${source.start.line}:${source.start.column}`;
-        }
-
-        if (source.url.hostname === 'github.com') {
-            return `${source.url}#L${source.start.line}-L${source.end.line}`;
-        }
-
-        return `${source.url}#${source.start.line}:${source.start.column}-${source.end.line}:${source.end.column}`;
     }
 
     public welcome(input: WelcomeInput): Promise<void> {
@@ -763,6 +703,21 @@ export class Cli {
         }
     }
 
+    private getUseTemplateCommand(): UseTemplateCommand {
+        return new UseTemplateCommand({
+            templateProvider: new ValidatedProvider({
+                provider: new Json5Provider(this.getTemplateProvider()),
+                validator: new TemplateValidator(),
+            }),
+            fileSystem: this.getFileSystem(),
+            action: this.getImportAction(),
+            io: {
+                input: this.getInput(),
+                output: this.getOutput(),
+            },
+        });
+    }
+
     public createApiKey(input: CreateApiKeyInput): Promise<void> {
         return this.execute(
             new CreateApiKeyCommand({
@@ -780,21 +735,6 @@ export class Cli {
             }),
             input,
         );
-    }
-
-    private getUseTemplateCommand(): UseTemplateCommand {
-        return new UseTemplateCommand({
-            templateProvider: new ValidatedProvider({
-                provider: new Json5Provider(this.getTemplateProvider()),
-                validator: new TemplateValidator(),
-            }),
-            fileSystem: this.getFileSystem(),
-            action: this.getImportAction(),
-            io: {
-                input: this.getInput(),
-                output: this.getOutput(),
-            },
-        });
     }
 
     private getFormInput(instruction?: Instruction): Input {
@@ -1087,6 +1027,12 @@ export class Cli {
                     }),
                     validator: new ReplaceFileContentOptionsValidator(),
                 }),
+                initialize: new ValidatedAction({
+                    action: new CallbackAction({
+                        callback: () => this.init({}),
+                    }),
+                    validator: new InitializeOptionsValidator(),
+                }),
                 'add-slot': new ValidatedAction({
                     action: new AddSlotAction({
                         installer: (slots, example): Promise<void> => {
@@ -1194,13 +1140,7 @@ export class Cli {
     }
 
     private getActionVariables(): VariableMap {
-        const getUrl = (path: string): string => {
-            const url = new URL(this.configuration.adminUrl);
-
-            url.pathname += `${path}/`;
-
-            return url.toString();
-        };
+        const getUrl = (path: string): string => new URL(path, this.configuration.adminUrl).toString();
 
         return {
             project: {
@@ -1210,7 +1150,7 @@ export class Cli {
 
                         return {
                             slug: organization,
-                            url: getUrl(`/organizations/${organization}`),
+                            url: getUrl(`organizations/${organization}`),
                         };
                     },
                 ),
@@ -1220,14 +1160,14 @@ export class Cli {
 
                         return {
                             slug: workspace,
-                            url: getUrl(`/organizations/${organization}/workspaces/${workspace}`),
+                            url: getUrl(`organizations/${organization}/workspaces/${workspace}`),
                         };
                     },
                 ),
                 application: LazyPromise.transient(
                     async () => {
                         const {organization, workspace, applications} = await this.getConfigurationManager().resolve();
-                        const path = `/organizations/${organization}/workspaces/${workspace}/applications/`;
+                        const path = `organizations/${organization}/workspaces/${workspace}/applications/`;
 
                         return {
                             development: {
@@ -2145,5 +2085,64 @@ export class Cli {
         output.report(Cli.handleError(error));
 
         return output.exit();
+    }
+
+    private static handleError(error: unknown): any {
+        switch (true) {
+            case error instanceof ApiError:
+                if (error.isAccessDenied()) {
+                    return new HelpfulError(
+                        'Your user lacks the necessary permissions to complete this operation.',
+                        {
+                            reason: ErrorReason.ACCESS_DENIED,
+                            details: error.problems.map(detail => detail.detail ?? detail.title),
+                            suggestions: ['Contact your organization or workspace administrator for assistance.'],
+                            cause: error,
+                        },
+                    );
+                }
+
+                break;
+
+            case error instanceof ActionError:
+                if (error.tracing.length > 0) {
+                    const trace = error.tracing
+                        .map(({name, source}, index) => {
+                            const location = source !== undefined
+                                ? ` at ${Cli.getSourceLocation(source)}`
+                                : '';
+
+                            return `${' '.repeat(index + 1)}↳ \`${name}\`${location}`;
+                        })
+                        .join('\n');
+
+                    return new HelpfulError(`${error.message}\n\n▶️ **Trace**\n${trace}`, error.help);
+                }
+
+                break;
+
+            case error instanceof ConfigurationError:
+                return new HelpfulError(
+                    error.message,
+                    {
+                        ...error.help,
+                        suggestions: ['Run `init` to create a new configuration.'],
+                    },
+                );
+        }
+
+        return error;
+    }
+
+    private static getSourceLocation(source: SourceLocation): string {
+        if (source.url.protocol === 'file:') {
+            return `${source.url}:${source.start.line}:${source.start.column}`;
+        }
+
+        if (source.url.hostname === 'github.com') {
+            return `${source.url}#L${source.start.line}-L${source.end.line}`;
+        }
+
+        return `${source.url}#${source.start.line}:${source.start.column}-${source.end.line}:${source.end.column}`;
     }
 }

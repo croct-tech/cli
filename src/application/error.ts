@@ -38,13 +38,14 @@ export class HelpfulError extends Error {
     }
 
     public static formatMessage(error: unknown): string {
-        const message = HelpfulError.extractMessage(error);
+        const message = HelpfulError.extractMessage(error).trim();
 
         if (message.length === 0) {
             return message;
         }
 
-        return message.charAt(0).toUpperCase() + message.slice(1);
+        return message.charAt(0).toUpperCase() + message.slice(1)
+            + (/^[^\n.]+$/.test(message) ? '.' : '');
     }
 
     public static formatCause(error: unknown): string {
