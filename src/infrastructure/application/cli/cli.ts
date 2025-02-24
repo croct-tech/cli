@@ -786,7 +786,7 @@ export class Cli {
             quiet: quiet,
             onExit: () => configuration.process.exit(),
             linkOpener: async (url): Promise<void> => {
-                await open(url);
+                await open(url, {wait: true});
             },
         });
     }
