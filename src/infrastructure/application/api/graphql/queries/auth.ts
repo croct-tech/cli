@@ -54,10 +54,10 @@ export const closeSession = graphql(`
     mutation CloseSession($sessionId: String!) {
         closeSession(sessionId: $sessionId) {
             __typename
-            ... on CloseSessionRecoveryResult {
+            ... on CloseSessionRecoveryGrantedResult {
                 recoveryToken
             }
-            ... on CloseSessionAuthenticatedResult {
+            ... on CloseSessionAccessGrantedResult {
                 accessToken
             }
         }

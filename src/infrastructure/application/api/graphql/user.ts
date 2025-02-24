@@ -61,6 +61,20 @@ export class GraphqlUserApi implements UserApi {
         this.client = client;
     }
 
+    private static normalizeOrganization(data: OrganizationData): Organization {
+        const {logo = null, website = null} = data;
+
+        return {
+            id: data.id,
+            name: data.name,
+            slug: data.slug,
+            type: data.type as any,
+            email: data.email,
+            ...(logo !== null ? {logo: logo} : {}),
+            ...(website !== null ? {website: website} : {}),
+        };
+    }
+
     public async getUser(): Promise<User> {
         const {data} = await this.client.execute(userQuery);
 
@@ -137,19 +151,19 @@ export class GraphqlUserApi implements UserApi {
         });
 
         switch (data.closeSession.__typename) {
-            case 'CloseSessionAuthenticatedResult':
+            case 'CloseSessionAccessGrantedResult':
                 return {
                     status: 'access-granted',
                     accessToken: data.closeSession.accessToken,
                 };
 
-            case 'CloseSessionRecoveryResult':
+            case 'CloseSessionRecoveryGrantedResult':
                 return {
                     status: 'recovery-granted',
                     recoveryToken: data.closeSession.recoveryToken,
                 };
 
-            case 'CloseSessionIncompleteResult':
+            case 'CloseSessionPendingResult':
                 return {
                     status: 'pending',
                 };
@@ -227,6 +241,31 @@ export class GraphqlUserApi implements UserApi {
             ...(logo !== null ? {logo: logo} : {}),
             ...(website !== null ? {website: website} : {}),
         };
+    }
+
+    public async getInvitations(): Promise<Invitation[]> {
+        const {data} = await this.client.execute(invitationQuery);
+        const edges = data.invitations.edges ?? [];
+
+        return edges.flatMap((edge): Invitation[] => {
+            const node = edge?.node ?? null;
+
+            if (node === null) {
+                return [];
+            }
+
+            return [{
+                id: node.id,
+                invitationTime: node.invitationTime,
+                organization: GraphqlUserApi.normalizeOrganization(node.organization),
+            }];
+        });
+    }
+
+    public async acceptInvitation(invitationId: string): Promise<void> {
+        await this.client.execute(acceptInvitationMutation, {
+            invitationId: invitationId,
+        });
     }
 
     private async getOrganizationSetupPayload(setup: OrganizationSetup): Promise<OrganizationSetupPayload> {
@@ -312,45 +351,6 @@ export class GraphqlUserApi implements UserApi {
             experiences: [],
             slots: [],
             redirectUrl: setup.redirectUrl,
-        };
-    }
-
-    public async getInvitations(): Promise<Invitation[]> {
-        const {data} = await this.client.execute(invitationQuery);
-        const edges = data.invitations.edges ?? [];
-
-        return edges.flatMap((edge): Invitation[] => {
-            const node = edge?.node ?? null;
-
-            if (node === null) {
-                return [];
-            }
-
-            return [{
-                id: node.id,
-                invitationTime: node.invitationTime,
-                organization: GraphqlUserApi.normalizeOrganization(node.organization),
-            }];
-        });
-    }
-
-    public async acceptInvitation(invitationId: string): Promise<void> {
-        await this.client.execute(acceptInvitationMutation, {
-            invitationId: invitationId,
-        });
-    }
-
-    private static normalizeOrganization(data: OrganizationData): Organization {
-        const {logo = null, website = null} = data;
-
-        return {
-            id: data.id,
-            name: data.name,
-            slug: data.slug,
-            type: data.type as any,
-            email: data.email,
-            ...(logo !== null ? {logo: logo} : {}),
-            ...(website !== null ? {website: website} : {}),
         };
     }
 

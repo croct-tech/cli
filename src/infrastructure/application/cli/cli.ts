@@ -388,11 +388,11 @@ export class Cli {
                 ?? new URL('github:marcospassos/croct-examples/registry.json'),
             adminUrl: configuration.adminUrl
                 // @todo specify the correct URL
-                ?? new URL('https://preview.app.croct.dev/pr-3359'),
+                ?? new URL('https://beta.croct.com'),
             adminTokenParameter: configuration.adminTokenParameter ?? 'accessToken',
             adminGraphqlEndpoint: configuration?.adminGraphqlEndpoint
                 // @todo specify the correct URL
-                ?? new URL('https://pr-2566-merge---croct-admin-backend-xzexsnymka-rj.a.run.app/graphql'),
+                ?? new URL('https://beta.croct.com/graphql'),
             directories: {
                 current: configuration.directories?.current ?? process.getCurrentDirectory(),
                 config: configuration.directories?.config ?? appPaths.config(),
@@ -409,6 +409,65 @@ export class Cli {
                 accountActivation: configuration.emailSubject?.accountActivation ?? 'Welcome to Croct',
             },
         });
+    }
+
+    private static handleError(error: unknown): any {
+        switch (true) {
+            case error instanceof ApiError:
+                if (error.isAccessDenied()) {
+                    return new HelpfulError(
+                        'Your user lacks the necessary permissions to complete this operation.',
+                        {
+                            reason: ErrorReason.ACCESS_DENIED,
+                            details: error.problems.map(detail => detail.detail ?? detail.title),
+                            suggestions: ['Contact your organization or workspace administrator for assistance.'],
+                            cause: error,
+                        },
+                    );
+                }
+
+                break;
+
+            case error instanceof ActionError:
+                if (error.tracing.length > 0) {
+                    const trace = error.tracing
+                        .map(({name, source}, index) => {
+                            const location = source !== undefined
+                                ? ` at ${Cli.getSourceLocation(source)}`
+                                : '';
+
+                            return `${' '.repeat(index + 1)}↳ \`${name}\`${location}`;
+                        })
+                        .join('\n');
+
+                    return new HelpfulError(`${error.message}\n\n▶️ **Trace**\n${trace}`, error.help);
+                }
+
+                break;
+
+            case error instanceof ConfigurationError:
+                return new HelpfulError(
+                    error.message,
+                    {
+                        ...error.help,
+                        suggestions: ['Run `init` to create a new configuration.'],
+                    },
+                );
+        }
+
+        return error;
+    }
+
+    private static getSourceLocation(source: SourceLocation): string {
+        if (source.url.protocol === 'file:') {
+            return `${source.url}:${source.start.line}:${source.start.column}`;
+        }
+
+        if (source.url.hostname === 'github.com') {
+            return `${source.url}#L${source.start.line}-L${source.end.line}`;
+        }
+
+        return `${source.url}#${source.start.line}:${source.start.column}-${source.end.line}:${source.end.column}`;
     }
 
     public welcome(input: WelcomeInput): Promise<void> {
@@ -704,21 +763,6 @@ export class Cli {
         }
     }
 
-    private getUseTemplateCommand(): UseTemplateCommand {
-        return new UseTemplateCommand({
-            templateProvider: new ValidatedProvider({
-                provider: new Json5Provider(this.getTemplateProvider()),
-                validator: new TemplateValidator(),
-            }),
-            fileSystem: this.getFileSystem(),
-            action: this.getImportAction(),
-            io: {
-                input: this.getInput(),
-                output: this.getOutput(),
-            },
-        });
-    }
-
     public createApiKey(input: CreateApiKeyInput): Promise<void> {
         return this.execute(
             new CreateApiKeyCommand({
@@ -736,6 +780,21 @@ export class Cli {
             }),
             input,
         );
+    }
+
+    private getUseTemplateCommand(): UseTemplateCommand {
+        return new UseTemplateCommand({
+            templateProvider: new ValidatedProvider({
+                provider: new Json5Provider(this.getTemplateProvider()),
+                validator: new TemplateValidator(),
+            }),
+            fileSystem: this.getFileSystem(),
+            action: this.getImportAction(),
+            io: {
+                input: this.getInput(),
+                output: this.getOutput(),
+            },
+        });
     }
 
     private getFormInput(instruction?: Instruction): Input {
@@ -2086,64 +2145,5 @@ export class Cli {
         output.report(Cli.handleError(error));
 
         return output.exit();
-    }
-
-    private static handleError(error: unknown): any {
-        switch (true) {
-            case error instanceof ApiError:
-                if (error.isAccessDenied()) {
-                    return new HelpfulError(
-                        'Your user lacks the necessary permissions to complete this operation.',
-                        {
-                            reason: ErrorReason.ACCESS_DENIED,
-                            details: error.problems.map(detail => detail.detail ?? detail.title),
-                            suggestions: ['Contact your organization or workspace administrator for assistance.'],
-                            cause: error,
-                        },
-                    );
-                }
-
-                break;
-
-            case error instanceof ActionError:
-                if (error.tracing.length > 0) {
-                    const trace = error.tracing
-                        .map(({name, source}, index) => {
-                            const location = source !== undefined
-                                ? ` at ${Cli.getSourceLocation(source)}`
-                                : '';
-
-                            return `${' '.repeat(index + 1)}↳ \`${name}\`${location}`;
-                        })
-                        .join('\n');
-
-                    return new HelpfulError(`${error.message}\n\n▶️ **Trace**\n${trace}`, error.help);
-                }
-
-                break;
-
-            case error instanceof ConfigurationError:
-                return new HelpfulError(
-                    error.message,
-                    {
-                        ...error.help,
-                        suggestions: ['Run `init` to create a new configuration.'],
-                    },
-                );
-        }
-
-        return error;
-    }
-
-    private static getSourceLocation(source: SourceLocation): string {
-        if (source.url.protocol === 'file:') {
-            return `${source.url}:${source.start.line}:${source.start.column}`;
-        }
-
-        if (source.url.hostname === 'github.com') {
-            return `${source.url}#L${source.start.line}-L${source.end.line}`;
-        }
-
-        return `${source.url}#${source.start.line}:${source.start.column}-${source.end.line}:${source.end.column}`;
     }
 }
