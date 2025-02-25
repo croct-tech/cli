@@ -5,6 +5,7 @@ import {ErrorReason, Help} from '@/application/error';
 export type TryOptions = {
     action: Promise<unknown>,
     else?: Promise<unknown>,
+    finally?: Promise<unknown>,
     help?: Pick<Help, | 'links' | 'suggestions'> & {
         message?: string,
     },
@@ -32,7 +33,11 @@ export class TryAction implements Action<TryOptions> {
                 });
             }
 
-            return this.run(options.else, context);
+            await this.run(options.else, context);
+        } finally {
+            if (options.finally !== undefined) {
+                await this.run(options.finally, context);
+            }
         }
     }
 

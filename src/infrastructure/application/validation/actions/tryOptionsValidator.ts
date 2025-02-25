@@ -5,6 +5,7 @@ import {ActionOptionsValidator} from '@/infrastructure/application/validation/ac
 const schema: ZodType<TryOptions> = z.strictObject({
     action: z.instanceof(Promise),
     else: z.instanceof(Promise).optional(),
+    finally: z.instanceof(Promise).optional(),
     help: z.strictObject({
         message: z.string()
             .min(1)
