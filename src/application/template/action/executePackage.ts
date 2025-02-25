@@ -1,4 +1,3 @@
-import stripAnsi from 'strip-ansi';
 import {Action, ActionError} from '@/application/template/action/action';
 import {ErrorReason} from '@/application/error';
 import {ActionContext} from '@/application/template/action/context';
@@ -8,6 +7,7 @@ import {PackageManager} from '@/application/project/packageManager/packageManage
 import {Provider} from '@/application/provider/provider';
 import {CommandExecutor} from '@/application/system/process/executor';
 import {Predicate} from '@/application/predicate/predicate';
+import {AnsiScreenEmulator} from '@/infrastructure/application/cli/io/ansiScreenEmulator';
 
 export type Interactions = {
     when: string,
@@ -114,16 +114,13 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
         });
 
         const nextInteractions = [...interactions];
-
-        let output = '';
+        const emulator = new AnsiScreenEmulator();
 
         for await (const line of execution.output) {
-            const lineText = stripAnsi(line);
-
-            output += lineText;
+            emulator.buffer(line);
 
             for (const [index, interaction] of nextInteractions.entries()) {
-                if (lineText.includes(interaction.when)) {
+                if (emulator.toRawString().includes(interaction.when)) {
                     if (interaction.once === true) {
                         nextInteractions.splice(index, 1);
                     }
@@ -147,7 +144,7 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
         }
 
         if (exitCode !== 0) {
-            throw new ActionError(`Command failed with output:\n\n${output}`, {
+            throw new ActionError(`Command failed with output:\n\n${emulator.toString()}`, {
                 reason: ErrorReason.UNEXPECTED_RESULT,
                 cause: executionError,
             });

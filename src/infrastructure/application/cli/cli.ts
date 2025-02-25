@@ -209,7 +209,7 @@ import {PnpmAgent} from '@/application/project/packageManager/agent/pnpmAgent';
 import {
     Configuration as ExecutableAgentConfiguration,
 } from '@/application/project/packageManager/agent/executableAgent';
-import {PtyExecutor} from '@/infrastructure/application/command/ptyExecutor';
+import {PtyExecutor} from '@/infrastructure/application/system/command/ptyExecutor';
 import {PackageManager} from '@/application/project/packageManager/packageManager';
 import {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
 import {NodeImportResolver} from '@/application/project/import/nodeImportResolver';
@@ -228,7 +228,7 @@ import {IsProject} from '@/application/predicate/isProject';
 import {ImportResolver} from '@/application/project/import/importResolver';
 import {LazyImportResolver} from '@/application/project/import/lazyImportResolver';
 import {CommandExecutor, SynchronousCommandExecutor} from '@/application/system/process/executor';
-import {SpawnExecutor} from '@/infrastructure/application/command/spawnExecutor';
+import {SpawnExecutor} from '@/infrastructure/application/system/command/spawnExecutor';
 import {LazyFormatter} from '@/application/project/code/formatter/lazyFormatter';
 import {LazySdk} from '@/application/project/sdk/lazySdk';
 import {MemoizedProvider} from '@/application/provider/memoizedProvider';
@@ -353,6 +353,8 @@ export class Cli {
 
     private readonly skipPrompts: boolean;
 
+    private readonly initialDirectory: string;
+
     private readonly workingDirectory: CurrentWorkingDirectory;
 
     private readonly instances: Map<() => any, any> = new Map();
@@ -360,9 +362,8 @@ export class Cli {
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
         this.skipPrompts = configuration.skipPrompts;
-        this.workingDirectory = new VirtualizedWorkingDirectory(
-            configuration.directories.current ?? configuration.process.getCurrentDirectory(),
-        );
+        this.initialDirectory = configuration.directories.current ?? configuration.process.getCurrentDirectory();
+        this.workingDirectory = new VirtualizedWorkingDirectory(this.initialDirectory);
     }
 
     public static fromDefaults(configuration: Options): Cli {
@@ -941,6 +942,7 @@ export class Cli {
                 'change-directory': new ValidatedAction({
                     action: new ChangeDirectoryAction({
                         fileSystem: fileSystem,
+                        rootDirectory: this.initialDirectory,
                         currentDirectory: this.workingDirectory,
                     }),
                     validator: new ChangeDirectoryOptionsValidator(),
@@ -966,7 +968,10 @@ export class Cli {
                         packageManager: this.getPackageManager(),
                         packageManagerProvider: this.getPackageManagerRegistry(),
                         workingDirectory: this.workingDirectory,
-                        commandExecutor: new PtyExecutor(),
+                        commandExecutor: new PtyExecutor({
+                            cols: 80,
+                            rows: 24,
+                        }),
                         commandTimeout: 2 * 60 * 1000, // 2 minutes
                         sourceChecker: {
                             // @todo: Add safety check to prevent running arbitrary commands
