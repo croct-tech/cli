@@ -10,10 +10,6 @@ export class Json5Provider implements ResourceProvider<JsonValue> {
         this.provider = provider;
     }
 
-    public supports(url: URL): Promise<boolean> {
-        return this.provider.supports(url);
-    }
-
     public async get(url: URL): Promise<Resource<JsonValue>> {
         const {value, ...resource} = await this.provider.get(url);
 

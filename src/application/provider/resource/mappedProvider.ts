@@ -8,21 +8,21 @@ export type Mapping = {
 
 export type Configuration<T> = {
     dataProvider: ResourceProvider<T>,
-    registryProvider: Provider<Mapping[]>,
+    registryProvider: Provider<Mapping[]> | ResourceProvider<Mapping[]>,
+    baseUrl?: URL,
 };
 
 export class MappedProvider<T> implements ResourceProvider<T> {
     private readonly dataProvider: ResourceProvider<T>;
 
-    private readonly registryProvider: Provider<Mapping[]>;
+    private readonly registryProvider: Provider<Mapping[]> | ResourceProvider<Mapping[]>;
 
-    public constructor({dataProvider, registryProvider}: Configuration<T>) {
+    private readonly baseUrl?: URL;
+
+    public constructor({dataProvider, registryProvider, baseUrl}: Configuration<T>) {
         this.dataProvider = dataProvider;
         this.registryProvider = registryProvider;
-    }
-
-    public async supports(url: URL): Promise<boolean> {
-        return this.dataProvider.supports(await this.resolveUrl(url));
+        this.baseUrl = baseUrl;
     }
 
     public async get(url: URL): Promise<Resource<T>> {
@@ -30,20 +30,33 @@ export class MappedProvider<T> implements ResourceProvider<T> {
     }
 
     private async resolveUrl(url: URL): Promise<URL> {
-        const mappings = await this.registryProvider.get();
-
-        for (const {pattern, destination} of mappings) {
+        for (const {pattern, destination} of await this.loadMappings(url)) {
             const match = url.href.match(typeof pattern === 'string' ? new RegExp(pattern) : pattern);
 
             if (match === null) {
                 continue;
             }
 
-            return typeof destination === 'string'
-                ? new URL(destination.replace(/\$([0-9]+)/g, (_, index) => match[Number.parseInt(index, 10)]))
-                : destination;
+            if (destination instanceof URL) {
+                return destination;
+            }
+
+            return new URL(
+                destination.replace(/\$([0-9]+)/g, (_, index) => match[Number.parseInt(index, 10)]),
+                this.baseUrl,
+            );
         }
 
         return url;
+    }
+
+    private async loadMappings(url: URL): Promise<Mapping[]> {
+        const mapping = await this.registryProvider.get(url);
+
+        if (!Array.isArray(mapping)) {
+            return mapping.value;
+        }
+
+        return mapping;
     }
 }

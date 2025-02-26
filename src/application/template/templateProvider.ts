@@ -27,7 +27,8 @@ import {resolveUrl} from '@/utils/resolveUrl';
 export type Configuration = {
     evaluator: ExpressionEvaluator,
     validator: Validator<Template>,
-    provider: ResourceProvider<string>,
+    templateProvider: ResourceProvider<string>,
+    fileProvider: ResourceProvider<string>,
 };
 
 type DeferredTemplateOptions = DeferredTemplate['options'];
@@ -54,22 +55,21 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
 
     private readonly validator: Validator<Template>;
 
-    private readonly provider: ResourceProvider<string>;
+    private readonly templateProvider: ResourceProvider<string>;
+
+    private readonly fileProvider: ResourceProvider<string>;
 
     private readonly loading: string[] = [];
 
-    public constructor({evaluator, validator, provider}: Configuration) {
+    public constructor({evaluator, validator, templateProvider, fileProvider}: Configuration) {
         this.evaluator = evaluator;
         this.validator = validator;
-        this.provider = provider;
-    }
-
-    public supports(url: URL): Promise<boolean> {
-        return this.provider.supports(url);
+        this.templateProvider = templateProvider;
+        this.fileProvider = fileProvider;
     }
 
     public async get(url: URL): Promise<Resource<DeferredTemplate>> {
-        const {url: resolvedUrl, value: source} = await this.provider.get(url);
+        const {url: resolvedUrl, value: source} = await this.templateProvider.get(url);
 
         let node: JsonObjectNode;
 
@@ -382,7 +382,7 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
             });
         }
 
-        const {url: resolvedUrl, value} = await this.provider.get(url);
+        const {url: resolvedUrl, value} = await this.fileProvider.get(url);
 
         let node: JsonValueNode;
 

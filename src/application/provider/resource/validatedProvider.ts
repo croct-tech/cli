@@ -17,10 +17,6 @@ export class ValidatedProvider<I, R> implements ResourceProvider<I> {
         this.validator = validator;
     }
 
-    public supports(url: URL): Promise<boolean> {
-        return this.provider.supports(url);
-    }
-
     public async get(url: URL): Promise<Resource<I>> {
         const {value, ...resource} = await this.provider.get(url);
         const validation = await this.validator.validate(value);

@@ -33,16 +33,6 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
         this.provider = provider;
     }
 
-    public supports(url: URL): Promise<boolean> {
-        const file = this.resolveFile(url);
-
-        if (file === null) {
-            return Promise.resolve(false);
-        }
-
-        return this.provider.supports(file.url);
-    }
-
     public async get(url: URL): Promise<Resource<FileSystemIterator>> {
         const info = this.parseUrl(url);
 
@@ -154,19 +144,7 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
         };
     }
 
-    private resolveFile(url: ParsedUrl): GithubFile;
-
-    private resolveFile(url: URL): GithubFile|null;
-
-    private resolveFile(url: URL|ParsedUrl): GithubFile|null {
-        const info = url instanceof URL
-            ? this.parseUrl(url)
-            : url;
-
-        if (info === null) {
-            return null;
-        }
-
+    private resolveFile(info: ParsedUrl): GithubFile {
         const {username, repository, path} = info;
         const ref = info.ref ?? 'HEAD';
 

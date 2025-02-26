@@ -3,24 +3,38 @@ import {Resource, ResourceProvider} from '@/application/provider/resource/resour
 
 export type Configuration<T> = {
     provider: ResourceProvider<T>,
-    cache: CacheProvider<string, Resource<T>>,
+    errorCache?: CacheProvider<string, any>,
+    resourceCache: CacheProvider<string, Resource<T>>,
 };
 
 export class CachedProvider<T> implements ResourceProvider<T> {
     private readonly provider: ResourceProvider<T>;
 
-    private readonly cache: CacheProvider<string, Resource<T>>;
+    private readonly resourceCache: CacheProvider<string, Resource<T>>;
 
-    public constructor({provider, cache}: Configuration<T>) {
+    private readonly errorCache?: CacheProvider<string, any>;
+
+    public constructor({provider, resourceCache, errorCache}: Configuration<T>) {
         this.provider = provider;
-        this.cache = cache;
+        this.resourceCache = resourceCache;
+        this.errorCache = errorCache;
     }
 
-    public supports(url: URL): Promise<boolean> {
-        return this.provider.supports(url);
-    }
+    public async get(url: URL): Promise<Resource<T>> {
+        const cachedError = await this.errorCache?.get(url.toString(), () => Promise.resolve());
 
-    public get(url: URL): Promise<Resource<T>> {
-        return this.cache.get(url.toString(), () => this.provider.get(url));
+        if (cachedError !== undefined) {
+            return Promise.reject(cachedError);
+        }
+
+        return this.resourceCache.get(url.toString(), async () => {
+            try {
+                return await this.provider.get(url);
+            } catch (error) {
+                this.errorCache?.set(url.toString(), error);
+
+                throw error;
+            }
+        });
     }
 }

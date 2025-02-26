@@ -16,7 +16,7 @@ export class FileSystemProvider implements ResourceProvider<FileSystemIterator> 
     public get(url: URL): Promise<Resource<FileSystemIterator>> {
         if (!FileSystemProvider.supportsUrl(url)) {
             throw new ResourceProviderError(`Unsupported protocol "${url.protocol}".`, {
-                reason: ErrorReason.PRECONDITION,
+                reason: ErrorReason.NOT_SUPPORTED,
                 url: url,
             });
         }

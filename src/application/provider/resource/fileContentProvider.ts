@@ -8,10 +8,6 @@ export class FileContentProvider implements ResourceProvider<string> {
         this.provider = provider;
     }
 
-    public supports(url: URL): Promise<boolean> {
-        return this.provider.supports(url);
-    }
-
     public async get(url: URL): Promise<Resource<string>> {
         const {value: iterator, ...resource} = await this.provider.get(url);
         const next = await iterator.next();

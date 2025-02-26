@@ -34,7 +34,5 @@ export type Resource<T> = {
 };
 
 export interface ResourceProvider<T> extends Provider<Resource<T>, [URL]> {
-    supports(url: URL): Promise<boolean>;
-
     get(url: URL): Promise<Resource<T>>;
 }

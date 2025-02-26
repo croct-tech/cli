@@ -1,13 +1,8 @@
 import {Action, ActionError} from '@/application/template/action/action';
-import {Logger} from '@/application/cli/io/output';
 import {ErrorReason, Help} from '@/application/error';
 
 export type FailOptions = Pick<Help, 'title' | 'links' | 'suggestions' | 'details'> & {
     message: string,
-};
-
-export type Configuration = {
-    logger: Logger,
 };
 
 export class FailAction implements Action<FailOptions> {

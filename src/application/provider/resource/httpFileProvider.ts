@@ -11,14 +11,6 @@ export class HttpFileProvider implements ResourceProvider<FileSystemIterator> {
         this.provider = provider;
     }
 
-    public supports(url: URL): Promise<boolean> {
-        if (!HttpFileProvider.supportsUrl(url)) {
-            return Promise.resolve(false);
-        }
-
-        return this.provider.supports(url);
-    }
-
     public async get(url: URL): Promise<Resource<FileSystemIterator>> {
         if (!HttpFileProvider.supportsUrl(url)) {
             throw new ResourceProviderError('Unsupported URL.', {

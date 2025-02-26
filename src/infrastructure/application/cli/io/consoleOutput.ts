@@ -87,6 +87,10 @@ export class ConsoleOutput implements Output {
         this.writeLog(text, 'error');
     }
 
+    public debug(message: string): void {
+        this.writeLog(message, 'neutral');
+    }
+
     public notify(initialStatus: string): Notifier {
         return this.taskMonitor.notify(initialStatus);
     }

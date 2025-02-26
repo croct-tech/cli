@@ -1,13 +1,4 @@
-import {
-    AdaptedCache,
-    AutoSaveCache,
-    CacheProvider,
-    InMemoryCache,
-    NoopCache,
-    PrefixedCache,
-    StaleWhileRevalidateCache,
-    TimestampedCacheEntry,
-} from '@croct/cache';
+import {AutoSaveCache, InMemoryCache} from '@croct/cache';
 import {ApiKey} from '@croct/sdk/apiKey';
 import {Clock, Instant, LocalTime} from '@croct/time';
 import {SystemClock} from '@croct/time/clock/systemClock';
@@ -15,6 +6,7 @@ import open from 'open';
 import {homedir} from 'os';
 import XDGAppPaths from 'xdg-app-paths';
 import ci from 'ci-info';
+import {FilteredLogger, Logger, LogLevel} from '@croct/logging';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput} from '@/infrastructure/application/cli/io/consoleOutput';
 import {Sdk} from '@/application/project/sdk/sdk';
@@ -166,7 +158,7 @@ import {PrintAction} from '@/application/template/action/printAction';
 import {PrintOptionsValidator} from '@/infrastructure/application/validation/actions/printOptionsValidator';
 import {FailAction} from '@/application/template/action/failAction';
 import {FailOptionsValidator} from '@/infrastructure/application/validation/actions/failOptionsValidator';
-import {SpecificResourceProvider} from '@/application/provider/specificResourceProvider';
+import {SpecificResourceProvider} from '@/application/provider/resource/specificResourceProvider';
 import {ConstantProvider} from '@/application/provider/constantProvider';
 import {Server} from '@/application/project/server/server';
 import {ProjectServerProvider, ServerFactory} from '@/application/project/server/provider/projectServerProvider';
@@ -188,7 +180,6 @@ import {VariableMap} from '@/application/template/evaluation';
 import {StopServer} from '@/application/template/action/stopServerAction';
 import {StopServerOptionsValidator} from '@/infrastructure/application/validation/actions/stopServerOptionsValidator';
 import {ProcessServerFactory} from '@/application/project/server/factory/processServerFactory';
-import {ResourceValueProvider} from '@/application/provider/resourceValueProvider';
 import {CurrentWorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {
     ChangeDirectoryOptionsValidator,
@@ -277,12 +268,21 @@ import {BoxenFormatter} from '@/infrastructure/application/cli/io/boxenFormatter
 import {NodeProcess} from '@/infrastructure/application/system/nodeProcess';
 import {CallbackAction} from '@/application/template/action/callbackAction';
 import {InitializeOptionsValidator} from '@/infrastructure/application/validation/actions/initializeOptionsValidator';
+import {NpmRegistryProvider} from '@/application/provider/resource/npmRegistryProvider';
+import {HttpResponseBody} from '@/application/provider/resource/httpResponseBody';
+import {
+    PartialNpmRegistryMetadataValidator,
+} from '@/infrastructure/application/validation/partialNpmRegistryMetadataValidator';
+import {TraceProvider} from '@/application/provider/resource/traceProvider';
+import {TreeLogger} from '@/application/logging/treeLogger';
+import {OutputLogger} from '@/infrastructure/application/cli/io/outputLogger';
+import {HierarchicalLogger} from '@/application/logging/hierarchicalLogger';
 
 export type Configuration = {
     program: Program,
     process: Process,
-    cache: boolean,
     quiet: boolean,
+    debug: boolean,
     interactive: boolean,
     apiKey?: ApiKey,
     skipPrompts: boolean,
@@ -335,6 +335,11 @@ type NodePackageManagers = {
     pnpm: NodePackageManager,
 };
 
+type ProviderTracingOptions<T> = {
+    provider: ResourceProvider<T>,
+    label?: string,
+};
+
 export class Cli {
     // eslint-disable-next-line @typescript-eslint/ban-types -- Object.prototype.constructor is a Function
     private static readonly READ_ONLY_COMMANDS: Set<Function> = new Set([
@@ -375,8 +380,8 @@ export class Cli {
                 throw new HelpfulError('CLI is running in standalone mode.');
             }),
             process: configuration.process ?? process,
-            cache: configuration.cache ?? true,
             quiet: configuration.quiet ?? false,
+            debug: configuration.debug ?? false,
             interactive: configuration.interactive ?? !ci.isCI,
             apiKey: configuration.apiKey,
             skipPrompts: configuration.skipPrompts ?? false,
@@ -792,6 +797,22 @@ export class Cli {
         });
     }
 
+    private getHierarchicalLogger(): HierarchicalLogger {
+        return this.share(this.getHierarchicalLogger, () => new TreeLogger(this.getLogger()));
+    }
+
+    private getLogger(): Logger {
+        return this.share(this.getLogger, () => {
+            const logger = new OutputLogger(this.getOutput());
+
+            if (this.configuration.debug) {
+                return logger;
+            }
+
+            return new FilteredLogger(logger, LogLevel.WARNING);
+        });
+    }
+
     private getOutput(): ConsoleOutput {
         return this.share(
             this.getOutput,
@@ -818,19 +839,16 @@ export class Cli {
 
     private getTemplateProvider(): ResourceProvider<string> {
         return this.share(this.getTemplateProvider, () => {
-            const fileNames = ['template.json5', 'template.json'];
-            const dataProvider = new FileContentProvider(this.getFileProvider());
-
-            return new CachedProvider({
-                cache: AdaptedCache.transformKeys(
-                    new AutoSaveCache(new InMemoryCache()),
-                    (url: string) => url.toString(),
-                ),
-                provider: new MultiProvider(
-                    ...fileNames.map(
+            const createMappedProvider = <T>(provider: ResourceProvider<T>): ResourceProvider<T> => (
+                new MultiProvider(
+                    ...['template.json5', 'template.json'].map(
                         fileName => new MappedProvider({
-                            dataProvider: dataProvider,
+                            dataProvider: provider,
                             registryProvider: new ConstantProvider([
+                                {
+                                    pattern: /^(https:\/\/(?:www\.)?github.com\/[^/]+\/[^/]+)\/?$/,
+                                    destination: `$1/blob/main/${fileName}`,
+                                },
                                 {
                                     // Any URL not ending with a file extension, excluding the trailing slash
                                     pattern: /^(.+?:\/*[^/]+(\/+[^/.]+|\/[^/]+(?=\/))*)\/*$/,
@@ -839,66 +857,97 @@ export class Cli {
                             ]),
                         }),
                     ),
-                ),
+                )
+            );
+
+            const httpProvider = this.traceProvider({provider: this.getHttpProvider()});
+
+            return this.traceProvider({
+                label: 'TemplateProvider',
+                provider: new CachedProvider({
+                    resourceCache: new AutoSaveCache(new InMemoryCache()),
+                    errorCache: new InMemoryCache(),
+                    provider: new MultiProvider(
+                        new MappedProvider({
+                            dataProvider: this.traceProvider({
+                                label: 'ResourceProvider',
+                                provider: createMappedProvider(
+                                    new FileContentProvider(
+                                        new MultiProvider(
+                                            this.traceProvider({provider: new GithubProvider(httpProvider)}),
+                                            this.traceProvider({provider: new HttpFileProvider(httpProvider)}),
+                                        ),
+                                    ),
+                                ),
+                            }),
+                            registryProvider: this.traceProvider({
+                                label: 'NpmRegistryProvider',
+                                provider: new NpmRegistryProvider(
+                                    new ValidatedProvider({
+                                        provider: HttpResponseBody.json(
+                                            this.traceProvider({
+                                                provider: this.getHttpProvider(),
+                                            }),
+                                        ),
+                                        validator: new PartialNpmRegistryMetadataValidator(),
+                                    }),
+                                ),
+                            }),
+                        }),
+                        createMappedProvider(new FileContentProvider(this.getFileProvider())),
+                    ),
+                }),
             });
         });
     }
 
     private getFileProvider(): ResourceProvider<FileSystemIterator> {
         return this.share(this.getFileProvider, () => {
-            const httpProvider = this.getHttpProvider();
-            const localProvider = new FileSystemProvider(this.getFileSystem());
+            const httpProvider = this.traceProvider({provider: this.getHttpProvider()});
+            const localSystemProvider = this.traceProvider({provider: new FileSystemProvider(this.getFileSystem())});
+            const fileProvider = new MultiProvider(
+                localSystemProvider,
+                this.traceProvider({provider: new GithubProvider(httpProvider)}),
+                this.traceProvider({provider: new HttpFileProvider(httpProvider)}),
+            );
 
-            const providers = [
-                localProvider,
-                new GithubProvider(httpProvider),
-                new HttpFileProvider(httpProvider),
-            ];
-
-            return new MultiProvider(
-                localProvider,
-                new MappedProvider({
-                    dataProvider: new MultiProvider(...providers),
-                    registryProvider: new ResourceValueProvider(
-                        new SpecificResourceProvider({
-                            url: this.configuration.templateRegistryUrl,
-                            provider: new ValidatedProvider({
-                                provider: new CachedProvider({
-                                    cache: new StaleWhileRevalidateCache({
-                                        freshPeriod: 60,
-                                        cacheProvider: AdaptedCache.transformValues(
-                                            this.getCache('name-registry'),
-                                            ({value: {url, value}, timestamp}) => TimestampedCacheEntry.toJSON({
-                                                timestamp: timestamp,
-                                                value: {
-                                                    value: value,
-                                                    url: url.toString(),
-                                                },
-                                            }),
-                                            (data: string) => {
-                                                const {value, timestamp} = TimestampedCacheEntry
-                                                    .fromJSON<{value: string, url: string}>(data);
-
-                                                return {
-                                                    timestamp: timestamp,
-                                                    value: {
-                                                        url: new URL(value.url),
-                                                        value: value.value,
-                                                    },
-                                                };
-                                            },
-                                        ),
+            return this.traceProvider({
+                label: 'FileProvider',
+                provider: new MultiProvider(
+                    localSystemProvider,
+                    this.traceProvider({
+                        provider: new MappedProvider({
+                            baseUrl: new URL('./', this.configuration.templateRegistryUrl),
+                            dataProvider: this.traceProvider({
+                                label: 'ResourceProvider',
+                                provider: fileProvider,
+                            }),
+                            registryProvider: new SpecificResourceProvider({
+                                url: this.configuration.templateRegistryUrl,
+                                provider: this.traceProvider({
+                                    label: 'GlobalRegistryProvider',
+                                    provider: new CachedProvider({
+                                        errorCache: new InMemoryCache(),
+                                        resourceCache: new AutoSaveCache(new InMemoryCache()),
+                                        provider: new ValidatedProvider({
+                                            provider: new Json5Provider(new FileContentProvider(fileProvider)),
+                                            validator: new RegistryValidator(),
+                                        }),
                                     }),
-                                    provider: new Json5Provider(
-                                        new FileContentProvider(new MultiProvider(...providers)),
-                                    ),
                                 }),
-                                validator: new RegistryValidator(),
                             }),
                         }),
-                    ),
-                }),
-            );
+                    }),
+                ),
+            });
+        });
+    }
+
+    private traceProvider<T>({provider, label}: ProviderTracingOptions<T>): ResourceProvider<T> {
+        return new TraceProvider({
+            label: label,
+            provider: provider,
+            logger: this.getHierarchicalLogger(),
         });
     }
 
@@ -1130,7 +1179,8 @@ export class Cli {
                                         functions: functions,
                                     }),
                                     validator: new TemplateValidator(),
-                                    provider: this.getTemplateProvider(),
+                                    templateProvider: this.getTemplateProvider(),
+                                    fileProvider: new FileContentProvider(this.getFileProvider()),
                                 }),
                                 variables: this.getActionVariables(),
                             }),
@@ -1988,24 +2038,6 @@ export class Cli {
 
     private getClock(): Clock {
         return SystemClock.UTC;
-    }
-
-    private getCache(namespace: string): CacheProvider<string, string> {
-        if (!this.configuration.cache) {
-            return new NoopCache();
-        }
-
-        return new PrefixedCache(this.getCacheProvider(), namespace);
-    }
-
-    private getCacheProvider(): CacheProvider<string, string> {
-        return this.share(
-            this.getCacheProvider,
-            () => new FileSystemCache({
-                fileSystem: this.getFileSystem(),
-                directory: this.configuration.directories.cache,
-            }),
-        );
     }
 
     private getProtocolRegistryProvider(): Provider<ProtocolRegistry|null> {

@@ -44,7 +44,6 @@ function createProgram(config: Configuration): typeof program {
             return url;
         })
         .option('--no-interaction', 'Disable interaction mode.')
-        .option('--no-cache', 'Disable cache.')
         .addOption(
             new Option('-s, --skip-prompts', 'Skip prompts with default options.')
                 .default(false),
@@ -54,6 +53,7 @@ function createProgram(config: Configuration): typeof program {
                 .default(false)
                 .implies({interaction: false}),
         )
+        .option('--debug', 'Enable debug mode.')
         .version('0.0.1', '-v, --version', 'Display the version number.')
         .helpOption('-h, --help', 'Display help for a command.')
         .helpCommand('help [command]', 'Display help for a command.');
@@ -346,8 +346,8 @@ function getTemplate(args: string[]): string | null {
 
     const cli = Cli.fromDefaults({
         program: params => run(invocation.args.slice(0, 2).concat(params)),
-        cache: options.cache,
         quiet: options.quiet,
+        debug: options.debug,
         interactive: options.interaction ? undefined : false,
         apiKey: options.apiKey,
         skipPrompts: options.skipPrompts === true,

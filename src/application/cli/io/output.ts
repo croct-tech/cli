@@ -34,16 +34,14 @@ export type TaskList = TaskOptions & {
 
 export type Semantic = 'neutral' | 'info' | 'error' | 'warning' | 'success';
 
-export interface Logger {
+export interface Output {
     announce(callout: Callout): void;
     log(message: string, semantic?: Semantic): void;
     inform(message: string): void;
     warn(message: string): void;
     alert(message: string): void;
     confirm(message: string): void;
-}
-
-export interface Output extends Logger {
+    debug(message: string): void;
     break(): void;
     monitor<T>(resolver: TaskResolver<T>): Promise<T>;
     monitor(tasks: TaskList): Promise<void>;
