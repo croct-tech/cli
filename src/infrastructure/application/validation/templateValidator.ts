@@ -20,6 +20,10 @@ const jsonSchema: z.ZodType<JsonValue> = z.lazy(
 
 const optionSchema: ZodType<OptionDefinition> = z.discriminatedUnion('type', [
     baseOptionSchema.extend({
+        type: z.literal('reference'),
+        default: z.string().optional(),
+    }),
+    baseOptionSchema.extend({
         type: z.literal('string'),
         options: z.array(z.string()).optional(),
         default: z.string().optional(),

@@ -15,7 +15,6 @@ const jsonSchema: z.ZodType<JsonValue> = z.lazy(
 
 const schema: ZodType<ImportOptions> = z.strictObject({
     template: z.string().min(1),
-    share: z.array(z.string().min(1)).optional(),
     options: z.record(z.string().min(1), jsonSchema).optional(),
 });
 

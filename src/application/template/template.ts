@@ -7,6 +7,9 @@ type LazyOptionValue<T extends JsonValue> = () => Promise<T> | T;
 export type OptionValue<T extends JsonValue = JsonValue> = T | LazyOptionValue<T>;
 
 type OptionTypes = {
+    reference: {
+        type: string,
+    },
     string: {
         type: string,
         options?: string[],
@@ -27,10 +30,12 @@ type OptionTypes = {
 
 export type OptionType = keyof OptionTypes;
 
+export type OptionValueType<T extends OptionType> = OptionTypes[T]['type'];
+
 export type OptionDefinition<T extends OptionType = OptionType> = {
     [K in T]: Omit<OptionTypes[K], 'type'> & {
     type: K,
-    default?: OptionValue<OptionTypes[K]['type']>,
+    default?: OptionValueType<K>,
     description: string,
     required?: boolean,
 }

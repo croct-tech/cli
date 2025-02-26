@@ -4,7 +4,7 @@ import {ActionContext} from '@/application/template/action/context';
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {Resource, ResourceNotFoundError, ResourceProvider} from '@/application/provider/resource/resourceProvider';
 import {VariableMap} from '@/application/template/evaluation';
-import {DeferredOptionDefinition, DeferredTemplate} from '@/application/template/template';
+import {DeferredOptionDefinition, DeferredTemplate, OptionType, OptionValueType} from '@/application/template/template';
 import {Deferrable} from '@/application/template/deferral';
 import {resolveUrl} from '@/utils/resolveUrl';
 
@@ -18,6 +18,11 @@ export type Configuration = {
     runner: ActionRunner,
     templateProvider: ResourceProvider<DeferredTemplate>,
     variables: VariableMap,
+};
+
+type ResolvedOptions = {
+    values: VariableMap,
+    references: string[],
 };
 
 export class ImportAction implements Action<ImportOptions> {
@@ -63,19 +68,20 @@ export class ImportAction implements Action<ImportOptions> {
             baseUrl: url,
         });
 
-        ImportAction.shareVariables(options.share ?? [], context, subContext);
+        ImportAction.shareVariables(input.references, context, subContext);
 
         try {
-            await this.run(template, input, subContext);
+            await this.run(template, input.values, subContext);
         } finally {
             this.resolving.pop();
         }
 
-        ImportAction.shareVariables(options.share ?? [], subContext, context);
+        ImportAction.shareVariables(input.references, subContext, context);
     }
 
-    private async getInputValues(template: DeferredTemplate, input: VariableMap = {}): Promise<VariableMap> {
+    private async getInputValues(template: DeferredTemplate, input: VariableMap = {}): Promise<ResolvedOptions> {
         const values: VariableMap = {};
+        const references: string[] = [];
 
         for (const [name, definition] of Object.entries(template.options ?? {})) {
             const value = input[name];
@@ -89,13 +95,25 @@ export class ImportAction implements Action<ImportOptions> {
             const resolvedValue = await (value ?? definition.resolveDefault?.(this.config.variables));
 
             if (resolvedValue !== undefined) {
-                ImportAction.checkOptionValue(name, resolvedValue, definition);
+                if (definition.type === 'reference') {
+                    ImportAction.checkOptionValue<'string'>(name, resolvedValue, {
+                        ...definition,
+                        type: 'string',
+                    });
+
+                    references.push(resolvedValue);
+                } else {
+                    ImportAction.checkOptionValue(name, resolvedValue, definition);
+                }
 
                 values[name] = resolvedValue;
             }
         }
 
-        return values;
+        return {
+            values: values,
+            references: references,
+        };
     }
 
     private async run(template: DeferredTemplate, options: VariableMap, context: ActionContext): Promise<void> {
@@ -154,11 +172,11 @@ export class ImportAction implements Action<ImportOptions> {
         }
     }
 
-    private static checkOptionValue(
+    private static checkOptionValue<T extends OptionType>(
         name: string,
         value: unknown,
         definition: DeferredOptionDefinition,
-    ): asserts value is JsonValue {
+    ): asserts value is OptionValueType<T> {
         switch (definition.type) {
             case 'number':
             case 'string':

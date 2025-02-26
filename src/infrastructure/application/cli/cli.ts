@@ -392,7 +392,7 @@ export class Cli {
             cliTokenIssuer: configuration.cliTokenIssuer ?? 'croct.com',
             deepLinkProtocol: configuration.deepLinkProtocol ?? 'croct',
             templateRegistryUrl: configuration.templateRegistryUrl
-                ?? new URL('github:/croct-tech/templates/templates/registry.json'),
+                ?? new URL('github:/croct-tech/templates/templates/registry.json5'),
             adminUrl: configuration.adminUrl
                 ?? new URL('https://beta.croct.com'),
             adminTokenParameter: configuration.adminTokenParameter ?? 'accessToken',
