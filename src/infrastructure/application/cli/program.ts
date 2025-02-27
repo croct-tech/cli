@@ -1,5 +1,5 @@
 import {Argument, Command, InvalidArgumentError, Option} from '@commander-js/extra-typings';
-import {JsonPrimitive} from '@croct/json';
+import {JsonPrimitive, JsonValue} from '@croct/json';
 import {realpathSync} from 'fs';
 import {ApiKey} from '@croct/sdk/apiKey';
 import {Cli} from '@/infrastructure/application/cli/cli';
@@ -312,7 +312,38 @@ function createProgram(config: Configuration): typeof program {
                 break;
 
             case 'array':
-                option.argParser(value => value.split(','));
+                option.argParser(list => {
+                    let value: JsonValue | undefined;
+
+                    try {
+                        value = JSON.parse(list);
+                    } catch {
+                        // Ignore
+                    }
+
+                    if (value === undefined || !Array.isArray(value)) {
+                        throw new InvalidArgumentError('The value must be a JSON array.');
+                    }
+
+                    return list.split(',');
+                });
+
+                break;
+
+            case 'object':
+                option.argParser(json => {
+                    let value: JsonValue;
+
+                    try {
+                        value = JSON.parse(json);
+                    } catch {
+                        throw new InvalidArgumentError('The JSON is malformed.');
+                    }
+
+                    if (typeof value !== 'object' || value === null) {
+                        throw new InvalidArgumentError('The value must be a JSON object.');
+                    }
+                });
 
                 break;
         }
