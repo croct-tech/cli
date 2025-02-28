@@ -62,6 +62,7 @@ export class SlugMappingForm implements Form<SlugMapping, SlugMappingOptions> {
             for (const slug of conflictingComponents) {
                 const newSlug = await SlugInput.prompt({
                     input: input,
+                    default: slug,
                     unavailableSlugs: unavailableSlugs,
                     label: `Component \`${slug}\` already exists, enter a new component ID:`,
                 });
@@ -81,6 +82,7 @@ export class SlugMappingForm implements Form<SlugMapping, SlugMappingOptions> {
             for (const slug of conflictingSlots) {
                 const newSlug = await SlugInput.prompt({
                     input: input,
+                    default: slug,
                     unavailableSlugs: unavailableSlugs,
                     label: `Slot \`${slug}\` already exists, enter a new slot ID:`,
                 });
@@ -100,6 +102,7 @@ export class SlugMappingForm implements Form<SlugMapping, SlugMappingOptions> {
             for (const slug of conflictingAudiences) {
                 const newSlug = await SlugInput.prompt({
                     input: input,
+                    default: slug,
                     unavailableSlugs: unavailableSlugs,
                     label: `Audience \`${slug}\` already exists, enter a new audience ID:`,
                 });

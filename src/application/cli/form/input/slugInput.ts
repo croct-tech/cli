@@ -4,6 +4,7 @@ import {Input} from '@/application/cli/io/input';
 export type Configuration = {
     input: Input,
     label: string,
+    default?: string,
     unavailableSlugs?: string[],
 };
 
@@ -19,12 +20,13 @@ export class SlugInput implements Form<string> {
     }
 
     public handle(): Promise<string> {
-        const {input, unavailableSlugs = []} = this.config;
+        const {input, unavailableSlugs = [], default: defaultValue} = this.config;
 
         return input.prompt({
             message: this.config.label,
+            default: defaultValue,
             validate: value => {
-                if (/^[a-z]+(-?[a-z0-9]+)*$/i.test(value)) {
+                if (!/^[a-z]+(-?[a-z0-9]+)*$/i.test(value)) {
                     return 'The slug must start with a letter and contain only letters, numbers, and hyphens.';
                 }
 
@@ -32,7 +34,7 @@ export class SlugInput implements Form<string> {
                     return 'The entered slug is already in use.';
                 }
 
-                return value;
+                return true;
             },
         });
     }
