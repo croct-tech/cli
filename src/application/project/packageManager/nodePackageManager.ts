@@ -1,8 +1,8 @@
 import semver from 'semver';
+import {JsonObjectNode, JsonParser} from '@croct/json5-parser';
 import {Dependency, PackageManager, PackageManagerError} from '@/application/project/packageManager/packageManager';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {Validator} from '@/application/validation';
-import {JsonObjectNode, JsonParser} from '@/infrastructure/json';
 import {ErrorReason} from '@/application/error';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {PackageManagerAgent} from '@/application/project/packageManager/agent/packageManagerAgent';

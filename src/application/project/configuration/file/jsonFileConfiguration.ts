@@ -1,10 +1,10 @@
 import {JsonValue} from '@croct/json';
+import {JsonObjectNode, JsonParser} from '@croct/json5-parser';
 import {
     ProjectConfiguration,
     ConfigurationError as ProjectConfigurationError,
 } from '@/application/project/configuration/projectConfiguration';
 import {ConfigurationFile} from '@/application/project/configuration/file/configurationFile';
-import {JsonObjectNode, JsonParser} from '@/infrastructure/json';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {Validator} from '@/application/validation';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';

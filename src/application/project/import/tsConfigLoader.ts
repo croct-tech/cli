@@ -1,6 +1,6 @@
 import {Minimatch} from 'minimatch';
+import {JsonParser} from '@croct/json5-parser';
 import {FileSystem} from '@/application/fs/fileSystem';
-import {JsonParser} from '@/infrastructure/json';
 import {Validator} from '@/application/validation';
 
 export type NodeImportConfig = {

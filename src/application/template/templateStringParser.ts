@@ -4,7 +4,7 @@ import {
     JsonStringNode,
     SourceLocation,
     SourcePosition,
-} from '@/infrastructure/json';
+} from '@croct/json5-parser';
 import {HelpfulError} from '@/application/error';
 
 type FragmentMap = {

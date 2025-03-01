@@ -1,6 +1,6 @@
 /* eslint-disable no-template-curly-in-string -- False positive */
+import {JsonPrimitiveNode, JsonTokenNode, JsonTokenType, SourcePosition} from '@croct/json5-parser';
 import {Fragment, JsonExpressionNode, TemplateStringParser} from '@/application/template/templateStringParser';
-import {JsonPrimitiveNode, JsonTokenNode, JsonTokenType, SourcePosition} from '@/infrastructure/json';
 import {Help, HelpfulError} from '@/application/error';
 
 describe('A template string parser', () => {

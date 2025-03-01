@@ -8,7 +8,7 @@ import {
     JsonTokenNode,
     JsonTokenType,
     JsonValueNode,
-} from '@/infrastructure/json';
+} from '@croct/json5-parser';
 import {EvaluationError, ExpressionEvaluator, VariableMap} from '@/application/template/evaluation';
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {Validator, Violation} from '@/application/validation';

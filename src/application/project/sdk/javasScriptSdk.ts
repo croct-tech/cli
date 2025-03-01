@@ -1,8 +1,8 @@
+import {JsonArrayNode, JsonObjectNode, JsonParser} from '@croct/json5-parser';
 import {Installation, Sdk, SdkError} from '@/application/project/sdk/sdk';
 import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {TargetSdk, WorkspaceApi} from '@/application/api/workspace';
-import {JsonArrayNode, JsonObjectNode, JsonParser} from '@/infrastructure/json';
 import {formatName} from '@/application/project/utils/formatName';
 import {ExampleFile} from '@/application/project/example/example';
 import {CodeFormatter} from '@/application/project/code/formatter/formatter';
