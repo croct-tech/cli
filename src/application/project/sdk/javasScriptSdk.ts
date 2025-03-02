@@ -3,7 +3,6 @@ import {Installation, Sdk, SdkError} from '@/application/project/sdk/sdk';
 import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {TargetSdk, WorkspaceApi} from '@/application/api/workspace';
-import {formatName} from '@/application/project/utils/formatName';
 import {ExampleFile} from '@/application/project/example/example';
 import {CodeFormatter} from '@/application/project/code/formatter/formatter';
 import {Version} from '@/application/model/version';
@@ -14,6 +13,7 @@ import {HelpfulError} from '@/application/error';
 import {Dependency, PackageManager} from '@/application/project/packageManager/packageManager';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
+import {multiline} from '@/utils/multiline';
 
 export type InstallationPlan = {
     tasks: Task[],
@@ -254,12 +254,17 @@ export abstract class JavaScriptSdk implements Sdk {
             return;
         }
 
-        const contentList = await Promise.all(
-            slots.flatMap(([slot, versionSpecifier]) => {
-                const constraint = Version.parse(versionSpecifier);
-                const versions = constraint.getVersions();
+        const slotVersions: Record<string, readonly number[]> = {};
 
-                return versions.map(
+        for (const [slot, versionSpecifier] of slots) {
+            const constraint = Version.parse(versionSpecifier);
+
+            slotVersions[slot] = constraint.getVersions();
+        }
+
+        const contentList = await Promise.all(
+            slots.flatMap(
+                ([slot]) => slotVersions[slot].map(
                     version => this.workspaceApi
                         .getSlotStaticContent(
                             {
@@ -276,8 +281,8 @@ export abstract class JavaScriptSdk implements Sdk {
                                 list: content,
                             }),
                         ),
-                );
-            }),
+                ),
+            ),
         );
 
         const directoryPath = this.fileSystem.joinPaths(packageInfo.directory, 'slot');
@@ -285,13 +290,22 @@ export abstract class JavaScriptSdk implements Sdk {
         await this.fileSystem.delete(directoryPath, {recursive: true});
         await this.fileSystem.createDirectory(directoryPath);
 
-        const indexes: Record<string, string[]> = {};
+        const indexes: Record<string, Record<string, string>> = {};
 
         for (const versionedContent of contentList) {
             for (const {locale, content} of versionedContent.list) {
-                const baseName = `${versionedContent.slot}@${versionedContent.version}`;
+                const slotId = versionedContent.slot;
+                const baseName = `${slotId}@${versionedContent.version}`;
 
-                indexes[locale] = [...indexes[locale] ?? [], baseName];
+                if (indexes[locale] === undefined) {
+                    indexes[locale] = {};
+                }
+
+                if (versionedContent.version === Math.max(...slotVersions[slotId])) {
+                    indexes[locale][slotId] = `./${locale}/${baseName}.json`;
+                }
+
+                indexes[locale][baseName] = `./${locale}/${baseName}.json`;
 
                 const localeDirectory = this.fileSystem.joinPaths(directoryPath, locale);
 
@@ -310,30 +324,39 @@ export abstract class JavaScriptSdk implements Sdk {
             }
         }
 
-        for (const [locale, files] of Object.entries(indexes)) {
-            const paths = [`./${locale}`];
+        const contentMap = `const contentMap = ${JSON.stringify(indexes, null, 2)
+            .replace(/("\.\/.*?")/g, '() => import($1)')};\n`;
 
-            if (locale === configuration.defaultLocale) {
-                paths.push('./');
-            }
+        await this.fileSystem.writeTextFile(
+            this.fileSystem.joinPaths(directoryPath, 'index.js'),
+            contentMap
+            // language=javascript
+            + multiline`
+                const defaultLocale = '${configuration.defaultLocale}';
 
-            for (const path of paths) {
-                const importFile = path === './' ? `./${locale}/` : './';
-                const moduleCode = files.map(file => {
-                    const alias = formatName(file.replace('@', ' V'));
+                export function loadContent(slotId, language = defaultLocale) {
+                    if (contentMap[language]?.[slotId] !== undefined) {
+                        return contentMap[language][slotId]().then(module => module.default);
+                    }
 
-                    return `export {default as ${alias}} from '${importFile}${file}.json' with {type: 'json'};`;
-                }).join('\n');
+                    if (language !== defaultLocale) {
+                        return loadContent(slotId);
+                    }
 
-                for (const extension of ['.js', '.d.ts']) {
-                    await this.fileSystem.writeTextFile(
-                        this.fileSystem.joinPaths(directoryPath, path, `index${extension}`),
-                        moduleCode,
-                        {overwrite: true},
-                    );
+                    return Promise.resolve(null);
                 }
-            }
-        }
+            `,
+        );
+
+        await this.fileSystem.writeTextFile(
+            this.fileSystem.joinPaths(directoryPath, 'index.d.ts'),
+            // language=typescript
+            multiline`
+                import {JsonObject} from '@croct/json';
+
+                export declare function loadContent(slotId: string, language?: string): Promise<JsonObject | null>;
+            `,
+        );
 
         indicator.confirm('Content updated');
     }
