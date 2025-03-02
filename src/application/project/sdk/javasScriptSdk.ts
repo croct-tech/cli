@@ -325,7 +325,7 @@ export abstract class JavaScriptSdk implements Sdk {
         }
 
         const contentMap = `const contentMap = ${JSON.stringify(indexes, null, 2)
-            .replace(/("\.\/.*?")/g, '() => import($1)')};\n`;
+            .replace(/("\.\/.*?")/g, '() => import($1)')};\n\n`;
 
         await this.fileSystem.writeTextFile(
             this.fileSystem.joinPaths(directoryPath, 'index.js'),
@@ -334,13 +334,13 @@ export abstract class JavaScriptSdk implements Sdk {
             + multiline`
                 const defaultLocale = '${configuration.defaultLocale}';
 
-                export function loadContent(slotId, language = defaultLocale) {
+                export function getSlotContent(slotId, language = defaultLocale) {
                     if (contentMap[language]?.[slotId] !== undefined) {
                         return contentMap[language][slotId]().then(module => module.default);
                     }
 
                     if (language !== defaultLocale) {
-                        return loadContent(slotId);
+                        return getSlotContent(slotId);
                     }
 
                     return Promise.resolve(null);
