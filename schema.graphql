@@ -1713,7 +1713,7 @@ type Mutation {
   changePassword(newPassword: String!, oldPassword: String!, userId: UserId): String!
 
   """Issue a token for authenticating a session"""
-  closeSession(sessionId: String!): CloseSessionResult!
+  closeSession(sessionId: UserSessionId!): CloseSessionResult!
   completeUpload(payload: CompleteUploadPayload!, workspaceId: WorkspaceId!): CompleteUploadResult!
   createApiKey(applicationId: ApplicationId!, payload: CreateApiKeyPayload!): CreateApiKeyResult!
   createAudience(payload: CreateAudiencePayload!, workspaceId: WorkspaceId!): Audience!
@@ -1729,7 +1729,7 @@ type Mutation {
     The destination URL to redirect to after authentication. If not provided, the user will be redirected to the default location.
     """
     redirectDestination: String
-  ): String!
+  ): UserSessionId!
   createSlot(payload: CreateSlotPayload!, workspaceId: WorkspaceId!): Slot!
   createWebApplication(payload: CreateWebApplicationPayload!, workspaceId: WorkspaceId!): WebApplication!
   createWorkspace(organizationId: OrganizationId!, payload: CreateWorkspacePayload!): Workspace!
@@ -1788,7 +1788,7 @@ type Mutation {
   """
   Send a password reset link to the user associated with the specified email.
   """
-  sendResetLink(email: String!, sessionId: String): String!
+  sendResetLink(email: String!, sessionId: UserSessionId): String!
   signIn(payload: SignInPayload!): Viewer!
   signOut: Viewer!
   signUp(payload: SignUpPayload!): SignUpResult!
@@ -2254,7 +2254,7 @@ input ResetPasswordPayload {
 }
 
 type RetryMutation {
-  accountActivation(email: String!, sessionId: String): String!
+  accountActivation(email: String!, sessionId: UserSessionId): String!
   retryUserEmailVerification: UserAccount!
 }
 
@@ -2299,7 +2299,7 @@ input SignInPayload {
   email: String!
   password: String!
   remember: Boolean!
-  sessionId: String
+  sessionId: UserSessionId
 }
 
 input SignUpPayload {
@@ -2310,7 +2310,7 @@ input SignUpPayload {
   invitationToken: String
   lastName: String
   password: String!
-  sessionId: String
+  sessionId: UserSessionId
   username: ReadableId!
 }
 
@@ -2874,6 +2874,9 @@ input UserProfileInput {
   firstName: String
   lastName: String
 }
+
+"""The ID that uniquely identifies a user's session."""
+scalar UserSessionId
 
 type ValidateDynamicContentQueryResult {
   """

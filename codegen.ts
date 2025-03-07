@@ -21,6 +21,7 @@ const config: CodegenConfig = {
                     AudienceId: 'string',
                     QueryId: 'string',
                     LocalDateTime: 'string',
+                    UserSessionId: 'string',
                     StringMap: 'Record<string, string>',
                     JsonSchema: 'Record<string, any>',
                     JSONObject: 'Record<string, any>',

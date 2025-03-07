@@ -31,13 +31,13 @@ export const resetPassword = graphql(`
 `);
 
 export const requestPasswordReset = graphql(`
-    mutation RequestPasswordReset($email: String!, $sessionId: String) {
+    mutation RequestPasswordReset($email: String!, $sessionId: UserSessionId) {
         sendResetLink(email: $email, sessionId: $sessionId)
     }
 `);
 
 export const retryActivationMutation = graphql(`
-    mutation RetryActivation($email: String!, $sessionId: String!) {
+    mutation RetryActivation($email: String!, $sessionId: UserSessionId!) {
         retry {
             accountActivation(sessionId: $sessionId, email: $email)
         }
@@ -51,7 +51,7 @@ export const createSession = graphql(`
 `);
 
 export const closeSession = graphql(`
-    mutation CloseSession($sessionId: String!) {
+    mutation CloseSession($sessionId: UserSessionId!) {
         closeSession(sessionId: $sessionId) {
             __typename
             ... on CloseSessionRecoveryGrantedResult {
