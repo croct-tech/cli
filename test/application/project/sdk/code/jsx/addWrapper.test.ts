@@ -1,8 +1,8 @@
 import {resolve} from 'path';
 import {addComment, File} from '@babel/types';
-import {AddWrapper, WrapperConfiguration} from '@/application/project/code/codemod/jsx/addWrapper';
+import {JsxWrapperCodemod, WrapperConfiguration} from '@/application/project/code/codemod/javascript/jsxWrapperCodemod';
 import {loadFixtures} from '../fixtures';
-import {ParseCode} from '@/application/project/code/codemod/parseCode';
+import {JavaScriptCodemod} from '@/application/project/code/codemod/javascript/javaScriptCodemod';
 import {Codemod} from '@/application/project/code/codemod/codemod';
 
 describe('AddWrapper', () => {
@@ -144,9 +144,9 @@ describe('AddWrapper', () => {
     );
 
     it.each(scenarios)('should correctly transform $name', async ({name, fixture, options}) => {
-        const transformer = new ParseCode({
+        const transformer = new JavaScriptCodemod({
             languages: ['typescript', 'jsx'],
-            codemod: new AddWrapper(options),
+            codemod: new JsxWrapperCodemod(options),
         });
 
         const output = await transformer.apply(fixture);
@@ -170,9 +170,9 @@ describe('AddWrapper', () => {
             }),
         };
 
-        const transformer = new ParseCode({
+        const transformer = new JavaScriptCodemod({
             languages: ['typescript', 'jsx'],
-            codemod: new AddWrapper({
+            codemod: new JsxWrapperCodemod({
                 ...defaultOptions,
                 fallbackCodemod: codemod,
             }),
@@ -193,9 +193,9 @@ describe('AddWrapper', () => {
             apply: jest.fn(),
         };
 
-        const transformer = new ParseCode({
+        const transformer = new JavaScriptCodemod({
             languages: ['typescript', 'jsx'],
-            codemod: new AddWrapper<{test: boolean}>({
+            codemod: new JsxWrapperCodemod<{test: boolean}>({
                 ...defaultOptions,
                 fallbackCodemod: codemod,
             }),

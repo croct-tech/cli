@@ -1,10 +1,10 @@
 import {resolve} from 'path';
 import {loadFixtures} from '../fixtures';
-import {ParseCode} from '@/application/project/code/codemod/parseCode';
+import {JavaScriptCodemod} from '@/application/project/code/codemod/javascript/javaScriptCodemod';
 import {
-    CreateLayoutComponent,
+    NextJsLayoutComponentCodemod,
     LayoutComponentOptions,
-} from '@/application/project/code/codemod/nextjs/createLayoutComponent';
+} from '@/application/project/code/codemod/javascript/nextJsLayoutComponentCodemod';
 
 describe('CreateLayoutComponent', () => {
     const scenarios = loadFixtures<LayoutComponentOptions>(
@@ -14,9 +14,9 @@ describe('CreateLayoutComponent', () => {
     );
 
     it.each(scenarios)('should correctly transform $name', async ({name, fixture}) => {
-        const transformer = new ParseCode({
+        const transformer = new JavaScriptCodemod({
             languages: ['typescript', 'jsx'],
-            codemod: new CreateLayoutComponent({
+            codemod: new NextJsLayoutComponentCodemod({
                 provider: {
                     component: 'CroctProvider',
                     module: '@croct/plug-next/CroctProvider',

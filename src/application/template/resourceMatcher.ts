@@ -117,6 +117,7 @@ export class ResourceMatcher {
         path: WorkspacePath,
     ): Promise<Record<string, Slot|SlotDefinition>> {
         const {workspaceApi: api} = this.config;
+
         const slots = await Promise.all(
             Object.keys(definitions).map<Promise<[string, Slot | null]>>(
                 async slug => [slug, await api.getSlot({

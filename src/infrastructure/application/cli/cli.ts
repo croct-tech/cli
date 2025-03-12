@@ -42,14 +42,16 @@ import {AuthenticationListener} from '@/application/cli/authentication/authentic
 import {SignUpForm} from '@/application/cli/form/user/signUpForm';
 import {Command, CommandInput} from '@/application/cli/command/command';
 import {AdminCommand, AdminInput} from '@/application/cli/command/admin';
-import {AddWrapper} from '@/application/project/code/codemod/jsx/addWrapper';
-import {ParseCode} from '@/application/project/code/codemod/parseCode';
-import {ConfigureMiddleware} from '@/application/project/code/codemod/nextjs/configureMiddleware';
+import {JsxWrapperCodemod} from '@/application/project/code/codemod/javascript/jsxWrapperCodemod';
+import {JavaScriptCodemod} from '@/application/project/code/codemod/javascript/javaScriptCodemod';
+import {
+    NextJsMiddlewareConfiguratorCodemod,
+} from '@/application/project/code/codemod/javascript/nextJsMiddlewareConfiguratorCodemod';
 import {CodeFormatter} from '@/application/project/code/formatter/formatter';
-import {FormatCode} from '@/application/project/code/codemod/formatCode';
-import {TransformFile} from '@/application/project/code/codemod/transformFile';
-import {CreateLayoutComponent} from '@/application/project/code/codemod/nextjs/createLayoutComponent';
-import {CreateAppComponent} from '@/application/project/code/codemod/nextjs/createAppComponent';
+import {StyleCodemod} from '@/application/project/code/codemod/styleCodemod';
+import {FileCodemod} from '@/application/project/code/codemod/fileCodemod';
+import {NextJsLayoutComponentCodemod} from '@/application/project/code/codemod/javascript/nextJsLayoutComponentCodemod';
+import {NextJsAppComponentCodemod} from '@/application/project/code/codemod/javascript/nextJsAppComponentCodemod';
 import {JavaScriptFormatter} from '@/infrastructure/application/project/javaScriptFormatter';
 import {AddSlotCommand, AddSlotInput} from '@/application/cli/command/slot/add';
 import {SlotForm} from '@/application/cli/form/workspace/slotForm';
@@ -277,6 +279,11 @@ import {TraceProvider} from '@/application/provider/resource/traceProvider';
 import {TreeLogger} from '@/application/logging/treeLogger';
 import {OutputLogger} from '@/infrastructure/application/cli/io/outputLogger';
 import {HierarchicalLogger} from '@/application/logging/hierarchicalLogger';
+import {GlobImportCodemod} from '@/application/project/code/codemod/globImportCodemod';
+import {PathBasedCodemod} from '@/application/project/code/codemod/pathBasedCodemod';
+import {getExportedNames} from '@/application/project/code/codemod/javascript/utils/getExportedNames';
+import {JavaScriptImportCodemod} from '@/application/project/code/codemod/javascript/javaScriptImportCodemod';
+import {ChainedCodemod} from '@/application/project/code/codemod/chainedCodemod';
 
 export type Configuration = {
     program: Program,
@@ -1039,6 +1046,36 @@ export class Cli {
                     action: new DownloadAction({
                         fileSystem: fileSystem,
                         provider: this.getFileProvider(),
+                        codemod: new PathBasedCodemod({
+                            codemods: {
+                                '**/*.{js,jsx,ts,tsx}': new ChainedCodemod(
+                                    new GlobImportCodemod({
+                                        fileSystem: fileSystem,
+                                        rootPath: this.workingDirectory,
+                                        maxSearchDepth: 10,
+                                        importResolver: this.getNodeImportResolver(),
+                                        importCodemod: new FileCodemod({
+                                            fileSystem: fileSystem,
+                                            codemod: new JavaScriptCodemod({
+                                                languages: ['typescript', 'jsx'],
+                                                codemod: new JavaScriptImportCodemod(),
+                                            }),
+                                        }),
+                                        exportMatcher: {
+                                            test: (code, {names}): boolean => {
+                                                if (names.length === 0) {
+                                                    return true;
+                                                }
+
+                                                return getExportedNames(code)
+                                                    .some(name => names.includes(name));
+                                            },
+                                        },
+                                    }),
+                                    new StyleCodemod(this.getJavaScriptFormatter()),
+                                ),
+                            },
+                        }),
                     }),
                     validator: new DownloadOptionsValidator(),
                 }),
@@ -1414,12 +1451,13 @@ export class Cli {
                         ...config,
                         importResolver: importResolver,
                         codemod: {
-                            provider: new FormatCode(
-                                new TransformFile(
-                                    this.getFileSystem(),
-                                    new ParseCode({
+                            provider: new StyleCodemod(
+                                formatter,
+                                new FileCodemod({
+                                    fileSystem: this.getFileSystem(),
+                                    codemod: new JavaScriptCodemod({
                                         languages: ['typescript', 'jsx'],
-                                        codemod: new AddWrapper({
+                                        codemod: new JsxWrapperCodemod({
                                             fallbackToNamedExports: true,
                                             wrapper: {
                                                 module: '@croct/plug-react',
@@ -1430,8 +1468,7 @@ export class Cli {
                                             },
                                         }),
                                     }),
-                                ),
-                                formatter,
+                                }),
                             ),
                         },
                         bundlers: [
@@ -1455,12 +1492,13 @@ export class Cli {
                         applicationApi: this.getApplicationApi(),
                         importResolver: importResolver,
                         codemod: {
-                            middleware: new FormatCode(
-                                new TransformFile(
-                                    this.getFileSystem(),
-                                    new ParseCode({
+                            middleware: new StyleCodemod(
+                                formatter,
+                                new FileCodemod({
+                                    fileSystem: this.getFileSystem(),
+                                    codemod: new JavaScriptCodemod({
                                         languages: ['typescript', 'jsx'],
-                                        codemod: new ConfigureMiddleware({
+                                        codemod: new NextJsMiddlewareConfiguratorCodemod({
                                             import: {
                                                 module: '@croct/plug-next/middleware',
                                                 middlewareName: 'middleware',
@@ -1471,17 +1509,17 @@ export class Cli {
                                             },
                                         }),
                                     }),
-                                ),
-                                formatter,
+                                }),
                             ),
-                            appRouterProvider: new FormatCode(
-                                new TransformFile(
-                                    this.getFileSystem(),
-                                    new ParseCode({
+                            appRouterProvider: new StyleCodemod(
+                                formatter,
+                                new FileCodemod({
+                                    fileSystem: this.getFileSystem(),
+                                    codemod: new JavaScriptCodemod({
                                         languages: ['typescript', 'jsx'],
-                                        codemod: new AddWrapper({
+                                        codemod: new JsxWrapperCodemod({
                                             fallbackToNamedExports: false,
-                                            fallbackCodemod: new CreateLayoutComponent({
+                                            fallbackCodemod: new NextJsLayoutComponentCodemod({
                                                 provider: {
                                                     component: 'CroctProvider',
                                                     module: '@croct/plug-next/CroctProvider',
@@ -1496,17 +1534,17 @@ export class Cli {
                                             },
                                         }),
                                     }),
-                                ),
-                                formatter,
+                                }),
                             ),
-                            pageRouterProvider: new FormatCode(
-                                new TransformFile(
-                                    this.getFileSystem(),
-                                    new ParseCode({
+                            pageRouterProvider: new StyleCodemod(
+                                formatter,
+                                new FileCodemod({
+                                    fileSystem: this.getFileSystem(),
+                                    codemod: new JavaScriptCodemod({
                                         languages: ['typescript', 'jsx'],
-                                        codemod: new AddWrapper({
+                                        codemod: new JsxWrapperCodemod({
                                             fallbackToNamedExports: false,
-                                            fallbackCodemod: new CreateAppComponent({
+                                            fallbackCodemod: new NextJsAppComponentCodemod({
                                                 provider: {
                                                     component: 'CroctProvider',
                                                     module: '@croct/plug-next/CroctProvider',
@@ -1521,8 +1559,7 @@ export class Cli {
                                             },
                                         }),
                                     }),
-                                ),
-                                formatter,
+                                }),
                             ),
                         },
                     }),

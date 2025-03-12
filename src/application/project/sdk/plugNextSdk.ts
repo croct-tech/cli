@@ -8,11 +8,11 @@ import {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
 import {WorkspaceApi} from '@/application/api/workspace';
 import {EnvFile} from '@/application/project/code/envFile';
 import {UserApi} from '@/application/api/user';
-import {NextConfig, parseConfig} from '@/application/project/code/codemod/nextjs/parseConfig';
+import {NextConfig, parseNextJsConfig} from '@/application/project/code/codemod/javascript/parseNextJsConfig';
 import {Codemod, CodemodOptions} from '@/application/project/code/codemod/codemod';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
-import type {LayoutComponentOptions} from '@/application/project/code/codemod/nextjs/createLayoutComponent';
-import type {AppComponentOptions} from '@/application/project/code/codemod/nextjs/createAppComponent';
+import type {LayoutComponentOptions} from '@/application/project/code/codemod/javascript/nextJsLayoutComponentCodemod';
+import type {AppComponentOptions} from '@/application/project/code/codemod/javascript/nextJsAppComponentCodemod';
 import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {NextExampleRouter, PlugNextExampleGenerator} from '@/application/project/example/slot/plugNextExampleGenerator';
 import {ApiError} from '@/application/api/error';
@@ -359,6 +359,6 @@ export class PlugNextSdk extends JavaScriptSdk {
             };
         }
 
-        return parseConfig(config);
+        return parseNextJsConfig(config);
     }
 }

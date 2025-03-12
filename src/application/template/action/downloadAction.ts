@@ -6,6 +6,7 @@ import {ResourceProvider} from '@/application/provider/resource/resourceProvider
 import {ErrorReason} from '@/application/error';
 import {Input} from '@/application/cli/io/input';
 import {resolveUrl} from '@/utils/resolveUrl';
+import {Codemod} from '@/application/project/code/codemod/codemod';
 
 export type DownloadOptions = {
     source: string,
@@ -19,6 +20,7 @@ export type DownloadOptions = {
 export type Configuration = {
     fileSystem: FileSystem,
     provider: ResourceProvider<FileSystemIterator>,
+    codemod: Codemod<string>,
 };
 
 export class DownloadAction implements Action<DownloadOptions> {
@@ -68,7 +70,7 @@ export class DownloadAction implements Action<DownloadOptions> {
     }
 
     private async download(url: URL, destination: string, matcher?: Minimatch, input?: Input): Promise<void> {
-        const {provider, fileSystem} = this.config;
+        const {provider, fileSystem, codemod} = this.config;
 
         const {value: iterator} = await provider.get(url);
 
@@ -145,6 +147,12 @@ export class DownloadAction implements Action<DownloadOptions> {
 
         for (const entry of entries) {
             await fileSystem.create(entry);
+        }
+
+        for (const entry of entries) {
+            if (entry.type === 'file') {
+                await codemod.apply(await fileSystem.getRealPath(entry.name));
+            }
         }
     }
 }

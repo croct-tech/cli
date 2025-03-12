@@ -1,6 +1,6 @@
 import * as t from '@babel/types';
 import traverse from '@babel/traverse';
-import {parse} from '@/application/project/code/codemod/parser';
+import {parse} from '@/application/project/code/codemod/javascript/utils/parse';
 
 export type NextConfig = {
     i18n: {
@@ -17,7 +17,7 @@ export type NextConfig = {
  *
  * @param source The source code of the Next.js configuration.
  */
-export function parseConfig(source: string): NextConfig {
+export function parseNextJsConfig(source: string): NextConfig {
     const i18n: NextConfig['i18n'] = {
         locales: Array<string>(),
     };

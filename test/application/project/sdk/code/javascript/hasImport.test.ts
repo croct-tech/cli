@@ -1,4 +1,4 @@
-import {hasImport, ImportMatcher} from '@/application/project/code/codemod/javascript/hasImport';
+import {hasImport, ImportMatcher} from '@/application/project/code/codemod/javascript/utils/hasImport';
 
 describe('hasImport', () => {
     type Scenario = {

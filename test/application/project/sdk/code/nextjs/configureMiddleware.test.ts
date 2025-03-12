@@ -1,10 +1,10 @@
 import {resolve} from 'path';
 import {
     MiddlewareConfiguration,
-    ConfigureMiddleware,
-} from '@/application/project/code/codemod/nextjs/configureMiddleware';
+    NextJsMiddlewareConfiguratorCodemod,
+} from '@/application/project/code/codemod/javascript/nextJsMiddlewareConfiguratorCodemod';
 import {loadFixtures} from '../fixtures';
-import {ParseCode} from '@/application/project/code/codemod/parseCode';
+import {JavaScriptCodemod} from '@/application/project/code/codemod/javascript/javaScriptCodemod';
 
 describe('ConfigureMiddleware', () => {
     const defaultOptions: MiddlewareConfiguration = {
@@ -32,9 +32,9 @@ describe('ConfigureMiddleware', () => {
     );
 
     it.each(scenarios)('should correctly transform $name', async ({name, fixture, options}) => {
-        const transformer = new ParseCode({
+        const transformer = new JavaScriptCodemod({
             languages: ['typescript'],
-            codemod: new ConfigureMiddleware(options),
+            codemod: new NextJsMiddlewareConfiguratorCodemod(options),
         });
 
         const output = await transformer.apply(fixture);

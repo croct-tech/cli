@@ -1,15 +1,15 @@
-import {Node} from '@babel/types';
+import {File} from '@babel/types';
 import generate from '@babel/generator';
 import {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/codemod/codemod';
-import {Language, parse} from '@/application/project/code/codemod/parser';
+import {Language, parse} from '@/application/project/code/codemod/javascript/utils/parse';
 
 export type Configuration<O extends CodemodOptions> = {
-    codemod: Codemod<Node, O>,
+    codemod: Codemod<File, O>,
     languages: Language[],
 };
 
-export class ParseCode<O extends CodemodOptions> implements Codemod<string, O> {
-    private readonly codemod: Codemod<Node, O>;
+export class JavaScriptCodemod<O extends CodemodOptions> implements Codemod<string, O> {
+    private readonly codemod: Codemod<File, O>;
 
     private readonly languages: Language[];
 

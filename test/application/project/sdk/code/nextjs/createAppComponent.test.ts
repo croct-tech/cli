@@ -1,7 +1,10 @@
 import {resolve} from 'path';
 import {loadFixtures} from '../fixtures';
-import {ParseCode} from '@/application/project/code/codemod/parseCode';
-import {AppComponentOptions, CreateAppComponent} from '@/application/project/code/codemod/nextjs/createAppComponent';
+import {JavaScriptCodemod} from '@/application/project/code/codemod/javascript/javaScriptCodemod';
+import {
+    AppComponentOptions,
+    NextJsAppComponentCodemod,
+} from '@/application/project/code/codemod/javascript/nextJsAppComponentCodemod';
 
 describe('CreateAppComponent', () => {
     const scenarios = loadFixtures<AppComponentOptions>(
@@ -11,9 +14,9 @@ describe('CreateAppComponent', () => {
     );
 
     it.each(scenarios)('should correctly transform $name', async ({name, fixture}) => {
-        const transformer = new ParseCode({
+        const transformer = new JavaScriptCodemod({
             languages: ['typescript', 'jsx'],
-            codemod: new CreateAppComponent({
+            codemod: new NextJsAppComponentCodemod({
                 provider: {
                     component: 'CroctProvider',
                     module: '@croct/plug-next/CroctProvider',

@@ -1,6 +1,6 @@
 import {basename, join, resolve} from 'path';
 import {readdirSync, readFileSync} from 'fs';
-import {NextConfig, parseConfig} from '@/application/project/code/codemod/nextjs/parseConfig';
+import {NextConfig, parseNextJsConfig} from '@/application/project/code/codemod/javascript/parseNextJsConfig';
 
 describe('parseConfig', () => {
     const fixturePath = resolve(__dirname, '../fixtures/nextjs-config');
@@ -62,7 +62,7 @@ describe('parseConfig', () => {
     }
 
     it.each(loadScenarios())('should correctly transform $name', ({name, expected}) => {
-        const config = parseConfig(readFileSync(join(fixturePath, name), 'utf-8'));
+        const config = parseNextJsConfig(readFileSync(join(fixturePath, name), 'utf-8'));
 
         expect(config).toEqual(expected);
     });

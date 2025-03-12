@@ -1,6 +1,6 @@
 import * as t from '@babel/types';
 import traverse from '@babel/traverse';
-import {parse} from '@/application/project/code/codemod/parser';
+import {parse} from '@/application/project/code/codemod/javascript/utils/parse';
 
 export type ImportMatcher = {
     moduleName: string | RegExp,

@@ -1,6 +1,6 @@
 import * as t from '@babel/types';
 import {Codemod, ResultCode} from '@/application/project/code/codemod/codemod';
-import {addImport} from '@/application/project/code/codemod/javascript/addImport';
+import {addImport} from '@/application/project/code/codemod/javascript/utils/addImport';
 
 export type AppComponentOptions = {
     typescript?: boolean,
@@ -13,7 +13,7 @@ export type AppComponentConfiguration = {
     },
 };
 
-export class CreateAppComponent implements Codemod<t.File, AppComponentOptions> {
+export class NextJsAppComponentCodemod implements Codemod<t.File, AppComponentOptions> {
     private configuration: AppComponentConfiguration;
 
     public constructor(configuration: AppComponentConfiguration) {

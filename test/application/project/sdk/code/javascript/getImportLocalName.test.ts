@@ -1,4 +1,7 @@
-import {getImportLocalName, ImportMatcher} from '@/application/project/code/codemod/javascript/getImportLocalName';
+import {
+    getImportLocalName,
+    ImportMatcher,
+} from '@/application/project/code/codemod/javascript/utils/getImportLocalName';
 
 describe('getImportLocalName', () => {
     type Scenario = {

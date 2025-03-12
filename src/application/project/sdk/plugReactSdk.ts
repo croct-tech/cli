@@ -6,7 +6,7 @@ import {
 } from '@/application/project/sdk/javasScriptSdk';
 import {Codemod} from '@/application/project/code/codemod/codemod';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
-import {PropertyType, WrapperOptions} from '@/application/project/code/codemod/jsx/addWrapper';
+import {PropertyType, WrapperOptions} from '@/application/project/code/codemod/javascript/jsxWrapperCodemod';
 import {EnvFile} from '@/application/project/code/envFile';
 import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {PlugReactExampleGenerator} from '@/application/project/example/slot/plugReactExampleGenerator';

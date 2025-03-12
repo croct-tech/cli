@@ -1,10 +1,10 @@
 import * as t from '@babel/types';
 import traverse, {NodePath} from '@babel/traverse';
 import {ResultCode, Codemod} from '@/application/project/code/codemod/codemod';
-import {hasReexport} from '@/application/project/code/codemod/javascript/hasReexport';
-import {getImportLocalName} from '@/application/project/code/codemod/javascript/getImportLocalName';
-import {addReexport} from '@/application/project/code/codemod/javascript/addReexport';
-import {addImport} from '@/application/project/code/codemod/javascript/addImport';
+import {hasReexport} from '@/application/project/code/codemod/javascript/utils/hasReexport';
+import {getImportLocalName} from '@/application/project/code/codemod/javascript/utils/getImportLocalName';
+import {addReexport} from '@/application/project/code/codemod/javascript/utils/addReexport';
+import {addImport} from '@/application/project/code/codemod/javascript/utils/addImport';
 
 type ConfigVariable = {
     name: string,
@@ -38,7 +38,7 @@ export type MiddlewareConfiguration = {
  * work correctly. It can also detect if the middleware is already configured
  * or missing configuration and apply the necessary changes.
  */
-export class ConfigureMiddleware implements Codemod<t.File> {
+export class NextJsMiddlewareConfiguratorCodemod implements Codemod<t.File> {
     private readonly configuration: MiddlewareConfiguration;
 
     public constructor(options: MiddlewareConfiguration) {
@@ -58,7 +58,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
             importName: this.configuration.import.middlewareName,
         });
 
-        const localConfig = isConfigReexported ? null : ConfigureMiddleware.findConfig(input);
+        const localConfig = isConfigReexported ? null : NextJsMiddlewareConfiguratorCodemod.findConfig(input);
 
         if (isMiddlewareReexported) {
             if (isConfigReexported || localConfig !== null) {
@@ -103,7 +103,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
             existingImports.push(middlewareName);
         }
 
-        if (existingImports.length > 0 && ConfigureMiddleware.isCalled(input, existingImports)) {
+        if (existingImports.length > 0 && NextJsMiddlewareConfiguratorCodemod.isCalled(input, existingImports)) {
             // The middleware is already called in the source code, consider it refactored
             return Promise.resolve({
                 modified: false,
@@ -118,7 +118,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                 importName: this.configuration.import.matcherName,
             });
 
-        let middlewareNode = ConfigureMiddleware.refactorMiddleware(
+        let middlewareNode = NextJsMiddlewareConfiguratorCodemod.refactorMiddleware(
             input,
             middlewareFactoryName ?? this.configuration.import.middlewareFactoryName,
             localConfig !== null && localConfig.matcher ? localConfig.name : undefined,
@@ -187,7 +187,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                 body.splice(middlewarePosition, 0, ...body.splice(configPosition, 1));
 
                 // Move any references of the config object alongside it
-                for (const reference of ConfigureMiddleware.findReferencesFrom(localConfig.root, input.program)) {
+                for (const reference of NextJsMiddlewareConfiguratorCodemod.findReferencesFrom(localConfig.root, input.program)) {
                     const referencePosition = body.indexOf(reference as t.Statement);
 
                     if (referencePosition > middlewarePosition) {
@@ -322,9 +322,9 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                                 t.variableDeclaration('const', [
                                     t.variableDeclarator(
                                         t.identifier('middleware'),
-                                        ConfigureMiddleware.wrapMiddleware(
+                                        NextJsMiddlewareConfiguratorCodemod.wrapMiddleware(
                                             t.isFunctionDeclaration(node.declaration)
-                                                ? ConfigureMiddleware.createFunctionExpression(node.declaration)
+                                                ? NextJsMiddlewareConfiguratorCodemod.createFunctionExpression(node.declaration)
                                                 : node.declaration,
                                             functionName,
                                             configName,
@@ -335,7 +335,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                             ),
                         );
 
-                        rootNode = ConfigureMiddleware.getRootNode(path);
+                        rootNode = NextJsMiddlewareConfiguratorCodemod.getRootNode(path);
 
                         return path.stop();
                     }
@@ -354,12 +354,12 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                             const initializer = declarator.init ?? null;
 
                             if (initializer !== null) {
-                                declarator.init = ConfigureMiddleware.wrapMiddleware(
+                                declarator.init = NextJsMiddlewareConfiguratorCodemod.wrapMiddleware(
                                     initializer,
                                     functionName,
                                     configName,
                                 );
-                                rootNode = ConfigureMiddleware.getRootNode(path);
+                                rootNode = NextJsMiddlewareConfiguratorCodemod.getRootNode(path);
 
                                 return path.stop();
                             }
@@ -375,7 +375,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                         && t.isIdentifier(specifier.local)
                         && (['middleware', 'default']).includes(specifier.exported.name)
                     ) {
-                        rootNode = ConfigureMiddleware.replaceMiddlewareDeclaration(
+                        rootNode = NextJsMiddlewareConfiguratorCodemod.replaceMiddlewareDeclaration(
                             ast,
                             specifier.local.name,
                             functionName,
@@ -396,7 +396,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                 if (t.isArrowFunctionExpression(declaration)) {
                     path.replaceWith(
                         t.exportDefaultDeclaration(
-                            ConfigureMiddleware.wrapMiddleware(
+                            NextJsMiddlewareConfiguratorCodemod.wrapMiddleware(
                                 declaration,
                                 functionName,
                                 configName,
@@ -404,7 +404,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                         ),
                     );
 
-                    rootNode = ConfigureMiddleware.getRootNode(path);
+                    rootNode = NextJsMiddlewareConfiguratorCodemod.getRootNode(path);
 
                     return path.stop();
                 }
@@ -413,22 +413,22 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                 if (t.isFunctionDeclaration(declaration)) {
                     path.replaceWith(
                         t.exportDefaultDeclaration(
-                            ConfigureMiddleware.wrapMiddleware(
-                                ConfigureMiddleware.createFunctionExpression(declaration, true),
+                            NextJsMiddlewareConfiguratorCodemod.wrapMiddleware(
+                                NextJsMiddlewareConfiguratorCodemod.createFunctionExpression(declaration, true),
                                 functionName,
                                 configName,
                             ),
                         ),
                     );
 
-                    rootNode = ConfigureMiddleware.getRootNode(path);
+                    rootNode = NextJsMiddlewareConfiguratorCodemod.getRootNode(path);
 
                     return path.stop();
                 }
 
                 // export default middleware
                 if (t.isIdentifier(declaration)) {
-                    rootNode = ConfigureMiddleware.replaceMiddlewareDeclaration(
+                    rootNode = NextJsMiddlewareConfiguratorCodemod.replaceMiddlewareDeclaration(
                         ast,
                         declaration.name,
                         functionName,
@@ -461,8 +461,8 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                     const initializer = node.init ?? null;
 
                     if (initializer !== null) {
-                        node.init = ConfigureMiddleware.wrapMiddleware(initializer, functionName, configName);
-                        rootNode = ConfigureMiddleware.getRootNode(path);
+                        node.init = NextJsMiddlewareConfiguratorCodemod.wrapMiddleware(initializer, functionName, configName);
+                        rootNode = NextJsMiddlewareConfiguratorCodemod.getRootNode(path);
                     }
 
                     return path.stop();
@@ -475,7 +475,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
 
                 if (t.isIdentifier(node.id) && node.id.name === name) {
                     path.replaceWith(
-                        ConfigureMiddleware.wrapFunctionDeclaration(
+                        NextJsMiddlewareConfiguratorCodemod.wrapFunctionDeclaration(
                             node,
                             functionName,
                             configName,
@@ -485,7 +485,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                         ),
                     );
 
-                    rootNode = ConfigureMiddleware.getRootNode(path);
+                    rootNode = NextJsMiddlewareConfiguratorCodemod.getRootNode(path);
 
                     return path.stop();
                 }
@@ -550,10 +550,10 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                         ) {
                             const match = t.isIdentifier(declarator.init)
                                 // export const config = variable
-                                ? ConfigureMiddleware.findVariableDeclarator(ast, declarator.init.name)
+                                ? NextJsMiddlewareConfiguratorCodemod.findVariableDeclarator(ast, declarator.init.name)
                                 : {
                                     name: 'config',
-                                    root: ConfigureMiddleware.getRootNode(path),
+                                    root: NextJsMiddlewareConfiguratorCodemod.getRootNode(path),
                                     declaration: declarator,
                                 };
 
@@ -566,7 +566,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                                     name: match.name,
                                     root: match.root,
                                     object: match.declaration.init,
-                                    matcher: ConfigureMiddleware.hasMatcherProperty(match.declaration.init),
+                                    matcher: NextJsMiddlewareConfiguratorCodemod.hasMatcherProperty(match.declaration.init),
                                 };
 
                                 return path.stop();
@@ -583,14 +583,14 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                         && t.isIdentifier(specifier.local)
                         && specifier.exported.name === 'config'
                     ) {
-                        const match = ConfigureMiddleware.findVariableDeclarator(ast, specifier.local.name);
+                        const match = NextJsMiddlewareConfiguratorCodemod.findVariableDeclarator(ast, specifier.local.name);
 
                         if (match !== null && t.isObjectExpression(match.declaration.init)) {
                             config = {
                                 name: match.name,
                                 root: match.root,
                                 object: match.declaration.init,
-                                matcher: ConfigureMiddleware.hasMatcherProperty(match.declaration.init),
+                                matcher: NextJsMiddlewareConfiguratorCodemod.hasMatcherProperty(match.declaration.init),
                             };
                         }
 
@@ -653,11 +653,11 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                 ) {
                     if (t.isIdentifier(node.init)) {
                         // If the initializer is an identifier, recursively search for the declaration
-                        declarator = ConfigureMiddleware.findVariableDeclarator(ast, node.init.name);
+                        declarator = NextJsMiddlewareConfiguratorCodemod.findVariableDeclarator(ast, node.init.name);
                     } else {
                         declarator = {
                             name: name,
-                            root: ConfigureMiddleware.getRootNode(path),
+                            root: NextJsMiddlewareConfiguratorCodemod.getRootNode(path),
                             declaration: node,
                         };
                     }
@@ -723,8 +723,8 @@ export class ConfigureMiddleware implements Codemod<t.File> {
             [
                 t.variableDeclarator(
                     t.identifier(name),
-                    ConfigureMiddleware.wrapMiddleware(
-                        ConfigureMiddleware.createFunctionExpression(functionDeclaration),
+                    NextJsMiddlewareConfiguratorCodemod.wrapMiddleware(
+                        NextJsMiddlewareConfiguratorCodemod.createFunctionExpression(functionDeclaration),
                         functionName,
                         configName,
                     ),
@@ -757,7 +757,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                     Identifier: function acceptNested(nestedPath) {
                         const identifier = nestedPath.node;
 
-                        if (ConfigureMiddleware.isVariableReference(nestedPath.parent, identifier)) {
+                        if (NextJsMiddlewareConfiguratorCodemod.isVariableReference(nestedPath.parent, identifier)) {
                             names.add(identifier.name);
                         }
 
@@ -781,7 +781,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                 const {node} = path;
 
                 if (t.isIdentifier(node.id) && names.has(node.id.name)) {
-                    references.push(ConfigureMiddleware.getRootNode(path));
+                    references.push(NextJsMiddlewareConfiguratorCodemod.getRootNode(path));
                 }
 
                 return path.skip();
@@ -794,7 +794,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                 const {node} = path;
 
                 if (t.isIdentifier(node.id) && names.has(node.id.name)) {
-                    references.push(ConfigureMiddleware.getRootNode(path));
+                    references.push(NextJsMiddlewareConfiguratorCodemod.getRootNode(path));
                 }
 
                 return path.skip();
@@ -807,7 +807,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
                 const {node} = path;
 
                 if (t.isIdentifier(node.id) && names.has(node.id.name)) {
-                    references.push(ConfigureMiddleware.getRootNode(path));
+                    references.push(NextJsMiddlewareConfiguratorCodemod.getRootNode(path));
                 }
 
                 return path.skip();
@@ -817,7 +817,7 @@ export class ConfigureMiddleware implements Codemod<t.File> {
         return [
             ...new Set(references.flatMap(
                 // Recursively find references from the found references
-                reference => [reference, ...ConfigureMiddleware.findReferencesFrom(reference, root)],
+                reference => [reference, ...NextJsMiddlewareConfiguratorCodemod.findReferencesFrom(reference, root)],
             )),
         ];
     }

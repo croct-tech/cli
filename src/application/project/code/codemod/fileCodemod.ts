@@ -1,17 +1,22 @@
 import {Codemod, CodemodError, CodemodOptions, ResultCode} from '@/application/project/code/codemod/codemod';
 import {FileSystem} from '@/application/fs/fileSystem';
 
-export class TransformFile<O extends CodemodOptions> implements Codemod<string, O> {
+export type Configuration<O extends CodemodOptions> = {
+    fileSystem: FileSystem,
+    codemod: Codemod<string, O>,
+};
+
+export class FileCodemod<O extends CodemodOptions> implements Codemod<string, O> {
     private readonly fileSystem: FileSystem;
 
     private readonly codemod: Codemod<string, O>;
 
-    public constructor(fileSystem: FileSystem, codemod: Codemod<string, O>) {
+    public constructor({fileSystem, codemod}: Configuration<O>) {
         this.fileSystem = fileSystem;
         this.codemod = codemod;
     }
 
-    public async apply(input: string, options?: O): Promise<ResultCode<string>> {
+    public async apply(input: string, options: O): Promise<ResultCode<string>> {
         let source = '';
 
         if (await this.fileSystem.exists(input)) {
@@ -20,9 +25,7 @@ export class TransformFile<O extends CodemodOptions> implements Codemod<string, 
             } catch (error) {
                 throw new CodemodError('Failed to read file.', {
                     cause: error,
-                    details: [
-                        `File: ${input}`,
-                    ],
+                    details: [`File: ${input}`],
                 });
             }
         }
@@ -37,13 +40,14 @@ export class TransformFile<O extends CodemodOptions> implements Codemod<string, 
             } catch (error) {
                 throw new CodemodError('Failed to write file', {
                     cause: error,
-                    details: [
-                        `File: ${input}`,
-                    ],
+                    details: [`File: ${input}`],
                 });
             }
         }
 
-        return result;
+        return {
+            modified: result.modified,
+            result: input,
+        };
     }
 }

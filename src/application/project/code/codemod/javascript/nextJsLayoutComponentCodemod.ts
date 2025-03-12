@@ -1,6 +1,6 @@
 import * as t from '@babel/types';
 import {Codemod, ResultCode} from '@/application/project/code/codemod/codemod';
-import {addImport} from '@/application/project/code/codemod/javascript/addImport';
+import {addImport} from '@/application/project/code/codemod/javascript/utils/addImport';
 
 export type LayoutComponentOptions = {
     typescript?: boolean,
@@ -13,7 +13,7 @@ export type LayoutComponentConfiguration = {
     },
 };
 
-export class CreateLayoutComponent implements Codemod<t.File, LayoutComponentOptions> {
+export class NextJsLayoutComponentCodemod implements Codemod<t.File, LayoutComponentOptions> {
     private configuration: LayoutComponentConfiguration;
 
     public constructor(configuration: LayoutComponentConfiguration) {

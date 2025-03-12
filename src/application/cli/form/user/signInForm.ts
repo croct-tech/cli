@@ -36,6 +36,7 @@ enum Action {
     RETRY_PASSWORD = 'retry-password',
     RESET_PASSWORD = 'reset-password',
     RETRY_ACTIVATION = 'retry-activation',
+    CHANGE_EMAIL = 'change-email',
     CANCEL = 'cancel',
 }
 
@@ -46,21 +47,20 @@ export class SignInForm implements Form<string, SignInOptions> {
         this.config = config;
     }
 
-    public async handle(options: SignInOptions): Promise<string> {
-        const email = options.email ?? await EmailInput.prompt({
+    public handle(options: SignInOptions): Promise<string> {
+        return this.login(options.email, options.password, options.retry);
+    }
+
+    private async login(email?: string, password?: string, retry = false): Promise<string> {
+        const {input, output, userApi} = this.config;
+
+        const enteredEmail = email ?? await EmailInput.prompt({
             input: this.config.input,
             label: 'Enter your email',
         });
 
-        return this.login(email, options.password, options.retry);
-    }
-
-    private async login(email: string, password?: string, retry = false): Promise<string> {
-        const {input, output, userApi} = this.config;
-
-        let action = Action.RETRY_PASSWORD;
-
         let initialPassword = password;
+        let action = Action.RETRY_PASSWORD;
 
         while (action === Action.RETRY_PASSWORD) {
             const enteredPassword = initialPassword ?? await PasswordInput.prompt({
@@ -74,7 +74,7 @@ export class SignInForm implements Form<string, SignInOptions> {
 
             try {
                 const token = await userApi.signIn({
-                    email: email,
+                    email: enteredEmail,
                     password: enteredPassword,
                     duration: this.config.tokenDuration,
                 });
@@ -128,6 +128,14 @@ export class SignInForm implements Form<string, SignInOptions> {
                                     label: 'Recover password',
                                     value: Action.RESET_PASSWORD,
                                 },
+                                ...(
+                                    email === undefined
+                                        ? [{
+                                            label: 'Enter a different email',
+                                            value: Action.CHANGE_EMAIL,
+                                        }]
+                                        : []
+                                ),
                                 {
                                     label: 'Cancel',
                                     value: Action.CANCEL,
@@ -146,11 +154,14 @@ export class SignInForm implements Form<string, SignInOptions> {
         }
 
         switch (action) {
+            case Action.CHANGE_EMAIL:
+                return this.login();
+
             case Action.RETRY_ACTIVATION:
-                return this.retryActivation(email);
+                return this.retryActivation(enteredEmail);
 
             case Action.RESET_PASSWORD:
-                return this.resetPassword(email);
+                return this.resetPassword(enteredEmail);
 
             case Action.CANCEL:
             default:

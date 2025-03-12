@@ -85,6 +85,7 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
         const analysis = WorkspaceResources.analyze(options.resources);
 
         this.checkMissingResources({...analysis, locales: new Set()}, options.resources);
+
         const {configurationManager, api: {workspace: api}} = this.config;
 
         const configuration = await configurationManager.resolve();

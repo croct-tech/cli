@@ -3,7 +3,7 @@ import * as t from '@babel/types';
 import traverse from '@babel/traverse';
 import {traverseFast} from '@babel/types';
 import {ResultCode, Codemod, CodemodOptions} from '@/application/project/code/codemod/codemod';
-import {addImport} from '@/application/project/code/codemod/javascript/addImport';
+import {addImport} from '@/application/project/code/codemod/javascript/utils/addImport';
 
 type ComponentDeclaration = t.VariableDeclarator | t.FunctionDeclaration;
 type DeclarationKind = t.ExportDefaultDeclaration['declaration'];
@@ -74,7 +74,7 @@ type WrapperInsertion = {
  * It attempts to wrap the default export first, and if not found, it can optionally
  * wrap named exports that return JSX elements depending on the configuration.
  */
-export class AddWrapper<O extends WrapperOptions = WrapperOptions> implements Codemod<t.File> {
+export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implements Codemod<t.File> {
     private readonly configuration: WrapperConfiguration<O>;
 
     public constructor(configuration: WrapperConfiguration<O>) {
@@ -248,7 +248,7 @@ export class AddWrapper<O extends WrapperOptions = WrapperOptions> implements Co
      * @return the result of the transformation.
      */
     private wrapBlockStatement(node: t.BlockStatement, component: string, ast: t.File, options?: O): Transformation {
-        const returnStatement = AddWrapper.findReturnStatement(node);
+        const returnStatement = JsxWrapperCodemod.findReturnStatement(node);
         const argument = returnStatement?.argument ?? null;
 
         if (returnStatement !== null && argument !== null) {
@@ -373,7 +373,7 @@ export class AddWrapper<O extends WrapperOptions = WrapperOptions> implements Co
             attributes.push(
                 t.jsxAttribute(
                     t.jsxIdentifier(key),
-                    t.jsxExpressionContainer(AddWrapper.buildPropertyExpression(value)),
+                    t.jsxExpressionContainer(JsxWrapperCodemod.buildPropertyExpression(value)),
                 ),
             );
         }

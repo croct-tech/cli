@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "module": "ES2020",
-    "target": "ESNext",
+    "target": "ES2020",
     "skipLibCheck": true,
     "moduleResolution": "Node",
     "allowSyntheticDefaultImports": true,
@@ -30,9 +30,9 @@
   ],
   "include": [
     "src/**/*.ts",
-    "test/**/*.ts",
+    "test/**/*.ts"
   ],
   "ts-node": {
     "require": ["tsconfig-paths/register"]
-  },
+  }
 }

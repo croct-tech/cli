@@ -1,8 +1,12 @@
 import generate from '@babel/generator';
 import {cloneNode, File, isNodesEquivalent} from '@babel/types';
 import traverse from '@babel/traverse';
-import {addImport, ImportDeclaration, ImportResult} from '@/application/project/code/codemod/javascript/addImport';
-import {parse} from '@/application/project/code/codemod/parser';
+import {
+    addImport,
+    ImportDeclaration,
+    ImportResult,
+} from '@/application/project/code/codemod/javascript/utils/addImport';
+import {parse} from '@/application/project/code/codemod/javascript/utils/parse';
 
 describe('addImport', () => {
     type Scenario = {
