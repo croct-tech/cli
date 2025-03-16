@@ -1,5 +1,5 @@
 import {resolve} from 'path';
-import {addComment, File} from '@babel/types';
+import {File, returnStatement} from '@babel/types';
 import {JsxWrapperCodemod, WrapperConfiguration} from '@/application/project/code/codemod/javascript/jsxWrapperCodemod';
 import {loadFixtures} from '../fixtures';
 import {JavaScriptCodemod} from '@/application/project/code/codemod/javascript/javaScriptCodemod';
@@ -161,7 +161,7 @@ describe('AddWrapper', () => {
             apply: jest.fn((input: File) => {
                 const {body} = input.program;
 
-                addComment(body[0], 'leading', ' This is a comment');
+                body.push(returnStatement());
 
                 return Promise.resolve({
                     modified: true,
@@ -178,13 +178,14 @@ describe('AddWrapper', () => {
             }),
         });
 
-        const {result} = await transformer.apply('export {Component} from \'./component\';', options);
+        const {result} = await transformer.apply('// Comment\nexport {Component} from \'./component\';', options);
 
         expect(codemod.apply).toHaveBeenCalledWith(expect.any(Object), options);
 
         expect(result).toEqual(
-            '/* This is a comment*/\n'
-            + 'export { Component } from \'./component\';',
+            '// Comment\n'
+            + 'export {Component} from \'./component\';\n\n'
+            + 'return;',
         );
     });
 

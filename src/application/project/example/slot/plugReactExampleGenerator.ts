@@ -2,10 +2,9 @@ import {ReactExampleGenerator} from './reactExampleGenerator';
 import {SlotDefinition} from './slotExampleGenerator';
 import {CodeWriter} from '@/application/project/example/codeWritter';
 import {CodeLanguage} from '@/application/project/example/example';
-import {formatName} from '@/application/project/utils/formatName';
 
 export class PlugReactExampleGenerator extends ReactExampleGenerator {
-    protected writeSlotHeader(writer: CodeWriter, definition: SlotDefinition): void {
+    protected writeSlotHeader(writer: CodeWriter): void {
         switch (this.options.language) {
             case CodeLanguage.JAVASCRIPT_XML:
                 writer.write('import {useContent} from \'@croct/plug-react\';');
@@ -19,22 +18,13 @@ export class PlugReactExampleGenerator extends ReactExampleGenerator {
                 break;
         }
 
-        const {variables} = this.options.code;
-        const importName = formatName(`${definition.id} V${definition.version}`);
-
-        writer.write(`import {${importName} as ${variables.fallbackContent}} from '@croct/content/slot';`);
-
         writer.newLine();
     }
 
     protected writeSlotFetch(writer: CodeWriter, definition: SlotDefinition): void {
         const {variables} = this.options.code;
 
-        writer.write(`const ${variables.content} = useContent('${definition.id}@${definition.version}', {`)
-            .indent()
-            .write(`fallback: ${variables.fallbackContent},`)
-            .outdent()
-            .write('});')
+        writer.write(`const ${variables.content} = useContent('${definition.id}@${definition.version}');`)
             .newLine();
     }
 

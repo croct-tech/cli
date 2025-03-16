@@ -1,7 +1,8 @@
 import {File} from '@babel/types';
-import generate from '@babel/generator';
+import * as recast from 'recast';
+import {parse} from 'recast/parsers/babel-ts';
 import {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/codemod/codemod';
-import {Language, parse} from '@/application/project/code/codemod/javascript/utils/parse';
+import {Language} from '@/application/project/code/codemod/javascript/utils/parse';
 
 export type Configuration<O extends CodemodOptions> = {
     codemod: Codemod<File, O>,
@@ -11,15 +12,18 @@ export type Configuration<O extends CodemodOptions> = {
 export class JavaScriptCodemod<O extends CodemodOptions> implements Codemod<string, O> {
     private readonly codemod: Codemod<File, O>;
 
-    private readonly languages: Language[];
-
     public constructor(configuration: Configuration<O>) {
         this.codemod = configuration.codemod;
-        this.languages = configuration.languages;
     }
 
     public async apply(input: string, options?: O): Promise<ResultCode<string>> {
-        const result = await this.codemod.apply(parse(input, this.languages), options);
+        const ast = recast.parse(input, {
+            parser: {
+                parse: parse,
+            },
+        });
+
+        const result = await this.codemod.apply(ast, options);
 
         if (!result.modified) {
             return {
@@ -30,13 +34,9 @@ export class JavaScriptCodemod<O extends CodemodOptions> implements Codemod<stri
 
         return {
             modified: true,
-            result: generate(
-                result.result,
-                {
-                    compact: false,
-                    retainFunctionParens: true,
-                },
-            ).code,
+            result: recast.print(result.result, {
+                reuseWhitespace: false,
+            }).code,
         };
     }
 }

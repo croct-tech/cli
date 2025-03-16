@@ -1,6 +1,7 @@
 import * as t from '@babel/types';
 import {Codemod, ResultCode} from '@/application/project/code/codemod/codemod';
 import {addImport} from '@/application/project/code/codemod/javascript/utils/addImport';
+import {AttributeType, createJsxAttributes} from '@/application/project/code/codemod/javascript/utils/createJsxProps';
 
 export type AppComponentOptions = {
     typescript?: boolean,
@@ -10,6 +11,7 @@ export type AppComponentConfiguration = {
     provider: {
         component: string,
         module: string,
+        props?: Record<string, AttributeType>,
     },
 };
 
@@ -70,7 +72,10 @@ export class NextJsAppComponentCodemod implements Codemod<t.File, AppComponentOp
                 t.returnStatement(
                     t.parenthesizedExpression(
                         t.jsxElement(
-                            t.jsxOpeningElement(t.jsxIdentifier(providerImport.localName), []),
+                            t.jsxOpeningElement(
+                                t.jsxIdentifier(providerImport.localName),
+                                createJsxAttributes(this.configuration.provider.props ?? {}),
+                            ),
                             t.jsxClosingElement(t.jsxIdentifier(providerImport.localName)),
                             [
                                 t.jsxText('\n'),

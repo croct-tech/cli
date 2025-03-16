@@ -112,7 +112,7 @@ export class PlugNextExampleGenerator extends ReactExampleGenerator {
                     .indent()
                     .write('route: context,')
                     .outdent()
-                    .write('});')
+                    .write('}),')
                     .outdent()
                     .write('}')
                     .outdent()
@@ -159,7 +159,7 @@ export class PlugNextExampleGenerator extends ReactExampleGenerator {
                 writer.write(
                     this.options.language === CodeLanguage.TYPESCRIPT_XML
                         ? 'export default function Page({content}: PageProps): ReactElement {'
-                        : 'export default function Page({content}}) {',
+                        : 'export default function Page({content}) {',
                 );
 
                 break;

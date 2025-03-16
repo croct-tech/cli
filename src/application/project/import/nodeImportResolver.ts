@@ -22,15 +22,13 @@ export class NodeImportResolver implements ImportResolver {
         this.tsConfigLoader = tsConfigLoader;
     }
 
-    public async getImportPath(filePath: string, importPath?: string): Promise<string> {
+    public async getImportPath(filePath: string, sourcePath: string): Promise<string> {
         const workingDirectory = this.projectDirectory.get();
         const config = await this.tsConfigLoader.load(workingDirectory, {
-            sourcePaths: importPath === undefined
-                ? [workingDirectory]
-                : [this.fileSystem.joinPaths(workingDirectory, importPath)],
+            sourcePaths: [this.fileSystem.joinPaths(workingDirectory, sourcePath)],
         });
 
-        const fileImportPath = importPath !== undefined && /\.m(?:js|ts)?$/.test(filePath)
+        const fileImportPath = /\.m(?:js|ts)?$/.test(filePath)
             ? filePath
             : filePath.replace(/\.(ts|js)x?$/, '');
 
@@ -70,13 +68,15 @@ export class NodeImportResolver implements ImportResolver {
             }
         }
 
-        const resolvedFilePath = this.fileSystem.joinPaths(resolvedBasePath, fileImportPath);
-        const resolvedRelativePath = importPath === undefined
-            ? this.fileSystem.getRelativePath(workingDirectory, resolvedFilePath)
-            : this.fileSystem.getRelativePath(
-                this.fileSystem.joinPaths(resolvedBasePath, importPath),
-                resolvedFilePath,
-            );
+        console.log(
+            this.fileSystem.joinPaths(workingDirectory, sourcePath),
+            this.fileSystem.joinPaths(workingDirectory, fileImportPath),
+        );
+
+        const resolvedRelativePath = this.fileSystem.getRelativePath(
+            this.fileSystem.joinPaths(workingDirectory, sourcePath),
+            this.fileSystem.joinPaths(workingDirectory, fileImportPath),
+        );
 
         return Promise.resolve(resolvedRelativePath.replace(/\\/g, '/'));
     }

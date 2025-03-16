@@ -4,9 +4,12 @@ exports[`CreateLayoutComponent should correctly transform allImports.tsx: allImp
 "import type { ReactNode, PropsWithChildren } from "react";
 import type { AppProps } from "next/app";
 import { CroctProvider } from "@croct/plug-next/CroctProvider";
-export default function RootLayout({
-  children: children
-}: PropsWithChildren): ReactNode {
+
+export default function RootLayout(
+  {
+    children: children
+  }: PropsWithChildren
+): ReactNode {
   return (<html lang="en">
     <body>
       <CroctProvider>
@@ -14,14 +17,18 @@ export default function RootLayout({
       </CroctProvider>
     </body>
   </html>);
-}"
+}
+"
 `;
 
 exports[`CreateLayoutComponent should correctly transform empty.jsx: empty.jsx 1`] = `
 "import { CroctProvider } from "@croct/plug-next/CroctProvider";
-export default function RootLayout({
-  children: children
-}) {
+
+export default function RootLayout(
+  {
+    children: children
+  }
+) {
   return (<html lang="en">
     <body>
       <CroctProvider>
@@ -35,9 +42,12 @@ export default function RootLayout({
 exports[`CreateLayoutComponent should correctly transform empty.tsx: empty.tsx 1`] = `
 "import type { PropsWithChildren, ReactNode } from "react";
 import { CroctProvider } from "@croct/plug-next/CroctProvider";
-export default function RootLayout({
-  children: children
-}: PropsWithChildren): ReactNode {
+
+export default function RootLayout(
+  {
+    children: children
+  }: PropsWithChildren
+): ReactNode {
   return (<html lang="en">
     <body>
       <CroctProvider>
@@ -50,9 +60,12 @@ export default function RootLayout({
 
 exports[`CreateLayoutComponent should correctly transform providerImport.jsx: providerImport.jsx 1`] = `
 "import { CroctProvider } from "@croct/plug-next/CroctProvider";
-export default function RootLayout({
-  children: children
-}) {
+
+export default function RootLayout(
+  {
+    children: children
+  }
+) {
   return (<html lang="en">
     <body>
       <CroctProvider>
@@ -60,24 +73,30 @@ export default function RootLayout({
       </CroctProvider>
     </body>
   </html>);
-}"
+}
+"
 `;
 
 exports[`CreateLayoutComponent should correctly transform unrelatedCode.tsx: unrelatedCode.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-next/CroctProvider";
 import { Fragment, type PropsWithChildren, type ReactNode } from "react";
+
 export function UnrelatedComponent() {
-  return <Fragment />;
+    return <Fragment />;
 }
-export default function RootLayout({
-  children: children
-}: PropsWithChildren): ReactNode {
-  return (<html lang="en">
-    <body>
-      <CroctProvider>
-        {children}
-      </CroctProvider>
-    </body>
-  </html>);
-}"
+
+export default function RootLayout(
+    {
+        children: children
+    }: PropsWithChildren
+): ReactNode {
+    return (<html lang="en">
+        <body>
+            <CroctProvider>
+                {children}
+            </CroctProvider>
+        </body>
+    </html>);
+}
+"
 `;

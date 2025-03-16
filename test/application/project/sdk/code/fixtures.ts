@@ -1,4 +1,4 @@
-import {readdirSync, readFileSync} from 'fs';
+import {readdirSync, readFileSync, statSync} from 'fs';
 import {basename, join} from 'path';
 
 export type FixtureScenario<O> = {
@@ -15,6 +15,12 @@ export function loadFixtures<T>(
     const scenarios: Record<string, FixtureScenario<T>> = {};
 
     for (const file of readdirSync(fixturePath)) {
+        const stat = statSync(join(fixturePath, file));
+
+        if (!stat.isFile()) {
+            continue;
+        }
+
         const name = basename(file);
 
         scenarios[name] = {

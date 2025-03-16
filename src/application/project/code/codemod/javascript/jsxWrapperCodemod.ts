@@ -4,6 +4,8 @@ import traverse from '@babel/traverse';
 import {traverseFast} from '@babel/types';
 import {ResultCode, Codemod, CodemodOptions} from '@/application/project/code/codemod/codemod';
 import {addImport} from '@/application/project/code/codemod/javascript/utils/addImport';
+import {getImportLocalName} from '@/application/project/code/codemod/javascript/utils/getImportLocalName';
+import {AttributeType, createJsxAttributes} from '@/application/project/code/codemod/javascript/utils/createJsxProps';
 
 type ComponentDeclaration = t.VariableDeclarator | t.FunctionDeclaration;
 type DeclarationKind = t.ExportDefaultDeclaration['declaration'];
@@ -15,33 +17,11 @@ type TargetChildren = {
     index: number,
 };
 
-type PropertyTypes = {
-    reference: {
-        path: string[],
-    },
-    literal: {
-        value: string | number | boolean | null,
-    },
-    ternary: {
-        condition: {
-            left: PropertyType,
-            operator: '===' | '!==' | '>' | '>=' | '<' | '<=',
-            right: PropertyType,
-        },
-        consequent: PropertyType,
-        alternate: PropertyType,
-    },
-};
-
-export type PropertyType = {
-    [K in keyof PropertyTypes]: PropertyTypes[K] & {type: K}
-}[keyof PropertyTypes];
-
 export type WrapperConfiguration<O extends CodemodOptions = CodemodOptions> = {
     wrapper: {
         component: string,
         module: string,
-        props?: Record<string, PropertyType>,
+        props?: Record<string, AttributeType>,
     },
     targets?: {
         variable?: string,
@@ -52,7 +32,7 @@ export type WrapperConfiguration<O extends CodemodOptions = CodemodOptions> = {
 };
 
 export type WrapperOptions = CodemodOptions & {
-    props?: Record<string, PropertyType>,
+    props?: Record<string, AttributeType>,
 };
 
 enum Transformation {
@@ -82,23 +62,20 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
     }
 
     public apply(input: t.File, options?: O): Promise<ResultCode<t.File>> {
-        const ast = t.cloneNode(input, true);
-
-        const componentImport = addImport(ast, {
-            type: 'value',
-            moduleName: this.configuration.wrapper.module,
+        const importLocalName = getImportLocalName(input, {
             importName: this.configuration.wrapper.component,
+            moduleName: this.configuration.wrapper.module,
         });
 
-        const component = componentImport.localName ?? this.configuration.wrapper.component;
+        const component = importLocalName ?? this.configuration.wrapper.component;
         const namedExports: t.ExportNamedDeclaration[] = [];
 
         let result = Transformation.NOT_APPLIED;
 
-        traverse(ast, {
+        traverse(input, {
             ExportDefaultDeclaration: path => {
                 // Wrap the default export
-                result = this.wrapDeclaration(path.node.declaration, component, ast, options);
+                result = this.wrapDeclaration(path.node.declaration, component, input, options);
 
                 return path.stop();
             },
@@ -115,7 +92,7 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
             for (const namedExport of namedExports) {
                 if (t.isFunctionDeclaration(namedExport.declaration)) {
                     // export function Component() { ... }
-                    result = this.wrapBlockStatement(namedExport.declaration.body, component, ast, options);
+                    result = this.wrapBlockStatement(namedExport.declaration.body, component, input, options);
 
                     if (result === Transformation.APPLIED) {
                         break;
@@ -134,7 +111,7 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
                             || t.isArrowFunctionExpression(declaration.init)
                             || t.isFunctionExpression(declaration.init)
                         ) {
-                            return this.wrapDeclaration(declaration.init, component, ast, options)
+                            return this.wrapDeclaration(declaration.init, component, input, options)
                                 === Transformation.APPLIED;
                         }
 
@@ -151,14 +128,14 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
                 // export {Component as SomeComponent};
                 for (const specifier of namedExport.specifiers ?? []) {
                     if (t.isExportSpecifier(specifier)) {
-                        const declaration = this.findComponentDeclaration(ast, specifier.local.name);
+                        const declaration = this.findComponentDeclaration(input, specifier.local.name);
 
                         if (
                             declaration !== null
                             && t.isVariableDeclarator(declaration)
                             && t.isExpression(declaration.init)
                         ) {
-                            result = this.wrapDeclaration(declaration.init, component, ast, options);
+                            result = this.wrapDeclaration(declaration.init, component, input, options);
 
                             if (result === Transformation.APPLIED) {
                                 break;
@@ -173,6 +150,21 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
             }
         }
 
+        if (result === Transformation.APPLIED && importLocalName === null) {
+            const {body} = input.program;
+
+            if (!t.isImportDeclaration(body[0])) {
+                // Workaround to add a new line after the import statement
+                body.unshift(t.emptyStatement());
+            }
+
+            addImport(input, {
+                type: 'value',
+                moduleName: this.configuration.wrapper.module,
+                importName: this.configuration.wrapper.component,
+            });
+        }
+
         const fallbackCodemod = this.configuration?.fallbackCodemod;
 
         if (result === Transformation.NOT_APPLIED && fallbackCodemod !== undefined) {
@@ -181,7 +173,7 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
 
         return Promise.resolve({
             modified: result === Transformation.APPLIED,
-            result: result === Transformation.APPLIED ? ast : input,
+            result: input,
         });
     }
 
@@ -344,6 +336,10 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
      * @return The wrapped JSX element.
      */
     private wrapElement(node: JsxKind, name: string|undefined, options?: O): t.JSXElement {
+        if (node.extra?.parenthesized === true) {
+            node.extra.parenthesized = false;
+        }
+
         return t.jsxElement(
             t.jsxOpeningElement(
                 t.jsxIdentifier(name ?? this.configuration.wrapper.component),
@@ -366,64 +362,7 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
      * @return The list of JSX attributes for the wrapper component.
      */
     private getProviderProps(options?: O): t.JSXAttribute[] {
-        const attributes: t.JSXAttribute[] = [];
-        const props = {...this.configuration.wrapper.props, ...options?.props};
-
-        for (const [key, value] of Object.entries(props)) {
-            attributes.push(
-                t.jsxAttribute(
-                    t.jsxIdentifier(key),
-                    t.jsxExpressionContainer(JsxWrapperCodemod.buildPropertyExpression(value)),
-                ),
-            );
-        }
-
-        return attributes;
-    }
-
-    private static buildPropertyExpression(property: PropertyType): t.Expression {
-        switch (property.type) {
-            case 'reference':
-                if (property.path.length < 2) {
-                    return t.identifier(property.path[0]);
-                }
-
-                return property.path
-                    .slice(2)
-                    .reduce(
-                        (object, key) => t.memberExpression(object, t.identifier(key)),
-                        t.memberExpression(
-                            t.identifier(property.path[0]),
-                            t.identifier(property.path[1]),
-                        ),
-                    );
-
-            case 'literal':
-                if (typeof property.value === 'string') {
-                    return t.stringLiteral(property.value);
-                }
-
-                if (typeof property.value === 'number') {
-                    return t.numericLiteral(property.value);
-                }
-
-                if (typeof property.value === 'boolean') {
-                    return t.booleanLiteral(property.value);
-                }
-
-                return t.nullLiteral();
-
-            case 'ternary':
-                return t.conditionalExpression(
-                    t.binaryExpression(
-                        property.condition.operator,
-                        this.buildPropertyExpression(property.condition.left),
-                        this.buildPropertyExpression(property.condition.right),
-                    ),
-                    this.buildPropertyExpression(property.consequent),
-                    this.buildPropertyExpression(property.alternate),
-                );
-        }
+        return createJsxAttributes({...this.configuration.wrapper.props, ...options?.props});
     }
 
     /**

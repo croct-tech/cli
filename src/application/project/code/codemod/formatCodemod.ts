@@ -1,7 +1,7 @@
 import {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/codemod/codemod';
 import {CodeFormatter} from '@/application/project/code/formatter/formatter';
 
-export class StyleCodemod<O extends CodemodOptions> implements Codemod<string, O> {
+export class FormatCodemod<O extends CodemodOptions> implements Codemod<string, O> {
     private readonly formatter: CodeFormatter;
 
     private readonly codemod?: Codemod<string, O>;

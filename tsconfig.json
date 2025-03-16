@@ -17,6 +17,7 @@
     "noEmit": true,
     "downlevelIteration": true,
     "declaration": true,
+    "isolatedModules": true,
     "lib": ["ES2022"],
     "baseUrl": ".",
     "paths": {

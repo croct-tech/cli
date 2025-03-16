@@ -17,6 +17,7 @@ import {multiline} from '@/utils/multiline';
 
 export type InstallationPlan = {
     tasks: Task[],
+    dependencies: string[],
     configuration: ProjectConfiguration,
 };
 
@@ -58,8 +59,6 @@ export abstract class JavaScriptSdk implements Sdk {
         this.fileSystem = configuration.fileSystem;
         this.importConfigLoader = configuration.tsConfigLoader;
     }
-
-    protected abstract getPackage(): string;
 
     public async generateSlotExample(slot: Slot, installation: Installation): Promise<void> {
         const rootPath = this.projectDirectory.get();
@@ -121,7 +120,7 @@ export abstract class JavaScriptSdk implements Sdk {
 
                 try {
                     await this.packageManager.addDependencies(['croct'], true);
-                    await this.packageManager.addDependencies([this.getPackage(), JavaScriptSdk.CONTENT_PACKAGE]);
+                    await this.packageManager.addDependencies([...plan.dependencies, JavaScriptSdk.CONTENT_PACKAGE]);
 
                     notifier.confirm('Dependencies installed');
                 } catch (error) {

@@ -20,9 +20,11 @@ import {Slot} from '@/application/model/slot';
 import {HelpfulError} from '@/application/error';
 import {ImportResolver} from '@/application/project/import/importResolver';
 import {ApiKeyPermission} from '@/application/model/application';
+import {PlugReactExampleGenerator} from '@/application/project/example/slot/plugReactExampleGenerator';
 
 type CodemodConfiguration = {
     middleware: Codemod<string>,
+    fallbackProvider: Codemod<string, AppComponentOptions>,
     appRouterProvider: Codemod<string, LayoutComponentOptions>,
     pageRouterProvider: Codemod<string, AppComponentOptions>,
 };
@@ -38,6 +40,7 @@ export type Configuration = JavaScriptSdkConfiguration & {
 type NextRouter = 'app' | 'page';
 
 type NextProjectInfo = {
+    fallbackMode: boolean,
     typescript: boolean,
     router: NextRouter,
     sourceDirectory: string,
@@ -83,47 +86,67 @@ export class PlugNextSdk extends JavaScriptSdk {
         this.applicationApi = configuration.applicationApi;
     }
 
-    protected getPackage(): string {
-        return '@croct/plug-next';
-    }
-
     protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
-        const router = await this.detectRouter();
-        const componentsImportPath = await this.importResolver.getImportPath(
-            installation.configuration.paths.components,
+        const [router, isTypescript, fallbackMode] = await Promise.all([
+            this.detectRouter(),
+            this.isTypeScriptProject(),
+            this.isFallbackMode(),
+        ]);
+        const componentDirectory = installation.configuration.paths.components;
+        const pageDirectory = this.fileSystem.joinPaths(
             installation.configuration.paths.examples,
+            slot.slug,
         );
 
-        const generator = new PlugNextExampleGenerator({
-            fileSystem: this.fileSystem,
-            options: {
-                router: router === 'page' ? NextExampleRouter.PAGE : NextExampleRouter.APP,
-                language: await this.isTypeScriptProject()
-                    ? CodeLanguage.TYPESCRIPT_XML
-                    : CodeLanguage.JAVASCRIPT_XML,
-                code: {
-                    importPaths: {
-                        slot: componentsImportPath,
-                    },
-                    files: {
-                        slot: {
-                            directory: this.fileSystem.joinPaths(
-                                installation.configuration.paths.components,
-                                '%name%',
-                            ),
-                            name: 'index',
+        const componentsImportPath = await this.importResolver.getImportPath(componentDirectory, pageDirectory);
+
+        const generator = fallbackMode
+            ? new PlugReactExampleGenerator({
+                fileSystem: this.fileSystem,
+                options: {
+                    language: isTypescript
+                        ? CodeLanguage.TYPESCRIPT_XML
+                        : CodeLanguage.JAVASCRIPT_XML,
+                    code: {
+                        importPaths: {
+                            slot: componentsImportPath,
                         },
-                        page: {
-                            directory: this.fileSystem.joinPaths(
-                                installation.configuration.paths.examples,
-                                slot.slug,
-                            ),
-                            name: router === 'page' ? 'index' : 'page',
+                        files: {
+                            slot: {
+                                directory: componentDirectory,
+                            },
+                            page: {
+                                directory: pageDirectory,
+                                name: 'index',
+                            },
                         },
                     },
                 },
-            },
-        });
+            })
+            : new PlugNextExampleGenerator({
+                fileSystem: this.fileSystem,
+                options: {
+                    router: router === 'page' ? NextExampleRouter.PAGE : NextExampleRouter.APP,
+                    language: isTypescript
+                        ? CodeLanguage.TYPESCRIPT_XML
+                        : CodeLanguage.JAVASCRIPT_XML,
+                    code: {
+                        importPaths: {
+                            slot: componentsImportPath,
+                        },
+                        files: {
+                            slot: {
+                                directory: this.fileSystem.joinPaths(componentDirectory, '%name%'),
+                                name: 'index',
+                            },
+                            page: {
+                                directory: pageDirectory,
+                                name: router === 'page' ? 'index' : 'page',
+                            },
+                        },
+                    },
+                },
+            });
 
         const example = generator.generate({
             id: slot.slug,
@@ -135,8 +158,17 @@ export class PlugNextSdk extends JavaScriptSdk {
     }
 
     protected async getInstallationPlan(installation: Installation): Promise<InstallationPlan> {
-        const {configuration} = installation;
+        const {configuration, output} = installation;
         const [{i18n}, projectInfo] = await Promise.all([this.getConfig(), this.getProjectInfo()]);
+
+        if (projectInfo.fallbackMode) {
+            output.announce({
+                semantics: 'warning',
+                title: 'Fallback mode',
+                message: 'Next.js SDK requires version 13 or newer, so React SDK will be installed instead.',
+            });
+        }
+
         const filteredLocales = configuration.locales.filter(
             locale => i18n.locales.includes(locale) || locale === configuration.defaultLocale,
         );
@@ -146,6 +178,7 @@ export class PlugNextSdk extends JavaScriptSdk {
             : configuration.defaultLocale;
 
         return {
+            dependencies: [projectInfo.fallbackMode ? '@croct/plug-react' : '@croct/plug-next'],
             tasks: this.getInstallationTasks({
                 ...installation,
                 project: projectInfo,
@@ -163,15 +196,16 @@ export class PlugNextSdk extends JavaScriptSdk {
     }
 
     private async getProjectInfo(): Promise<NextProjectInfo> {
-        const [isTypescript, directory] = await Promise.all([
+        const [isTypescript, directory, fallbackMode] = await Promise.all([
             this.isTypeScriptProject(),
             this.getPageDirectory(),
+            this.isFallbackMode(),
         ]);
 
         const project: Pick<NextProjectInfo, 'typescript' | 'router' | 'sourceDirectory' | 'pageDirectory'> = {
             typescript: isTypescript,
             router: await this.detectRouter(directory),
-            sourceDirectory: directory.startsWith('src') ? 'src' : './',
+            sourceDirectory: directory.startsWith('src') ? 'src' : '.',
             pageDirectory: directory,
         };
 
@@ -181,8 +215,10 @@ export class PlugNextSdk extends JavaScriptSdk {
                     .map(file => this.fileSystem.joinPaths(project.sourceDirectory, file)),
             ),
             this.locateFile(
-                ...(project.router === 'app' ? ['app/layout.jsx', 'app/layout.tsx'] : ['_app.jsx', '_app.tsx'])
-                    .map(file => this.fileSystem.joinPaths(project.sourceDirectory, file)),
+                ...(project.router === 'app'
+                    ? [this.fileSystem.joinPaths('app', 'layout.jsx'), this.fileSystem.joinPaths('app', 'layout.tsx')]
+                    : [this.fileSystem.joinPaths('pages', '_app.jsx'), this.fileSystem.joinPaths('pages', '_app.tsx')]
+                ).map(file => this.fileSystem.joinPaths(project.sourceDirectory, file)),
             ),
         ]);
 
@@ -191,6 +227,7 @@ export class PlugNextSdk extends JavaScriptSdk {
 
         return {
             ...project,
+            fallbackMode: fallbackMode,
             env: {
                 localFile: new EnvFile(
                     this.fileSystem,
@@ -209,7 +246,12 @@ export class PlugNextSdk extends JavaScriptSdk {
                 file: middlewareFile ?? this.fileSystem.joinPaths(project.sourceDirectory, `middleware.${extension}`),
             },
             provider: {
-                file: providerComponentFile ?? (`${project.router === 'app' ? 'app/layout' : '_app'}.${extension}x`),
+                file: providerComponentFile
+                    ?? (
+                        project.router === 'app'
+                            ? this.fileSystem.joinPaths('app', `layout.${extension}x`)
+                            : this.fileSystem.joinPaths('pages', `_app.${extension}x`)
+                    ),
             },
         };
     }
@@ -217,21 +259,20 @@ export class PlugNextSdk extends JavaScriptSdk {
     private getInstallationTasks(installation: Omit<NextInstallation, 'notifier'>): Task[] {
         const tasks: Task[] = [];
 
-        tasks.push({
-            title: 'Configure middleware',
-            task: async notifier => {
-                try {
-                    await this.installMiddleware({
-                        ...installation,
-                        notifier: notifier,
-                    });
+        if (!installation.project.fallbackMode) {
+            tasks.push({
+                title: 'Configure middleware',
+                task: async notifier => {
+                    try {
+                        await this.updateCode(this.codemod.middleware, installation.project.middleware.file);
 
-                    notifier.confirm('Middleware configured');
-                } catch (error) {
-                    notifier.alert('Failed to install middleware', HelpfulError.formatMessage(error));
-                }
-            },
-        });
+                        notifier.confirm('Middleware configured');
+                    } catch (error) {
+                        notifier.alert('Failed to install middleware', HelpfulError.formatMessage(error));
+                    }
+                },
+            });
+        }
 
         tasks.push({
             title: 'Configure provider',
@@ -270,16 +311,22 @@ export class PlugNextSdk extends JavaScriptSdk {
 
     private installProvider(installation: NextInstallation): Promise<void> {
         return this.updateCode(
-            installation.project.router === 'app'
-                ? this.codemod.appRouterProvider
-                : this.codemod.pageRouterProvider,
+            this.getProviderCodemod(installation),
             installation.project.provider.file,
             {typescript: installation.project.typescript},
         );
     }
 
-    private installMiddleware(installation: NextInstallation): Promise<void> {
-        return this.updateCode(this.codemod.middleware, installation.project.middleware.file);
+    private getProviderCodemod(
+        installation: NextInstallation,
+    ): Codemod<string, AppComponentOptions|LayoutComponentOptions> {
+        if (installation.project.fallbackMode) {
+            return this.codemod.fallbackProvider;
+        }
+
+        return installation.project.router === 'app'
+            ? this.codemod.appRouterProvider
+            : this.codemod.pageRouterProvider;
     }
 
     private async updateCode<O extends CodemodOptions>(
@@ -343,7 +390,12 @@ export class PlugNextSdk extends JavaScriptSdk {
     }
 
     private async getPageDirectory(): Promise<string> {
-        return (await this.locateFile('app', 'src/app', 'pages', 'src/pages')) ?? 'app';
+        return (await this.locateFile(
+            'app',
+            this.fileSystem.joinPaths('src', 'app'),
+            'pages',
+            this.fileSystem.joinPaths('src', 'pages'),
+        )) ?? 'app';
     }
 
     private async getConfig(): Promise<NextConfig> {
@@ -360,5 +412,9 @@ export class PlugNextSdk extends JavaScriptSdk {
         }
 
         return parseNextJsConfig(config);
+    }
+
+    private async isFallbackMode(): Promise<boolean> {
+        return !await this.packageManager.hasDependency('next', '>=13');
     }
 }

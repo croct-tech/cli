@@ -48,7 +48,7 @@ import {
     NextJsMiddlewareConfiguratorCodemod,
 } from '@/application/project/code/codemod/javascript/nextJsMiddlewareConfiguratorCodemod';
 import {CodeFormatter} from '@/application/project/code/formatter/formatter';
-import {StyleCodemod} from '@/application/project/code/codemod/styleCodemod';
+import {FormatCodemod} from '@/application/project/code/codemod/formatCodemod';
 import {FileCodemod} from '@/application/project/code/codemod/fileCodemod';
 import {NextJsLayoutComponentCodemod} from '@/application/project/code/codemod/javascript/nextJsLayoutComponentCodemod';
 import {NextJsAppComponentCodemod} from '@/application/project/code/codemod/javascript/nextJsAppComponentCodemod';
@@ -284,6 +284,7 @@ import {PathBasedCodemod} from '@/application/project/code/codemod/pathBasedCode
 import {getExportedNames} from '@/application/project/code/codemod/javascript/utils/getExportedNames';
 import {JavaScriptImportCodemod} from '@/application/project/code/codemod/javascript/javaScriptImportCodemod';
 import {ChainedCodemod} from '@/application/project/code/codemod/chainedCodemod';
+import {AttributeType} from '@/application/project/code/codemod/javascript/utils/createJsxProps';
 
 export type Configuration = {
     program: Program,
@@ -1072,7 +1073,7 @@ export class Cli {
                                             },
                                         },
                                     }),
-                                    new StyleCodemod(this.getJavaScriptFormatter()),
+                                    new FormatCodemod(this.getJavaScriptFormatter()),
                                 ),
                             },
                         }),
@@ -1451,7 +1452,7 @@ export class Cli {
                         ...config,
                         importResolver: importResolver,
                         codemod: {
-                            provider: new StyleCodemod(
+                            provider: new FormatCodemod(
                                 formatter,
                                 new FileCodemod({
                                     fileSystem: this.getFileSystem(),
@@ -1486,83 +1487,131 @@ export class Cli {
                             },
                         ],
                     }),
-                    [Platform.NEXTJS]: (): Sdk => new PlugNextSdk({
-                        ...config,
-                        userApi: this.getUserApi(),
-                        applicationApi: this.getApplicationApi(),
-                        importResolver: importResolver,
-                        codemod: {
-                            middleware: new StyleCodemod(
-                                formatter,
-                                new FileCodemod({
-                                    fileSystem: this.getFileSystem(),
-                                    codemod: new JavaScriptCodemod({
-                                        languages: ['typescript', 'jsx'],
-                                        codemod: new NextJsMiddlewareConfiguratorCodemod({
-                                            import: {
-                                                module: '@croct/plug-next/middleware',
-                                                middlewareName: 'middleware',
-                                                middlewareFactoryName: 'withCroct',
-                                                configName: 'config',
-                                                matcherName: 'matcher',
-                                                matcherLocalName: 'croctMatcher',
-                                            },
-                                        }),
-                                    }),
-                                }),
-                            ),
-                            appRouterProvider: new StyleCodemod(
-                                formatter,
-                                new FileCodemod({
-                                    fileSystem: this.getFileSystem(),
-                                    codemod: new JavaScriptCodemod({
-                                        languages: ['typescript', 'jsx'],
-                                        codemod: new JsxWrapperCodemod({
-                                            fallbackToNamedExports: false,
-                                            fallbackCodemod: new NextJsLayoutComponentCodemod({
-                                                provider: {
-                                                    component: 'CroctProvider',
-                                                    module: '@croct/plug-next/CroctProvider',
+                    [Platform.NEXTJS]: (): Sdk => {
+                        const providerProps: Record<string, AttributeType> = {
+                            appId: {
+                                type: 'reference',
+                                path: ['process', 'env', 'NEXT_PUBLIC_CROCT_APP_ID'],
+                            },
+                            debug: {
+                                type: 'comparison',
+                                operator: '===',
+                                left: {
+                                    type: 'reference',
+                                    path: ['process', 'env', 'NEXT_PUBLIC_CROCT_DEBUG'],
+                                },
+                                right: {
+                                    type: 'literal',
+                                    value: 'true',
+                                },
+                            },
+                        };
+
+                        return new PlugNextSdk({
+                            ...config,
+                            userApi: this.getUserApi(),
+                            applicationApi: this.getApplicationApi(),
+                            importResolver: importResolver,
+                            codemod: {
+                                middleware: new FormatCodemod(
+                                    formatter,
+                                    new FileCodemod({
+                                        fileSystem: this.getFileSystem(),
+                                        codemod: new JavaScriptCodemod({
+                                            languages: ['typescript', 'jsx'],
+                                            codemod: new NextJsMiddlewareConfiguratorCodemod({
+                                                import: {
+                                                    module: '@croct/plug-next/middleware',
+                                                    middlewareName: 'middleware',
+                                                    middlewareFactoryName: 'withCroct',
+                                                    configName: 'config',
+                                                    matcherName: 'matcher',
+                                                    matcherLocalName: 'croctMatcher',
                                                 },
                                             }),
-                                            wrapper: {
-                                                module: '@croct/plug-next/CroctProvider',
-                                                component: 'CroctProvider',
-                                            },
-                                            targets: {
-                                                variable: 'children',
-                                            },
                                         }),
                                     }),
-                                }),
-                            ),
-                            pageRouterProvider: new StyleCodemod(
-                                formatter,
-                                new FileCodemod({
-                                    fileSystem: this.getFileSystem(),
-                                    codemod: new JavaScriptCodemod({
-                                        languages: ['typescript', 'jsx'],
-                                        codemod: new JsxWrapperCodemod({
-                                            fallbackToNamedExports: false,
-                                            fallbackCodemod: new NextJsAppComponentCodemod({
-                                                provider: {
-                                                    component: 'CroctProvider',
+                                ),
+                                appRouterProvider: new FormatCodemod(
+                                    formatter,
+                                    new FileCodemod({
+                                        fileSystem: this.getFileSystem(),
+                                        codemod: new JavaScriptCodemod({
+                                            languages: ['typescript', 'jsx'],
+                                            codemod: new JsxWrapperCodemod({
+                                                fallbackToNamedExports: false,
+                                                fallbackCodemod: new NextJsLayoutComponentCodemod({
+                                                    provider: {
+                                                        component: 'CroctProvider',
+                                                        module: '@croct/plug-next/CroctProvider',
+                                                    },
+                                                }),
+                                                wrapper: {
                                                     module: '@croct/plug-next/CroctProvider',
+                                                    component: 'CroctProvider',
+                                                },
+                                                targets: {
+                                                    variable: 'children',
                                                 },
                                             }),
-                                            wrapper: {
-                                                module: '@croct/plug-next/CroctProvider',
-                                                component: 'CroctProvider',
-                                            },
-                                            targets: {
-                                                component: 'Component',
-                                            },
                                         }),
                                     }),
-                                }),
-                            ),
-                        },
-                    }),
+                                ),
+                                pageRouterProvider: new FormatCodemod(
+                                    formatter,
+                                    new FileCodemod({
+                                        fileSystem: this.getFileSystem(),
+                                        codemod: new JavaScriptCodemod({
+                                            languages: ['typescript', 'jsx'],
+                                            codemod: new JsxWrapperCodemod({
+                                                fallbackToNamedExports: false,
+                                                fallbackCodemod: new NextJsAppComponentCodemod({
+                                                    provider: {
+                                                        component: 'CroctProvider',
+                                                        module: '@croct/plug-next/CroctProvider',
+                                                    },
+                                                }),
+                                                wrapper: {
+                                                    module: '@croct/plug-next/CroctProvider',
+                                                    component: 'CroctProvider',
+                                                },
+                                                targets: {
+                                                    component: 'Component',
+                                                },
+                                            }),
+                                        }),
+                                    }),
+                                ),
+                                fallbackProvider: new FormatCodemod(
+                                    formatter,
+                                    new FileCodemod({
+                                        fileSystem: this.getFileSystem(),
+                                        codemod: new JavaScriptCodemod({
+                                            languages: ['typescript', 'jsx'],
+                                            codemod: new JsxWrapperCodemod({
+                                                fallbackToNamedExports: false,
+                                                fallbackCodemod: new NextJsAppComponentCodemod({
+                                                    provider: {
+                                                        component: 'CroctProvider',
+                                                        module: '@croct/plug-react',
+                                                        props: providerProps,
+                                                    },
+                                                }),
+                                                wrapper: {
+                                                    module: '@croct/plug-react',
+                                                    component: 'CroctProvider',
+                                                    props: providerProps,
+                                                },
+                                                targets: {
+                                                    component: 'Component',
+                                                },
+                                            }),
+                                        }),
+                                    }),
+                                ),
+                            },
+                        });
+                    },
                     [unknown]: () => null,
                 },
             });

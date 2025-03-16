@@ -5,10 +5,6 @@ import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {Slot} from '@/application/model/slot';
 
 export class PlugJsSdk extends JavaScriptSdk {
-    protected getPackage(): string {
-        return '@croct/plug';
-    }
-
     protected generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
         const generator = new PlugJsExampleGenerator({
             fileSystem: this.fileSystem,
@@ -37,6 +33,7 @@ export class PlugJsSdk extends JavaScriptSdk {
     protected getInstallationPlan(installation: Installation): Promise<InstallationPlan> {
         return Promise.resolve({
             tasks: [],
+            dependencies: ['@croct/plug'],
             configuration: installation.configuration,
         });
     }

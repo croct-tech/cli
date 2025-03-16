@@ -4,22 +4,29 @@ exports[`CreateAppComponent should correctly transform allImports.tsx: allImport
 "import type { ReactNode } from "react";
 import type { AppProps } from "next/app";
 import { CroctProvider } from "@croct/plug-next/CroctProvider";
-export default function App({
-  Component: Component,
-  pageProps: pageProps
-}: AppProps): ReactNode {
+
+export default function App(
+  {
+    Component: Component,
+    pageProps: pageProps
+  }: AppProps
+): ReactNode {
   return (<CroctProvider>
     <Component {...pageProps}></Component>
   </CroctProvider>);
-}"
+}
+"
 `;
 
 exports[`CreateAppComponent should correctly transform empty.jsx: empty.jsx 1`] = `
 "import { CroctProvider } from "@croct/plug-next/CroctProvider";
-export default function App({
-  Component: Component,
-  pageProps: pageProps
-}) {
+
+export default function App(
+  {
+    Component: Component,
+    pageProps: pageProps
+  }
+) {
   return (<CroctProvider>
     <Component {...pageProps}></Component>
   </CroctProvider>);
@@ -30,10 +37,13 @@ exports[`CreateAppComponent should correctly transform empty.tsx: empty.tsx 1`] 
 "import type { ReactNode } from "react";
 import type { AppProps } from "next/app";
 import { CroctProvider } from "@croct/plug-next/CroctProvider";
-export default function App({
-  Component: Component,
-  pageProps: pageProps
-}: AppProps): ReactNode {
+
+export default function App(
+  {
+    Component: Component,
+    pageProps: pageProps
+  }: AppProps
+): ReactNode {
   return (<CroctProvider>
     <Component {...pageProps}></Component>
   </CroctProvider>);
@@ -42,29 +52,38 @@ export default function App({
 
 exports[`CreateAppComponent should correctly transform providerImport.jsx: providerImport.jsx 1`] = `
 "import { CroctProvider } from "@croct/plug-next/CroctProvider";
-export default function App({
-  Component: Component,
-  pageProps: pageProps
-}) {
+
+export default function App(
+  {
+    Component: Component,
+    pageProps: pageProps
+  }
+) {
   return (<CroctProvider>
     <Component {...pageProps}></Component>
   </CroctProvider>);
-}"
+}
+"
 `;
 
 exports[`CreateAppComponent should correctly transform unrelatedCode.tsx: unrelatedCode.tsx 1`] = `
 "import type { AppProps } from "next/app";
 import { CroctProvider } from "@croct/plug-next/CroctProvider";
 import { Fragment, type ReactNode } from "react";
+
 export function UnrelatedComponent() {
-  return <Fragment />;
+    return <Fragment />;
 }
-export default function App({
-  Component: Component,
-  pageProps: pageProps
-}: AppProps): ReactNode {
-  return (<CroctProvider>
-    <Component {...pageProps}></Component>
-  </CroctProvider>);
-}"
+
+export default function App(
+    {
+        Component: Component,
+        pageProps: pageProps
+    }: AppProps
+): ReactNode {
+    return (<CroctProvider>
+        <Component {...pageProps}></Component>
+    </CroctProvider>);
+}
+"
 `;

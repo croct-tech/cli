@@ -6,7 +6,7 @@ import {
 } from '@/application/project/sdk/javasScriptSdk';
 import {Codemod} from '@/application/project/code/codemod/codemod';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
-import {PropertyType, WrapperOptions} from '@/application/project/code/codemod/javascript/jsxWrapperCodemod';
+import {WrapperOptions} from '@/application/project/code/codemod/javascript/jsxWrapperCodemod';
 import {EnvFile} from '@/application/project/code/envFile';
 import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
 import {PlugReactExampleGenerator} from '@/application/project/example/slot/plugReactExampleGenerator';
@@ -14,6 +14,7 @@ import {ResolvedConfiguration} from '@/application/project/configuration/project
 import {Slot} from '@/application/model/slot';
 import {HelpfulError} from '@/application/error';
 import {ImportResolver} from '@/application/project/import/importResolver';
+import {AttributeType} from '@/application/project/code/codemod/javascript/utils/createJsxProps';
 
 type CodemodConfiguration = {
     provider: Codemod<string, WrapperOptions>,
@@ -63,10 +64,6 @@ export class PlugReactSdk extends JavaScriptSdk {
         this.importResolver = configuration.importResolver;
     }
 
-    protected getPackage(): string {
-        return '@croct/plug-react';
-    }
-
     protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
         const componentsImportPath = await this.importResolver.getImportPath(
             installation.configuration.paths.components,
@@ -109,6 +106,7 @@ export class PlugReactSdk extends JavaScriptSdk {
         const projectInfo = await this.getProjectInfo();
 
         return {
+            dependencies: ['@croct/plug-react'],
             tasks: this.getInstallationTasks({
                 ...installation,
                 project: projectInfo,
@@ -223,7 +221,10 @@ export class PlugReactSdk extends JavaScriptSdk {
         return null;
     }
 
-    private static getAppIdProperty(applicationIds: ResolvedConfiguration['applications'], env?: string): PropertyType {
+    private static getAppIdProperty(
+        applicationIds: ResolvedConfiguration['applications'],
+        env?: string,
+    ): AttributeType {
         if (env !== undefined) {
             return {
                 type: 'reference',
