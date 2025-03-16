@@ -2,7 +2,7 @@ import {basename, join, resolve} from 'path';
 import {readdirSync, readFileSync} from 'fs';
 import {NextConfig, parseNextJsConfig} from '@/application/project/code/codemod/javascript/parseNextJsConfig';
 
-describe('parseConfig', () => {
+describe('parseNextJsConfig', () => {
     const fixturePath = resolve(__dirname, '../fixtures/nextjs-config');
 
     type Scenario = {

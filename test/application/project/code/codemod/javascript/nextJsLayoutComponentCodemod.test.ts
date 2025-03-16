@@ -6,7 +6,7 @@ import {
     LayoutComponentOptions,
 } from '@/application/project/code/codemod/javascript/nextJsLayoutComponentCodemod';
 
-describe('CreateLayoutComponent', () => {
+describe('NextJsLayoutComponentCodemod', () => {
     const scenarios = loadFixtures<LayoutComponentOptions>(
         resolve(__dirname, '../fixtures/nextjs-layout-component'),
         {},

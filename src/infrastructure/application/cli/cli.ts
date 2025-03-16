@@ -44,9 +44,7 @@ import {Command, CommandInput} from '@/application/cli/command/command';
 import {AdminCommand, AdminInput} from '@/application/cli/command/admin';
 import {JsxWrapperCodemod} from '@/application/project/code/codemod/javascript/jsxWrapperCodemod';
 import {JavaScriptCodemod} from '@/application/project/code/codemod/javascript/javaScriptCodemod';
-import {
-    NextJsMiddlewareConfiguratorCodemod,
-} from '@/application/project/code/codemod/javascript/nextJsMiddlewareConfiguratorCodemod';
+import {NextJsMiddlewareCodemod} from '@/application/project/code/codemod/javascript/nextJsMiddlewareCodemod';
 import {CodeFormatter} from '@/application/project/code/formatter/formatter';
 import {FormatCodemod} from '@/application/project/code/codemod/formatCodemod';
 import {FileCodemod} from '@/application/project/code/codemod/fileCodemod';
@@ -1519,7 +1517,7 @@ export class Cli {
                                         fileSystem: this.getFileSystem(),
                                         codemod: new JavaScriptCodemod({
                                             languages: ['typescript', 'jsx'],
-                                            codemod: new NextJsMiddlewareConfiguratorCodemod({
+                                            codemod: new NextJsMiddlewareCodemod({
                                                 import: {
                                                     module: '@croct/plug-next/middleware',
                                                     middlewareName: 'middleware',

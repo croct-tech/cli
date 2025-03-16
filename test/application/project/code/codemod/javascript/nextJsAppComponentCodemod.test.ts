@@ -6,7 +6,7 @@ import {
     NextJsAppComponentCodemod,
 } from '@/application/project/code/codemod/javascript/nextJsAppComponentCodemod';
 
-describe('CreateAppComponent', () => {
+describe('NextJsLayoutComponentCodemod', () => {
     const scenarios = loadFixtures<AppComponentOptions>(
         resolve(__dirname, '../fixtures/nextjs-app-component'),
         {},

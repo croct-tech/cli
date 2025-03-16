@@ -1,12 +1,12 @@
 import {resolve} from 'path';
 import {
     MiddlewareConfiguration,
-    NextJsMiddlewareConfiguratorCodemod,
-} from '@/application/project/code/codemod/javascript/nextJsMiddlewareConfiguratorCodemod';
+    NextJsMiddlewareCodemod,
+} from '@/application/project/code/codemod/javascript/nextJsMiddlewareCodemod';
 import {loadFixtures} from '../fixtures';
 import {JavaScriptCodemod} from '@/application/project/code/codemod/javascript/javaScriptCodemod';
 
-describe('ConfigureMiddleware', () => {
+describe('NextJsMiddlewareCodemod', () => {
     const defaultOptions: MiddlewareConfiguration = {
         import: {
             module: '@croct/plug-next/middleware',
@@ -34,7 +34,7 @@ describe('ConfigureMiddleware', () => {
     it.each(scenarios)('should correctly transform $name', async ({name, fixture, options}) => {
         const transformer = new JavaScriptCodemod({
             languages: ['typescript'],
-            codemod: new NextJsMiddlewareConfiguratorCodemod(options),
+            codemod: new NextJsMiddlewareCodemod(options),
         });
 
         const output = await transformer.apply(fixture);

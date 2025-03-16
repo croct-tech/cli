@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`AddWrapper should correctly transform aliasedImport.tsx: aliasedImport.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform aliasedImport.tsx: aliasedImport.tsx 1`] = `
 "import type {AppProps} from "next/app";
 import {ReactElement} from "react";
 import {CroctProvider as Provider} from "@croct/plug-react";
@@ -13,7 +13,7 @@ export default function App({Component, pageProps}: AppProps): ReactElement {
 "
 `;
 
-exports[`AddWrapper should correctly transform defaultExport.tsx: defaultExport.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform defaultExport.tsx: defaultExport.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 import type {AppProps} from "next/app";
 import {ReactElement} from "react";
@@ -26,14 +26,14 @@ export default function App({Component, pageProps}: AppProps): ReactElement {
 "
 `;
 
-exports[`AddWrapper should correctly transform defaultExportAnonymousFunctionWithUnrelatedReturn.tsx: defaultExportAnonymousFunctionWithUnrelatedReturn.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform defaultExportAnonymousFunctionWithUnrelatedReturn.tsx: defaultExportAnonymousFunctionWithUnrelatedReturn.tsx 1`] = `
 "export default function () {
     return null;
 }
 "
 `;
 
-exports[`AddWrapper should correctly transform defaultExportArrowFunctionReference.tsx: defaultExportArrowFunctionReference.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform defaultExportArrowFunctionReference.tsx: defaultExportArrowFunctionReference.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 
 const Layout = ({children}) => {
@@ -50,12 +50,12 @@ export default Layout;
 "
 `;
 
-exports[`AddWrapper should correctly transform defaultExportArrowFunctionWithUnrelatedReturn.tsx: defaultExportArrowFunctionWithUnrelatedReturn.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform defaultExportArrowFunctionWithUnrelatedReturn.tsx: defaultExportArrowFunctionWithUnrelatedReturn.tsx 1`] = `
 "export default () => null;
 "
 `;
 
-exports[`AddWrapper should correctly transform defaultExportFunctionExpressionReference.tsx: defaultExportFunctionExpressionReference.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform defaultExportFunctionExpressionReference.tsx: defaultExportFunctionExpressionReference.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 
 const Layout = function ({children}) {
@@ -72,7 +72,7 @@ export default Layout;
 "
 `;
 
-exports[`AddWrapper should correctly transform defaultExportFunctionReference.tsx: defaultExportFunctionReference.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform defaultExportFunctionReference.tsx: defaultExportFunctionReference.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 
 function Layout({children}) {
@@ -89,13 +89,13 @@ export default Layout;
 "
 `;
 
-exports[`AddWrapper should correctly transform defaultExportFunctionWithoutReturn.tsx: defaultExportFunctionWithoutReturn.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform defaultExportFunctionWithoutReturn.tsx: defaultExportFunctionWithoutReturn.tsx 1`] = `
 "export default function () {
 }
 "
 `;
 
-exports[`AddWrapper should correctly transform defaultExportIndirectReference.tsx: defaultExportIndirectReference.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform defaultExportIndirectReference.tsx: defaultExportIndirectReference.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 
 // Block scoped variable, unrelated to the default export
@@ -121,12 +121,12 @@ export default Reference;
 "
 `;
 
-exports[`AddWrapper should correctly transform defaultExportUnrelated.tsx: defaultExportUnrelated.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform defaultExportUnrelated.tsx: defaultExportUnrelated.tsx 1`] = `
 "export default 1;
 "
 `;
 
-exports[`AddWrapper should correctly transform defaultExportWrapped.tsx: defaultExportWrapped.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform defaultExportWrapped.tsx: defaultExportWrapped.tsx 1`] = `
 "import type {AppProps} from "next/app";
 import {ReactElement} from "react";
 import {CroctProvider} from "@croct/plug-react";
@@ -141,7 +141,7 @@ export default function App({Component, pageProps}: AppProps): ReactElement {
 "
 `;
 
-exports[`AddWrapper should correctly transform defaultExportWrappedAlias.tsx: defaultExportWrappedAlias.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform defaultExportWrappedAlias.tsx: defaultExportWrappedAlias.tsx 1`] = `
 "import type {AppProps} from "next/app";
 import {ReactElement} from "react";
 import {CroctProvider as Provider} from "@croct/plug-react";
@@ -156,7 +156,7 @@ export default function App({Component, pageProps}: AppProps): ReactElement {
 "
 `;
 
-exports[`AddWrapper should correctly transform namedExportArrowFunction.tsx: namedExportArrowFunction.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform namedExportArrowFunction.tsx: namedExportArrowFunction.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 
 const UnrelatedComponent = ({Component, pageProps}) => {
@@ -171,7 +171,7 @@ export const App = ({Component, pageProps}) => (
 "
 `;
 
-exports[`AddWrapper should correctly transform namedExportArrowFunctionWithBody.tsx: namedExportArrowFunctionWithBody.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform namedExportArrowFunctionWithBody.tsx: namedExportArrowFunctionWithBody.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 
 const UnrelatedComponent = ({Component, pageProps}) => {
@@ -186,7 +186,7 @@ export const App = ({Component, pageProps}) => {
 "
 `;
 
-exports[`AddWrapper should correctly transform namedExportArrowFunctionWrapped.tsx: namedExportArrowFunctionWrapped.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform namedExportArrowFunctionWrapped.tsx: namedExportArrowFunctionWrapped.tsx 1`] = `
 "import {CroctProvider} from "@croct/plug-react";
 
 const UnrelatedComponent = ({Component, pageProps}) => {
@@ -201,7 +201,7 @@ export const App = ({Component, pageProps}) => (
 "
 `;
 
-exports[`AddWrapper should correctly transform namedExportFunctionDeclaration.tsx: namedExportFunctionDeclaration.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform namedExportFunctionDeclaration.tsx: namedExportFunctionDeclaration.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 
 const UnrelatedComponent = ({Component, pageProps}) => {
@@ -216,7 +216,7 @@ export function App({Component, pageProps}) {
 "
 `;
 
-exports[`AddWrapper should correctly transform namedExportFunctionExpression.tsx: namedExportFunctionExpression.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform namedExportFunctionExpression.tsx: namedExportFunctionExpression.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 
 const UnrelatedComponent = ({Component, pageProps}) => {
@@ -231,12 +231,12 @@ export const App = function ({Component, pageProps}) {
 "
 `;
 
-exports[`AddWrapper should correctly transform namedExportUnrelated.tsx: namedExportUnrelated.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform namedExportUnrelated.tsx: namedExportUnrelated.tsx 1`] = `
 "export const foo = 1;
 "
 `;
 
-exports[`AddWrapper should correctly transform namedSpecifiedExport.tsx: namedSpecifiedExport.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform namedSpecifiedExport.tsx: namedSpecifiedExport.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 
 // Block scoped variable, unrelated to the default export
@@ -266,7 +266,7 @@ export { Reference as Layout };
 "
 `;
 
-exports[`AddWrapper should correctly transform parenthesizedReturn.tsx: parenthesizedReturn.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform parenthesizedReturn.tsx: parenthesizedReturn.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 
 export default function App({Component, pageProps}) {
@@ -281,7 +281,7 @@ export default function App({Component, pageProps}) {
 "
 `;
 
-exports[`AddWrapper should correctly transform providerLiteralProp.tsx: providerLiteralProp.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform providerLiteralProp.tsx: providerLiteralProp.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 
 export default function Layout({children}) {
@@ -294,7 +294,7 @@ export default function Layout({children}) {
 "
 `;
 
-exports[`AddWrapper should correctly transform providerObjectMemberProp.tsx: providerObjectMemberProp.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform providerObjectMemberProp.tsx: providerObjectMemberProp.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 
 export default function Layout({children}) {
@@ -307,7 +307,7 @@ export default function Layout({children}) {
 "
 `;
 
-exports[`AddWrapper should correctly transform providerTernaryProp.tsx: providerTernaryProp.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform providerTernaryProp.tsx: providerTernaryProp.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 
 export default function Layout({children}) {
@@ -321,7 +321,7 @@ export default function Layout({children}) {
 "
 `;
 
-exports[`AddWrapper should correctly transform providerVariableProp.tsx: providerVariableProp.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform providerVariableProp.tsx: providerVariableProp.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 
 export default function Layout({children}) {
@@ -334,7 +334,7 @@ export default function Layout({children}) {
 "
 `;
 
-exports[`AddWrapper should correctly transform targetChildren.tsx: targetChildren.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform targetChildren.tsx: targetChildren.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 
 export default function Layout({children}) {
@@ -350,7 +350,7 @@ export default function Layout({children}) {
 "
 `;
 
-exports[`AddWrapper should correctly transform targetChildrenAliasedImport.tsx: targetChildrenAliasedImport.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform targetChildrenAliasedImport.tsx: targetChildrenAliasedImport.tsx 1`] = `
 "import {CroctProvider as Provider} from "@croct/plug-react";
 
 export default function Layout({children}) {
@@ -366,7 +366,7 @@ export default function Layout({children}) {
 "
 `;
 
-exports[`AddWrapper should correctly transform targetComponent.tsx: targetComponent.tsx 1`] = `
+exports[`JsxWrapperCodemod should correctly transform targetComponent.tsx: targetComponent.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 
 export default function App({Component, pageProps}) {

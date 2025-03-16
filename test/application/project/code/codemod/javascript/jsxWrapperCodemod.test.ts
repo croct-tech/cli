@@ -5,7 +5,7 @@ import {loadFixtures} from '../fixtures';
 import {JavaScriptCodemod} from '@/application/project/code/codemod/javascript/javaScriptCodemod';
 import {Codemod} from '@/application/project/code/codemod/codemod';
 
-describe('AddWrapper', () => {
+describe('JsxWrapperCodemod', () => {
     const defaultOptions: WrapperConfiguration = {
         wrapper: {
             module: '@croct/plug-react',

@@ -27,7 +27,7 @@
   "exclude": [
     "node_modules",
     "build",
-    "test/application/project/sdk/code/fixtures/**"
+    "test/application/project/code/codemod/fixtures/**"
   ],
   "include": [
     "src/**/*.ts",

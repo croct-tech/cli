@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`CreateAppComponent should correctly transform allImports.tsx: allImports.tsx 1`] = `
+exports[`NextJsLayoutComponentCodemod should correctly transform allImports.tsx: allImports.tsx 1`] = `
 "import type { ReactNode } from "react";
 import type { AppProps } from "next/app";
 import { CroctProvider } from "@croct/plug-next/CroctProvider";
@@ -18,7 +18,7 @@ export default function App(
 "
 `;
 
-exports[`CreateAppComponent should correctly transform empty.jsx: empty.jsx 1`] = `
+exports[`NextJsLayoutComponentCodemod should correctly transform empty.jsx: empty.jsx 1`] = `
 "import { CroctProvider } from "@croct/plug-next/CroctProvider";
 
 export default function App(
@@ -33,7 +33,7 @@ export default function App(
 }"
 `;
 
-exports[`CreateAppComponent should correctly transform empty.tsx: empty.tsx 1`] = `
+exports[`NextJsLayoutComponentCodemod should correctly transform empty.tsx: empty.tsx 1`] = `
 "import type { ReactNode } from "react";
 import type { AppProps } from "next/app";
 import { CroctProvider } from "@croct/plug-next/CroctProvider";
@@ -50,7 +50,7 @@ export default function App(
 }"
 `;
 
-exports[`CreateAppComponent should correctly transform providerImport.jsx: providerImport.jsx 1`] = `
+exports[`NextJsLayoutComponentCodemod should correctly transform providerImport.jsx: providerImport.jsx 1`] = `
 "import { CroctProvider } from "@croct/plug-next/CroctProvider";
 
 export default function App(
@@ -66,7 +66,7 @@ export default function App(
 "
 `;
 
-exports[`CreateAppComponent should correctly transform unrelatedCode.tsx: unrelatedCode.tsx 1`] = `
+exports[`NextJsLayoutComponentCodemod should correctly transform unrelatedCode.tsx: unrelatedCode.tsx 1`] = `
 "import type { AppProps } from "next/app";
 import { CroctProvider } from "@croct/plug-next/CroctProvider";
 import { Fragment, type ReactNode } from "react";
