@@ -22,9 +22,9 @@ export class PlugReactExampleGenerator extends ReactExampleGenerator {
     }
 
     protected writeSlotFetch(writer: CodeWriter, definition: SlotDefinition): void {
-        const {variables} = this.options.code;
+        const variable = this.options.contentVariable;
 
-        writer.write(`const ${variables.content} = useContent('${definition.id}@${definition.version}');`)
+        writer.write(`const ${variable} = useContent('${definition.id}@${definition.version}');`)
             .newLine();
     }
 

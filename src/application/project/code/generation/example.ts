@@ -21,7 +21,7 @@ export namespace CodeLanguage {
 }
 
 export type ExampleFile = {
-    name: string,
+    path: string,
     language: CodeLanguage,
     code: string,
 };

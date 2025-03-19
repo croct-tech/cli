@@ -65,9 +65,16 @@ export class PlugReactSdk extends JavaScriptSdk {
     }
 
     protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
-        const componentsImportPath = await this.importResolver.getImportPath(
+        const isTypeScript = await this.isTypeScriptProject();
+
+        const slotPath = this.fileSystem.joinPaths(
             installation.configuration.paths.components,
+            `%slug%${isTypeScript ? '.tsx' : '.jsx'}`,
+        );
+
+        const pagePath = this.fileSystem.joinPaths(
             installation.configuration.paths.examples,
+            `%slug%-example${isTypeScript ? '.tsx' : '.jsx'}`,
         );
 
         const generator = new PlugReactExampleGenerator({
@@ -76,19 +83,15 @@ export class PlugReactSdk extends JavaScriptSdk {
                 language: await this.isTypeScriptProject()
                     ? CodeLanguage.TYPESCRIPT_XML
                     : CodeLanguage.JAVASCRIPT_XML,
-                code: {
-                    importPaths: {
-                        slot: componentsImportPath,
-                    },
-                    files: {
-                        slot: {
-                            directory: installation.configuration.paths.components,
-                        },
-                        page: {
-                            directory: installation.configuration.paths.examples,
-                        },
-                    },
-                },
+                contentVariable: 'content',
+                slotImportPath: await this.importResolver.getImportPath(
+                    slotPath,
+                    this.fileSystem.getDirectoryName(pagePath),
+                ),
+                slotFilePath: slotPath,
+                slotComponentName: '%name%',
+                pageFilePath: pagePath,
+                pageComponentName: '%name%Example',
             },
         });
 

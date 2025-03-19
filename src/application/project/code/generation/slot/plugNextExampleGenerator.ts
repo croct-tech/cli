@@ -2,7 +2,6 @@ import {ReactExampleGenerator, Configuration as ReactConfiguration, SlotFile} fr
 import {SlotDefinition} from './slotExampleGenerator';
 import {CodeWriter} from '@/application/project/code/generation/codeWritter';
 import {CodeLanguage} from '@/application/project/code/generation/example';
-import {FileSystem} from '@/application/fs/fileSystem';
 
 export enum NextExampleRouter {
     PAGE = 'page',
@@ -13,34 +12,16 @@ type NextExampleOptions = {
     router: NextExampleRouter,
 };
 
-export type Configuration = {
-    fileSystem: FileSystem,
-    options: ReactConfiguration['options'] & NextExampleOptions,
-};
-
-type DeepRequired<T> = Required<{
-    [P in keyof T]: T[P] extends object | undefined ? DeepRequired<Required<T[P]>> : T[P];
-}>;
+export type Configuration = Omit<ReactConfiguration, 'contentVariable'> & NextExampleOptions;
 
 export class PlugNextExampleGenerator extends ReactExampleGenerator {
-    private readonly nextOptions: DeepRequired<NextExampleOptions>;
+    private readonly nextOptions: NextExampleOptions;
 
-    public constructor({fileSystem, options}: Configuration) {
-        const {router, ...rest} = options;
-
+    public constructor({fileSystem, router, ...options}: Configuration) {
         super({
             fileSystem: fileSystem,
-            options: {
-                ...rest,
-                code: {
-                    ...options.code,
-                    variables: {
-                        ...options?.code?.variables,
-                        content: options.code?.variables?.content
-                            ?? (router === NextExampleRouter.APP ? 'content' : 'props'),
-                    },
-                },
-            },
+            contentVariable: router === NextExampleRouter.APP ? 'content' : 'props',
+            ...options,
         });
 
         this.nextOptions = {
@@ -83,10 +64,10 @@ export class PlugNextExampleGenerator extends ReactExampleGenerator {
 
     protected writeSlotFetch(writer: CodeWriter, definition: SlotDefinition): void {
         if (this.nextOptions.router === NextExampleRouter.APP) {
-            const {variables} = this.options.code;
+            const variable = this.options.contentVariable;
 
             writer
-                .write(`const {${variables.content}} = await fetchContent('${definition.id}@${definition.version}');`)
+                .write(`const {${variable}} = await fetchContent('${definition.id}@${definition.version}');`)
                 .newLine();
         }
     }
@@ -101,7 +82,7 @@ export class PlugNextExampleGenerator extends ReactExampleGenerator {
         switch (this.options.language) {
             case CodeLanguage.JAVASCRIPT_XML:
                 writer.write('import {fetchContent} from \'@croct/plug-next/server\';')
-                    .write(`import ${slot.name} from '${slot.path}';`);
+                    .write(`import ${slot.name} from '${slot.importPath}';`);
 
                 writer.newLine()
                     .write('export async function getServerSideProps(context) {')
@@ -124,7 +105,7 @@ export class PlugNextExampleGenerator extends ReactExampleGenerator {
                 writer.write('import type {ReactElement} from \'react\';');
                 writer.write('import type {GetServerSideProps} from \'next\';');
                 writer.write('import {fetchContent} from \'@croct/plug-next/server\';');
-                writer.write(`import ${slot.name}, {type ${slot.name}Props} from '${slot.path}';`);
+                writer.write(`import ${slot.name}, {type ${slot.name}Props} from '${slot.importPath}';`);
 
                 writer.newLine()
                     .write('type PageProps = {')
@@ -148,10 +129,10 @@ export class PlugNextExampleGenerator extends ReactExampleGenerator {
         }
     }
 
-    protected writePageSignature(writer: CodeWriter): void {
+    protected writePageSignature(writer: CodeWriter, name: string): void {
         switch (this.nextOptions.router) {
             case NextExampleRouter.APP:
-                super.writePageSignature(writer);
+                super.writePageSignature(writer, name);
 
                 break;
 
@@ -173,7 +154,7 @@ export class PlugNextExampleGenerator extends ReactExampleGenerator {
         }
 
         const slotName = CodeWriter.formatName(definition.id, true);
-        const variable = this.options.code.variables.content;
+        const variable = this.options.contentVariable;
 
         if (this.options.language === CodeLanguage.JAVASCRIPT_XML) {
             writer.append(`(${variable})`);

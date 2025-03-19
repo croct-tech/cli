@@ -66,13 +66,13 @@ export abstract class JavaScriptSdk implements Sdk {
         const files: string[] = [];
 
         for (const file of await this.generateSlotExampleFiles(slot, installation)) {
-            const directory = this.fileSystem.joinPaths(rootPath, this.fileSystem.getDirectoryName(file.name));
+            const directory = this.fileSystem.joinPaths(rootPath, this.fileSystem.getDirectoryName(file.path));
 
             await this.fileSystem
                 .createDirectory(directory, {recursive: true})
                 .catch(() => null);
 
-            const filePath = this.fileSystem.joinPaths(rootPath, file.name);
+            const filePath = this.fileSystem.joinPaths(rootPath, file.path);
 
             await this.fileSystem.writeTextFile(filePath, file.code, {overwrite: true});
 

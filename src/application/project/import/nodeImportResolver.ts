@@ -68,11 +68,6 @@ export class NodeImportResolver implements ImportResolver {
             }
         }
 
-        console.log(
-            this.fileSystem.joinPaths(workingDirectory, sourcePath),
-            this.fileSystem.joinPaths(workingDirectory, fileImportPath),
-        );
-
         const resolvedRelativePath = this.fileSystem.getRelativePath(
             this.fileSystem.joinPaths(workingDirectory, sourcePath),
             this.fileSystem.joinPaths(workingDirectory, fileImportPath),

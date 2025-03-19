@@ -97,60 +97,46 @@ export class PlugNextSdk extends JavaScriptSdk {
             this.isTypeScriptProject(),
             this.isFallbackMode(),
         ]);
-        const componentDirectory = installation.configuration.paths.components;
-        const pageDirectory = this.fileSystem.joinPaths(
-            installation.configuration.paths.examples,
-            slot.slug,
+
+        const isTypeScript = await this.isTypeScriptProject();
+
+        const slotPath = this.fileSystem.joinPaths(
+            installation.configuration.paths.components,
+            `%slug%${isTypeScript ? '.tsx' : '.jsx'}`,
         );
 
-        const componentsImportPath = await this.importResolver.getImportPath(componentDirectory, pageDirectory);
+        const pagePath = this.fileSystem.joinPaths(
+            installation.configuration.paths.examples,
+            '%slug%',
+        );
+
+        const slotImportPath = await this.importResolver.getImportPath(slotPath, pagePath);
+
+        const language = isTypescript ? CodeLanguage.TYPESCRIPT_XML : CodeLanguage.JAVASCRIPT_XML;
 
         const generator = fallbackMode
             ? new PlugReactExampleGenerator({
                 fileSystem: this.fileSystem,
-                options: {
-                    language: isTypescript
-                        ? CodeLanguage.TYPESCRIPT_XML
-                        : CodeLanguage.JAVASCRIPT_XML,
-                    code: {
-                        importPaths: {
-                            slot: componentsImportPath,
-                        },
-                        files: {
-                            slot: {
-                                directory: componentDirectory,
-                            },
-                            page: {
-                                directory: pageDirectory,
-                                name: 'index',
-                            },
-                        },
-                    },
-                },
+                language: language,
+                contentVariable: 'content',
+                slotImportPath: slotImportPath,
+                slotFilePath: slotPath,
+                slotComponentName: '%name%',
+                pageFilePath: this.fileSystem.joinPaths(pagePath, `index${isTypeScript ? '.tsx' : '.jsx'}`),
+                pageComponentName: 'Page',
             })
             : new PlugNextExampleGenerator({
                 fileSystem: this.fileSystem,
-                options: {
-                    router: router === 'page' ? NextExampleRouter.PAGE : NextExampleRouter.APP,
-                    language: isTypescript
-                        ? CodeLanguage.TYPESCRIPT_XML
-                        : CodeLanguage.JAVASCRIPT_XML,
-                    code: {
-                        importPaths: {
-                            slot: componentsImportPath,
-                        },
-                        files: {
-                            slot: {
-                                directory: this.fileSystem.joinPaths(componentDirectory, '%name%'),
-                                name: 'index',
-                            },
-                            page: {
-                                directory: pageDirectory,
-                                name: router === 'page' ? 'index' : 'page',
-                            },
-                        },
-                    },
-                },
+                router: router === 'page' ? NextExampleRouter.PAGE : NextExampleRouter.APP,
+                language: language,
+                slotImportPath: slotImportPath,
+                slotFilePath: slotPath,
+                slotComponentName: '%name%',
+                pageFilePath: this.fileSystem.joinPaths(
+                    pagePath,
+                    `${router === 'page' ? 'index' : 'page'}${isTypescript ? '.tsx' : '.jsx'}`,
+                ),
+                pageComponentName: 'Page',
             });
 
         const example = generator.generate({

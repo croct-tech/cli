@@ -1,59 +1,30 @@
 import {AttributeDefinition, ContentDefinition} from '@croct/content-model/definition/definition';
+import {JsonValue} from '@croct/json';
 import {SlotDefinition, SlotExampleGenerator} from './slotExampleGenerator';
 import {CodeExample, CodeLanguage, ExampleFile} from '@/application/project/code/generation/example';
 import {CodeWriter} from '@/application/project/code/generation/codeWritter';
 import {formatLabel, sortAttributes} from '@/application/project/code/generation/utils';
 import {FileSystem} from '@/application/fs/fileSystem';
+import {formatName} from '@/application/project/utils/formatName';
 
 export type Configuration = {
     fileSystem: FileSystem,
-    options: {
-        language: CodeLanguage.JAVASCRIPT | CodeLanguage.TYPESCRIPT,
-        appId: string,
-        indentationSize?: number,
-        fallbackContent?: boolean,
-        code?: {
-            browser?: boolean,
-            containerElementId?: string,
-            variables?: {
-                container?: string,
-            },
-            paths?: {
-                slot?: string,
-                page?: string,
-            },
-        },
-    },
+    language: CodeLanguage.JAVASCRIPT | CodeLanguage.TYPESCRIPT,
+    appId: string,
+    indentationSize?: number,
+    fallbackContent?: JsonValue,
+    containerId: string,
+    slotPath: string,
+    pagePath: string,
 };
 
-type DeepRequired<T> = Required<{
-    [P in keyof T]: T[P] extends object | undefined ? DeepRequired<Required<T[P]>> : T[P];
-}>;
-
 export class PlugJsExampleGenerator implements SlotExampleGenerator {
-    protected readonly config: DeepRequired<Configuration['options']>;
+    protected readonly options: Omit<Configuration, 'fileSystem'>;
 
     private readonly fileSystem: FileSystem;
 
-    public constructor({fileSystem, options}: Configuration) {
-        this.config = {
-            ...options,
-            language: options.language ?? CodeLanguage.JAVASCRIPT,
-            indentationSize: options.indentationSize ?? 2,
-            fallbackContent: options.fallbackContent ?? false,
-            code: {
-                browser: options.code?.browser ?? false,
-                containerElementId: options.code?.containerElementId ?? 'slot',
-                variables: {
-                    container: options.code?.variables?.container ?? 'container',
-                },
-                paths: {
-                    slot: options.code?.paths?.slot ?? '',
-                    page: options.code?.paths?.page ?? '',
-                },
-            },
-        };
-
+    public constructor({fileSystem, ...options}: Configuration) {
+        this.options = options;
         this.fileSystem = fileSystem;
     }
 
@@ -62,7 +33,7 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
 
         return {
             files: [
-                this.generatePageFile(definition, slotFile.name),
+                this.generatePageFile(definition, slotFile.path),
                 slotFile,
             ],
         };
@@ -71,35 +42,35 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
     private generatePageFile(definition: SlotDefinition, slotFile: string): ExampleFile {
         const writer = this.createWriter();
 
-        const path = this.fileSystem.joinPaths(
-            this.config.code.paths.page,
-            `${this.addExtension(this.formatFileName(definition.id, false), CodeLanguage.HTML)}`,
-        );
-
         this.writePageSnippet(
             writer,
-            this.fileSystem.getRelativePath(this.config.code.paths.page, slotFile).replace(/\\/g, '/'),
+            definition.definition.title ?? 'Croct example',
+            this.fileSystem.getRelativePath(
+                this.fileSystem.getDirectoryName(this.options.pagePath),
+                slotFile,
+            ).replace(/\\/g, '/'),
         );
 
         return {
-            name: path,
+            path: this.options.pagePath,
             language: CodeLanguage.HTML,
             code: writer.toString(),
         };
     }
 
-    private writePageSnippet(writer: CodeWriter, slotFile: string): void {
+    private writePageSnippet(writer: CodeWriter, slotName: string, slotFile: string): void {
         writer
-            .write('<html>')
+            .write('<html lang="en">')
             .write('<head>')
             .indent()
             .write('<meta charset="UTF-8">')
+            .write(`<title>${PlugJsExampleGenerator.escapeEntities(slotName)}</title>`)
             .write(`<script type="module" src="${slotFile}"></script>`)
             .outdent()
             .write('</head>')
             .write('<body>')
             .indent()
-            .write(`<div id="${this.config.code.containerElementId}"></div>`)
+            .write(`<div id="${this.options.containerId}"></div>`)
             .outdent()
             .write('</body>')
             .write('</html>', false);
@@ -111,365 +82,215 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
         this.writeSlotSnippet(writer, definition);
 
         return {
-            name: this.fileSystem.joinPaths(
-                this.config.code.paths.slot,
-                `${this.addExtension(this.formatFileName(definition.id, false))}`,
-            ),
-            language: this.config.language,
+            path: this.options.slotPath,
+            language: this.options.language,
             code: writer.toString(),
         };
     }
 
     private writeSlotSnippet(writer: CodeWriter, definition: SlotDefinition): void {
-        const {variables} = this.config.code;
-
         writer.write('import croct from \'@croct/plug\';');
-
-        if (this.config.fallbackContent) {
-            writer.write('import {loadSlotContent} from \'@croct/content/slot\';');
-        }
-
-        const functionName = `render${CodeWriter.formatName(definition.id, true)}`;
 
         writer
             .newLine()
-            .write(`croct.plug({appId: '${this.config.appId}'});`)
-            .newLine()
-            .write('document.addEventListener(\'DOMContentLoaded\', () => {')
-            .indent()
-            .write(`${functionName}(document.querySelector('#${this.config.code.containerElementId}')`, false);
+            .write(`croct.plug({appId: '${this.options.appId}'});`)
+            .newLine();
 
-        if (this.config.language === CodeLanguage.TYPESCRIPT) {
+        this.renderListener(writer, definition);
+    }
+
+    private renderListener(writer: CodeWriter, definition: SlotDefinition): void {
+        writer
+            .write('document.addEventListener(\'DOMContentLoaded\', async () => {')
+            .indent();
+
+        writer
+            .write('const {content} = ', false)
+            .append(`await croct.fetch('${definition.id}@${definition.version}'`);
+
+        if (this.options.fallbackContent !== undefined) {
+            writer.append(', {')
+                .indent()
+                .newLine()
+                .write('fallback: ', false)
+                .appendValue(this.options.fallbackContent, {
+                    delimiter: '\'',
+                })
+                .newLine()
+                .outdent()
+                .write('}', false);
+        }
+
+        writer.append(');');
+
+        writer
+            .newLine(2)
+            .write(`document.querySelector('#${this.options.containerId}')`, false);
+
+        if (this.options.language === CodeLanguage.TYPESCRIPT) {
             writer.append('!');
         }
 
         writer
-            .append(');')
-            .outdent()
+            .append('.innerHTML = `')
             .newLine()
-            .write('});', false);
-
-        writer.newLine(2);
-
-        let functionSignature = '';
-
-        functionSignature += `async function ${functionName}(`;
-
-        functionSignature += variables.container;
-
-        if (this.config.language === CodeLanguage.TYPESCRIPT) {
-            functionSignature += ': HTMLElement';
-        }
-
-        functionSignature += ')';
-
-        if (this.config.language === CodeLanguage.TYPESCRIPT) {
-            functionSignature += ': Promise<void>';
-        }
-
-        writer.write(`${functionSignature} {`)
             .indent();
 
-        writer.write('// Display a loading message while the content is being fetched')
-            .write(`${variables.container}.append('✨ Personalizing...');`)
-            .newLine();
-
-        writer
-            .write('const {content} = ', false)
-            .append(`await croct.fetch('${definition.id}@${definition.version}')`);
-
-        if (this.config.fallbackContent) {
-            writer
-                .indent()
-                .newLine()
-                .write(`.catch(() => ({content: loadSlotContent('${definition.id}@${definition.version}')}))`)
-                .outdent();
-        }
-
-        writer
-            .append(';')
-            .newLine(2)
-            .write('// Remove the loading message')
-            .write(`${variables.container}.replaceChildren();`)
-            .newLine();
-
-        writer.write('// Render the content');
-
-        this.writeRenderingSnippet(
-            writer,
-            definition.definition,
-            Scope.fromReferences({
-                root: 'container',
-                elements: [],
-                attributes: ['content'],
-            }),
-        );
+        this.writeContentSnippet(writer, definition.definition, 'content');
 
         writer
             .outdent()
-            .write('}', false);
+            .write('`;')
+            .outdent()
+            .write('});');
     }
 
-    private writeRenderingSnippet(writer: CodeWriter, definition: ContentDefinition, scope: Scope): void {
+    private writeContentSnippet(writer: CodeWriter, definition: ContentDefinition, path: string): void {
         switch (definition.type) {
-            case 'boolean':
             case 'text':
-            case 'number': {
-                const elementVariable = scope.getElementVariable();
-
-                writer
-                    .write(`const ${elementVariable} = `, false)
-                    .append('document.createElement(\'div\');')
-                    .newLine()
-                    .write(`${elementVariable}.append(`, false);
-
-                if (definition.type === 'boolean') {
-                    writer.append(`${scope.getAttributeReference()} ? 'Yes' : 'No'`);
-                } else {
-                    writer.append(`${scope.getAttributeReference()}`);
-                }
-
-                writer
-                    .append(');')
-                    .newLine()
-                    .write(`${scope.getParentElementVariable()}.append(${elementVariable});`);
+            case 'number':
+                writer.append(`\${${path}}`);
 
                 break;
-            }
+
+            case 'boolean':
+                writer.append(
+                    definition.type === 'boolean'
+                        ? `\${${path} ? 'Yes' : 'No'}`
+                        : `\${${path}}`,
+                );
+
+                break;
 
             case 'list': {
-                writer
-                    .write(`const ${scope.getElementVariable()} = `, false)
-                    .append('document.createElement(\'div\');')
-                    .newLine(1);
-
-                const itemScope = scope
-                    .push({attributes: [], elements: ['item']})
-                    .withReferences({attributes: [scope.getVariable('item')]});
+                const variable = definition.itemLabel !== undefined
+                    ? formatName(definition.itemLabel)
+                    : 'item';
 
                 writer
-                    .newLine()
-                    .write(`for (const ${itemScope.getVariable()} of ${scope.getAttributeReference()}) {`)
+                    .write(`\${${path}.map(${variable} => \``)
+                    .indent()
+                    .write('<div>')
                     .indent();
 
-                if (definition.itemLabel !== undefined) {
-                    const titleVariable = scope.getVariable('itemTitleElement');
+                const inline = PlugJsExampleGenerator.isInline(definition.items);
 
-                    writer
-                        .write(`const ${titleVariable} = `, false)
-                        .append('document.createElement(\'strong\');')
-                        .newLine()
-                        .write(`${titleVariable}.append(`, false)
-                        .appendString(formatLabel(definition.itemLabel), "'")
-                        .append(');')
-                        .newLine()
-                        .write(`${scope.getElementVariable()}.append(${titleVariable});`);
+                if (inline) {
+                    writer.appendIndentation();
                 }
 
-                this.writeRenderingSnippet(writer, definition.items, itemScope);
+                this.writeContentSnippet(writer, definition.items, variable);
+
+                if (inline) {
+                    writer.newLine();
+                }
 
                 writer
                     .outdent()
-                    .write('}');
-
-                writer
-                    .newLine()
-                    .write(`${scope.getParentElementVariable()}.append(${scope.getElementVariable()});`);
+                    .write('</div>')
+                    .outdent()
+                    .write("`).join('')}");
 
                 break;
             }
 
-            case 'reference': {
-                const functionName = `render${CodeWriter.formatName(definition.id, true)}`;
-                const titleVariable = scope.getVariable('titleElement');
-
-                writer
-                    .write(`${functionName}(${scope.getAttributeReference()});`)
-                    .newLine()
-                    .write(`${scope.getParentElementVariable()}.append(${titleVariable});`);
-
-                break;
-            }
-
-            case 'structure': {
-                const elementVariable = scope.getElementVariable();
-
-                writer
-                    .write(`const ${elementVariable} = `, false)
-                    .append('document.createElement(\'div\');')
-                    .newLine();
-
+            case 'structure':
                 for (const [name, attribute] of sortAttributes(definition.attributes)) {
                     if (attribute.private === true) {
                         continue;
                     }
 
                     if (attribute.optional === true) {
-                        writer
-                            .newLine()
-                            .write(`if (${scope.getAttributeReference(name)} !== undefined) {`, false)
-                            .indent();
+                        writer.write(`\${${path}.${name} && \``);
+                        writer.indent();
                     }
 
-                    this.writeAttributeSnippet(
-                        writer,
-                        attribute,
-                        scope.push({
-                            elements: [name],
-                            attributes: [name],
-                        }),
-                    );
+                    this.writeAttributeSnippet(writer, attribute, `${path}.${name}`);
 
                     if (attribute.optional === true) {
                         writer.outdent();
-                        writer.write('}');
+                        writer.write('`}');
                     }
                 }
 
-                writer
-                    .newLine()
-                    .write(`${scope.getParentElementVariable()}.append(${elementVariable});`);
-
                 break;
-            }
 
-            case 'union': {
-                writer.write(`switch (${scope.getAttributeReference()}._type) {`)
-                    .indent();
-
-                const variations = Object.entries(definition.types);
-
-                for (let index = 0; index < variations.length; index++) {
-                    const [id, variant] = variations[index];
-
-                    writer.write(`case '${id}': {`)
+            case 'union':
+                for (const [id, variant] of Object.entries(definition.types)) {
+                    writer
+                        .write(`\${${path}._type === '${id}' && \``)
+                        .indent()
+                        .write('<div>')
                         .indent();
 
-                    this.writeRenderingSnippet(writer, variant, scope);
+                    this.writeContentSnippet(writer, variant, path);
 
                     writer
-                        .newLine()
-                        .write('break;')
                         .outdent()
-                        .write('}');
-
-                    if (index < variations.length - 1) {
-                        writer.newLine();
-                    }
+                        .write('</div>')
+                        .outdent()
+                        .write('`}');
                 }
 
-                writer.outdent()
-                    .write('}');
-
                 break;
-            }
         }
     }
 
-    private writeAttributeSnippet(writer: CodeWriter, attribute: AttributeDefinition, scope: Scope): void {
+    private writeAttributeSnippet(writer: CodeWriter, attribute: AttributeDefinition, path: string): void {
         const definition = attribute.type;
-        const label = attribute.label ?? formatLabel(scope.getAttributeName());
+        const label = attribute.label !== undefined
+            ? PlugJsExampleGenerator.escapeEntities(attribute.label)
+                .replace(/`/g, '\\`')
+            : formatLabel(path.split('.').pop()!);
 
-        const titleVariable = scope.getVariable('titleElement');
+        switch (definition.type) {
+            case 'boolean':
+            case 'text':
+            case 'number': {
+                writer
+                    .write('<div>', false)
+                    .append(`${label}: `);
 
-        writer
-            .newLine()
-            .write(`const ${titleVariable} = `, false)
-            .append('document.createElement(\'strong\');')
-            .newLine()
-            .write(`${titleVariable}.append(`, false)
-            .appendString(label, "'")
-            .append(');')
-            .newLine()
-            .write(`${scope.getParentElementVariable()}.append(${titleVariable});`)
-            .newLine();
+                this.writeContentSnippet(writer, definition, path);
 
-        this.writeRenderingSnippet(writer, definition, scope);
+                writer.append('</div>')
+                    .newLine();
+
+                break;
+            }
+
+            default:
+                writer
+                    .write('<div>')
+                    .indent()
+                    .write(`<strong>${label}</strong>`);
+
+                this.writeContentSnippet(writer, definition, path);
+
+                writer
+                    .outdent()
+                    .write('</div>');
+
+                break;
+        }
+    }
+
+    private static isInline(definition: ContentDefinition): boolean {
+        return ['number', 'text', 'boolean'].includes(definition.type);
+    }
+
+    private static escapeEntities(value: string): string {
+        return value.replace(
+            /([&<>])/g,
+            match => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+            }[match] ?? match),
+        );
     }
 
     private createWriter(): CodeWriter {
-        return new CodeWriter(this.config.indentationSize);
-    }
-
-    private formatFileName(name: string, capitalize: boolean): string {
-        return `${CodeWriter.formatName(name, capitalize)}`;
-    }
-
-    private addExtension(fileName: string, language?: CodeLanguage): string {
-        return `${fileName}.${CodeLanguage.getExtension(language ?? this.config.language)}`;
-    }
-}
-
-type ScopeReferences = {
-    root: string,
-    elements: string[],
-    attributes: string[],
-};
-
-class Scope {
-    private readonly references: ScopeReferences;
-
-    private constructor(references: ScopeReferences) {
-        this.references = references;
-    }
-
-    public static fromReferences(references: ScopeReferences): Scope {
-        return new Scope(references);
-    }
-
-    public push(references: Omit<ScopeReferences, 'root'>): Scope {
-        return Scope.fromReferences({
-            root: this.references.root,
-            elements: [...this.references.elements, ...(references.elements)],
-            attributes: [...this.references.attributes, ...(references.attributes)],
-        });
-    }
-
-    public withReferences(references: Partial<ScopeReferences>): Scope {
-        return Scope.fromReferences({
-            root: this.references.root,
-            elements: references.elements ?? this.references.elements,
-            attributes: references.attributes ?? this.references.attributes,
-        });
-    }
-
-    public getElementVariable(): string {
-        return Scope.formatElementVariable(this.references.elements);
-    }
-
-    public getParentElementVariable(): string {
-        if (this.references.elements.length === 0) {
-            return this.references.root;
-        }
-
-        return Scope.formatElementVariable(this.references.elements.slice(0, -1));
-    }
-
-    public getVariable(suffix: string = ''): string {
-        return Scope.formatName(this.references.elements, suffix);
-    }
-
-    public getAttributeReference(attribute: string = ''): string {
-        return (attribute === '' ? this.references.attributes : [...this.references.attributes, attribute]).join('.');
-    }
-
-    public getAttributeName(): string {
-        return this.references.attributes[this.references.attributes.length - 1];
-    }
-
-    private static formatElementVariable(variables: string[]): string {
-        return Scope.formatName(variables, 'element');
-    }
-
-    private static formatName(variables: string[], suffix: string): string {
-        if (variables.length === 0) {
-            return suffix;
-        }
-
-        if (variables.some(variable => variable.includes('_'))) {
-            return `${variables.join('_')}${suffix === '' ? '' : `_${suffix}`}`;
-        }
-
-        return CodeWriter.formatName(`${variables.join('.')}${suffix === '' ? '' : `.${suffix}`}`, false);
+        return new CodeWriter(this.options.indentationSize);
     }
 }

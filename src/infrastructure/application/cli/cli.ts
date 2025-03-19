@@ -350,6 +350,11 @@ type ProviderTracingOptions<T> = {
     label?: string,
 };
 
+type Bundler = {
+    package: string,
+    envVarPrefix: string,
+};
+
 export class Cli {
     // eslint-disable-next-line @typescript-eslint/ban-types -- Object.prototype.constructor is a Function
     private static readonly READ_ONLY_COMMANDS: Set<Function> = new Set([
@@ -363,6 +368,21 @@ export class Cli {
         CreateTemplateCommand,
         LogoutCommand,
     ]);
+
+    private static readonly JAVASCRIPT_BUNDLERS: Bundler[] = [
+        {
+            package: 'react-scripts',
+            envVarPrefix: 'process.env.REACT_APP_',
+        },
+        {
+            package: 'vite',
+            envVarPrefix: 'import.meta.env.VITE_',
+        },
+        {
+            package: 'parcel',
+            envVarPrefix: 'process.env.',
+        },
+    ];
 
     private readonly configuration: Configuration;
 
@@ -1449,7 +1469,10 @@ export class Cli {
             return new EnumeratedProvider({
                 discriminator: async () => (await this.getPlatformProvider().get()) ?? unknown,
                 mapping: {
-                    [Platform.JAVASCRIPT]: (): Sdk => new PlugJsSdk(config),
+                    [Platform.JAVASCRIPT]: (): Sdk => new PlugJsSdk({
+                        ...config,
+                        bundlers: Cli.JAVASCRIPT_BUNDLERS.map(bundler => bundler.package),
+                    }),
                     [Platform.REACT]: (): Sdk => new PlugReactSdk({
                         ...config,
                         importResolver: importResolver,
@@ -1474,20 +1497,12 @@ export class Cli {
                                 }),
                             ),
                         },
-                        bundlers: [
-                            {
-                                package: 'react-scripts',
-                                prefix: 'process.env.REACT_APP_',
-                            },
-                            {
-                                package: 'vite',
-                                prefix: 'import.meta.env.VITE_',
-                            },
-                            {
-                                package: 'parcel',
-                                prefix: 'process.env.',
-                            },
-                        ],
+                        bundlers: Cli.JAVASCRIPT_BUNDLERS.map(
+                            bundler => ({
+                                package: bundler.package,
+                                prefix: bundler.envVarPrefix,
+                            }),
+                        ),
                     }),
                     [Platform.NEXTJS]: (): Sdk => {
                         const providerProps: Record<string, AttributeType> = {

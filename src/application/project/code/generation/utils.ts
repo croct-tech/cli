@@ -14,6 +14,16 @@ export function formatLabel(name: string): string {
     return labels.join(' ');
 }
 
+export function formatSlug(sentence: string): string {
+    return sentence
+        .normalize('NFD')
+        .toLocaleLowerCase()
+        .replace(/(^[^a-z]+|[^a-z0-9_ &-]+)/ig, '')
+        .split(/[^a-z0-9]+/i)
+        .filter(part => part !== '')
+        .join('-');
+}
+
 type AttributePosition = Pick<AttributeDefinition, 'position'>;
 
 type OrderedAttributeMap<T extends AttributePosition = AttributePosition> = Record<string, T>;

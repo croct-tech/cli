@@ -2,33 +2,20 @@ import {AttributeDefinition, ContentDefinition} from '@croct/content-model/defin
 import {SlotDefinition, SlotExampleGenerator} from './slotExampleGenerator';
 import {CodeExample, CodeLanguage, ExampleFile} from '@/application/project/code/generation/example';
 import {CodeWriter} from '@/application/project/code/generation/codeWritter';
-import {formatLabel, sortAttributes} from '@/application/project/code/generation/utils';
+import {formatLabel, formatSlug, sortAttributes} from '@/application/project/code/generation/utils';
 import {FileSystem} from '@/application/fs/fileSystem';
+import {formatName} from '@/application/project/utils/formatName';
 
 export type Configuration = {
     fileSystem: FileSystem,
-    options: {
-        language: CodeLanguage.JAVASCRIPT_XML | CodeLanguage.TYPESCRIPT_XML,
-        indentationSize?: number,
-        code: {
-            variables?: {
-                content?: string,
-            },
-            importPaths: {
-                slot: string,
-            },
-            files?: {
-                slot?: {
-                    directory?: string,
-                    name?: string,
-                },
-                page?: {
-                    directory?: string,
-                    name?: string,
-                },
-            },
-        },
-    },
+    language: CodeLanguage.JAVASCRIPT_XML | CodeLanguage.TYPESCRIPT_XML,
+    indentationSize?: number,
+    contentVariable: string,
+    slotImportPath: string,
+    slotFilePath: string,
+    slotComponentName: string,
+    pageFilePath: string,
+    pageComponentName: string,
 };
 
 type Attribute = AttributeDefinition & {
@@ -38,115 +25,69 @@ type Attribute = AttributeDefinition & {
 export type SlotFile = {
     name: string,
     path: string,
+    importPath: string,
     definition: SlotDefinition,
 };
 
-type DeepRequired<T> = Required<{
-    [P in keyof T]: T[P] extends object | undefined ? DeepRequired<Required<T[P]>> : T[P];
-}>;
-
 export abstract class ReactExampleGenerator implements SlotExampleGenerator {
-    protected readonly options: DeepRequired<Configuration['options']>;
+    protected readonly options: Omit<Configuration, 'fileSystem'>;
 
     protected readonly fileSystem: FileSystem;
 
-    public constructor({fileSystem, options}: Configuration) {
-        this.options = {
-            ...options,
-            indentationSize: options.indentationSize ?? 2,
-            code: {
-                variables: {
-                    content: options.code?.variables?.content ?? 'content',
-                },
-                importPaths: {
-                    slot: options.code?.importPaths.slot ?? '',
-                },
-                files: {
-                    slot: {
-                        directory: options.code?.files?.slot?.directory ?? '',
-                        name: options.code?.files?.slot?.name ?? '',
-                    },
-                    page: {
-                        directory: options.code?.files?.page?.directory ?? '',
-                        name: options.code?.files?.page?.name ?? '',
-                    },
-                },
-            },
-        };
-
+    public constructor({fileSystem, ...options}: Configuration) {
+        this.options = options;
         this.fileSystem = fileSystem;
     }
 
     public generate(definition: SlotDefinition): CodeExample {
-        const slotFile = this.generateSlotFile(definition);
-        const parts = slotFile.name
-            .replace(/\..+$/, '')
-            .split(/[\\/]/g);
-
-        const slotFileName = parts.length > 1 && parts[parts.length - 1] === 'index'
-            ? parts[parts.length - 2]
-            : parts[parts.length - 1];
+        const slotPath = ReactExampleGenerator.replaceVariables(this.options.slotFilePath, definition.id);
+        const slotName = ReactExampleGenerator.replaceVariables(this.options.slotComponentName, definition.id);
 
         return {
             files: [
-                this.generatePageFile(definition, slotFileName),
-                slotFile,
+                this.generatePageFile(definition, {
+                    name: slotName,
+                    path: slotPath,
+                    importPath: ReactExampleGenerator.replaceVariables(this.options.slotImportPath, definition.id),
+                    definition: definition,
+                }),
+                this.generateSlotFile(definition, slotPath, slotName),
             ],
         };
     }
 
-    private generatePageFile(definition: SlotDefinition, slotFile: string): ExampleFile {
+    private generatePageFile(definition: SlotDefinition, slotFile: SlotFile): ExampleFile {
         const writer = this.createWriter();
+        const pagePath = ReactExampleGenerator.replaceVariables(this.options.pageFilePath, definition.id);
+        const pageName = ReactExampleGenerator.replaceVariables(this.options.pageComponentName, definition.id);
 
-        this.writePageSnippet(writer, definition, slotFile);
-
-        const name = ReactExampleGenerator.formatName(`${definition.id}Example`, true);
-        const pageFile = this.options.code.files.page;
-        const fileName = pageFile.name !== '' ? pageFile.name : name;
+        this.writePageSnippet(writer, pageName, slotFile);
 
         return {
-            name: this.fileSystem.joinPaths(
-                ReactExampleGenerator.resolveDirectoryPath(pageFile.directory, name),
-                this.addExtension(fileName),
-            ),
+            path: pagePath,
             language: this.options.language,
             code: writer.toString(),
         };
     }
 
-    private generateSlotFile(definition: SlotDefinition): ExampleFile {
+    private generateSlotFile(definition: SlotDefinition, path: string, name: string): ExampleFile {
         const writer = this.createWriter();
 
-        this.writeSlotSnippet(writer, definition);
-
-        const name = ReactExampleGenerator.formatName(definition.id, true);
-        const slotFile = this.options.code.files.slot;
-        const fileName = slotFile.name !== '' ? slotFile.name : name;
+        this.writeSlotSnippet(writer, definition, name);
 
         return {
-            name: this.fileSystem.joinPaths(
-                ReactExampleGenerator.resolveDirectoryPath(slotFile.directory, name),
-                this.addExtension(fileName),
-            ),
+            path: path,
             language: this.options.language,
             code: writer.toString(),
         };
     }
 
-    private writePageSnippet(writer: CodeWriter, definition: SlotDefinition, slotFile: string): void {
-        const slotName = CodeWriter.formatName(definition.id, true);
-        const slotPath = this.options.code.importPaths.slot;
-        const slotFilePath = `${slotPath}/${slotFile}`;
-
-        this.writePageHeader(writer, {
-            name: slotName,
-            path: slotFilePath,
-            definition: definition,
-        });
+    private writePageSnippet(writer: CodeWriter, pageName: string, slotFile: SlotFile): void {
+        this.writePageHeader(writer, slotFile);
 
         writer.newLine();
 
-        this.writePageSignature(writer);
+        this.writePageSignature(writer, pageName);
 
         writer.indent()
             .write('return (')
@@ -158,7 +99,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
                 .indent();
         }
 
-        this.writeSlotRendering(writer, slotName);
+        this.writeSlotRendering(writer, slotFile.name);
 
         if (this.hasSuspenseBoundary()) {
             writer
@@ -177,11 +118,11 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
         writer.write(`<${name} />`);
     }
 
-    protected writePageSignature(writer: CodeWriter): void {
+    protected writePageSignature(writer: CodeWriter, name: string): void {
         writer.write(
             this.options.language === CodeLanguage.TYPESCRIPT_XML
-                ? 'export default function Page(): ReactElement {'
-                : 'export default function Page() {',
+                ? `export default function ${name}(): ReactElement {`
+                : `export default function ${name}() {`,
         );
     }
 
@@ -204,33 +145,36 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
                 break;
         }
 
-        writer.write(`import ${slot.name} from '${slot.path}';`);
+        writer.write(`import ${slot.name} from '${slot.importPath}';`);
     }
 
-    private writeSlotSnippet(writer: CodeWriter, definition: SlotDefinition): void {
+    private writeSlotSnippet(writer: CodeWriter, definition: SlotDefinition, name: string): void {
         this.writeSlotHeader(writer, definition);
 
-        this.writeSlotSignature(writer, definition);
+        this.writeSlotSignature(writer, definition, name);
 
         writer.indent();
 
         this.writeSlotFetch(writer, definition);
 
         writer.write('return (')
+            .indent()
+            .write('<div>')
             .indent();
 
-        this.writeRenderingSnippet(writer, definition.definition);
+        this.writeRenderingSnippet(writer, definition.definition, this.options.contentVariable);
 
-        writer.outdent()
+        writer
+            .outdent()
+            .write('</div>')
+            .outdent()
             .write(');')
             .outdent()
             .write('};');
     }
 
-    protected writeSlotSignature(writer: CodeWriter, definition: SlotDefinition): void {
-        const slotName = CodeWriter.formatName(definition.id, true);
-
-        writer.write(`export default ${this.isSlotFetchAsync() ? 'async ' : ''}function ${slotName}`, false);
+    protected writeSlotSignature(writer: CodeWriter, definition: SlotDefinition, name: string): void {
+        writer.write(`export default ${this.isSlotFetchAsync() ? 'async ' : ''}function ${name}`, false);
 
         this.appendSlotParams(writer, definition);
 
@@ -256,49 +200,41 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
 
     protected abstract writeSlotHeader(writer: CodeWriter, definition: SlotDefinition): void;
 
-    private writeRenderingSnippet(writer: CodeWriter, definition: ContentDefinition, path?: string): void {
-        if (path === undefined) {
-            writer.write('<div>')
-                .indent();
-        }
-
-        const actualPath = path ?? this.options.code.variables.content;
-
+    private writeRenderingSnippet(writer: CodeWriter, definition: ContentDefinition, path: string): void {
         switch (definition.type) {
             case 'number':
             case 'text':
-                writer.append(`{${actualPath}}`);
+                writer.append(`{${path}}`);
 
                 break;
 
             case 'boolean':
                 writer.append(
                     definition.type === 'boolean'
-                        ? `{${actualPath} ? 'Yes' : 'No'}`
-                        : `{${actualPath}}`,
+                        ? `{${path} ? 'Yes' : 'No'}`
+                        : `{${path}}`,
                 );
 
                 break;
 
             case 'list': {
+                const variable = definition.itemLabel !== undefined
+                    ? formatName(definition.itemLabel)
+                    : 'item';
+
                 writer
-                    .write(`{${actualPath}.map((item, index) => (`)
+                    .write(`{${path}.map((${variable}, index) => (`)
                     .indent()
                     .write('<div key={index}>')
                     .indent();
 
                 const inline = ReactExampleGenerator.isInline(definition.items);
 
-                if (definition.itemLabel !== undefined) {
-                    writer.write(
-                        `<strong>${definition.itemLabel} {index + 1}${inline ? ':' : ''}</strong>${inline ? ' ' : ''}`,
-                        !inline,
-                    );
-                } else if (inline) {
+                if (inline) {
                     writer.appendIndentation();
                 }
 
-                this.writeRenderingSnippet(writer, definition.items, 'item');
+                this.writeRenderingSnippet(writer, definition.items, variable);
 
                 if (inline) {
                     writer.newLine();
@@ -313,16 +249,6 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
                 break;
             }
 
-            case 'reference':
-                writer
-                    .write('<', false)
-                    .appendName(definition.id)
-                    .append(' {...')
-                    .append(actualPath)
-                    .append('} />');
-
-                break;
-
             case 'structure':
                 for (const [name, attribute] of sortAttributes(definition.attributes)) {
                     if (attribute.private === true) {
@@ -330,11 +256,11 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
                     }
 
                     if (attribute.optional === true) {
-                        writer.write(`{${actualPath}.${name} && (`);
+                        writer.write(`{${path}.${name} && (`);
                         writer.indent();
                     }
 
-                    this.writeAttributeSnippet(writer, {name: name, ...attribute}, actualPath);
+                    this.writeAttributeSnippet(writer, {name: name, ...attribute}, path);
 
                     if (attribute.optional === true) {
                         writer.outdent();
@@ -348,12 +274,12 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
                 for (const [id, variant] of Object.entries(definition.types)) {
                     writer
                         .write(`{/* Render the ${id} variant */}`)
-                        .write(`{${actualPath}._type === '${id}' && (`)
+                        .write(`{${path}._type === '${id}' && (`)
                         .indent()
                         .write('<div>')
                         .indent();
 
-                    this.writeRenderingSnippet(writer, variant, actualPath);
+                    this.writeRenderingSnippet(writer, variant, path);
 
                     writer
                         .outdent()
@@ -363,11 +289,6 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
                 }
 
                 break;
-        }
-
-        if (path === undefined) {
-            writer.outdent()
-                .write('</div>');
         }
     }
 
@@ -390,22 +311,6 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
 
                 break;
             }
-
-            case 'reference':
-                writer
-                    .write('<div>')
-                    .indent()
-                    .write(`${label}: `)
-                    .write('<', false)
-                    .appendName(definition.id)
-                    .append(' {...')
-                    .append(`${path}.${attribute.name}`)
-                    .append('} />')
-                    .outdent()
-                    .newLine()
-                    .write('</div>');
-
-                break;
 
             default:
                 writer
@@ -439,19 +344,16 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
         return new CodeWriter(this.options.indentationSize);
     }
 
-    private addExtension(fileName: string): string {
-        return `${fileName}.${CodeLanguage.getExtension(this.options.language)}`;
-    }
-
-    private static resolveDirectoryPath(directory: string, name: string): string {
-        return directory.replace(/%name%/g, name);
+    private static replaceVariables(path: string, id: string): string {
+        return path.replace(/%name%/g, ReactExampleGenerator.formatName(id, true))
+            .replace(/%slug%/g, formatSlug(id));
     }
 
     private static formatName(name: string, capitalize = false): string {
         return CodeWriter.formatName(name, capitalize);
     }
 
-    private static isInline(defintion: ContentDefinition): boolean {
-        return ['number', 'text', 'boolean'].includes(defintion.type);
+    private static isInline(definition: ContentDefinition): boolean {
+        return ['number', 'text', 'boolean'].includes(definition.type);
     }
 }

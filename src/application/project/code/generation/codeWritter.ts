@@ -1,3 +1,10 @@
+import {isIdentifier} from '@croct/json5-parser';
+
+type CodeStyle = {
+    delimiter: string,
+    stringKeys?: boolean,
+};
+
 export class CodeWriter {
     private code: string = '';
 
@@ -49,8 +56,8 @@ export class CodeWriter {
         return this;
     }
 
-    public writeValue(value: any, delimiter: string): this {
-        return this.appendIndentation().appendValue(value, delimiter);
+    public writeValue(value: any, style: CodeStyle): this {
+        return this.appendIndentation().appendValue(value, style);
     }
 
     public append(content: string): this {
@@ -59,7 +66,9 @@ export class CodeWriter {
         return this;
     }
 
-    public appendValue(value: any, delimiter: string): this {
+    public appendValue(value: any, style: CodeStyle): this {
+        const {delimiter, stringKeys = false} = style;
+
         switch (typeof value) {
             case 'string': {
                 const escapedString = value.replace(new RegExp(delimiter, 'g'), `\\${delimiter}`);
@@ -87,7 +96,7 @@ export class CodeWriter {
 
                     for (let index = 0; index < value.length; index++) {
                         this.appendIndentation()
-                            .appendValue(value[index], delimiter);
+                            .appendValue(value[index], style);
 
                         if (index < value.length - 1) {
                             this.append(', ')
@@ -114,11 +123,16 @@ export class CodeWriter {
                 for (let index = 0; index < entries.length; index++) {
                     const [entryKey, entryValue] = entries[index];
 
-                    this
-                        .appendIndentation()
-                        .appendValue(entryKey, delimiter)
-                        .append(': ')
-                        .appendValue(entryValue, delimiter);
+                    this.appendIndentation();
+
+                    if (stringKeys || !isIdentifier(entryKey)) {
+                        this.appendValue(entryKey, style);
+                    } else {
+                        this.append(entryKey);
+                    }
+
+                    this.append(': ')
+                        .appendValue(entryValue, style);
 
                     if (index < entries.length - 1) {
                         this.append(', ')
