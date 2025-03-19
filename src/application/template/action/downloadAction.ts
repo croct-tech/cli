@@ -6,7 +6,7 @@ import {ResourceProvider} from '@/application/provider/resource/resourceProvider
 import {ErrorReason} from '@/application/error';
 import {Input} from '@/application/cli/io/input';
 import {resolveUrl} from '@/utils/resolveUrl';
-import {Codemod} from '@/application/project/code/codemod/codemod';
+import {Codemod} from '@/application/project/code/transformation/codemod';
 
 export type DownloadOptions = {
     source: string,

@@ -8,6 +8,5 @@ export default defineConfig({
     sourcemap: false,
     minify: true,
     outDir: "build",
-    shims: true,
     treeshake: true,
 });

@@ -3,8 +3,8 @@ import {Installation, Sdk, SdkError} from '@/application/project/sdk/sdk';
 import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {TargetSdk, WorkspaceApi} from '@/application/api/workspace';
-import {ExampleFile} from '@/application/project/example/example';
-import {CodeFormatter} from '@/application/project/code/formatter/formatter';
+import {ExampleFile} from '@/application/project/code/generation/example';
+import {CodeFormatter} from '@/application/project/code/formatting/formatter';
 import {Version} from '@/application/model/version';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {Slot} from '@/application/model/slot';
@@ -14,6 +14,7 @@ import {Dependency, PackageManager} from '@/application/project/packageManager/p
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
 import {multiline} from '@/utils/multiline';
+import {formatName} from '@/application/project/utils/formatName';
 
 export type InstallationPlan = {
     tasks: Task[],
@@ -286,10 +287,18 @@ export abstract class JavaScriptSdk implements Sdk {
 
         const directoryPath = this.fileSystem.joinPaths(packageInfo.directory, 'slot');
 
-        await this.fileSystem.delete(directoryPath, {recursive: true});
-        await this.fileSystem.createDirectory(directoryPath);
+        // Delete all subdirectories and files in the slot directory
+        for await (const entry of this.fileSystem.list(directoryPath, 1)) {
+            if (entry.type === 'directory') {
+                await this.fileSystem.delete(entry.name, {
+                    recursive: true,
+                });
+            }
+        }
 
         const indexes: Record<string, Record<string, string>> = {};
+        const contentImports: Record<string, string> = {};
+        const contentVariableMap: Record<string, Record<string, string>> = {};
 
         for (const versionedContent of contentList) {
             for (const {locale, content} of versionedContent.list) {
@@ -300,11 +309,21 @@ export abstract class JavaScriptSdk implements Sdk {
                     indexes[locale] = {};
                 }
 
-                if (versionedContent.version === Math.max(...slotVersions[slotId])) {
-                    indexes[locale][slotId] = `./${locale}/${baseName}.json`;
+                const variable = `${formatName(`${slotId}-${locale}`)}V${versionedContent.version}`;
+                const contentFile = `./${locale}/${baseName}`;
+
+                if (contentVariableMap[locale] === undefined) {
+                    contentVariableMap[locale] = {};
                 }
 
-                indexes[locale][baseName] = `./${locale}/${baseName}.json`;
+                indexes[locale][baseName] = contentFile;
+                contentVariableMap[locale][baseName] = `${variable}`;
+                contentImports[variable] = contentFile;
+
+                if (versionedContent.version === Math.max(...slotVersions[slotId])) {
+                    indexes[locale][slotId] = contentFile;
+                    contentVariableMap[locale][slotId] = `${variable}`;
+                }
 
                 const localeDirectory = this.fileSystem.joinPaths(directoryPath, locale);
 
@@ -315,46 +334,135 @@ export abstract class JavaScriptSdk implements Sdk {
                     );
                 }
 
+                // ESM module
                 await this.fileSystem.writeTextFile(
-                    this.fileSystem.joinPaths(directoryPath, locale, `${baseName}.json`),
-                    JSON.stringify(content, null, 2),
+                    this.fileSystem.joinPaths(directoryPath, locale, `${baseName}.js`),
+                    `export default ${JSON.stringify(content, null, 2)};`,
+                    {overwrite: true},
+                );
+
+                // CommonJS module
+                await this.fileSystem.writeTextFile(
+                    this.fileSystem.joinPaths(directoryPath, locale, `${baseName}.cjs`),
+                    `module.exports = ${JSON.stringify(content, null, 2)};`,
                     {overwrite: true},
                 );
             }
         }
 
-        const contentMap = `const contentMap = ${JSON.stringify(indexes, null, 2)
-            .replace(/("\.\/.*?")/g, '() => import($1)')};\n\n`;
+        const es6Imports = Object.entries(contentImports)
+            .map(([variable, path]) => `import ${variable} from '${path}.js';`)
+            .join('\n');
 
+        const syncContentMap = `const contentMap = ${JSON.stringify(contentVariableMap, null, 2)
+            .replace(/(?<=: )"(.*?)"/g, '$1')};\n\n`;
+
+        // ESM module
         await this.fileSystem.writeTextFile(
-            this.fileSystem.joinPaths(directoryPath, 'index.js'),
-            contentMap
+            this.fileSystem.joinPaths(directoryPath, 'getSlotContent.js'),
+            // eslint-disable-next-line prefer-template -- Better readability
+            `${es6Imports}\n\n${syncContentMap}`
             // language=javascript
             + multiline`
-                const defaultLocale = '${configuration.defaultLocale}';
+                const defaultLocale = ${JSON.stringify(configuration.defaultLocale)};
 
                 export function getSlotContent(slotId, language = defaultLocale) {
                     if (contentMap[language]?.[slotId] !== undefined) {
-                        return contentMap[language][slotId]().then(module => module.default);
+                        return contentMap[language][slotId];
                     }
 
                     if (language !== defaultLocale) {
                         return getSlotContent(slotId);
                     }
 
+                    return null;
+                }
+            `,
+            {overwrite: true},
+        );
+
+        const cjImports = Object.entries(contentImports)
+            .map(([variable, path]) => `const ${variable} = require('${path}.cjs');`)
+            .join('\n');
+
+        // CommonJS module
+        await this.fileSystem.writeTextFile(
+            this.fileSystem.joinPaths(directoryPath, 'getSlotContent.cjs'),
+            // eslint-disable-next-line prefer-template -- Better readability
+            `${cjImports}\n\n${syncContentMap}`
+            // language=javascript
+            + multiline`
+                const defaultLocale = ${JSON.stringify(configuration.defaultLocale)};
+
+                module.exports = {
+                    getSlotContent: function getSlotContent(slotId, language = defaultLocale) {
+                        if (contentMap[language]?.[slotId] !== undefined) {
+                            return contentMap[language][slotId];
+                        }
+
+                        if (language !== defaultLocale) {
+                            return getSlotContent(slotId);
+                        }
+
+                        return null;
+                    }
+                };
+            `,
+            {overwrite: true},
+        );
+
+        const asyncEs6ContentMap = `const contentMap = ${JSON.stringify(indexes, null, 2)
+            .replace(/"(\.\/.*?)"/g, '() => import("$1.js")')};\n\n`;
+
+        // ESM module
+        await this.fileSystem.writeTextFile(
+            this.fileSystem.joinPaths(directoryPath, 'loadSlotContent.js'),
+            asyncEs6ContentMap
+            // language=javascript
+            + multiline`
+                const defaultLocale = ${JSON.stringify(configuration.defaultLocale)};
+
+                export function loadSlotContent(slotId, language = defaultLocale) {
+                    if (contentMap[language]?.[slotId] !== undefined) {
+                        return contentMap[language][slotId]().then(module => module.default);
+                    }
+
+                    if (language !== defaultLocale) {
+                        return loadSlotContent(slotId);
+                    }
+
                     return Promise.resolve(null);
                 }
             `,
+            {overwrite: true},
         );
 
-        await this.fileSystem.writeTextFile(
-            this.fileSystem.joinPaths(directoryPath, 'index.d.ts'),
-            // language=typescript
-            multiline`
-                import {JsonObject} from '@croct/json';
+        const asyncCjsContentMap = `const contentMap = ${JSON.stringify(indexes, null, 2)
+            .replace(/"(\.\/.*?)"/g, '() => Promise.resolve(require("$1.cjs"))')};\n\n`;
 
-                export declare function loadContent(slotId: string, language?: string): Promise<JsonObject | null>;
+        // CommonJS module
+        await this.fileSystem.writeTextFile(
+            this.fileSystem.joinPaths(directoryPath, 'loadSlotContent.cjs'),
+            asyncCjsContentMap
+            // language=javascript
+            + multiline`
+                const defaultLocale = ${JSON.stringify(configuration.defaultLocale)};
+
+                module.exports = {
+                    loadSlotContent: function loadSlotContent(slotId, language = defaultLocale) {
+                        if (contentMap[language]?.[slotId] !== undefined) {
+                            return contentMap[language][slotId]().then(module => module.default);
+                        }
+
+                        if (language !== defaultLocale) {
+                            return loadSlotContent(slotId);
+                        }
+
+                        return Promise.resolve(null);
+                    }
+                };
             `,
+            {overwrite: true},
         );
 
         indicator.confirm('Content updated');

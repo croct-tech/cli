@@ -14,7 +14,7 @@
     "cli",
     "cms"
   ],
-  "main": "build/index.js",
+  "main": "index.js",
   "bin": "./index.js",
   "repository": {
     "type": "git",
@@ -44,8 +44,7 @@
     "@croct/json5-parser": "^0.1.0",
     "@croct/logging": "^0.2.3",
     "@croct/md-lite": "^0.3.1",
-    "@croct/plug": "^0.16.4",
-    "@croct/sdk": "^0.17.7",
+    "@croct/sdk": "https://pkg.pr.new/@croct/sdk@fff6dec",
     "@jsep-plugin/object": "^1.2.2",
     "@jsep-plugin/spread": "^1.0.3",
     "boxen": "^8.0.1",

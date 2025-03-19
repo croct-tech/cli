@@ -1,15 +1,15 @@
 import {Installation} from '@/application/project/sdk/sdk';
 import {InstallationPlan, JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
-import {PlugJsExampleGenerator} from '@/application/project/example/slot/plugJsExampleGenerator';
-import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
+import {PlugJsExampleGenerator} from '@/application/project/code/generation/slot/plugJsExampleGenerator';
+import {CodeLanguage, ExampleFile} from '@/application/project/code/generation/example';
 import {Slot} from '@/application/model/slot';
 
 export class PlugJsSdk extends JavaScriptSdk {
-    protected generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
+    protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
         const generator = new PlugJsExampleGenerator({
             fileSystem: this.fileSystem,
             options: {
-                language: CodeLanguage.JAVASCRIPT,
+                language: await this.isTypeScriptProject() ? CodeLanguage.TYPESCRIPT : CodeLanguage.JAVASCRIPT,
                 appId: installation.configuration.applications.developmentPublicId,
                 code: {
                     browser: true,

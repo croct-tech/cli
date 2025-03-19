@@ -1,4 +1,4 @@
-import {CodeFormatter, CodeFormatterError} from '@/application/project/code/formatter/formatter';
+import {CodeFormatter, CodeFormatterError} from '@/application/project/code/formatting/formatter';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {Dependency, PackageManager} from '@/application/project/packageManager/packageManager';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';

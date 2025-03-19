@@ -8,19 +8,24 @@ import {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
 import {WorkspaceApi} from '@/application/api/workspace';
 import {EnvFile} from '@/application/project/code/envFile';
 import {UserApi} from '@/application/api/user';
-import {NextConfig, parseNextJsConfig} from '@/application/project/code/codemod/javascript/parseNextJsConfig';
-import {Codemod, CodemodOptions} from '@/application/project/code/codemod/codemod';
+import {NextConfig, parseNextJsConfig} from '@/application/project/code/transformation/javascript/parseNextJsConfig';
+import {Codemod, CodemodOptions} from '@/application/project/code/transformation/codemod';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
-import type {LayoutComponentOptions} from '@/application/project/code/codemod/javascript/nextJsLayoutComponentCodemod';
-import type {AppComponentOptions} from '@/application/project/code/codemod/javascript/nextJsAppComponentCodemod';
-import {CodeLanguage, ExampleFile} from '@/application/project/example/example';
-import {NextExampleRouter, PlugNextExampleGenerator} from '@/application/project/example/slot/plugNextExampleGenerator';
+import type {
+    LayoutComponentOptions,
+} from '@/application/project/code/transformation/javascript/nextJsLayoutComponentCodemod';
+import type {AppComponentOptions} from '@/application/project/code/transformation/javascript/nextJsAppComponentCodemod';
+import {CodeLanguage, ExampleFile} from '@/application/project/code/generation/example';
+import {
+    NextExampleRouter,
+    PlugNextExampleGenerator,
+} from '@/application/project/code/generation/slot/plugNextExampleGenerator';
 import {ApiError} from '@/application/api/error';
 import {Slot} from '@/application/model/slot';
 import {HelpfulError} from '@/application/error';
 import {ImportResolver} from '@/application/project/import/importResolver';
 import {ApiKeyPermission} from '@/application/model/application';
-import {PlugReactExampleGenerator} from '@/application/project/example/slot/plugReactExampleGenerator';
+import {PlugReactExampleGenerator} from '@/application/project/code/generation/slot/plugReactExampleGenerator';
 
 type CodemodConfiguration = {
     middleware: Codemod<string>,

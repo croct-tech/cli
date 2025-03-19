@@ -42,14 +42,18 @@ import {AuthenticationListener} from '@/application/cli/authentication/authentic
 import {SignUpForm} from '@/application/cli/form/user/signUpForm';
 import {Command, CommandInput} from '@/application/cli/command/command';
 import {AdminCommand, AdminInput} from '@/application/cli/command/admin';
-import {JsxWrapperCodemod} from '@/application/project/code/codemod/javascript/jsxWrapperCodemod';
-import {JavaScriptCodemod} from '@/application/project/code/codemod/javascript/javaScriptCodemod';
-import {NextJsMiddlewareCodemod} from '@/application/project/code/codemod/javascript/nextJsMiddlewareCodemod';
-import {CodeFormatter} from '@/application/project/code/formatter/formatter';
-import {FormatCodemod} from '@/application/project/code/codemod/formatCodemod';
-import {FileCodemod} from '@/application/project/code/codemod/fileCodemod';
-import {NextJsLayoutComponentCodemod} from '@/application/project/code/codemod/javascript/nextJsLayoutComponentCodemod';
-import {NextJsAppComponentCodemod} from '@/application/project/code/codemod/javascript/nextJsAppComponentCodemod';
+import {JsxWrapperCodemod} from '@/application/project/code/transformation/javascript/jsxWrapperCodemod';
+import {JavaScriptCodemod} from '@/application/project/code/transformation/javascript/javaScriptCodemod';
+import {NextJsMiddlewareCodemod} from '@/application/project/code/transformation/javascript/nextJsMiddlewareCodemod';
+import {CodeFormatter} from '@/application/project/code/formatting/formatter';
+import {FormatCodemod} from '@/application/project/code/transformation/formatCodemod';
+import {FileCodemod} from '@/application/project/code/transformation/fileCodemod';
+import {
+    NextJsLayoutComponentCodemod,
+} from '@/application/project/code/transformation/javascript/nextJsLayoutComponentCodemod';
+import {
+    NextJsAppComponentCodemod,
+} from '@/application/project/code/transformation/javascript/nextJsAppComponentCodemod';
 import {JavaScriptFormatter} from '@/infrastructure/application/project/javaScriptFormatter';
 import {AddSlotCommand, AddSlotInput} from '@/application/cli/command/slot/add';
 import {SlotForm} from '@/application/cli/form/workspace/slotForm';
@@ -220,7 +224,7 @@ import {ImportResolver} from '@/application/project/import/importResolver';
 import {LazyImportResolver} from '@/application/project/import/lazyImportResolver';
 import {CommandExecutor, SynchronousCommandExecutor} from '@/application/system/process/executor';
 import {SpawnExecutor} from '@/infrastructure/application/system/command/spawnExecutor';
-import {LazyFormatter} from '@/application/project/code/formatter/lazyFormatter';
+import {LazyFormatter} from '@/application/project/code/formatting/lazyFormatter';
 import {LazySdk} from '@/application/project/sdk/lazySdk';
 import {MemoizedProvider} from '@/application/provider/memoizedProvider';
 import {CachedServerFactory} from '@/application/project/server/factory/cachedServerFactory';
@@ -277,12 +281,12 @@ import {TraceProvider} from '@/application/provider/resource/traceProvider';
 import {TreeLogger} from '@/application/logging/treeLogger';
 import {OutputLogger} from '@/infrastructure/application/cli/io/outputLogger';
 import {HierarchicalLogger} from '@/application/logging/hierarchicalLogger';
-import {GlobImportCodemod} from '@/application/project/code/codemod/globImportCodemod';
-import {PathBasedCodemod} from '@/application/project/code/codemod/pathBasedCodemod';
-import {getExportedNames} from '@/application/project/code/codemod/javascript/utils/getExportedNames';
-import {JavaScriptImportCodemod} from '@/application/project/code/codemod/javascript/javaScriptImportCodemod';
-import {ChainedCodemod} from '@/application/project/code/codemod/chainedCodemod';
-import {AttributeType} from '@/application/project/code/codemod/javascript/utils/createJsxProps';
+import {GlobImportCodemod} from '@/application/project/code/transformation/globImportCodemod';
+import {PathBasedCodemod} from '@/application/project/code/transformation/pathBasedCodemod';
+import {getExportedNames} from '@/application/project/code/transformation/javascript/utils/getExportedNames';
+import {JavaScriptImportCodemod} from '@/application/project/code/transformation/javascript/javaScriptImportCodemod';
+import {ChainedCodemod} from '@/application/project/code/transformation/chainedCodemod';
+import {AttributeType} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
 
 export type Configuration = {
     program: Program,
