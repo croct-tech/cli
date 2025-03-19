@@ -6,20 +6,6 @@ export enum CodeLanguage {
     TYPESCRIPT_XML = 'tsx',
 }
 
-export namespace CodeLanguage {
-    const EXTENSIONS: Record<CodeLanguage, string> = {
-        [CodeLanguage.HTML]: 'html',
-        [CodeLanguage.JAVASCRIPT]: 'js',
-        [CodeLanguage.JAVASCRIPT_XML]: 'jsx',
-        [CodeLanguage.TYPESCRIPT]: 'ts',
-        [CodeLanguage.TYPESCRIPT_XML]: 'tsx',
-    };
-
-    export function getExtension(language: CodeLanguage): string {
-        return EXTENSIONS[language];
-    }
-}
-
 export type ExampleFile = {
     path: string,
     language: CodeLanguage,
