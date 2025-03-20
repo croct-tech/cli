@@ -68,8 +68,6 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
     }
 
     private async createTemplate(empty: boolean): Promise<Template> {
-        const {io} = this.config;
-
         if (empty) {
             return {
                 // @todo: Add $schema property
@@ -82,7 +80,7 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
 
         return {
             // @todo: Add $schema property
-            title: (await io.input?.prompt({message: 'Enter template title'})) ?? 'My template',
+            title: 'My template',
             actions: [
                 {
                     name: 'create-resource',
