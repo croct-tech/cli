@@ -1,16 +1,17 @@
 import {Content} from '@croct/content-model/content/content';
 import {JsonValue} from '@croct/json';
 import {ContentDefinition} from '@croct/content-model/definition/definition';
-import {Installation} from '@/application/project/sdk/sdk';
+import {Installation, SdkError} from '@/application/project/sdk/sdk';
 import {
+    Configuration as JavaScriptSdkConfiguration,
     InstallationPlan,
     JavaScriptSdk,
-    Configuration as JavaScriptSdkConfiguration,
 } from '@/application/project/sdk/javasScriptSdk';
 import {PlugJsExampleGenerator} from '@/application/project/code/generation/slot/plugJsExampleGenerator';
 import {CodeLanguage, ExampleFile} from '@/application/project/code/generation/example';
 import {Slot} from '@/application/model/slot';
 import {sortAttributes} from '@/application/project/code/generation/utils';
+import {ErrorReason} from '@/application/error';
 
 export type Configuration = JavaScriptSdkConfiguration & {
     bundlers: string[],
@@ -26,10 +27,22 @@ export class PlugJsSdk extends JavaScriptSdk {
     }
 
     protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
-        const [isTypeScript, bundler] = await Promise.all([
+        const {configuration} = installation;
+        const [isTypeScript, bundler, application] = await Promise.all([
             this.isTypeScriptProject(),
             this.detectBundler(),
+            this.workspaceApi.getApplication({
+                organizationSlug: configuration.organization,
+                workspaceSlug: configuration.workspace,
+                applicationSlug: configuration.applications.development,
+            }),
         ]);
+
+        if (application === null) {
+            throw new SdkError(`Development application ${configuration.applications.development} not found.`, {
+                reason: ErrorReason.NOT_FOUND,
+            });
+        }
 
         const directory = this.fileSystem.joinPaths(
             installation.configuration.paths.examples,
@@ -39,7 +52,7 @@ export class PlugJsSdk extends JavaScriptSdk {
         const generator = new PlugJsExampleGenerator({
             fileSystem: this.fileSystem,
             language: isTypeScript ? CodeLanguage.TYPESCRIPT : CodeLanguage.JAVASCRIPT,
-            appId: installation.configuration.applications.developmentPublicId,
+            appId: application.publicId,
             fallbackContent: bundler === null
                 ? PlugJsSdk.extractFallbackContent(
                     slot.content[installation.configuration.defaultLocale],

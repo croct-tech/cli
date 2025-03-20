@@ -31,10 +31,7 @@ export type ApplicationPath = WorkspacePath & {
     applicationSlug: string,
 };
 
-export type NewApplication = Omit<Application, 'id' | 'slug' | 'logo' | 'publicId' | 'trafficStatus'> & {
-    organizationId: string,
-    workspaceId: string,
-};
+export type NewApplication = WorkspacePath & Omit<Application, 'id' | 'slug' | 'logo' | 'publicId' | 'trafficStatus'>;
 
 export enum TargetSdk {
     JAVASCRIPT = 'PLUG_JS',
@@ -45,8 +42,7 @@ export type VersionSpecifier = {
     version: string,
 };
 
-export type TargetTyping = {
-    workspaceId: string,
+export type TargetTyping = WorkspacePath & {
     target: TargetSdk,
     components: VersionSpecifier[],
     slots: VersionSpecifier[],
@@ -114,9 +110,7 @@ export type ExperienceDefinition = {
     content: PersonalizedContentDefinition,
 };
 
-export type NewResources = {
-    organizationId: string,
-    workspaceId: string,
+export type NewResources = WorkspacePath & {
     components?: Record<string, ComponentDefinition>,
     slots?: Record<string, SlotDefinition>,
     audiences?: Record<string, AudienceDefinition>,

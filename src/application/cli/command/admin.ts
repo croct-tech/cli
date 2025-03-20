@@ -31,7 +31,7 @@ export class AdminCommand implements Command<AdminInput> {
 
         const configuration = await this.config
             .configurationManager
-            .resolve();
+            .load();
 
         const path = await pageForm.handle({
             page: input.page,

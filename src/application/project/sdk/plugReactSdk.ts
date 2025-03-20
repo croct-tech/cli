@@ -1,4 +1,4 @@
-import {Installation} from '@/application/project/sdk/sdk';
+import {Installation, SdkError} from '@/application/project/sdk/sdk';
 import {
     InstallationPlan,
     JavaScriptSdk,
@@ -10,9 +10,8 @@ import {WrapperOptions} from '@/application/project/code/transformation/javascri
 import {EnvFile} from '@/application/project/code/envFile';
 import {CodeLanguage, ExampleFile} from '@/application/project/code/generation/example';
 import {PlugReactExampleGenerator} from '@/application/project/code/generation/slot/plugReactExampleGenerator';
-import {ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Slot} from '@/application/model/slot';
-import {HelpfulError} from '@/application/error';
+import {ErrorReason, HelpfulError} from '@/application/error';
 import {ImportResolver} from '@/application/project/import/importResolver';
 import {AttributeType} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
 
@@ -47,6 +46,11 @@ type ReactProjectInfo = {
 type ReactInstallation = Installation & {
     project: ReactProjectInfo,
     notifier: TaskNotifier,
+};
+
+type PublicAppIds = {
+    development: string,
+    production?: string,
 };
 
 export class PlugReactSdk extends JavaScriptSdk {
@@ -150,7 +154,44 @@ export class PlugReactSdk extends JavaScriptSdk {
     private getInstallationTasks(installation: Omit<ReactInstallation, 'notifier'>): Task[] {
         const tasks: Task[] = [];
         const projectEnv = installation.project.env;
-        const {applications} = installation.configuration;
+        const {configuration} = installation;
+
+        let publicIdsPromise: Promise<PublicAppIds>|null = null;
+
+        const getPublicIds = (): Promise<PublicAppIds> => {
+            if (publicIdsPromise === null) {
+                publicIdsPromise = Promise.all([
+                    this.workspaceApi.getApplication({
+                        organizationSlug: configuration.organization,
+                        workspaceSlug: configuration.workspace,
+                        applicationSlug: configuration.applications.development,
+                    }),
+                    configuration.applications.production === undefined
+                        ? null
+                        : this.workspaceApi.getApplication({
+                            organizationSlug: configuration.organization,
+                            workspaceSlug: configuration.workspace,
+                            applicationSlug: configuration.applications.production,
+                        }),
+                ]).then(([development, production]) => {
+                    if (development === null) {
+                        return Promise.reject(
+                            new SdkError(
+                                `Development application ${configuration.applications.development} not found`,
+                                {reason: ErrorReason.NOT_FOUND},
+                            ),
+                        );
+                    }
+
+                    return {
+                        development: development.publicId,
+                        production: production?.publicId,
+                    };
+                });
+            }
+
+            return publicIdsPromise;
+        };
 
         if (projectEnv !== undefined) {
             const {developmentFile, productionFile, property} = projectEnv;
@@ -159,14 +200,16 @@ export class PlugReactSdk extends JavaScriptSdk {
             tasks.push({
                 title: 'Setup environment variables',
                 task: async notifier => {
+                    notifier.update('Updating environment variables');
+
                     try {
-                        notifier.update('Updating environment variables');
+                        const publicIds = await getPublicIds();
 
                         await Promise.all([
-                            developmentFile.setVariable(variable, applications.developmentPublicId),
-                            applications.productionPublicId === undefined
+                            developmentFile.setVariable(variable, publicIds.development),
+                            publicIds.production === undefined
                                 ? Promise.resolve()
-                                : productionFile.setVariable(variable, applications.productionPublicId),
+                                : productionFile.setVariable(variable, publicIds.production),
                         ]);
 
                         notifier.confirm('Environment variables updated');
@@ -191,7 +234,7 @@ export class PlugReactSdk extends JavaScriptSdk {
 
                         await this.installProvider(providerFile, {
                             props: {
-                                appId: PlugReactSdk.getAppIdProperty(applications, projectEnv?.property),
+                                appId: PlugReactSdk.getAppIdProperty(await getPublicIds(), projectEnv?.property),
                             },
                         });
 
@@ -222,10 +265,7 @@ export class PlugReactSdk extends JavaScriptSdk {
         return null;
     }
 
-    private static getAppIdProperty(
-        applicationIds: ResolvedConfiguration['applications'],
-        env?: string,
-    ): AttributeType {
+    private static getAppIdProperty(applicationIds: PublicAppIds, env?: string): AttributeType {
         if (env !== undefined) {
             return {
                 type: 'reference',
@@ -233,10 +273,10 @@ export class PlugReactSdk extends JavaScriptSdk {
             };
         }
 
-        if (applicationIds.productionPublicId === undefined) {
+        if (applicationIds.production === undefined) {
             return {
                 type: 'literal',
-                value: applicationIds.developmentPublicId,
+                value: applicationIds.development,
             };
         }
 
@@ -255,11 +295,11 @@ export class PlugReactSdk extends JavaScriptSdk {
             },
             consequent: {
                 type: 'literal',
-                value: applicationIds.productionPublicId,
+                value: applicationIds.production,
             },
             alternate: {
                 type: 'literal',
-                value: applicationIds.developmentPublicId,
+                value: applicationIds.development,
             },
         };
     }

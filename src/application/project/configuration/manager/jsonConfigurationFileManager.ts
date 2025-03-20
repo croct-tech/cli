@@ -2,12 +2,13 @@ import {JsonValue} from '@croct/json';
 import {JsonObjectNode, JsonParser} from '@croct/json5-parser';
 import {
     ProjectConfiguration,
-    ConfigurationError as ProjectConfigurationError,
+    ProjectConfigurationError,
 } from '@/application/project/configuration/projectConfiguration';
-import {ConfigurationFile} from '@/application/project/configuration/file/configurationFile';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {Validator} from '@/application/validation';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import {ErrorReason} from '@/application/error';
 
 type LoadedFile = {
     path: string,
@@ -21,7 +22,7 @@ export type Configuration = {
     validator: Validator<ProjectConfiguration>,
 };
 
-export class JsonFileConfiguration implements ConfigurationFile {
+export class JsonConfigurationFileManager implements ConfigurationManager {
     private readonly fileSystem: FileSystem;
 
     private readonly projectDirectory: WorkingDirectory;
@@ -34,12 +35,27 @@ export class JsonFileConfiguration implements ConfigurationFile {
         this.validator = validator;
     }
 
-    public async load(): Promise<ProjectConfiguration|null> {
-        return (await this.loadFile()).configuration;
+    public isInitialized(): Promise<boolean> {
+        return this.fileSystem.exists(this.getConfigurationFilePath());
+    }
+
+    public async load(): Promise<ProjectConfiguration> {
+        const file = await this.loadFile();
+
+        if (file.configuration === null) {
+            throw new ProjectConfigurationError('Project configuration not found.', {
+                reason: ErrorReason.NOT_FOUND,
+                suggestions: [
+                    'Run `init` command to initialize the project',
+                ],
+            });
+        }
+
+        return file.configuration;
     }
 
     public async update(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
-        return this.updateFile(await this.validateConfiguration(JsonFileConfiguration.clean(configuration)));
+        return this.updateFile(await this.validateConfiguration(JsonConfigurationFileManager.clean(configuration)));
     }
 
     private async updateFile(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {

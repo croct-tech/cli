@@ -5,18 +5,22 @@ import {WorkspaceQuery} from '@/infrastructure/graphql/schema/graphql';
 import {
     createWorkspaceMutation,
     workspaceQuery,
-    workspaceSlugQuery,
+    workspaceSlugAvailabilityQuery,
     workspacesQuery,
 } from '@/infrastructure/application/api/graphql/queries/workspace';
 import {Workspace} from '@/application/model/workspace';
+import {HierarchyResolver} from '@/infrastructure/application/api/graphql/hierarchyResolver';
 
 type WorkspaceData = NonNullable<NonNullable<WorkspaceQuery['organization']>['workspace']>;
 
 export class GraphqlOrganizationApi implements OrganizationApi {
     private readonly client: GraphqlClient;
 
-    public constructor(client: GraphqlClient) {
+    private readonly hierarchyResolver: HierarchyResolver;
+
+    public constructor(client: GraphqlClient, hierarchyResolver: HierarchyResolver) {
         this.client = client;
+        this.hierarchyResolver = hierarchyResolver;
     }
 
     public async getWorkspace(path: WorkspacePath): Promise<Workspace | null> {
@@ -76,11 +80,15 @@ export class GraphqlOrganizationApi implements OrganizationApi {
     }
 
     public async createWorkspace(workspace: NewWorkspace): Promise<Workspace> {
+        const hierarchy = await this.hierarchyResolver.getHierarchy({
+            organizationSlug: workspace.organizationSlug,
+        });
+
         const {data} = await this.client.execute(createWorkspaceMutation, {
-            organizationId: workspace.organizationId,
+            organizationId: hierarchy.organizationId,
             payload: {
                 name: workspace.name,
-                slug: await this.generateWorkspaceSlug(workspace.organizationId, workspace.name),
+                slug: await this.generateWorkspaceSlug(hierarchy.organizationId, workspace.name),
                 timeZone: workspace.timeZone,
                 defaultLocale: workspace.defaultLocale,
                 website: workspace.website,
@@ -112,7 +120,7 @@ export class GraphqlOrganizationApi implements OrganizationApi {
 
     private generateWorkspaceSlug(organizationId: string, baseName: string): Promise<string> {
         return generateAvailableSlug({
-            query: workspaceSlugQuery,
+            query: workspaceSlugAvailabilityQuery,
             baseName: baseName,
             client: this.client,
             variables: {

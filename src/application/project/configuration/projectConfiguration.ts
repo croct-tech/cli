@@ -17,37 +17,13 @@ export type ProjectConfiguration = {
     },
 };
 
-type DevelopmentApplicationIds = {
-    development: string,
-    developmentId: string,
-    developmentPublicId: string,
-};
-
-type ProductionApplicationIds = {
-    production: string,
-    productionId: string,
-    productionPublicId: string,
-} | {
-    production?: undefined,
-    productionId?: undefined,
-    productionPublicId?: undefined,
-};
-
-type ApplicationIds = DevelopmentApplicationIds & ProductionApplicationIds;
-
-export type ResolvedConfiguration = Omit<ProjectConfiguration, 'applications'> & {
-    organizationId: string,
-    workspaceId: string,
-    applications: ApplicationIds,
-};
-
-export class ConfigurationError extends HelpfulError {
+export class ProjectConfigurationError extends HelpfulError {
     public constructor(message: string, help: Help = {}) {
         super(message, {
             ...help,
             reason: help.reason ?? ErrorReason.INVALID_CONFIGURATION,
         });
 
-        Object.setPrototypeOf(this, ConfigurationError.prototype);
+        Object.setPrototypeOf(this, ProjectConfigurationError.prototype);
     }
 }

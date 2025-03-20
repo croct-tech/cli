@@ -1,9 +1,9 @@
-import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
+import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 
 export interface ConfigurationManager {
-    load(): Promise<ProjectConfiguration | null>;
+    isInitialized(): Promise<boolean>;
 
-    resolve(): Promise<ResolvedConfiguration>;
+    load(): Promise<ProjectConfiguration>;
 
     update(configuration: ProjectConfiguration): Promise<ProjectConfiguration>;
 }

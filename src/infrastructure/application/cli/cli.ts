@@ -1,4 +1,4 @@
-import {AutoSaveCache, InMemoryCache} from '@croct/cache';
+import {AutoSaveCache, InMemoryCache, SharedInFlightCache} from '@croct/cache';
 import {ApiKey} from '@croct/sdk/apiKey';
 import {Clock, Instant, LocalTime} from '@croct/time';
 import {SystemClock} from '@croct/time/clock/systemClock';
@@ -18,7 +18,7 @@ import {InitCommand, InitInput} from '@/application/cli/command/init';
 import {LoginCommand, LoginInput} from '@/application/cli/command/login';
 import {LogoutCommand} from '@/application/cli/command/logout';
 import {Input} from '@/application/cli/io/input';
-import {JsonFileConfiguration} from '@/application/project/configuration/file/jsonFileConfiguration';
+import {JsonConfigurationFileManager} from '@/application/project/configuration/manager/jsonConfigurationFileManager';
 import {GraphqlClient} from '@/infrastructure/graphql';
 import {FetchGraphqlClient} from '@/infrastructure/graphql/fetchGraphqlClient';
 import {UserApi} from '@/application/api/user';
@@ -73,7 +73,7 @@ import {
 } from '@/application/cli/authentication/authenticator/multiAuthenticator';
 import {ApiError} from '@/application/api/error';
 import {UpgradeCommand, UpgradeInput} from '@/application/cli/command/upgrade';
-import {ConfigurationError} from '@/application/project/configuration/projectConfiguration';
+import {ProjectConfigurationError} from '@/application/project/configuration/projectConfiguration';
 import {FileSystem, FileSystemIterator} from '@/application/fs/fileSystem';
 import {LocalFilesystem} from '@/application/fs/localFilesystem';
 import {FocusListener} from '@/infrastructure/application/cli/io/focusListener';
@@ -102,7 +102,6 @@ import {AddComponentAction} from '@/application/template/action/addComponentActi
 import {TryAction, TryOptions} from '@/application/template/action/tryAction';
 import {LazyAction} from '@/application/template/action/lazyAction';
 import {CachedConfigurationManager} from '@/application/project/configuration/manager/cachedConfigurationManager';
-import {ConfigurationFileManager} from '@/application/project/configuration/manager/configurationFileManager';
 import {CreateResourceAction} from '@/application/template/action/createResourceAction';
 import {SlugMappingForm} from '@/application/cli/form/workspace/slugMappingForm';
 import {ResourceMatcher} from '@/application/template/resourceMatcher';
@@ -287,6 +286,7 @@ import {getExportedNames} from '@/application/project/code/transformation/javasc
 import {JavaScriptImportCodemod} from '@/application/project/code/transformation/javascript/javaScriptImportCodemod';
 import {ChainedCodemod} from '@/application/project/code/transformation/chainedCodemod';
 import {AttributeType} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
+import {HierarchyResolver} from '@/infrastructure/application/api/graphql/hierarchyResolver';
 
 export type Configuration = {
     program: Program,
@@ -1241,7 +1241,7 @@ export class Cli {
             project: {
                 organization: LazyPromise.transient(
                     async () => {
-                        const {organization} = await this.getConfigurationManager().resolve();
+                        const {organization} = await this.getConfigurationManager().load();
 
                         return {
                             slug: organization,
@@ -1251,7 +1251,7 @@ export class Cli {
                 ),
                 workspace: LazyPromise.transient(
                     async () => {
-                        const {organization, workspace} = await this.getConfigurationManager().resolve();
+                        const {organization, workspace} = await this.getConfigurationManager().load();
 
                         return {
                             slug: workspace,
@@ -1261,7 +1261,7 @@ export class Cli {
                 ),
                 application: LazyPromise.transient(
                     async () => {
-                        const {organization, workspace, applications} = await this.getConfigurationManager().resolve();
+                        const {organization, workspace, applications} = await this.getConfigurationManager().load();
                         const path = `organizations/${organization}/workspaces/${workspace}/applications/`;
 
                         return {
@@ -1278,10 +1278,10 @@ export class Cli {
                 ),
                 path: {
                     example: LazyPromise.transient(
-                        async () => (await this.getConfigurationManager().resolve()).paths.examples,
+                        async () => (await this.getConfigurationManager().load()).paths.examples,
                     ),
                     component: LazyPromise.transient(
-                        async () => (await this.getConfigurationManager().resolve()).paths.components,
+                        async () => (await this.getConfigurationManager().load()).paths.components,
                     ),
                 },
                 platform: LazyPromise.transient(async () => (await this.getPlatformProvider().get()) ?? 'unknown'),
@@ -1990,18 +1990,10 @@ export class Cli {
     private getConfigurationManager(): ConfigurationManager {
         return this.share(this.getConfigurationManager, () => {
             const output = this.getOutput();
-            const manager = new ConfigurationFileManager({
-                file: new JsonFileConfiguration({
-                    fileSystem: this.getFileSystem(),
-                    validator: new CroctConfigurationValidator(),
-                    projectDirectory: this.workingDirectory,
-                }),
-                output: output,
-                api: {
-                    user: this.getUserApi(),
-                    organization: this.getOrganizationApi(),
-                    workspace: this.getWorkspaceApi(),
-                },
+            const manager = new JsonConfigurationFileManager({
+                fileSystem: this.getFileSystem(),
+                validator: new CroctConfigurationValidator(),
+                projectDirectory: this.workingDirectory,
             });
 
             return new IndexedConfigurationManager({
@@ -2033,15 +2025,43 @@ export class Cli {
     }
 
     private getOrganizationApi(): OrganizationApi {
-        return this.share(this.getOrganizationApi, () => new GraphqlOrganizationApi(this.getGraphqlClient()));
+        return this.share(
+            this.getOrganizationApi,
+            () => new GraphqlOrganizationApi(
+                this.getGraphqlClient(),
+                this.getHierarchyResolver(),
+            ),
+        );
     }
 
     private getWorkspaceApi(): WorkspaceApi {
-        return this.share(this.getWorkspaceApi, () => new GraphqlWorkspaceApi(this.getGraphqlClient()));
+        return this.share(
+            this.getWorkspaceApi,
+            () => new GraphqlWorkspaceApi(
+                this.getGraphqlClient(),
+                this.getHierarchyResolver(),
+            ),
+        );
     }
 
     private getApplicationApi(): ApplicationApi {
-        return this.share(this.getApplicationApi, () => new GraphqlApplicationApi(this.getGraphqlClient()));
+        return this.share(
+            this.getApplicationApi,
+            () => new GraphqlApplicationApi(
+                this.getGraphqlClient(),
+                this.getHierarchyResolver(),
+            ),
+        );
+    }
+
+    private getHierarchyResolver(): HierarchyResolver {
+        return this.share(
+            this.getHierarchyResolver,
+            () => new HierarchyResolver(
+                this.getGraphqlClient(),
+                new SharedInFlightCache(new AutoSaveCache(new InMemoryCache())),
+            ),
+        );
     }
 
     private getGraphqlClient(optionalAuthentication = false): GraphqlClient {
@@ -2249,7 +2269,7 @@ export class Cli {
 
                 break;
 
-            case error instanceof ConfigurationError:
+            case error instanceof ProjectConfigurationError:
                 return new HelpfulError(
                     error.message,
                     {

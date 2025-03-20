@@ -31,7 +31,7 @@ export class InstallCommand implements Command<InstallInput> {
     public async execute(_: InstallInput): Promise<void> {
         const {sdk, configurationManager, slotForm, io} = this.configuration;
 
-        const configuration = await configurationManager.resolve();
+        const configuration = await configurationManager.load();
         const listedSlots = Object.keys(configuration.slots);
         const slots = listedSlots.length === 0
             ? []

@@ -81,7 +81,7 @@ export class WorkspaceForm implements Form<Workspace, WorkspaceOptions> {
 
         try {
             const workspace = await api.createWorkspace({
-                organizationId: organization.id,
+                organizationSlug: organization.slug,
                 name: name,
                 website: organization.website,
                 defaultLocale: defaultLocale,

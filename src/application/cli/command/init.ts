@@ -3,7 +3,7 @@ import {WorkspaceApi} from '@/application/api/workspace';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
 import {Sdk} from '@/application/project/sdk/sdk';
-import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
+import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {OrganizationOptions} from '@/application/cli/form/organization/organizationForm';
 import {ApplicationOptions} from '@/application/cli/form/application/applicationForm';
 import {WorkspaceOptions} from '@/application/cli/form/workspace/workspaceForm';
@@ -61,9 +61,8 @@ export class InitCommand implements Command<InitInput> {
 
     public async execute(input: InitInput): Promise<void> {
         const {configurationManager, platformProvider, sdkProvider, io: {output}} = this.config;
-        const currentConfiguration = await configurationManager.load();
 
-        if (currentConfiguration !== null && input.override !== true) {
+        if (input.override !== true && await configurationManager.isInitialized()) {
             throw new HelpfulError('Configuration file already exists, specify `override` to reconfigure.', {
                 reason: ErrorReason.PRECONDITION,
             });
@@ -119,10 +118,20 @@ export class InitCommand implements Command<InitInput> {
             input.devApplication,
         );
 
-        let applicationIds: ResolvedConfiguration['applications'] = {
-            development: devApplication.slug,
-            developmentId: devApplication.id,
-            developmentPublicId: devApplication.publicId,
+        const updatedConfiguration: ProjectConfiguration = {
+            organization: organization.slug,
+            workspace: workspace.slug,
+            applications: {
+                development: devApplication.slug,
+            },
+            defaultLocale: workspace.defaultLocale,
+            locales: workspace.locales,
+            slots: {},
+            components: {},
+            paths: {
+                components: '',
+                examples: '',
+            },
         };
 
         const defaultWebsite = workspace.website ?? organization.website ?? undefined;
@@ -136,30 +145,8 @@ export class InitCommand implements Command<InitInput> {
                 input.prodApplication,
             );
 
-            applicationIds = {
-                ...applicationIds,
-                production: prodApplication.slug,
-                productionId: prodApplication.id,
-                productionPublicId: prodApplication.publicId,
-            };
+            updatedConfiguration.applications.production = prodApplication.slug;
         }
-
-        const updatedConfiguration: ProjectConfiguration = {
-            organization: organization.slug,
-            workspace: workspace.slug,
-            applications: {
-                development: applicationIds.development,
-                production: applicationIds.production,
-            },
-            defaultLocale: workspace.defaultLocale,
-            locales: workspace.locales,
-            slots: {},
-            components: {},
-            paths: {
-                components: '',
-                examples: '',
-            },
-        };
 
         const sdk = await sdkProvider.get();
 
@@ -177,14 +164,7 @@ export class InitCommand implements Command<InitInput> {
             return;
         }
 
-        await configurationManager.update(
-            await this.configure(sdk, {
-                ...updatedConfiguration,
-                organizationId: organization.id,
-                workspaceId: workspace.id,
-                applications: applicationIds,
-            }),
-        );
+        await configurationManager.update(await this.configure(sdk, updatedConfiguration));
     }
 
     private async getOrganization(options: OrganizationOptions, organizationSlug?: string): Promise<Organization> {
@@ -289,19 +269,18 @@ export class InitCommand implements Command<InitInput> {
         return Object.fromEntries(slots.map(slot => [slot.slug, `${slot.version.major}`]));
     }
 
-    private async configure(sdk: Sdk, configuration: ResolvedConfiguration): Promise<ProjectConfiguration> {
+    private async configure(sdk: Sdk, configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
         const {skipConfirmation} = this.config;
-        const updatedConfiguration: ResolvedConfiguration = {
-            ...configuration,
-            slots: await this.getSlots(configuration.organization, configuration.workspace),
-        };
 
         return sdk.install({
             input: this.config.io.input === undefined || await skipConfirmation.get()
                 ? undefined
                 : this.config.io.input,
             output: this.config.io.output,
-            configuration: updatedConfiguration,
+            configuration: {
+                ...configuration,
+                slots: await this.getSlots(configuration.organization, configuration.workspace),
+            },
         });
     }
 }

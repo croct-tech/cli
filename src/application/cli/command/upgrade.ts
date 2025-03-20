@@ -4,7 +4,7 @@ import {Input} from '@/application/cli/io/input';
 import {Form} from '@/application/cli/form/form';
 import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
-import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
+import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
 import {Version} from '@/application/model/version';
 import {Slot} from '@/application/model/slot';
@@ -39,12 +39,12 @@ export class UpgradeCommand implements Command<UpgradeInput> {
 
     public async execute(input: UpgradeInput): Promise<void> {
         const {sdk, configurationManager, io} = this.config;
-        const configuration = await configurationManager.resolve();
+        const configuration = await configurationManager.load();
 
         const slots = await this.selectSlots(configuration, input.slots);
         const components = await this.selectComponents(configuration, input.components);
 
-        const updatedConfiguration: ResolvedConfiguration = {
+        const updatedConfiguration: ProjectConfiguration = {
             ...configuration,
             slots: {
                 ...configuration.slots,

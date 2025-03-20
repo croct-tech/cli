@@ -22,7 +22,7 @@ import {
 } from '@/application/project/code/generation/slot/plugNextExampleGenerator';
 import {ApiError} from '@/application/api/error';
 import {Slot} from '@/application/model/slot';
-import {HelpfulError} from '@/application/error';
+import {ErrorReason, HelpfulError} from '@/application/error';
 import {ImportResolver} from '@/application/project/import/importResolver';
 import {ApiKeyPermission} from '@/application/model/application';
 import {PlugReactExampleGenerator} from '@/application/project/code/generation/slot/plugReactExampleGenerator';
@@ -329,12 +329,33 @@ export class PlugNextSdk extends JavaScriptSdk {
     }
 
     private async updateEnvVariables(installation: NextInstallation): Promise<void> {
-        const {project: {env: plan}, configuration: {applications}, notifier} = installation;
+        const {project: {env: plan}, configuration, notifier} = installation;
 
         if (!await plan.localFile.hasVariable(NextEnvVar.API_KEY)) {
             notifier.update('Loading information');
 
-            const user = await this.userApi.getUser();
+            const [user, developmentApplication, productionApplication] = await Promise.all([
+                this.userApi.getUser(),
+                this.workspaceApi.getApplication({
+                    organizationSlug: configuration.organization,
+                    workspaceSlug: configuration.workspace,
+                    applicationSlug: configuration.applications.development,
+                }),
+                configuration.applications.production === undefined
+                    ? null
+                    : this.workspaceApi.getApplication({
+                        organizationSlug: configuration.organization,
+                        workspaceSlug: configuration.workspace,
+                        applicationSlug: configuration.applications.production,
+                    }),
+            ]);
+
+            if (developmentApplication === null) {
+                throw new SdkError(
+                    `Development application \`${configuration.applications.development}\` not found.`,
+                    {reason: ErrorReason.NOT_FOUND},
+                );
+            }
 
             notifier.update('Creating API key');
 
@@ -342,8 +363,10 @@ export class PlugNextSdk extends JavaScriptSdk {
 
             try {
                 apiKey = await this.applicationApi.createApiKey({
+                    organizationSlug: configuration.organization,
+                    workspaceSlug: configuration.workspace,
+                    applicationSlug: developmentApplication.slug,
                     name: `${user.username} CLI`,
-                    applicationId: applications.developmentId,
                     permissions: [ApiKeyPermission.ISSUE_TOKEN],
                 });
             } catch (error) {
@@ -365,12 +388,12 @@ export class PlugNextSdk extends JavaScriptSdk {
 
             await Promise.all([
                 plan.developmentFile.setVariables({
-                    [NextEnvVar.APP_ID]: applications.developmentPublicId,
+                    [NextEnvVar.APP_ID]: developmentApplication.publicId,
                 }),
-                applications.productionPublicId === undefined
+                productionApplication === null
                     ? Promise.resolve()
                     : plan.productionFile.setVariables({
-                        [NextEnvVar.APP_ID]: applications.productionPublicId,
+                        [NextEnvVar.APP_ID]: productionApplication.publicId,
                     }),
             ]);
         }

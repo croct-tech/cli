@@ -1,6 +1,6 @@
 import {JsonArrayNode, JsonObjectNode, JsonParser} from '@croct/json5-parser';
 import {Installation, Sdk, SdkError} from '@/application/project/sdk/sdk';
-import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
+import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {TargetSdk, WorkspaceApi} from '@/application/api/workspace';
 import {ExampleFile} from '@/application/project/code/generation/example';
@@ -497,7 +497,8 @@ export abstract class JavaScriptSdk implements Sdk {
 
         if (slots.length > 0 || components.length > 0) {
             const types = await this.workspaceApi.generateTypes({
-                workspaceId: configuration.workspaceId,
+                organizationSlug: configuration.organization,
+                workspaceSlug: configuration.workspace,
                 target: TargetSdk.JAVASCRIPT,
                 components: components.map(
                     ([component, version]) => ({
@@ -570,7 +571,7 @@ export abstract class JavaScriptSdk implements Sdk {
         notifier.confirm('Type file registered');
     }
 
-    private async resolveVersions(configuration: ResolvedConfiguration): Promise<ResolvedConfiguration> {
+    private async resolveVersions(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
         const listedComponents = Object.keys(configuration.components);
         const listedSlots = Object.keys(configuration.slots);
 

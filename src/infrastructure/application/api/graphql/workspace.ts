@@ -41,7 +41,7 @@ import {audienceQuery, audiencesQuery} from '@/infrastructure/application/api/gr
 import {slotQuery, slotsQuery, slotStaticContentQuery} from '@/infrastructure/application/api/graphql/queries/slot';
 import {
     applicationQuery,
-    applicationSlugQuery,
+    applicationSlugAvailabilityQuery,
     applicationsQuery,
     createApplicationMutation,
 } from '@/infrastructure/application/api/graphql/queries/application';
@@ -67,6 +67,7 @@ import {
     workspaceFeaturesQuery,
 } from '@/infrastructure/application/api/graphql/queries/workspace';
 import {Platform} from '@/application/model/platform';
+import {HierarchyResolver} from '@/infrastructure/application/api/graphql/hierarchyResolver';
 
 type ApplicationData = NonNullable<
     NonNullable<NonNullable<ApplicationQuery['organization']>['workspace']>['application']
@@ -159,8 +160,11 @@ const experimentStatusMap = createNormalizationMap<ExperimentStatus, GraphqlExpe
 export class GraphqlWorkspaceApi implements WorkspaceApi {
     private readonly client: GraphqlClient;
 
-    public constructor(client: GraphqlClient) {
+    private readonly hierarchyResolver: HierarchyResolver;
+
+    public constructor(client: GraphqlClient, hierarchyResolver: HierarchyResolver) {
         this.client = client;
+        this.hierarchyResolver = hierarchyResolver;
     }
 
     public async getFeatures(path: WorkspacePath): Promise<WorkspaceFeatures|null> {
@@ -252,8 +256,13 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
     }
 
     public async createApplication(application: NewApplication): Promise<Application> {
+        const hierarchy = await this.hierarchyResolver.getHierarchy({
+            organizationSlug: application.organizationSlug,
+            workspaceSlug: application.workspaceSlug,
+        });
+
         const {data} = await this.client.execute(createApplicationMutation, {
-            workspaceId: application.workspaceId,
+            workspaceId: hierarchy.workspaceId,
             payload: {
                 name: application.name,
                 website: application.website,
@@ -261,7 +270,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                 platform: platformMap.model[application.platform],
                 timeZone: application.timeZone,
                 slug: await this.generateApplicationSlug(
-                    application.workspaceId,
+                    hierarchy.workspaceId,
                     application.name,
                     application.environment,
                 ),
@@ -499,13 +508,18 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         );
     }
 
-    public async generateTypes(typing: TargetTyping): Promise<string> {
+    public async generateTypes(target: TargetTyping): Promise<string> {
+        const hierarchy = await this.hierarchyResolver.getHierarchy({
+            organizationSlug: target.organizationSlug,
+            workspaceSlug: target.workspaceSlug,
+        });
+
         const {data} = await this.client.execute(generateTypingMutation, {
-            workspaceId: typing.workspaceId,
+            workspaceId: hierarchy.workspaceId,
             payload: {
-                target: targetSdkMap.model[typing.target],
-                components: typing.components,
-                slots: typing.slots,
+                target: targetSdkMap.model[target.target],
+                components: target.components,
+                slots: target.slots,
             },
         });
 
@@ -681,6 +695,11 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
     }
 
     public async createResources(resources: NewResources): Promise<NewResourceIds> {
+        const hierarchy = await this.hierarchyResolver.getHierarchy({
+            organizationSlug: resources.organizationSlug,
+            workspaceSlug: resources.workspaceSlug,
+        });
+
         const payload: CreateWorkspaceResourcePayload = {
             components: Object.entries(resources.components ?? {}).map(
                 ([slug, definition]) => ({
@@ -742,7 +761,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         };
 
         const {data: {createWorkspaceResources: result}} = await this.client.execute(createResourcesMutation, {
-            workspaceId: resources.workspaceId,
+            workspaceId: hierarchy.workspaceId,
             payload: payload,
         });
 
@@ -807,7 +826,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         environment: ApplicationEnvironment,
     ): Promise<string> {
         return generateAvailableSlug({
-            query: applicationSlugQuery,
+            query: applicationSlugAvailabilityQuery,
             baseName: `${baseName} ${environment.slice(0, 3).toLowerCase()}`,
             client: this.client,
             variables: {

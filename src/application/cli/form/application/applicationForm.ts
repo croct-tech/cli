@@ -104,8 +104,8 @@ export class ApplicationForm implements Form<Application, ApplicationOptions> {
 
         try {
             const application = await api.createApplication({
-                organizationId: organization.id,
-                workspaceId: workspace.id,
+                organizationSlug: organization.slug,
+                workspaceSlug: workspace.slug,
                 name: name,
                 website: website,
                 environment: environment,

@@ -2,7 +2,7 @@
 import {Content} from '@croct/content-model/content/content';
 import {ExperienceDefinition, NewResources, PersonalizedContentDefinition} from '@/application/api/workspace';
 
-export type WorkspaceResources = Omit<NewResources, 'organizationId' | 'workspaceId'>;
+export type WorkspaceResources = Omit<NewResources, 'organizationSlug' | 'workspaceSlug'>;
 
 type ContentResources = {
     slots: Set<string>,

@@ -1,4 +1,4 @@
-import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
+import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 
 export interface ConfigurationInitializer {
@@ -20,16 +20,16 @@ export class NewConfigurationManager implements ConfigurationManager {
         this.initializer = initializer;
     }
 
-    public load(): Promise<ProjectConfiguration | null> {
-        return this.manager.load();
+    public isInitialized(): Promise<boolean> {
+        return this.manager.isInitialized();
     }
 
-    public async resolve(): Promise<ResolvedConfiguration> {
-        if (await this.load() === null) {
+    public async load(): Promise<ProjectConfiguration> {
+        if (!await this.isInitialized()) {
             await this.initializer.initialize();
         }
 
-        return this.manager.resolve();
+        return this.manager.load();
     }
 
     public update(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {

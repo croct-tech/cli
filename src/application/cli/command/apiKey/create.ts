@@ -41,7 +41,7 @@ export class CreateApiKeyCommand implements Command<CreateApiKeyInput> {
 
     public async execute(input: CreateApiKeyInput): Promise<void> {
         const {configurationManager, api, fileSystem, io} = this.config;
-        const configuration = await configurationManager.resolve();
+        const configuration = await configurationManager.load();
 
         const environment = input.environment ?? await io.input.select({
             message: 'Which environment?',
@@ -54,11 +54,11 @@ export class CreateApiKeyCommand implements Command<CreateApiKeyInput> {
                 ),
         });
 
-        const applicationId = environment === ApplicationEnvironment.PRODUCTION
-            ? configuration.applications.productionId
-            : configuration.applications.developmentId;
+        const applicationSlug = environment === ApplicationEnvironment.PRODUCTION
+            ? configuration.applications.production
+            : configuration.applications.development;
 
-        if (applicationId === undefined) {
+        if (applicationSlug === undefined) {
             throw new HelpfulError(
                 `No ${ApplicationEnvironment.getLabel(environment).toLowerCase()} application `
                 + 'found in the project configuration.',
@@ -110,7 +110,9 @@ export class CreateApiKeyCommand implements Command<CreateApiKeyInput> {
             });
 
         const apiKey = await api.application.createApiKey({
-            applicationId: applicationId,
+            organizationSlug: configuration.organization,
+            workspaceSlug: configuration.workspace,
+            applicationSlug: applicationSlug,
             name: name,
             permissions: permissions,
         });

@@ -12,7 +12,7 @@ import {WorkspaceResources, ResourcesAnalysis} from '@/application/template/reso
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {OrganizationApi} from '@/application/api/organization';
 import {Workspace, WorkspaceFeatures} from '@/application/model/workspace';
-import {ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
+import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Form} from '@/application/cli/form/form';
 import {SlugMappingOptions, SlugMapping} from '@/application/cli/form/workspace/slugMappingForm';
 import {ResourceMatches, ResourceMatcher} from '@/application/template/resourceMatcher';
@@ -52,7 +52,7 @@ type MissingResources = {
 };
 
 type ProjectInfo = {
-    configuration: ResolvedConfiguration,
+    configuration: ProjectConfiguration,
     workspace: Workspace & WorkspaceFeatures,
 };
 
@@ -88,7 +88,7 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
 
         const {configurationManager, api: {workspace: api}} = this.config;
 
-        const configuration = await configurationManager.resolve();
+        const configuration = await configurationManager.load();
         const projectInfo = await this.getProjectInfo(configuration);
 
         const plan = await this.createPlan(options.resources, analysis, projectInfo);
@@ -96,8 +96,8 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
         notifier?.update('Creating resources');
 
         const newResources = await api.createResources({
-            organizationId: configuration.organizationId,
-            workspaceId: configuration.workspaceId,
+            organizationSlug: configuration.organization,
+            workspaceSlug: configuration.workspace,
             ...plan.resources,
         });
 
@@ -198,7 +198,7 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
         };
     }
 
-    private async getProjectInfo(configuration: ResolvedConfiguration): Promise<ProjectInfo> {
+    private async getProjectInfo(configuration: ProjectConfiguration): Promise<ProjectInfo> {
         const {api} = this.config;
 
         const [workspace, features] = await Promise.all([

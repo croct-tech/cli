@@ -8,9 +8,7 @@ export type WorkspacePath = OrganizationPath & {
     workspaceSlug: string,
 };
 
-export type NewWorkspace = Omit<Workspace, 'id' | 'slug' | 'logo' | 'locales'> & {
-    organizationId: string,
-};
+export type NewWorkspace = OrganizationPath & Omit<Workspace, 'id' | 'slug' | 'logo' | 'locales'>;
 
 export interface OrganizationApi {
     getWorkspaces(path: OrganizationPath): Promise<Workspace[]>;

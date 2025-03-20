@@ -34,7 +34,7 @@ export class RemoveSlotCommand implements Command<RemoveSlotInput> {
         const {sdk, configurationManager, slotForm, io} = this.config;
         const {output} = io;
 
-        const configuration = await configurationManager.resolve();
+        const configuration = await configurationManager.load();
 
         const versionedSlots = input.slots === undefined
             ? undefined

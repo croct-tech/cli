@@ -37,7 +37,7 @@ export class AddComponentCommand implements Command<AddComponentInput> {
         const {sdk, configurationManager, io} = this.config;
         const {output} = io;
 
-        const configuration = await configurationManager.resolve();
+        const configuration = await configurationManager.load();
         const components = await this.getComponents(configuration, input);
 
         if (components.length === 0) {

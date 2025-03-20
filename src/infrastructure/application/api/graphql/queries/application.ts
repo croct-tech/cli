@@ -1,7 +1,7 @@
 import {graphql} from '@/infrastructure/graphql';
 
-export const applicationSlugQuery = graphql(`
-    query FindApplicationSlug(
+export const applicationSlugAvailabilityQuery = graphql(`
+    query ApplicationSlugAvailability(
         $workspaceId: WorkspaceId!
         $slugFirstOption: ReadableId!
         $slugSecondOption: ReadableId!

@@ -71,7 +71,7 @@ export const createWorkspaceMutation = graphql(`
     }
 `);
 
-export const workspaceSlugQuery = graphql(`
+export const workspaceSlugAvailabilityQuery = graphql(`
     query FindWorkspaceSlug(
         $organizationId: OrganizationId!
         $slugFirstOption: ReadableId!

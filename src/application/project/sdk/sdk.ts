@@ -1,13 +1,13 @@
 import {Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
-import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
+import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Slot} from '@/application/model/slot';
 import {Help, HelpfulError} from '@/application/error';
 
 export type Installation = {
     input?: Input,
     output: Output,
-    configuration: ResolvedConfiguration,
+    configuration: ProjectConfiguration,
 };
 
 export interface Sdk {

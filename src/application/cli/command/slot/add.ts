@@ -40,7 +40,7 @@ export class AddSlotCommand implements Command<AddSlotInput> {
         const {sdk, configurationManager, io} = this.config;
         const {output} = io;
 
-        const configuration = await configurationManager.resolve();
+        const configuration = await configurationManager.load();
         const slots = await this.getSlots(configuration, input);
 
         if (slots.length === 0) {

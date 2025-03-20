@@ -1,4 +1,4 @@
-import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
+import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {CliConfigurationProvider} from '@/application/cli/configuration/store';
@@ -22,33 +22,24 @@ export class IndexedConfigurationManager implements ConfigurationManager {
         this.store = store;
     }
 
-    public async load(): Promise<ProjectConfiguration | null> {
+    public isInitialized(): Promise<boolean> {
+        return this.manager.isInitialized();
+    }
+
+    public async load(): Promise<ProjectConfiguration> {
         const configuration = await this.manager.load();
 
-        if (configuration !== null) {
-            await this.recordPath();
-        }
+        await this.updateIndex();
 
         return configuration;
     }
 
-    public async resolve(): Promise<ResolvedConfiguration> {
-        const configuration = await this.manager.resolve();
-
-        if (configuration === null) {
-            await this.recordPath();
-        }
-
-        return configuration;
+    public update(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
+        return Promise.all([this.manager.update(configuration), this.updateIndex()])
+            .then(([result]) => result);
     }
 
-    public async update(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
-        const [updatedConfiguration] = await Promise.all([this.manager.update(configuration), this.recordPath()]);
-
-        return updatedConfiguration;
-    }
-
-    private async recordPath(): Promise<void> {
+    private async updateIndex(): Promise<void> {
         const settings = await this.store.get();
 
         await this.store.save({

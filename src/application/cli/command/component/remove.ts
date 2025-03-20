@@ -2,7 +2,7 @@ import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
 import {Sdk} from '@/application/project/sdk/sdk';
-import {ProjectConfiguration, ResolvedConfiguration} from '@/application/project/configuration/projectConfiguration';
+import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Form} from '@/application/cli/form/form';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
@@ -34,7 +34,7 @@ export class RemoveComponentCommand implements Command<RemoveComponentInput> {
         const {sdk, configurationManager, componentForm, io} = this.config;
         const {output} = io;
 
-        const configuration = await configurationManager.resolve();
+        const configuration = await configurationManager.load();
 
         const versionedComponents = input.components === undefined
             ? undefined
@@ -53,7 +53,7 @@ export class RemoveComponentCommand implements Command<RemoveComponentInput> {
             return output.alert('No components to remove.');
         }
 
-        const updatedConfiguration: ResolvedConfiguration = {
+        const updatedConfiguration: ProjectConfiguration = {
             ...configuration,
             components: Object.fromEntries(
                 Object.entries(configuration.components)

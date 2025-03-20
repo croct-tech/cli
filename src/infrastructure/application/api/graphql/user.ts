@@ -23,7 +23,7 @@ import {
 import {generateSlug} from '@/infrastructure/application/api/utils/generateSlug';
 import {
     organizationQuery,
-    organizationSlugQuery,
+    organizationSlugAvailabilityQuery,
     organizationsQuery,
     setupOrganizationMutation,
     websiteMetadataQuery,
@@ -364,7 +364,7 @@ export class GraphqlUserApi implements UserApi {
 
     private generateOrganizationSlug(baseName: string, alwaysSuffixed = false): Promise<string> {
         return generateAvailableSlug({
-            query: organizationSlugQuery,
+            query: organizationSlugAvailabilityQuery,
             baseName: baseName,
             client: this.client,
             alwaysSuffixed: alwaysSuffixed,

@@ -1,5 +1,23 @@
 import {graphql} from '@/infrastructure/graphql';
 
+export const resourceIdQuery = graphql(`
+    query ResourceIdQuery(
+        $organizationSlug: ReadableId!,
+        $workspaceSlug: ReadableId,
+        $applicationSlug: ReadableId
+    ) {
+        organization(slug: $organizationSlug) {
+            id
+            workspace(slug: $workspaceSlug) {
+                id
+                application(slug: $applicationSlug) {
+                    id
+                }
+            }
+        }
+    }
+`);
+
 export const organizationQuery = graphql(`
     query Organization($slug: ReadableId!) {
         organization(slug: $slug) {
@@ -48,7 +66,7 @@ export const setupOrganizationMutation = graphql(`
     }
 `);
 
-export const organizationSlugQuery = graphql(`
+export const organizationSlugAvailabilityQuery = graphql(`
     query FindOrganizationSlug(
         $slugFirstOption: ReadableId!
         $slugSecondOption: ReadableId!

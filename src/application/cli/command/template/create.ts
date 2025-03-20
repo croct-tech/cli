@@ -42,7 +42,7 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
         const {fileSystem, io} = this.config;
 
         const template = await this.createTemplate(input.empty ?? false);
-        const templateFile = input.file ?? fileSystem.joinPaths('.', 'template.json');
+        const templateFile = input.file ?? fileSystem.joinPaths('.', 'template.json5');
 
         try {
             let override = false;
@@ -93,7 +93,7 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
     private async exportResources(): Promise<WorkspaceResources> {
         const {configurationManager, templateForm: form} = this.config;
 
-        const configuration = await configurationManager.resolve();
+        const configuration = await configurationManager.load();
 
         const resources = await form.handle({
             organizationSlug: configuration.organization,
