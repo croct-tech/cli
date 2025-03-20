@@ -350,11 +350,6 @@ type ProviderTracingOptions<T> = {
     label?: string,
 };
 
-type Bundler = {
-    package: string,
-    envVarPrefix: string,
-};
-
 export class Cli {
     // eslint-disable-next-line @typescript-eslint/ban-types -- Object.prototype.constructor is a Function
     private static readonly READ_ONLY_COMMANDS: Set<Function> = new Set([
@@ -368,21 +363,6 @@ export class Cli {
         CreateTemplateCommand,
         LogoutCommand,
     ]);
-
-    private static readonly JAVASCRIPT_BUNDLERS: Bundler[] = [
-        {
-            package: 'react-scripts',
-            envVarPrefix: 'process.env.REACT_APP_',
-        },
-        {
-            package: 'vite',
-            envVarPrefix: 'import.meta.env.VITE_',
-        },
-        {
-            package: 'parcel',
-            envVarPrefix: 'process.env.',
-        },
-    ];
 
     private readonly configuration: Configuration;
 
@@ -424,10 +404,10 @@ export class Cli {
             templateRegistryUrl: configuration.templateRegistryUrl
                 ?? new URL('github:/croct-tech/templates/templates/registry.json5'),
             adminUrl: configuration.adminUrl
-                ?? new URL('https://beta.croct.com'),
+                ?? new URL('https://app.croct.com'),
             adminTokenParameter: configuration.adminTokenParameter ?? 'accessToken',
             adminGraphqlEndpoint: configuration?.adminGraphqlEndpoint
-                ?? new URL('https://beta.croct.com/graphql'),
+                ?? new URL('https://app.croct.com/graphql'),
             directories: {
                 current: configuration.directories?.current ?? process.getCurrentDirectory(),
                 config: configuration.directories?.config ?? appPaths.config(),
@@ -1471,7 +1451,7 @@ export class Cli {
                 mapping: {
                     [Platform.JAVASCRIPT]: (): Sdk => new PlugJsSdk({
                         ...config,
-                        bundlers: Cli.JAVASCRIPT_BUNDLERS.map(bundler => bundler.package),
+                        bundlers: ['vite', 'parcel', 'tsup', 'rollup'],
                     }),
                     [Platform.REACT]: (): Sdk => new PlugReactSdk({
                         ...config,
@@ -1497,12 +1477,20 @@ export class Cli {
                                 }),
                             ),
                         },
-                        bundlers: Cli.JAVASCRIPT_BUNDLERS.map(
-                            bundler => ({
-                                package: bundler.package,
-                                prefix: bundler.envVarPrefix,
-                            }),
-                        ),
+                        bundlers: [
+                            {
+                                package: 'react-scripts',
+                                prefix: 'process.env.REACT_APP_',
+                            },
+                            {
+                                package: 'vite',
+                                prefix: 'import.meta.env.VITE_',
+                            },
+                            {
+                                package: 'parcel',
+                                prefix: 'process.env.',
+                            },
+                        ],
                     }),
                     [Platform.NEXTJS]: (): Sdk => {
                         const providerProps: Record<string, AttributeType> = {

@@ -79,20 +79,18 @@ export class PlugReactSdk extends JavaScriptSdk {
 
         const generator = new PlugReactExampleGenerator({
             fileSystem: this.fileSystem,
-            options: {
-                language: await this.isTypeScriptProject()
-                    ? CodeLanguage.TYPESCRIPT_XML
-                    : CodeLanguage.JAVASCRIPT_XML,
-                contentVariable: 'content',
-                slotImportPath: await this.importResolver.getImportPath(
-                    slotPath,
-                    this.fileSystem.getDirectoryName(pagePath),
-                ),
-                slotFilePath: slotPath,
-                slotComponentName: '%name%',
-                pageFilePath: pagePath,
-                pageComponentName: '%name%Example',
-            },
+            language: await this.isTypeScriptProject()
+                ? CodeLanguage.TYPESCRIPT_XML
+                : CodeLanguage.JAVASCRIPT_XML,
+            contentVariable: 'content',
+            slotImportPath: await this.importResolver.getImportPath(
+                slotPath,
+                this.fileSystem.getDirectoryName(pagePath),
+            ),
+            slotFilePath: slotPath,
+            slotComponentName: '%name%',
+            pageFilePath: pagePath,
+            pageComponentName: '%name%Example',
         });
 
         const example = generator.generate({

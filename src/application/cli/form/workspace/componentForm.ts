@@ -55,7 +55,7 @@ export class ComponentForm implements Form<Component[], ComponentOptions> {
             ]);
 
             for (const reference of references) {
-                if (!selectedComponents.some(({slug}) => references.has(slug))) {
+                if (!selectedComponents.some(({slug}) => slug === reference)) {
                     const referencedComponent = components.find(({slug}) => slug === reference);
 
                     if (referencedComponent !== undefined) {
