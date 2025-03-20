@@ -154,11 +154,16 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
                 break;
 
             case 'boolean':
-                writer.append(
-                    definition.type === 'boolean'
-                        ? `\${${path} ? 'Yes' : 'No'}`
-                        : `\${${path}}`,
-                );
+                if (definition.label !== undefined) {
+                    writer
+                        .append(`\${${path} ? `)
+                        .appendValue(definition.label.true ?? 'Yes', {delimiter: "'"})
+                        .append(' : ')
+                        .appendValue(definition.label.false ?? 'No', {delimiter: "'"})
+                        .append('}');
+                } else {
+                    writer.append(`\${${path} ? 'Yes' : 'No'}`);
+                }
 
                 break;
 
@@ -168,9 +173,11 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
                     : 'item';
 
                 writer
+                    .write('<ol>')
+                    .indent()
                     .write(`\${${path}.map(${variable} => \``)
                     .indent()
-                    .write('<div>')
+                    .write('<li>')
                     .indent();
 
                 const inline = PlugJsExampleGenerator.isInline(definition.items);
@@ -187,14 +194,20 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
 
                 writer
                     .outdent()
-                    .write('</div>')
+                    .write('</li>')
                     .outdent()
-                    .write("`).join('')}");
+                    .write("`).join('')}")
+                    .outdent()
+                    .write('</ol>');
 
                 break;
             }
 
             case 'structure':
+                writer
+                    .write('<ul>')
+                    .indent();
+
                 for (const [name, attribute] of sortAttributes(definition.attributes)) {
                     if (attribute.private === true) {
                         continue;
@@ -213,21 +226,21 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
                     }
                 }
 
+                writer
+                    .outdent()
+                    .write('</ul>');
+
                 break;
 
             case 'union':
                 for (const [id, variant] of Object.entries(definition.types)) {
                     writer
                         .write(`\${${path}._type === '${id}' && \``)
-                        .indent()
-                        .write('<div>')
                         .indent();
 
                     this.writeContentSnippet(writer, variant, path);
 
                     writer
-                        .outdent()
-                        .write('</div>')
                         .outdent()
                         .write('`}');
                 }
@@ -248,12 +261,12 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
             case 'text':
             case 'number': {
                 writer
-                    .write('<div>', false)
-                    .append(`${label}: `);
+                    .write('<li>', false)
+                    .append(`<strong>${label}:</strong> `);
 
                 this.writeContentSnippet(writer, definition, path);
 
-                writer.append('</div>')
+                writer.append('</li>')
                     .newLine();
 
                 break;
@@ -261,7 +274,7 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
 
             default:
                 writer
-                    .write('<div>')
+                    .write('<li>')
                     .indent()
                     .write(`<strong>${label}</strong>`);
 
@@ -269,7 +282,7 @@ export class PlugJsExampleGenerator implements SlotExampleGenerator {
 
                 writer
                     .outdent()
-                    .write('</div>');
+                    .write('</li>');
 
                 break;
         }

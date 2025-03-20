@@ -158,15 +158,11 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
         this.writeSlotFetch(writer, definition);
 
         writer.write('return (')
-            .indent()
-            .write('<div>')
             .indent();
 
         this.writeRenderingSnippet(writer, definition.definition, this.options.contentVariable);
 
         writer
-            .outdent()
-            .write('</div>')
             .outdent()
             .write(');')
             .outdent()
@@ -209,11 +205,16 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
                 break;
 
             case 'boolean':
-                writer.append(
-                    definition.type === 'boolean'
-                        ? `{${path} ? 'Yes' : 'No'}`
-                        : `{${path}}`,
-                );
+                if (definition.label !== undefined) {
+                    writer
+                        .append(`{${path} ? `)
+                        .appendValue(definition.label.true ?? 'Yes', {delimiter: "'"})
+                        .append(' : ')
+                        .appendValue(definition.label.false ?? 'No', {delimiter: "'"})
+                        .append('}');
+                } else {
+                    writer.append(`{${path} ? 'Yes' : 'No'}`);
+                }
 
                 break;
 
@@ -223,9 +224,11 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
                     : 'item';
 
                 writer
+                    .write('<ol>')
+                    .indent()
                     .write(`{${path}.map((${variable}, index) => (`)
                     .indent()
-                    .write('<div key={index}>')
+                    .write('<li key={index}>')
                     .indent();
 
                 const inline = ReactExampleGenerator.isInline(definition.items);
@@ -242,14 +245,20 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
 
                 writer
                     .outdent()
-                    .write('</div>')
+                    .write('</li>')
                     .outdent()
-                    .write('))}');
+                    .write('))}')
+                    .outdent()
+                    .write('</ol>');
 
                 break;
             }
 
             case 'structure':
+                writer
+                    .write('<ul>')
+                    .indent();
+
                 for (const [name, attribute] of sortAttributes(definition.attributes)) {
                     if (attribute.private === true) {
                         continue;
@@ -268,27 +277,40 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
                     }
                 }
 
+                writer
+                    .outdent()
+                    .write('</ul>');
+
                 break;
 
-            case 'union':
+            case 'union': {
+                const isRoot = !path.includes('.');
+
+                if (isRoot) {
+                    writer.write('<>')
+                        .indent();
+                }
+
                 for (const [id, variant] of Object.entries(definition.types)) {
                     writer
-                        .write(`{/* Render the ${id} variant */}`)
                         .write(`{${path}._type === '${id}' && (`)
-                        .indent()
-                        .write('<div>')
                         .indent();
 
                     this.writeRenderingSnippet(writer, variant, path);
 
                     writer
                         .outdent()
-                        .write('</div>')
-                        .outdent()
                         .write(')}');
                 }
 
+                if (isRoot) {
+                    writer
+                        .outdent()
+                        .write('</>');
+                }
+
                 break;
+            }
         }
     }
 
@@ -301,12 +323,12 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
             case 'text':
             case 'number': {
                 writer
-                    .write('<div>', false)
-                    .append(`${label}: `);
+                    .write('<li>', false)
+                    .append(`<strong>${label}:</strong> `);
 
                 this.writeRenderingSnippet(writer, definition, `${path}.${attribute.name}`);
 
-                writer.append('</div>')
+                writer.append('</li>')
                     .newLine();
 
                 break;
@@ -314,7 +336,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
 
             default:
                 writer
-                    .write('<div>')
+                    .write('<li>')
                     .indent()
                     .write(`<strong>${label}</strong>`);
 
@@ -322,7 +344,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
 
                 writer
                     .outdent()
-                    .write('</div>');
+                    .write('</li>');
 
                 break;
         }
