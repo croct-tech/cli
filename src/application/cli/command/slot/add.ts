@@ -97,7 +97,9 @@ export class AddSlotCommand implements Command<AddSlotInput> {
             preselected: versionedSlots === undefined
                 ? undefined
                 : Object.keys(versionedSlots),
-            selected: currentSlots,
+            selected: input.example === true
+                ? [] // Allow selecting any slot for example generation
+                : currentSlots, // Disable already selected slots
         });
 
         if (currentSlots.length === slots.length && slots.every(slot => currentSlots.includes(slot.slug))) {
