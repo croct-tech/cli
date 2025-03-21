@@ -272,7 +272,7 @@ export class InitCommand implements Command<InitInput> {
     private async configure(sdk: Sdk, configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
         const {skipConfirmation} = this.config;
 
-        return sdk.install({
+        return sdk.setup({
             input: this.config.io.input === undefined || await skipConfirmation.get()
                 ? undefined
                 : this.config.io.input,

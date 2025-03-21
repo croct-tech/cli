@@ -1,5 +1,11 @@
 import {JsonArrayNode, JsonObjectNode, JsonParser} from '@croct/json5-parser';
-import {Installation, Sdk, SdkError} from '@/application/project/sdk/sdk';
+import {
+    UpdateOptions as BaseContentOptions,
+    Installation,
+    Sdk,
+    SdkError,
+    UpdateOptions,
+} from '@/application/project/sdk/sdk';
 import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {TargetSdk, WorkspaceApi} from '@/application/api/workspace';
@@ -8,8 +14,8 @@ import {CodeFormatter} from '@/application/project/code/formatting/formatter';
 import {Version} from '@/application/model/version';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {Slot} from '@/application/model/slot';
-import {LocalizedContent} from '@/application/model/experience';
-import {HelpfulError} from '@/application/error';
+import {LocalizedContentMap} from '@/application/model/experience';
+import {ErrorReason, HelpfulError} from '@/application/error';
 import {Dependency, PackageManager} from '@/application/project/packageManager/packageManager';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
@@ -32,9 +38,14 @@ export type Configuration = {
 };
 
 type VersionedContent = {
-    slot: string,
     version: number,
-    list: LocalizedContent[],
+    content: LocalizedContentMap,
+};
+
+type VersionedContentMap = Record<string, VersionedContent[]>;
+
+type ContentOptions = BaseContentOptions & {
+    notifier?: TaskNotifier,
 };
 
 export abstract class JavaScriptSdk implements Sdk {
@@ -52,7 +63,7 @@ export abstract class JavaScriptSdk implements Sdk {
 
     private readonly importConfigLoader: TsConfigLoader;
 
-    public constructor(configuration: Configuration) {
+    protected constructor(configuration: Configuration) {
         this.projectDirectory = configuration.projectDirectory;
         this.packageManager = configuration.packageManager;
         this.workspaceApi = configuration.workspaceApi;
@@ -84,7 +95,7 @@ export abstract class JavaScriptSdk implements Sdk {
 
     protected abstract generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]>;
 
-    public async install(installation: Installation): Promise<ProjectConfiguration> {
+    public async setup(installation: Installation): Promise<ProjectConfiguration> {
         const {input, output} = installation;
 
         const plan = await this.getInstallationPlan(installation);
@@ -92,6 +103,7 @@ export abstract class JavaScriptSdk implements Sdk {
         const configuration: ProjectConfiguration = {
             ...plan.configuration,
             paths: {
+                content: '.',
                 components: await this.resolvePath(
                     ['components', 'Components', 'component', 'Component'],
                     plan.configuration.paths.components,
@@ -136,8 +148,13 @@ export abstract class JavaScriptSdk implements Sdk {
             tasks.push({
                 title: 'Download content',
                 task: async notifier => {
+                    notifier.update('Downloading content');
+
                     try {
-                        await this.updateContent(resolvedInstallation, notifier);
+                        await this.updateContent(resolvedInstallation, {
+                            notifier: notifier,
+                            clean: true,
+                        });
                     } catch (error) {
                         notifier.alert('Failed to download content', HelpfulError.formatMessage(error));
                     }
@@ -149,8 +166,13 @@ export abstract class JavaScriptSdk implements Sdk {
             tasks.push({
                 title: 'Generate types',
                 task: async notifier => {
+                    notifier.update('Generating types');
+
                     try {
-                        await this.updateTypes(resolvedInstallation, notifier);
+                        await this.updateTypes(resolvedInstallation, {
+                            notifier: notifier,
+                            clean: true,
+                        });
                     } catch (error) {
                         notifier.alert('Failed to generate types', HelpfulError.formatMessage(error));
                     }
@@ -167,6 +189,8 @@ export abstract class JavaScriptSdk implements Sdk {
         tasks.push({
             title: 'Register script',
             task: async notifier => {
+                notifier.update('Registering script');
+
                 try {
                     await this.packageManager.addScript('postinstall', 'croct install --no-interaction');
 
@@ -225,23 +249,22 @@ export abstract class JavaScriptSdk implements Sdk {
 
     protected abstract getInstallationPlan(installation: Installation): Promise<InstallationPlan>;
 
-    public async update(installation: Installation): Promise<void> {
-        await this.updateContent(installation);
+    public async update(installation: Installation, options: UpdateOptions = {}): Promise<void> {
+        await this.updateContent(installation, options);
 
         if (await this.isTypeScriptProject()) {
-            await this.updateTypes(installation);
+            await this.updateTypes(installation, options);
         }
     }
 
-    public async updateContent(installation: Installation, notifier?: TaskNotifier): Promise<void> {
-        const {output} = installation;
-        const indicator = notifier ?? output.notify('Updating content');
+    private async updateContent(installation: Installation, options: ContentOptions = {}): Promise<void> {
+        const {output, configuration} = installation;
+        const notifier = options.notifier ?? output.notify('Updating content');
 
-        const configuration = await this.resolveVersions(installation.configuration);
         const slots = Object.entries(configuration.slots);
 
         if (slots.length === 0) {
-            indicator.confirm('No content to update');
+            notifier.confirm('No slots to update');
 
             return;
         }
@@ -249,48 +272,17 @@ export abstract class JavaScriptSdk implements Sdk {
         const packageInfo = await this.mountContentPackageFolder();
 
         if (packageInfo === null) {
-            indicator.alert(`The package ${JavaScriptSdk.CONTENT_PACKAGE} is not installed`);
+            notifier.alert(`The package ${JavaScriptSdk.CONTENT_PACKAGE} is not installed`);
 
             return;
         }
 
-        const slotVersions: Record<string, readonly number[]> = {};
-
-        for (const [slot, versionSpecifier] of slots) {
-            const constraint = Version.parse(versionSpecifier);
-
-            slotVersions[slot] = constraint.getVersions();
-        }
-
-        const contentList = await Promise.all(
-            slots.flatMap(
-                ([slot]) => slotVersions[slot].map(
-                    version => this.workspaceApi
-                        .getSlotStaticContent(
-                            {
-                                organizationSlug: configuration.organization,
-                                workspaceSlug: configuration.workspace,
-                                slotSlug: slot,
-                            },
-                            version,
-                        )
-                        .then(
-                            (content): VersionedContent => ({
-                                slot: slot,
-                                version: version,
-                                list: content,
-                            }),
-                        ),
-                ),
-            ),
-        );
-
         const directoryPath = this.fileSystem.joinPaths(packageInfo.directory, 'slot');
 
         // Delete all subdirectories and files in the slot directory
-        for await (const entry of this.fileSystem.list(directoryPath, 1)) {
+        for await (const entry of this.fileSystem.list(directoryPath, 0)) {
             if (entry.type === 'directory') {
-                await this.fileSystem.delete(entry.name, {
+                await this.fileSystem.delete(this.fileSystem.joinPaths(directoryPath, entry.name), {
                     recursive: true,
                 });
             }
@@ -300,53 +292,56 @@ export abstract class JavaScriptSdk implements Sdk {
         const contentImports: Record<string, string> = {};
         const contentVariableMap: Record<string, Record<string, string>> = {};
 
-        for (const versionedContent of contentList) {
-            for (const {locale, content} of versionedContent.list) {
-                const slotId = versionedContent.slot;
-                const baseName = `${slotId}@${versionedContent.version}`;
+        for (const [slotId, versionedContent] of Object.entries(await this.loadContent(installation, options.clean))) {
+            const latestVersion = Math.max(...versionedContent.map(({version}) => version));
 
-                if (indexes[locale] === undefined) {
-                    indexes[locale] = {};
-                }
+            for (const {version, content: localizedContent} of versionedContent) {
+                for (const [locale, content] of Object.entries(localizedContent)) {
+                    const baseName = `${slotId}@${version}`;
 
-                const variable = `${formatName(`${slotId}-${locale}`)}V${versionedContent.version}`;
-                const contentFile = `./${locale}/${baseName}`;
+                    if (indexes[locale] === undefined) {
+                        indexes[locale] = {};
+                    }
 
-                if (contentVariableMap[locale] === undefined) {
-                    contentVariableMap[locale] = {};
-                }
+                    const variable = `${formatName(`${slotId}-${locale}`)}V${version}`;
+                    const contentFile = `./${locale}/${baseName}`;
 
-                indexes[locale][baseName] = contentFile;
-                contentVariableMap[locale][baseName] = `${variable}`;
-                contentImports[variable] = contentFile;
+                    if (contentVariableMap[locale] === undefined) {
+                        contentVariableMap[locale] = {};
+                    }
 
-                if (versionedContent.version === Math.max(...slotVersions[slotId])) {
-                    indexes[locale][slotId] = contentFile;
-                    contentVariableMap[locale][slotId] = `${variable}`;
-                }
+                    indexes[locale][baseName] = contentFile;
+                    contentVariableMap[locale][baseName] = `${variable}`;
+                    contentImports[variable] = contentFile;
 
-                const localeDirectory = this.fileSystem.joinPaths(directoryPath, locale);
+                    if (version === latestVersion) {
+                        indexes[locale][slotId] = contentFile;
+                        contentVariableMap[locale][slotId] = `${variable}`;
+                    }
 
-                if (!await this.fileSystem.isDirectory(localeDirectory)) {
-                    await this.fileSystem.createDirectory(
-                        this.fileSystem.joinPaths(directoryPath, locale),
-                        {recursive: true},
+                    const localeDirectory = this.fileSystem.joinPaths(directoryPath, locale);
+
+                    if (!await this.fileSystem.isDirectory(localeDirectory)) {
+                        await this.fileSystem.createDirectory(
+                            this.fileSystem.joinPaths(directoryPath, locale),
+                            {recursive: true},
+                        );
+                    }
+
+                    // ESM module
+                    await this.fileSystem.writeTextFile(
+                        this.fileSystem.joinPaths(directoryPath, locale, `${baseName}.js`),
+                        `export default ${JSON.stringify(content, null, 2)};`,
+                        {overwrite: true},
+                    );
+
+                    // CommonJS module
+                    await this.fileSystem.writeTextFile(
+                        this.fileSystem.joinPaths(directoryPath, locale, `${baseName}.cjs`),
+                        `module.exports = ${JSON.stringify(content, null, 2)};`,
+                        {overwrite: true},
                     );
                 }
-
-                // ESM module
-                await this.fileSystem.writeTextFile(
-                    this.fileSystem.joinPaths(directoryPath, locale, `${baseName}.js`),
-                    `export default ${JSON.stringify(content, null, 2)};`,
-                    {overwrite: true},
-                );
-
-                // CommonJS module
-                await this.fileSystem.writeTextFile(
-                    this.fileSystem.joinPaths(directoryPath, locale, `${baseName}.cjs`),
-                    `module.exports = ${JSON.stringify(content, null, 2)};`,
-                    {overwrite: true},
-                );
             }
         }
 
@@ -367,8 +362,8 @@ export abstract class JavaScriptSdk implements Sdk {
                 const defaultLocale = ${JSON.stringify(configuration.defaultLocale)};
 
                 export function getSlotContent(slotId, language = defaultLocale) {
-                    if (contentMap[language]?.[slotId] !== undefined) {
-                        return contentMap[language][slotId];
+                    if (contentEntries[language]?.[slotId] !== undefined) {
+                        return contentEntries[language][slotId];
                     }
 
                     if (language !== defaultLocale) {
@@ -396,8 +391,8 @@ export abstract class JavaScriptSdk implements Sdk {
 
                 module.exports = {
                     getSlotContent: function getSlotContent(slotId, language = defaultLocale) {
-                        if (contentMap[language]?.[slotId] !== undefined) {
-                            return contentMap[language][slotId];
+                        if (contentEntries[language]?.[slotId] !== undefined) {
+                            return contentEntries[language][slotId];
                         }
 
                         if (language !== defaultLocale) {
@@ -423,8 +418,8 @@ export abstract class JavaScriptSdk implements Sdk {
                 const defaultLocale = ${JSON.stringify(configuration.defaultLocale)};
 
                 export function loadSlotContent(slotId, language = defaultLocale) {
-                    if (contentMap[language]?.[slotId] !== undefined) {
-                        return contentMap[language][slotId]().then(module => module.default);
+                    if (contentEntries[language]?.[slotId] !== undefined) {
+                        return contentEntries[language][slotId]().then(module => module.default);
                     }
 
                     if (language !== defaultLocale) {
@@ -450,8 +445,8 @@ export abstract class JavaScriptSdk implements Sdk {
 
                 module.exports = {
                     loadSlotContent: function loadSlotContent(slotId, language = defaultLocale) {
-                        if (contentMap[language]?.[slotId] !== undefined) {
-                            return contentMap[language][slotId]().then(module => module.default);
+                        if (contentEntries[language]?.[slotId] !== undefined) {
+                            return contentEntries[language][slotId]().then(module => module.default);
                         }
 
                         if (language !== defaultLocale) {
@@ -465,22 +460,112 @@ export abstract class JavaScriptSdk implements Sdk {
             {overwrite: true},
         );
 
-        indicator.confirm('Content updated');
+        notifier.confirm('Content updated');
     }
 
-    public async updateTypes(installation: Installation, notifier?: TaskNotifier): Promise<void> {
-        const {output} = installation;
+    private async loadContent(installation: Installation, update = false): Promise<VersionedContentMap> {
+        const {configuration} = installation;
 
-        const indicator = notifier ?? output.notify('Updating types');
+        if (configuration.paths.content === undefined) {
+            return this.loadRemoteContent(installation);
+        }
 
+        const filePath = this.fileSystem.joinPaths(configuration.paths.content, 'slots.json');
+
+        if (!update && await this.fileSystem.exists(filePath)) {
+            return this.loadLocalContent(filePath);
+        }
+
+        const content = await this.loadRemoteContent(installation);
+
+        await this.saveContent(content, filePath);
+
+        return content;
+    }
+
+    private async saveContent(content: VersionedContentMap, path: string): Promise<void> {
+        const directory = this.fileSystem.getDirectoryName(path);
+
+        await this.fileSystem.createDirectory(directory, {recursive: true});
+
+        await this.fileSystem.writeTextFile(
+            path,
+            JSON.stringify(content, null, 2),
+            {overwrite: true},
+        );
+    }
+
+    private async loadLocalContent(path: string): Promise<VersionedContentMap> {
+        let content: string;
+
+        try {
+            content = await this.fileSystem.readTextFile(path);
+        } catch {
+            return {};
+        }
+
+        try {
+            return JSON.parse(content);
+        } catch (error) {
+            throw new SdkError('Failed to parse content file.', {
+                reason: ErrorReason.INVALID_INPUT,
+                cause: error,
+                details: [`File: ${path}`],
+            });
+        }
+    }
+
+    private async loadRemoteContent(installation: Installation): Promise<VersionedContentMap> {
         const configuration = await this.resolveVersions(installation.configuration);
+
         const slots = Object.entries(configuration.slots);
-        const components = Object.entries(configuration.components);
+        const slotVersions: Record<string, readonly number[]> = {};
+
+        for (const [slot, versionSpecifier] of slots) {
+            slotVersions[slot] = Version.parse(versionSpecifier).getVersions();
+        }
+
+        return Object.fromEntries(
+            await Promise.all(
+                slots.map(
+                    async ([slot]) => [
+                        slot,
+                        await Promise.all(
+                            slotVersions[slot].map(
+                                version => this.workspaceApi
+                                    .getSlotStaticContent(
+                                        {
+                                            organizationSlug: configuration.organization,
+                                            workspaceSlug: configuration.workspace,
+                                            slotSlug: slot,
+                                        },
+                                        version,
+                                    )
+                                    .then(
+                                        (versionedContent): VersionedContent => ({
+                                            version: version,
+                                            content: Object.fromEntries(
+                                                versionedContent.map(({locale, content}) => [locale, content]),
+                                            ),
+                                        }),
+                                    ),
+                            ),
+                        ),
+                    ] as const,
+                ),
+            ),
+        );
+    }
+
+    private async updateTypes(installation: Installation, options: ContentOptions = {}): Promise<void> {
+        const {output, configuration} = installation;
+
+        const notifier = options.notifier ?? output.notify('Updating types');
 
         const packageInfo = await this.mountContentPackageFolder();
 
         if (packageInfo === null) {
-            indicator.alert(`The package ${JavaScriptSdk.CONTENT_PACKAGE} is not installed`);
+            notifier.alert(`The package ${JavaScriptSdk.CONTENT_PACKAGE} is not installed`);
 
             return;
         }
@@ -490,36 +575,57 @@ export abstract class JavaScriptSdk implements Sdk {
         // Create the directory if it does not exist
         await this.fileSystem
             .createDirectory(this.fileSystem.getDirectoryName(filePath), {recursive: true})
-            .catch(() => {
-            });
+            .catch(() => {});
 
         let module = 'export {};';
 
-        if (slots.length > 0 || components.length > 0) {
-            const types = await this.workspaceApi.generateTypes({
-                organizationSlug: configuration.organization,
-                workspaceSlug: configuration.workspace,
-                target: TargetSdk.JAVASCRIPT,
-                components: components.map(
-                    ([component, version]) => ({
-                        id: component,
-                        version: version.toString(),
-                    }),
-                ),
-                slots: slots.map(
-                    ([slot, version]) => ({
-                        id: slot,
-                        version: version.toString(),
-                    }),
-                ),
-            });
-
-            module = `${types}\n${module}`;
+        if (Object.keys(configuration.slots).length > 0 || Object.keys(configuration.components).length > 0) {
+            module = `${await this.generateTypes(configuration, options.clean)}\n${module}`;
         }
 
         await this.fileSystem.writeTextFile(filePath, module, {overwrite: true});
 
-        indicator.confirm('Types updated');
+        notifier.confirm('Types updated');
+    }
+
+    private async generateTypes(configuration: ProjectConfiguration, update = false): Promise<string> {
+        if (configuration.paths.content === undefined) {
+            return this.generateTypeRemotely(configuration);
+        }
+
+        const typeFile = this.fileSystem.joinPaths(configuration.paths.content, 'slots.ts.dist');
+
+        if (!update && await this.fileSystem.exists(typeFile)) {
+            return this.fileSystem.readTextFile(typeFile);
+        }
+
+        const types = await this.generateTypeRemotely(configuration);
+
+        await this.fileSystem.writeTextFile(typeFile, types, {overwrite: true});
+
+        return types;
+    }
+
+    private async generateTypeRemotely(configuration: ProjectConfiguration): Promise<string> {
+        const {organization, workspace, components, slots} = await this.resolveVersions(configuration);
+
+        return this.workspaceApi.generateTypes({
+            organizationSlug: organization,
+            workspaceSlug: workspace,
+            target: TargetSdk.JAVASCRIPT,
+            components: Object.entries(components).map(
+                ([component, version]) => ({
+                    id: component,
+                    version: version,
+                }),
+            ),
+            slots: Object.entries(slots).map(
+                ([slot, version]) => ({
+                    id: slot,
+                    version: version,
+                }),
+            ),
+        });
     }
 
     private async registerTypeFile(sourcePaths: string[], notifier: TaskNotifier): Promise<void> {
@@ -669,7 +775,7 @@ export abstract class JavaScriptSdk implements Sdk {
         return null;
     }
 
-    public async readFile(...fileNames: string[]): Promise<string | null> {
+    protected async readFile(...fileNames: string[]): Promise<string | null> {
         const filePath = await this.locateFile(...fileNames);
 
         if (filePath === null) {

@@ -14,6 +14,7 @@ export type ProjectConfiguration = {
     paths: {
         components: string,
         examples: string,
+        content?: string,
     },
 };
 

@@ -1,4 +1,3 @@
-import {JsonObject} from '@croct/json';
 import {Content} from '@croct/content-model/content/content';
 
 export enum ExperienceStatus {
@@ -11,12 +10,12 @@ export enum ExperienceStatus {
 
 export type LocalizedContent = {
     locale: string,
-    content: JsonObject,
+    content: Content<'structure'>,
 };
 
-export type LocalizedContentMap = Record<string, Content<'structure'>>;
-
 export type SlotContentMap = Record<string, LocalizedContentMap>;
+
+export type LocalizedContentMap = Record<string, Content<'structure'>>;
 
 export type SegmentedContent = {
     id: string,

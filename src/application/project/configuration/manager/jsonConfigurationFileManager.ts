@@ -153,6 +153,7 @@ export class JsonConfigurationFileManager implements ConfigurationManager {
             slots: configuration.slots,
             components: configuration.components,
             paths: {
+                content: configuration.paths.content,
                 components: configuration.paths.components,
                 examples: configuration.paths.examples,
             },

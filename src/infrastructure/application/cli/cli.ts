@@ -515,11 +515,6 @@ export class Cli {
             new InstallCommand({
                 sdk: this.getSdk(),
                 configurationManager: this.getConfigurationManager(),
-                slotForm: new SlotForm({
-                    input: this.getFormInput(),
-                    output: this.getOutput(),
-                    workspaceApi: this.getWorkspaceApi(),
-                }),
                 io: {
                     input: this.getInput(),
                     output: this.getOutput(),

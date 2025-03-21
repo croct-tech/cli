@@ -200,7 +200,7 @@ export class PlugReactSdk extends JavaScriptSdk {
             tasks.push({
                 title: 'Setup environment variables',
                 task: async notifier => {
-                    notifier.update('Updating environment variables');
+                    notifier.update('Setting up environment variables');
 
                     try {
                         const publicIds = await getPublicIds();
@@ -223,6 +223,8 @@ export class PlugReactSdk extends JavaScriptSdk {
         tasks.push({
             title: 'Configure provider',
             task: async notifier => {
+                notifier.update('Configuring provider');
+
                 const providerFile = installation.project.provider.file;
 
                 try {

@@ -254,6 +254,8 @@ export class PlugNextSdk extends JavaScriptSdk {
             tasks.push({
                 title: 'Configure middleware',
                 task: async notifier => {
+                    notifier.update('Configuring middleware');
+
                     try {
                         await this.updateCode(this.codemod.middleware, installation.project.middleware.file);
 
@@ -268,6 +270,8 @@ export class PlugNextSdk extends JavaScriptSdk {
         tasks.push({
             title: 'Configure provider',
             task: async notifier => {
+                notifier.update('Configuring provider');
+
                 try {
                     await this.installProvider({
                         ...installation,
@@ -284,6 +288,8 @@ export class PlugNextSdk extends JavaScriptSdk {
         tasks.push({
             title: 'Setup environment variables',
             task: async notifier => {
+                notifier.update('Setting up environment variables');
+
                 try {
                     await this.updateEnvVariables({
                         ...installation,

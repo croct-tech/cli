@@ -152,9 +152,17 @@ function createProgram(config: Configuration): typeof program {
         });
 
     program.command('install')
-        .description('Download content and generate types.')
+        .description('Install content and types.')
         .action(async () => {
             await config.cli?.install({});
+        });
+
+    program.command('update')
+        .description('Update content and types.')
+        .action(async () => {
+            await config.cli?.install({
+                update: true,
+            });
         });
 
     program.command('upgrade')

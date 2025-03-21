@@ -10,11 +10,38 @@ export type Installation = {
     configuration: ProjectConfiguration,
 };
 
+export type UpdateOptions = {
+    clean?: boolean,
+};
+
 export interface Sdk {
-    install(installation: Installation): Promise<ProjectConfiguration>;
-    update(installation: Installation): Promise<void>;
-    updateTypes(installation: Installation): Promise<void>;
-    updateContent(installation: Installation): Promise<void>;
+    /**
+     * Sets up the SDK in the project.
+     *
+     * @param installation The installation details.
+     *
+     * @throws SdkError If an error occurs.
+     */
+    setup(installation: Installation): Promise<ProjectConfiguration>;
+
+    /**
+     * Update the SDK artifacts in the project.
+     *
+     * @param installation The installation details.
+     * @param options The update options.
+     *
+     * @throws SdkError If an error occurs.
+     */
+    update(installation: Installation, options?: UpdateOptions): Promise<void>;
+
+    /**
+     * Generate an example for a slot.
+     *
+     * @param slot The slot to generate the example for.
+     * @param installation The installation details
+     *
+     * @throws SdkError If an error occurs.
+     */
     generateSlotExample(slot: Slot, installation: Installation): Promise<void>;
 }
 
