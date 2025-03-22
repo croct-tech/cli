@@ -380,7 +380,13 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
         if (variables.components !== undefined) {
             for (const [slug] of Object.entries(processedTemplate.matches.components ?? {})) {
                 if (variables.components[slug] !== undefined) {
-                    context.set(variables.components[slug], processedTemplate.mapping.components[slug] ?? slug);
+                    const matchedSlug = processedTemplate.mapping.components[slug] ?? slug;
+                    const matchedResource = processedTemplate.matches.components[slug] ?? {};
+
+                    context.set(
+                        variables.components[slug],
+                        `${matchedSlug}@${'version' in matchedResource ? matchedResource.version.major : 1}`,
+                    );
                 }
             }
         }
@@ -388,7 +394,13 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
         if (variables.slots !== undefined) {
             for (const [slug] of Object.entries(processedTemplate.matches.slots ?? {})) {
                 if (variables.slots[slug] !== undefined) {
-                    context.set(variables.slots[slug], processedTemplate.mapping.slots[slug] ?? slug);
+                    const matchedSlug = processedTemplate.mapping.slots[slug] ?? slug;
+                    const matchedResource = processedTemplate.matches.slots[slug] ?? {};
+
+                    context.set(
+                        variables.slots[slug],
+                        `${matchedSlug}@${'version' in matchedResource ? matchedResource.version.major : 1}`,
+                    );
                 }
             }
         }

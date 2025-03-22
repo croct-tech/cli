@@ -503,7 +503,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         return contents.map(
             content => ({
                 locale: content.locale,
-                content: content.content,
+                content: content.content as Content<'structure'>,
             }),
         );
     }

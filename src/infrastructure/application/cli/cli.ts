@@ -92,7 +92,6 @@ import {ExperienceForm} from '@/application/cli/form/workspace/experienceForm';
 import {AudienceForm} from '@/application/cli/form/workspace/audienceForm';
 import {UseTemplateCommand, UseTemplateInput} from '@/application/cli/command/template/use';
 import {DownloadAction} from '@/application/template/action/downloadAction';
-import {ResolveImportAction} from '@/application/template/action/resolveImportAction';
 import {AddDependencyAction} from '@/application/template/action/addDependencyAction';
 import {LocateFileAction, PathMatcher} from '@/application/template/action/locateFileAction';
 import {ReplaceFileContentAction} from '@/application/template/action/replaceFileContentAction';
@@ -133,9 +132,6 @@ import {
     CheckDependenciesOptionsValidator,
 } from '@/infrastructure/application/validation/actions/checkDependenciesOptionsValidator';
 import {DownloadOptionsValidator} from '@/infrastructure/application/validation/actions/downloadOptionsValidator';
-import {
-    ResolveImportOptionsValidator,
-} from '@/infrastructure/application/validation/actions/resolveImportOptionsValidator';
 import {
     AddDependencyOptionsValidator,
 } from '@/infrastructure/application/validation/actions/addDependencyOptionsValidator';
@@ -220,7 +216,6 @@ import {FileExists} from '@/application/predicate/fileExists';
 import {HasDependency} from '@/application/predicate/hasDependency';
 import {IsProject} from '@/application/predicate/isProject';
 import {ImportResolver} from '@/application/project/import/importResolver';
-import {LazyImportResolver} from '@/application/project/import/lazyImportResolver';
 import {CommandExecutor, SynchronousCommandExecutor} from '@/application/system/process/executor';
 import {SpawnExecutor} from '@/infrastructure/application/system/command/spawnExecutor';
 import {LazyFormatter} from '@/application/project/code/formatting/lazyFormatter';
@@ -1077,12 +1072,6 @@ export class Cli {
                     }),
                     validator: new DownloadOptionsValidator(),
                 }),
-                'resolve-import': new ValidatedAction({
-                    action: new ResolveImportAction({
-                        importResolver: this.getImportResolver(),
-                    }),
-                    validator: new ResolveImportOptionsValidator(),
-                }),
                 'add-dependency': new ValidatedAction({
                     action: new AddDependencyAction({
                         packageManager: this.getPackageManager(),
@@ -1871,35 +1860,6 @@ export class Cli {
                 ],
             }),
         );
-    }
-
-    private getImportResolver(): ImportResolver {
-        return this.share(this.getImportResolver, () => {
-            const nodeImportResolver = this.getNodeImportResolver();
-
-            const unknown = Symbol('unknown');
-
-            return new LazyImportResolver(
-                new EnumeratedProvider({
-                    discriminator: async () => (await this.getPlatformProvider().get()) ?? unknown,
-                    mapping: {
-                        [Platform.JAVASCRIPT]: () => nodeImportResolver,
-                        [Platform.REACT]: () => nodeImportResolver,
-                        [Platform.NEXTJS]: () => nodeImportResolver,
-                        [unknown]: (): never => {
-                            throw new CallbackProvider(() => {
-                                throw new ProviderError('No import resolver detected.', {
-                                    reason: ErrorReason.NOT_SUPPORTED,
-                                    suggestions: [
-                                        'Make sure you are running the command in the project root directory.',
-                                    ],
-                                });
-                            });
-                        },
-                    },
-                }),
-            );
-        });
     }
 
     private getNodeImportResolver(): ImportResolver {
