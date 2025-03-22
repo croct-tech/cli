@@ -47,6 +47,7 @@ const optionSchema: ZodType<OptionDefinition> = z.discriminatedUnion('type', [
 ]);
 
 const templateSchema: ZodType<Template> = z.strictObject({
+    $schema: z.string().optional(),
     title: z.string()
         .min(1)
         .optional(),

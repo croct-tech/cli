@@ -68,25 +68,17 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
     }
 
     private async createTemplate(empty: boolean): Promise<Template> {
-        if (empty) {
-            return {
-                // @todo: Add $schema property
-                title: 'My template',
-                actions: [],
-            };
-        }
-
-        const resources = await this.exportResources();
-
         return {
-            // @todo: Add $schema property
+            $schema: 'https://schema.croct.com/json/v1/template.json',
             title: 'My template',
-            actions: [
-                {
-                    name: 'create-resource',
-                    resources: resources,
-                },
-            ],
+            actions: empty
+                ? []
+                : [
+                    {
+                        name: 'create-resource',
+                        resources: await this.exportResources(),
+                    },
+                ],
         };
     }
 

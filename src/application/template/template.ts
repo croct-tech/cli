@@ -74,6 +74,7 @@ export type ActionDefinition = {
 };
 
 export type Template = {
+    $schema?: string,
     title?: string,
     description?: string,
     options?: OptionMap,
