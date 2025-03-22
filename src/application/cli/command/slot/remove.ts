@@ -83,7 +83,7 @@ export class RemoveSlotCommand implements Command<RemoveSlotInput> {
 
         output.confirm('Configuration updated');
 
-        await sdk.update(installation);
+        await sdk.update(installation, {clean: true});
     }
 
     private static getVersionMap(

@@ -1,7 +1,7 @@
 import {Command} from '@/application/cli/command/command';
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
-import {Sdk} from '@/application/project/sdk/sdk';
+import {Installation, Sdk} from '@/application/project/sdk/sdk';
 import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Form} from '@/application/cli/form/form';
 import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
@@ -53,37 +53,37 @@ export class RemoveComponentCommand implements Command<RemoveComponentInput> {
             return output.alert('No components to remove.');
         }
 
-        const updatedConfiguration: ProjectConfiguration = {
-            ...configuration,
-            components: Object.fromEntries(
-                Object.entries(configuration.components)
-                    .flatMap(([slug, version]) => {
-                        if (versionedComponents?.[slug] !== undefined) {
-                            if (versionedComponents[slug] === null) {
+        const installation: Installation = {
+            input: io.input,
+            output: io.output,
+            configuration: {
+                ...configuration,
+                components: Object.fromEntries(
+                    Object.entries(configuration.components)
+                        .flatMap(([slug, version]) => {
+                            if (versionedComponents?.[slug] !== undefined) {
+                                if (versionedComponents[slug] === null) {
+                                    return [];
+                                }
+
+                                return [[slug, versionedComponents[slug].toString()]];
+                            }
+
+                            if (components.some(component => component.slug === slug)) {
                                 return [];
                             }
 
-                            return [[slug, versionedComponents[slug].toString()]];
-                        }
-
-                        if (components.some(component => component.slug === slug)) {
-                            return [];
-                        }
-
-                        return [[slug, version.toString()]];
-                    }),
-            ),
+                            return [[slug, version.toString()]];
+                        }),
+                ),
+            },
         };
 
         output.confirm('Configuration updated');
 
-        await configurationManager.update(updatedConfiguration);
+        await configurationManager.update(installation.configuration);
 
-        await sdk.update({
-            input: io.input,
-            output: io.output,
-            configuration: updatedConfiguration,
-        });
+        await sdk.update(installation, {clean: true});
     }
 
     private static getVersionMap(

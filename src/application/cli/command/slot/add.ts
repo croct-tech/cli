@@ -65,7 +65,7 @@ export class AddSlotCommand implements Command<AddSlotInput> {
 
         output.confirm('Configuration updated');
 
-        await sdk.update(installation);
+        await sdk.update(installation, {clean: true});
 
         if (input.example === true) {
             const notifier = output.notify('Generating example');

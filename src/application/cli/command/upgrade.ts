@@ -10,7 +10,7 @@ import {Version} from '@/application/model/version';
 import {Slot} from '@/application/model/slot';
 import {Component} from '@/application/model/component';
 import {HelpfulError, ErrorReason} from '@/application/error';
-import {Sdk} from '@/application/project/sdk/sdk';
+import {Installation, Sdk} from '@/application/project/sdk/sdk';
 
 export type UpgradeInput = {
     slots?: string[],
@@ -44,43 +44,43 @@ export class UpgradeCommand implements Command<UpgradeInput> {
         const slots = await this.selectSlots(configuration, input.slots);
         const components = await this.selectComponents(configuration, input.components);
 
-        const updatedConfiguration: ProjectConfiguration = {
-            ...configuration,
-            slots: {
-                ...configuration.slots,
-                ...Object.fromEntries(slots.map(
-                    slot => [
-                        slot.slug,
-                        UpgradeCommand.resolveVersion(
-                            slot.version.major,
-                            configuration.slots[slot.slug],
-                        ),
-                    ],
-                )),
-            },
-            components: {
-                ...configuration.components,
-                ...Object.fromEntries(
-                    components.map(
-                        component => [
-                            component.slug,
+        const installation: Installation = {
+            input: io.input,
+            output: io.output,
+            configuration: {
+                ...configuration,
+                slots: {
+                    ...configuration.slots,
+                    ...Object.fromEntries(slots.map(
+                        slot => [
+                            slot.slug,
                             UpgradeCommand.resolveVersion(
-                                component.version.major,
-                                configuration.components[component.slug],
+                                slot.version.major,
+                                configuration.slots[slot.slug],
                             ),
                         ],
+                    )),
+                },
+                components: {
+                    ...configuration.components,
+                    ...Object.fromEntries(
+                        components.map(
+                            component => [
+                                component.slug,
+                                UpgradeCommand.resolveVersion(
+                                    component.version.major,
+                                    configuration.components[component.slug],
+                                ),
+                            ],
+                        ),
                     ),
-                ),
+                },
             },
         };
 
-        await configurationManager.update(updatedConfiguration);
+        await configurationManager.update(installation.configuration);
 
-        await sdk.update({
-            input: io.input,
-            output: io.output,
-            configuration: updatedConfiguration,
-        });
+        await sdk.update(installation, {clean: true});
     }
 
     private async selectComponents(configuration: ProjectConfiguration, selected?: string[]): Promise<Component[]> {

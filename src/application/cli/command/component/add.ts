@@ -64,7 +64,7 @@ export class AddComponentCommand implements Command<AddComponentInput> {
 
         output.confirm('Configuration updated');
 
-        await sdk.update(installation);
+        await sdk.update(installation, {clean: true});
     }
 
     private async getComponents(

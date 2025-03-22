@@ -161,7 +161,7 @@ function createProgram(config: Configuration): typeof program {
         .description('Update content and types.')
         .action(async () => {
             await config.cli?.install({
-                update: true,
+                clean: true,
             });
         });
 
