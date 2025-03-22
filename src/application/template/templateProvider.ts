@@ -2,6 +2,7 @@ import {JsonValue} from '@croct/json';
 import {
     JsonArrayNode,
     JsonIdentifierNode,
+    JsonNode,
     JsonObjectNode,
     JsonParser,
     JsonPrimitiveNode,
@@ -74,7 +75,7 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
         let node: JsonObjectNode;
 
         try {
-            node = JsonParser.parse(source, JsonObjectNode);
+            node = TemplateProvider.cleanJson(JsonParser.parse(source, JsonObjectNode));
         } catch (error) {
             throw new TemplateError('Failed to parse the JSON template.', {
                 reason: ErrorReason.INVALID_INPUT,
@@ -90,6 +91,7 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
         }
 
         const data = node.toJSON();
+
         const validation = await this.validator.validate(data);
 
         if (!validation.valid) {
@@ -387,7 +389,7 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
         let node: JsonValueNode;
 
         try {
-            node = JsonParser.parse(value);
+            node = TemplateProvider.cleanJson(JsonParser.parse(value));
         } catch (error) {
             throw new TemplateError('Failed to parse referenced JSON.', {
                 reason: ErrorReason.INVALID_INPUT,
@@ -421,5 +423,33 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
                 location: fragment.location,
             }),
         });
+    }
+
+    private static cleanJson<T extends JsonNode>(node: T): T {
+        if (node instanceof JsonPrimitiveNode) {
+            return node;
+        }
+
+        if (node instanceof JsonArrayNode) {
+            for (const element of node.elements) {
+                this.cleanJson(element);
+            }
+
+            return node;
+        }
+
+        if (node instanceof JsonObjectNode) {
+            for (const property of node.properties) {
+                const key = property.key.toJSON();
+
+                if (key === '$schema') {
+                    node.delete(key);
+                } else {
+                    this.cleanJson(property.value);
+                }
+            }
+        }
+
+        return node;
     }
 }
