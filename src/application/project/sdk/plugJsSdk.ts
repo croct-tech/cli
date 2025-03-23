@@ -120,7 +120,7 @@ export class PlugJsSdk extends JavaScriptSdk {
 
     private async detectBundler(): Promise<string|null> {
         for (const bundler of this.bundlers) {
-            if (await this.packageManager.hasDependency(bundler)) {
+            if (await this.packageManager.hasDirectDependency(bundler)) {
                 return Promise.resolve(bundler);
             }
         }

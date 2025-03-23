@@ -18,7 +18,7 @@ export class HasDependency implements Predicate {
 
     public async test(): Promise<boolean> {
         const results = await Promise.all(
-            this.dependencies.map(dependency => this.packageManager.hasDependency(dependency)),
+            this.dependencies.map(dependency => this.packageManager.hasDirectDependency(dependency)),
         );
 
         return results.some(result => result);

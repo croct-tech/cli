@@ -259,7 +259,7 @@ export class PlugReactSdk extends JavaScriptSdk {
 
     private async getEnvVarProperty(): Promise<string|null> {
         for (const bundler of this.bundlers) {
-            if (await this.packageManager.hasDependency(bundler.package)) {
+            if (await this.packageManager.hasDirectDependency(bundler.package)) {
                 return `${bundler.prefix}CROCT_APP_ID`;
             }
         }

@@ -133,7 +133,7 @@ export abstract class JavaScriptSdk implements Sdk {
 
                 try {
                     await this.packageManager.addDependencies(['croct'], true);
-                    await this.packageManager.addDependencies([...plan.dependencies, JavaScriptSdk.CONTENT_PACKAGE]);
+                    await this.packageManager.addDependencies([...plan.dependencies]);
 
                     notifier.confirm('Dependencies installed');
                 } catch (error) {
@@ -792,7 +792,7 @@ export abstract class JavaScriptSdk implements Sdk {
     }
 
     protected isTypeScriptProject(): Promise<boolean> {
-        return this.packageManager.hasDependency('typescript');
+        return this.packageManager.hasDirectDependency('typescript');
     }
 
     private async getTypeScriptConfigPath(sourcePaths: string[] = []): Promise<string | null> {

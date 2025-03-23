@@ -64,7 +64,7 @@ export class NodePackageManager implements PackageManager {
         return this.agent.getScriptCommand(script, args);
     }
 
-    public async hasDependency(name: string, version?: string): Promise<boolean> {
+    public async hasDirectDependency(name: string, version?: string): Promise<boolean> {
         const manifest = await this.readManifest(this.getProjectManifestPath());
 
         if (manifest === null) {
@@ -80,14 +80,19 @@ export class NodePackageManager implements PackageManager {
         return version === undefined || semver.satisfies(installedVersion, version);
     }
 
-    public async getDependency(name: string): Promise<Dependency | null> {
-        const directory = this.fileSystem.joinPaths(
-            this.projectDirectory.get(),
-            'node_modules',
-            name,
-        );
+    public async hasDependency(name: string, version?: string): Promise<boolean> {
+        const info = await this.getDependency(name);
 
-        const info = await this.readManifest(this.fileSystem.joinPaths(directory, 'package.json'));
+        if (info === null) {
+            return false;
+        }
+
+        return version === undefined || (info.version !== null && semver.satisfies(info.version, version));
+    }
+
+    public async getDependency(name: string): Promise<Dependency | null> {
+        const manifestPath = this.getPackageManifestPath(name);
+        const info = await this.readManifest(manifestPath);
 
         if (info === null) {
             return null;
@@ -96,7 +101,7 @@ export class NodePackageManager implements PackageManager {
         return {
             name: info.name,
             version: info.version ?? null,
-            directory: directory,
+            directory: this.fileSystem.getDirectoryName(manifestPath),
             metadata: info,
         };
     }
@@ -150,6 +155,10 @@ export class NodePackageManager implements PackageManager {
         }
 
         await this.fileSystem.writeTextFile(packageFile, packageJson.toString(), {overwrite: true});
+    }
+
+    private getPackageManifestPath(name: string): string {
+        return this.fileSystem.joinPaths(this.projectDirectory.get(), 'node_modules', name, 'package.json');
     }
 
     private getProjectManifestPath(): string {

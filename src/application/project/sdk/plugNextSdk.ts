@@ -435,6 +435,6 @@ export class PlugNextSdk extends JavaScriptSdk {
     }
 
     private async isFallbackMode(): Promise<boolean> {
-        return !await this.packageManager.hasDependency('next', '>=13');
+        return !await this.packageManager.hasDirectDependency('next', '>=13');
     }
 }

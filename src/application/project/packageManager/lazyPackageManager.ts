@@ -27,8 +27,8 @@ export class LazyPackageManager implements PackageManager {
         return (await this.manager).isProject();
     }
 
-    public async hasDependency(packageName: string, version?: string): Promise<boolean> {
-        return (await this.manager).hasDependency(packageName, version);
+    public async hasDirectDependency(packageName: string, version?: string): Promise<boolean> {
+        return (await this.manager).hasDirectDependency(packageName, version);
     }
 
     public async getDependency(name: string): Promise<Dependency|null> {

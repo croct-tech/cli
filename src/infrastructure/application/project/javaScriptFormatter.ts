@@ -58,7 +58,7 @@ export class JavaScriptFormatter implements CodeFormatter {
         const {tools, packageManager, fileSystem} = this.configuration;
 
         for (const tool of tools) {
-            if (!await packageManager.hasDependency(tool.package)) {
+            if (!await packageManager.hasDirectDependency(tool.package)) {
                 // Ensure the package is a direct dependency
                 continue;
             }

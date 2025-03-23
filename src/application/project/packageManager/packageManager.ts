@@ -59,10 +59,25 @@ export interface PackageManager {
      * @throws PackageManagerError If an error occurs while checking the package,
      * like if the manifest file is not found or invalid.
      */
+    hasDirectDependency(packageName: string, version?: string): Promise<boolean>;
+
+    /**
+     * Checks if a package is installed.
+     *
+     * An installed package is not necessarily listed as dependency, as it might be
+     * an indirect dependency.
+     *
+     * @param packageName The name of the package to check.
+     * @param version The version of the package to check.
+     * @returns A promise that resolves to true if the package is installed, false otherwise.
+     *
+     * @throws PackageManagerError If an error occurs while checking the package,
+     * like if the manifest file is not found or invalid.
+     */
     hasDependency(packageName: string, version?: string): Promise<boolean>;
 
     /**
-     * Retrieves information about a specific dependency.
+     * Retrieves information about a specific dependency, direct or indirect.
      *
      * This method returns details about the package, such as its name, version, path,
      * and additional metadata. If the package is not found, or the manifest file

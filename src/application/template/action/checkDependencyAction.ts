@@ -76,8 +76,8 @@ export class CheckDependencyAction implements Action<CheckDependencyOptions> {
         const {name, version, optional = false} = requirement;
 
         if (
-            (optional && (version === undefined || !await this.packageManager.hasDependency(name)))
-            || await this.packageManager.hasDependency(name, version)
+            (optional && (version === undefined || !await this.packageManager.hasDirectDependency(name)))
+            || await this.packageManager.hasDirectDependency(name, version)
         ) {
             return {dependency: name};
         }
