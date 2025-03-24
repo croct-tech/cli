@@ -19,7 +19,7 @@ const schema: ZodType<ReplaceFileContentOptions> = z.strictObject({
                         }
                     }),
                     caseSensitive: z.boolean().optional(),
-                    value: z.string(),
+                    value: z.union([z.string(), z.number()]),
                 }),
             ).min(1),
         }),

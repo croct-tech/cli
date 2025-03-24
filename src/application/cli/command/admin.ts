@@ -49,9 +49,7 @@ export class AdminCommand implements Command<AdminInput> {
 
         notifier.stop();
 
-        const url = new URL(this.config.adminUrl);
-
-        url.pathname += path.startsWith('/') ? path : `/${path}`;
+        const url = new URL(path.startsWith('/') ? path.slice(1) : path, this.config.adminUrl);
 
         url.searchParams.set(this.config.adminTokenParameter, token);
 

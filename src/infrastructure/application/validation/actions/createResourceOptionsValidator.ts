@@ -20,9 +20,6 @@ import {
 import {LocalizedContentMap, SlotContentMap} from '@/application/model/experience';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
-const outputMapSchema = z.record(z.string().min(1), z.string().min(1));
-const outputListSchema = z.record(z.number().nonnegative(), z.string().min(1));
-
 const audienceDefinitionSchema: ZodType<AudienceDefinition> = z.strictObject({
     name: z.string().min(1),
     criteria: z.string().min(1),
@@ -283,6 +280,20 @@ const experienceDefinitionSchema: ZodType<ExperienceDefinition> = z.strictObject
     content: personalizedContentSchema,
 });
 
+const variableMapSchema = z.record(z.string().min(1), z.string().min(1));
+const variableListSchema = z.record(z.number().nonnegative(), z.string().min(1));
+const versionedResourceMapSchema = z.record(
+    z.string().min(1),
+    z.strictObject({
+        id: z.string()
+            .min(1)
+            .optional(),
+        version: z.string()
+            .min(1)
+            .optional(),
+    }),
+);
+
 const schema: ZodType<CreateResourceOptions> = z.strictObject({
     resources: z.strictObject({
         audiences: z.record(z.string().min(1), audienceDefinitionSchema).optional(),
@@ -291,11 +302,11 @@ const schema: ZodType<CreateResourceOptions> = z.strictObject({
         experiences: z.array(experienceDefinitionSchema).optional(),
     }),
     result: z.strictObject({
-        audiences: outputMapSchema.optional(),
-        components: outputMapSchema.optional(),
-        slots: outputMapSchema.optional(),
-        experiences: outputListSchema.optional(),
-        experiments: outputListSchema.optional(),
+        audiences: variableMapSchema.optional(),
+        components: versionedResourceMapSchema.optional(),
+        slots: versionedResourceMapSchema.optional(),
+        experiences: variableListSchema.optional(),
+        experiments: variableListSchema.optional(),
     }).optional(),
 });
 

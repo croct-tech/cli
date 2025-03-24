@@ -25,10 +25,15 @@ export type CreateResourceOptions = {
     result?: NewResourceVariables,
 };
 
+type VersionedResourceInfo = {
+    id?: string,
+    version?: string,
+};
+
 type NewResourceVariables = {
     audiences?: Record<string, string>,
-    components?: Record<string, string>,
-    slots?: Record<string, string>,
+    components?: Record<string, VersionedResourceInfo>,
+    slots?: Record<string, VersionedResourceInfo>,
     experiences?: Record<number, string>,
     experiments?: Record<number, string>,
 };
@@ -379,28 +384,44 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
 
         if (variables.components !== undefined) {
             for (const [slug] of Object.entries(processedTemplate.matches.components ?? {})) {
-                if (variables.components[slug] !== undefined) {
+                const componentVariables = variables.components[slug];
+
+                if (componentVariables !== undefined) {
                     const matchedSlug = processedTemplate.mapping.components[slug] ?? slug;
                     const matchedResource = processedTemplate.matches.components[slug] ?? {};
 
-                    context.set(
-                        variables.components[slug],
-                        `${matchedSlug}@${'version' in matchedResource ? matchedResource.version.major : 1}`,
-                    );
+                    if (componentVariables.id !== undefined) {
+                        context.set(componentVariables.id, matchedSlug);
+                    }
+
+                    if (componentVariables.version !== undefined) {
+                        context.set(
+                            componentVariables.version,
+                            'version' in matchedResource ? matchedResource.version.major : 1,
+                        );
+                    }
                 }
             }
         }
 
         if (variables.slots !== undefined) {
             for (const [slug] of Object.entries(processedTemplate.matches.slots ?? {})) {
-                if (variables.slots[slug] !== undefined) {
+                const slotVariables = variables.slots[slug];
+
+                if (slotVariables !== undefined) {
                     const matchedSlug = processedTemplate.mapping.slots[slug] ?? slug;
                     const matchedResource = processedTemplate.matches.slots[slug] ?? {};
 
-                    context.set(
-                        variables.slots[slug],
-                        `${matchedSlug}@${'version' in matchedResource ? matchedResource.version.major : 1}`,
-                    );
+                    if (slotVariables.id !== undefined) {
+                        context.set(slotVariables.id, matchedSlug);
+                    }
+
+                    if (slotVariables.version !== undefined) {
+                        context.set(
+                            slotVariables.version,
+                            'version' in matchedResource ? matchedResource.version.major : 1,
+                        );
+                    }
                 }
             }
         }

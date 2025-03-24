@@ -5,7 +5,7 @@ import {ActionContext} from '@/application/template/action/context';
 type Replacement = {
     pattern: string,
     caseSensitive?: boolean,
-    value: string,
+    value: string|number,
 };
 
 type FileMatcher = {
@@ -63,7 +63,7 @@ export class ReplaceFileContentAction implements Action<ReplaceFileContentOption
         for (const {pattern, caseSensitive, value} of replacements) {
             const flags = caseSensitive === true ? 'gi' : 'g';
 
-            result = result.replaceAll(new RegExp(pattern, flags), value);
+            result = result.replaceAll(new RegExp(pattern, flags), `${value}`);
         }
 
         return result;
