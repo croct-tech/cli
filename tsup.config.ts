@@ -10,10 +10,11 @@ export default defineConfig({
     minify: true,
     outDir: "build",
     treeshake: true,
-    banner: ({ format }) => {
+    banner: ({format}) => {
         if (format === "esm") return ({
             js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
         })
+
         return {}
     },
 });
