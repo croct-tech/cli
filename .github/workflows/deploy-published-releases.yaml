@@ -12,8 +12,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 23
           registry-url: 'https://npm.pkg.github.com'
+        env:
+            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Cache dependencies
         id: cache-dependencies
@@ -24,14 +26,10 @@ jobs:
 
       - name: Install dependencies
         if: steps.cache-dependencies.outputs.cache-hit != 'true'
-        run: |-
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GH_PACKAGES_TOKEN }}" >> ~/.npmrc
-          npm ci
-          rm -rf ~/.npmrc
+        run: npm ci
 
       - name: Build package
-        run: |-
-          npm run build
+        run: npm run build
 
       - name: Prepare release
         run: |-
@@ -44,13 +42,9 @@ jobs:
         run: |-
           cd build
           npm publish --tag next
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish release to NPM
         if: ${{ !github.event.release.prerelease }}
         run: |-
           cd build
           npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -7,7 +7,7 @@
     "email": "lib+cli@croct.com",
     "url": "https://github.com/croct-tech/cli"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "keywords": [
     "croct",
     "personalization",
