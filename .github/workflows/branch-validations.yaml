@@ -76,6 +76,10 @@ jobs:
         if: steps.cache-dependencies.outputs.cache-hit != 'true'
         run: npm ci
 
+      - name: Generate types
+        if: steps.cache-dependencies.outputs.cache-hit == 'true'
+        run: npm run graphql-codegen
+
       - name: Check coding standard violations
         run: npm run lint
 
@@ -97,6 +101,10 @@ jobs:
       - name: Install dependencies
         if: steps.cache-dependencies.outputs.cache-hit != 'true'
         run: npm ci
+
+      - name: Generate types
+        if: steps.cache-dependencies.outputs.cache-hit == 'true'
+        run: npm run graphql-codegen
 
       - uses: paambaati/codeclimate-action@v5
         env:
