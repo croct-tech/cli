@@ -29,6 +29,7 @@ const versionSchema = z.string()
     );
 
 const configurationSchema = z.strictObject({
+    $schema: z.string().optional(),
     organization: identifierSchema,
     workspace: identifierSchema,
     applications: z.strictObject({
@@ -46,7 +47,7 @@ const configurationSchema = z.strictObject({
     }),
 }).refine(data => data.locales.includes(data.defaultLocale), {
     message: 'The default locale is not included in the list of locales.',
-    path: ['defaultLocale'], // Error will be attached to this path
+    path: ['defaultLocale'],
 });
 
 export class CroctConfigurationValidator extends ZodValidator<z.infer<typeof configurationSchema>> {

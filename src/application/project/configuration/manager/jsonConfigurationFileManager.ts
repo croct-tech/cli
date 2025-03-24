@@ -13,16 +13,22 @@ import {ErrorReason} from '@/application/error';
 type LoadedFile = {
     path: string,
     source: string|null,
-    configuration: ProjectConfiguration|null,
+    configuration: JsonProjectConfiguration|null,
+};
+
+export type JsonProjectConfiguration = ProjectConfiguration & {
+    $schema?: string,
 };
 
 export type Configuration = {
     fileSystem: FileSystem,
     projectDirectory: WorkingDirectory,
-    validator: Validator<ProjectConfiguration>,
+    validator: Validator<JsonProjectConfiguration>,
 };
 
 export class JsonConfigurationFileManager implements ConfigurationManager {
+    private static readonly CONFIGURATION_SCHEMA = 'https://schema.croct.com/json/v1/project.json';
+
     private readonly fileSystem: FileSystem;
 
     private readonly projectDirectory: WorkingDirectory;
@@ -40,7 +46,7 @@ export class JsonConfigurationFileManager implements ConfigurationManager {
     }
 
     public async load(): Promise<ProjectConfiguration> {
-        const file = await this.loadFile();
+        const file = await this.loadConfigurationFile();
 
         if (file.configuration === null) {
             throw new ProjectConfigurationError('Project configuration not found.', {
@@ -55,16 +61,13 @@ export class JsonConfigurationFileManager implements ConfigurationManager {
     }
 
     public async update(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
-        return this.updateFile(await this.validateConfiguration(JsonConfigurationFileManager.clean(configuration)));
+        return this.updateConfigurationFile(await this.validateConfiguration(configuration));
     }
 
-    private async updateFile(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
-        const file = await this.loadFile();
-        const data = file.configuration !== null && file.source !== null
-            ? JsonParser.parse(file.source).update(configuration)
-            : JsonObjectNode.of(configuration);
-
-        const json = data.toString({
+    private async updateConfigurationFile(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
+        const file = await this.loadConfigurationFile();
+        const source = this.applyConfigurationChanges(file, configuration);
+        const json = source.toString({
             indentationCharacter: 'space',
             object: {
                 indentationSize: 2,
@@ -93,7 +96,25 @@ export class JsonConfigurationFileManager implements ConfigurationManager {
         return configuration;
     }
 
-    private async loadFile(): Promise<LoadedFile> {
+    private applyConfigurationChanges(file: LoadedFile, configuration: ProjectConfiguration): JsonObjectNode {
+        if (file.configuration === null || file.source === null) {
+            return JsonObjectNode.of({
+                $schema: JsonConfigurationFileManager.CONFIGURATION_SCHEMA,
+                ...configuration,
+            });
+        }
+
+        const source = JsonParser.parse(file.source, JsonObjectNode);
+
+        return source.update({
+            $schema: source.has('$schema')
+                ? source.get('$schema').toJSON()
+                : undefined,
+            ...configuration,
+        }).cast(JsonObjectNode);
+    }
+
+    private async loadConfigurationFile(): Promise<LoadedFile> {
         const file: LoadedFile = {
             path: this.getConfigurationFilePath(),
             source: null,
@@ -111,6 +132,10 @@ export class JsonConfigurationFileManager implements ConfigurationManager {
 
         if (configuration !== null) {
             file.configuration = await this.validateConfiguration(configuration, file);
+
+            if (file.configuration?.$schema !== undefined) {
+                delete file.configuration?.$schema;
+            }
         }
 
         return file;
@@ -120,7 +145,7 @@ export class JsonConfigurationFileManager implements ConfigurationManager {
         return this.fileSystem.joinPaths(this.projectDirectory.get(), 'croct.json');
     }
 
-    private async validateConfiguration(value: JsonValue, file?: LoadedFile): Promise<ProjectConfiguration> {
+    private async validateConfiguration(value: JsonValue, file?: LoadedFile): Promise<JsonProjectConfiguration> {
         const result = await this.validator.validate(value);
 
         if (!result.valid) {
@@ -129,7 +154,7 @@ export class JsonConfigurationFileManager implements ConfigurationManager {
             throw new ProjectConfigurationError(violation.message, {
                 details: [
                     ...(file !== undefined
-                        ? `Configuration file: ${file.path}`
+                        ? [`File: file://${file.path.replace(/\\/g, '/')}`]
                         : []
                     ),
                     `Violation path: ${violation.path}`,
@@ -138,25 +163,5 @@ export class JsonConfigurationFileManager implements ConfigurationManager {
         }
 
         return result.data;
-    }
-
-    private static clean(configuration: ProjectConfiguration): ProjectConfiguration {
-        return {
-            organization: configuration.organization,
-            workspace: configuration.workspace,
-            applications: {
-                development: configuration.applications.development,
-                production: configuration.applications.production,
-            },
-            defaultLocale: configuration.defaultLocale,
-            locales: configuration.locales,
-            slots: configuration.slots,
-            components: configuration.components,
-            paths: {
-                content: configuration.paths.content,
-                components: configuration.paths.components,
-                examples: configuration.paths.examples,
-            },
-        };
     }
 }

@@ -25,7 +25,7 @@ export class FileCodemod<O extends CodemodOptions> implements Codemod<string, O>
             } catch (error) {
                 throw new CodemodError('Failed to read file.', {
                     cause: error,
-                    details: [`File: ${input}`],
+                    details: [`File: file://${input.replace(/\\/g, '/')}`],
                 });
             }
         }
@@ -40,7 +40,7 @@ export class FileCodemod<O extends CodemodOptions> implements Codemod<string, O>
             } catch (error) {
                 throw new CodemodError('Failed to write file', {
                     cause: error,
-                    details: [`File: ${input}`],
+                    details: [`File: file://${input.replace(/\\/g, '/')}`],
                 });
             }
         }
