@@ -50,6 +50,10 @@ jobs:
         if: steps.cache-dependencies.outputs.cache-hit != 'true'
         run: npm ci
 
+      - name: Generate types
+        if: steps.cache-dependencies.outputs.cache-hit == 'true'
+        run: npm run graphql-codegen
+
       - name: Check compilation errors
         run: npm run validate
 
