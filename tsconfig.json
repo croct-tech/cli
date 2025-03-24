@@ -1,10 +1,9 @@
 {
   "compilerOptions": {
-    "module": "CommonJS",
+    "module": "ES2020",
     "target": "ES2020",
-    "esModuleInterop": true,
+    "skipLibCheck": true,
     "moduleResolution": "Node",
-    "stripInternal": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "noImplicitAny": true,
@@ -18,11 +17,23 @@
     "noEmit": true,
     "downlevelIteration": true,
     "declaration": true,
-    "lib": ["es6"]
+    "isolatedModules": true,
+    "lib": ["ES2022"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
+  "exclude": [
+    "node_modules",
+    "build",
+    "test/application/project/code/transformation/fixtures/**"
+  ],
   "include": [
     "src/**/*.ts",
     "test/**/*.ts"
   ],
-  "exclude": ["node_modules", "build"]
+  "ts-node": {
+    "require": ["tsconfig-paths/register"]
+  }
 }

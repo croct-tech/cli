@@ -1,0 +1,3397 @@
+type AbsoluteTimeWindow {
+  end: LocalDate!
+  start: LocalDate!
+}
+
+input AbsoluteTimeWindowInput {
+  end: LocalDate!
+  start: LocalDate!
+}
+
+type ActiveUsageCount {
+  active: Int!
+  total: Int!
+}
+
+input AddWorkspaceLocalesPayload {
+  code: String!
+}
+
+type AllowedFileTypes {
+  contentType: String!
+  extensions: [String!]!
+}
+
+enum AnonymityScope {
+  APPLICATION
+  ORGANIZATION
+  SESSION
+  WORKSPACE
+}
+
+type ApiKey {
+  creationTime: Instant!
+  id: ID!
+  lastUpdateTime: Instant!
+  name: String!
+  permissions: [ApiKeyPermission!]!
+  self: ApiKey!
+}
+
+type ApiKeyConnection {
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-Edge-Types
+  """
+  edges: [ApiKeyEdge]
+
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+  """
+  pageInfo: PageInfo!
+}
+
+type ApiKeyEdge {
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Cursor"""
+  cursor: String!
+
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Node"""
+  node: ApiKey
+}
+
+"""The ID that uniquely identifies an API key."""
+scalar ApiKeyId
+
+enum ApiKeyPermission {
+  DATA_EXPORT
+  RESOURCE_READ_ACCESS
+  TOKEN_ISSUE
+}
+
+enum ApiPermission {
+  account_create
+  account_delete
+  account_list
+  account_membership_declineInvitation
+  account_membership_list
+  account_membership_quit
+  account_membership_view
+  account_notification_read
+  account_resetPassword
+  account_signIn
+  account_signUp
+  account_update
+  account_view
+  account_viewProfile
+  application_apiKey_create
+  application_apiKey_delete
+  application_create
+  application_delete
+  application_list
+  application_updateSettings
+  application_view
+  application_viewSettings
+  experience_archive
+  experience_create
+  experience_pause
+  experience_publish
+  experience_restore
+  experience_update
+  experience_updateDraft
+  experience_view
+  experiment_create
+  experiment_finish
+  experiment_pause
+  experiment_start
+  experiment_updateDraft
+  experiment_view
+  global_bypassTermAcceptance
+  global_viewRegisteredPlans
+  organization_acceptTerms
+  organization_create
+  organization_delete
+  organization_list
+  organization_member_invite
+  organization_member_remove
+  organization_member_update
+  organization_member_view
+  organization_setSubscription
+  organization_updateSettings
+  organization_view
+  organization_viewSettings
+  workspace_asset_upload
+  workspace_audience_create
+  workspace_audience_delete
+  workspace_audience_update
+  workspace_audience_view
+  workspace_component_create
+  workspace_component_delete
+  workspace_component_update
+  workspace_component_view
+  workspace_create
+  workspace_delete
+  workspace_list
+  workspace_locale_create
+  workspace_locale_delete
+  workspace_locale_update
+  workspace_locale_view
+  workspace_member_invite
+  workspace_member_remove
+  workspace_member_update
+  workspace_member_view
+  workspace_slot_create
+  workspace_slot_delete
+  workspace_slot_update
+  workspace_slot_view
+  workspace_updateSettings
+  workspace_view
+  workspace_viewExperience
+  workspace_viewSettings
+}
+
+interface Application implements Node {
+  apiKeys(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+
+    """Returns the first n elements from the list."""
+    first: Int!
+    searchTerm: String
+  ): ApiKeyConnection!
+  applicationStatus: ApplicationTrafficStatus!
+  capabilities: Capabilities!
+  creationTime: Instant!
+  environment: ApplicationEnvironment!
+  id: ID!
+  lastUpdateTime: Instant!
+  logo(
+    """Ensure the URL is always unique to prevent caching."""
+    noCache: Boolean! = false
+  ): String
+  name: String!
+  platform: Platform
+  publicId: PublicId!
+  self: Application!
+  settings: ApplicationSettings!
+  slug: ReadableId!
+  website: String!
+}
+
+type ApplicationConnection {
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-Edge-Types
+  """
+  edges: [ApplicationEdge]
+
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+  """
+  pageInfo: PageInfo!
+}
+
+type ApplicationContext {
+  creationDate: Instant!
+  name: String!
+  platform: Platform
+}
+
+type ApplicationEdge {
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Cursor"""
+  cursor: String!
+
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Node"""
+  node: Application
+}
+
+enum ApplicationEnvironment {
+  DEVELOPMENT
+  PRODUCTION
+}
+
+"""The ID that uniquely identifies the application."""
+scalar ApplicationId
+
+interface ApplicationSettings {
+  anonymityScope: AnonymityScope!
+  expirationPolicy: ExpirationPolicy!
+  maxTokenAge: Int!
+  requiresAuthentication: Boolean!
+  timeZone: TimeZone!
+  weekStart: Weekday!
+  weekends: [Weekday!]!
+}
+
+input ApplicationSettingsInput {
+  anonymityScope: AnonymityScope!
+  expirationPolicyMidnight: MidnightExpirationPolicyInput
+  expirationPolicyTimeout: TimeoutExpirationPolicyInput
+  expirationPolicyType: ExpirationPolicyType!
+  maxTokenAge: Int!
+  requiresAuthentication: Boolean!
+  timeZone: TimeZone!
+  weekStart: Weekday!
+  weekends: [Weekday!]!
+}
+
+enum ApplicationTrafficStatus {
+  """No traffic received yet"""
+  NEVER_RECEIVED_TRAFFIC
+
+  """No traffic received in the past 24 hours"""
+  NOT_RECEIVING_TRAFFIC
+
+  """Received traffic in the past 24 hours"""
+  RECEIVING_TRAFFIC
+}
+
+type Asset implements Node {
+  contentType: String!
+  creationTime: Instant!
+  id: ID!
+  lastUpdateTime: Instant!
+  metadata: JSONObject
+  name: String!
+  self: Asset!
+  size: Int!
+  workspaceId: WorkspaceId!
+}
+
+type Audience implements Node {
+  creationTime: Instant!
+  criteria: String!
+  customId: ReadableId!
+  experienceCount(inTest: Boolean): Int!
+  highestExperiencePriority: Int
+  id: ID!
+  lastUpdateTime: Instant!
+  name: String!
+  self: Audience!
+}
+
+type AudienceConnection {
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-Edge-Types
+  """
+  edges: [AudienceEdge]
+
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+  """
+  pageInfo: PageInfo!
+}
+
+type AudienceEdge {
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Cursor"""
+  cursor: String!
+
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Node"""
+  node: Audience
+}
+
+"""The ID that uniquely identifies the audience."""
+scalar AudienceId
+
+type AudioMetadata {
+  duration: Int!
+  format: String!
+  size: Float
+  target: String!
+  type: String!
+  url: String!
+}
+
+type AvailabilityCheck {
+  applicationName(applicationEnvironment: ApplicationEnvironment!, applicationName: String!, workspaceId: WorkspaceId!): Boolean!
+  applicationSlug(slug: ReadableId!, workspaceId: WorkspaceId!): Boolean!
+  audienceCustomId(customId: ReadableId!, workspaceId: WorkspaceId!): Boolean!
+  componentCustomId(customId: ReadableId!, workspaceId: WorkspaceId!): Boolean!
+  email(email: String!): Boolean!
+  organizationMember(memberEmail: String!, organizationId: OrganizationId!): Boolean!
+  organizationSlug(slug: ReadableId!): Boolean!
+  slotCustomId(customId: ReadableId!, workspaceId: WorkspaceId!): Boolean!
+  username(username: ReadableId!): Boolean!
+  workspaceMember(memberEmail: String!, workspaceId: WorkspaceId!): Boolean!
+  workspaceSlug(organizationId: OrganizationId!, slug: ReadableId!): Boolean!
+}
+
+interface AxisFormat {
+  """
+  This field is here to comply with GraphQL specification, it cannot be read.
+  """
+  _placeholder: Boolean!
+}
+
+type BarChart implements Chart {
+  colorProgression: ColorProgression!
+  colors: [Color!]!
+  data(
+    applicationId: ApplicationId
+    applicationSlug: ReadableId
+    experienceId: ExperienceId
+    experimentId: ExperimentId
+
+    """
+    Filters applied to the query. Some filters might be ignored by some queries.
+    """
+    filters: StringMap
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
+    timeWindow: TimeWindowInput
+
+    """
+    TimeZone to be used when calculating intervals when querying the dashboard data.
+    """
+    timeZone: String!
+    workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
+  ): ChartData!
+  divisionLabel: String!
+  divisionOrder: [String!]
+  groupMode: BarGroupMode
+  hideAxis: Boolean!
+  id: ID!
+  legendPlacement: ChartLegendPlacement
+  queryId: QueryId!
+  xAxisFormat: NumberFormat!
+  yAxisFormat: AxisFormat!
+}
+
+enum BarGroupMode {
+  grouped
+  stacked
+}
+
+type BarIndicator implements ColumnIndicator {
+  direction: TrendDirection
+  signed: Boolean!
+}
+
+type BuiltinComponentDefinition {
+  description: String
+  directReferences: [String!]!
+  id: String!
+  indirectReferences: [String!]!
+  maximumDepth: Int!
+  name: String!
+  nodeCount: Int!
+  referenceCount: Int!
+  type: String!
+}
+
+type Capabilities {
+  features(requiredFeatures: [Feature!]!): [Feature!]!
+  permissions(requiredPermissions: [ApiPermission!]): [ApiPermission!]!
+}
+
+interface Chart {
+  colorProgression: ColorProgression!
+  colors: [Color!]!
+  data(
+    applicationId: ApplicationId
+    applicationSlug: ReadableId
+    experienceId: ExperienceId
+    experimentId: ExperimentId
+
+    """
+    Filters applied to the query. Some filters might be ignored by some queries.
+    """
+    filters: StringMap
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
+    timeWindow: TimeWindowInput
+
+    """
+    TimeZone to be used when calculating intervals when querying the dashboard data.
+    """
+    timeZone: String!
+    workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
+  ): ChartData!
+  id: ID!
+  legendPlacement: ChartLegendPlacement
+  queryId: QueryId!
+}
+
+type ChartData {
+  datapoints: [ChartDatapoint!]!
+  id: ID!
+  resolution: ChartDataResolution!
+}
+
+enum ChartDataResolution {
+  DAY
+  HOUR
+  MINUTE
+  MONTH
+  NONE
+  SECOND
+  WEEK
+}
+
+type ChartDatapoint {
+  labels: StringMap!
+  timestamp: Instant!
+  value: Float!
+}
+
+enum ChartLegendPlacement {
+  bottom
+  none
+  right
+}
+
+type ChartWidget implements DashboardFilterable & Node & Widget {
+  chart: Chart!
+  custom: Boolean!
+  filterGroup(
+    applicationId: ApplicationId
+    applicationSlug: ReadableId
+    experienceId: ExperienceId
+    experimentId: ExperimentId
+
+    """
+    Filters applied to the query. Some filters might be ignored by some queries.
+    """
+    filters: StringMap
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
+    timeWindow: TimeWindowInput
+
+    """
+    TimeZone to be used when calculating intervals when querying the dashboard data.
+    """
+    timeZone: String!
+    workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
+  ): DashboardFilterGroup!
+  hideTitle: Boolean!
+  id: ID!
+  metrics: [Metric!]!
+  pollInterval: Int!
+  title: String!
+}
+
+"""
+Session was linked to an authentication process. The access token can be used on following requests to be authenticated as the user.
+"""
+type CloseSessionAccessGrantedResult {
+  """
+  JWT token to be used on following requests to be authenticated as the user.
+  """
+  accessToken: String!
+}
+
+"""Session is not associated with any user nor with any recovery process."""
+type CloseSessionPendingResult {
+  outcome: Void
+}
+
+"""
+Session was linked to a recovery process. The recovery token can be passed to the `resetPassword` mutation to set a new password for the user.
+"""
+type CloseSessionRecoveryGrantedResult {
+  """
+  Token to be used on the `resetPassword` mutation to set a new password for the user.
+  """
+  recoveryToken: String!
+}
+
+union CloseSessionResult = CloseSessionAccessGrantedResult | CloseSessionPendingResult | CloseSessionRecoveryGrantedResult
+
+enum Color {
+  BHASKARA
+  EUCLID
+  FIBONACCI
+  GERMAIN
+  HYPATIA
+  LOVELACE
+  NEWTON
+  NOETHER
+  NULLUS
+  PYTHAGORAS
+}
+
+enum ColorProgression {
+  hue
+  none
+  shade
+}
+
+interface ColumnIndicator {
+  direction: TrendDirection
+}
+
+type ColumnsChart implements Chart {
+  colorProgression: ColorProgression!
+  colors: [Color!]!
+  data(
+    applicationId: ApplicationId
+    applicationSlug: ReadableId
+    experienceId: ExperienceId
+    experimentId: ExperimentId
+
+    """
+    Filters applied to the query. Some filters might be ignored by some queries.
+    """
+    filters: StringMap
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
+    timeWindow: TimeWindowInput
+
+    """
+    TimeZone to be used when calculating intervals when querying the dashboard data.
+    """
+    timeZone: String!
+    workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
+  ): ChartData!
+  divisionLabel: String!
+  divisionOrder: [String!]
+  groupMode: BarGroupMode
+  hideAxis: Boolean!
+  id: ID!
+  legendPlacement: ChartLegendPlacement
+  queryId: QueryId!
+  xAxisFormat: AxisFormat!
+  yAxisFormat: NumberFormat!
+}
+
+input CompleteUploadPayload {
+  token: String!
+}
+
+type CompleteUploadResult {
+  url: String!
+}
+
+type Component implements Node {
+  backReferences: ComponentBackReferences!
+  creationTime: Instant!
+  customId: ReadableId!
+  definition(majorVersion: Int): ComponentDefinition!
+  dependentComponentCount: Int!
+  description: String
+  id: ID!
+  lastUpdateTime: Instant!
+
+  """
+  The maximum number of nodes that this component can have.
+  For unreferenced components, this is the same as the `nodesPerDefinition` quota. For components that are referenced, this is the maximum number of nodes that maintain all dependent components under the `nodesPerContent` quota.
+  """
+  maxNodes: Int!
+  name: String!
+  self: Component!
+  slotCount: Int!
+  workspaceId: WorkspaceId!
+}
+
+type ComponentBackReference {
+  component: Component
+  componentId: ComponentId!
+  componentMajorVersion: Int!
+}
+
+type ComponentBackReferences {
+  """All components that reference this component."""
+  all: [ComponentBackReference!]!
+
+  """
+  The components that most deeply reference this component.
+  If there are multiple components that reference this component at the same depth,
+  all of them will be returned.
+  """
+  deepestReferences: [ComponentBackReference!]!
+
+  """
+  How deep the deepest reference to this component is.
+  A component that is not referenced will have a maximum depth of 0.
+  """
+  maximumDepth: Int!
+}
+
+type ComponentConnection {
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-Edge-Types
+  """
+  edges: [ComponentEdge]
+
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+  """
+  pageInfo: PageInfo!
+}
+
+type ComponentDefinition implements Node {
+  contentJsonSchema(includeExpressionType: Boolean): JsonSchema!
+  creationTime: Instant!
+  definition: ContentDefinition!
+  id: ID!
+  metadata: ComponentMetadata!
+
+  """
+  A content definition excluding references in all its nested structures.
+  """
+  resolvedDefinition: ContentDefinition!
+  type: ComponentType!
+  version: Version!
+}
+
+type ComponentEdge {
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Cursor"""
+  cursor: String!
+
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Node"""
+  node: Component
+}
+
+"""The ID that uniquely identifies the component."""
+scalar ComponentId
+
+type ComponentMetadata {
+  directReferences: [String!]!
+  indirectReferences: [String!]!
+  maximumDepth: Int!
+  nodeCount: Int!
+  referenceCount: Int!
+  referenceMetadata: [ComponentReference!]!
+}
+
+type ComponentReference {
+  componentId: ComponentId!
+  definitionId: String!
+  referenceName: String!
+}
+
+enum ComponentType {
+  HYBRID
+  REGULAR
+}
+
+input ConfiguredOrganizationApplicationInput {
+  environment: ApplicationEnvironment!
+  logo: ImageData
+  name: String!
+  platform: Platform!
+  slug: ReadableId!
+  website: String!
+}
+
+input ConfiguredOrganizationExperienceContentInput {
+  default: ExperienceDefaultContentInput!
+  segmented: [ExperienceSegmentedContentInput!]!
+}
+
+input ConfiguredOrganizationExperienceInput {
+  audiences: [ReadableId!]!
+  content: ConfiguredOrganizationExperienceContentInput!
+  name: String!
+  publish: Boolean!
+  slots: [ReadableId!]!
+  validate: Boolean!
+}
+
+input ConfiguredOrganizationInput {
+  email: String!
+  logo: ImageData
+  name: String!
+  slug: ReadableId!
+  type: OrganizationType!
+  website: String
+}
+
+input ConfiguredOrganizationSlotInput {
+  component: ReadableId!
+  customId: ReadableId!
+  defaultContent: JSONObject!
+  name: String!
+}
+
+input ConfiguredOrganizationWorkspaceInput {
+  logo: ImageData
+  name: String!
+  slug: ReadableId!
+  website: String
+}
+
+type ContentAudience {
+  audienceId: AudienceId!
+}
+
+type ContentConstraints {
+  maximumListLength: Int!
+  maximumNodes: Int!
+  maximumStringLength: ContentMaximumStringLength!
+}
+
+"""A definition of a content model"""
+scalar ContentDefinition
+
+type ContentGroup {
+  contents: [SlotLocalizedContent!]!
+  groupId: String!
+}
+
+input ContentGroupInput {
+  contents: [SlotLocalizedContentInput!]!
+  id: String!
+}
+
+type ContentMaximumStringLength {
+  default: Int!
+  multiline: Int!
+  url: Int!
+}
+
+enum ContentTypes {
+  boolean
+  list
+  number
+  structure
+  text
+}
+
+type ContentVariant {
+  default: ContentGroup!
+  segmented: [SegmentedContentGroup!]!
+}
+
+input ContentVariantInput {
+  default: ContentGroupInput!
+  segmented: [SegmentedContentGroupInput!]!
+}
+
+type ContextData {
+  organization: OrganizationContext
+  user: UserContext
+}
+
+input ContextOverviewPayload {
+  applicationId: ApplicationId
+  experienceId: ExperienceId
+  experimentId: ExperimentId
+  organizationId: OrganizationId
+  workspaceId: WorkspaceId
+}
+
+input CreateApiKeyPayload {
+  name: String!
+  permissions: [ApiKeyPermission!]!
+}
+
+type CreateApiKeyResult {
+  apiKey: ApiKey!
+  apiKeyValue: String!
+}
+
+input CreateAudiencePayload {
+  criteria: String!
+  customId: ReadableId!
+  name: String!
+}
+
+input CreateComponentPayload {
+  customId: ReadableId!
+  definition: ContentDefinition!
+  description: String
+  name: String!
+}
+
+input CreateConfiguredOrganizationPayload {
+  acceptedTerms: Boolean!
+  applications: [ConfiguredOrganizationApplicationInput!]!
+  audiences: [CreateAudiencePayload!]!
+  components: [CreateComponentPayload!]!
+  email: String
+  experiences: [ConfiguredOrganizationExperienceInput!]!
+  locale: String!
+  organization: ConfiguredOrganizationInput!
+  redirectUrl: String
+  slots: [ConfiguredOrganizationSlotInput!]!
+  timeZone: TimeZone!
+  workspace: ConfiguredOrganizationWorkspaceInput!
+}
+
+type CreateConfiguredOrganizationResult {
+  applications: [Application!]!
+  organization: Organization!
+  workspace: Workspace!
+}
+
+type CreateCreateWorkspaceResourceResult {
+  audiences: [AudienceId!]!
+  components: [ComponentId!]!
+  experiences: [WorkspaceResourceExperienceResult!]!
+  slots: [SlotId!]!
+}
+
+input CreateExperienceDraftPayload {
+  name: String!
+}
+
+input CreateExperimentDraftPayload {
+  experienceId: ExperienceId!
+  name: String!
+}
+
+input CreateOrganizationPayload {
+  email: String!
+  logo: ImageData
+  name: String!
+  slug: ReadableId!
+  termsOfServiceAccepted: Boolean! = false
+  type: OrganizationType!
+  website: String
+}
+
+input CreateSlotPayload {
+  componentId: ComponentId!
+  customId: ReadableId!
+  defaultContent: [LocalizedContentInput!]!
+  name: String!
+}
+
+input CreateWebApplicationPayload {
+  environment: ApplicationEnvironment!
+  logo: ImageData
+  name: String!
+  platform: Platform
+  slug: ReadableId!
+  timeZone: TimeZone
+  website: String!
+}
+
+input CreateWorkspacePayload {
+  defaultLocale: String!
+  logo: ImageData
+  name: String!
+  slug: ReadableId!
+  timeZone: TimeZone!
+  website: String
+}
+
+input CreateWorkspaceResourceExperienceInput {
+  audiences: [ReadableId!]!
+  content: WorkspaceResourcesExperienceContentInput!
+  experiment: CreateWorkspaceResourceExperimentInput
+  name: String!
+  publish: Boolean!
+  slots: [ReadableId!]!
+  validate: Boolean!
+}
+
+input CreateWorkspaceResourceExperimentInput {
+  crossDevice: Boolean!
+  goalId: String
+  name: String!
+  traffic: Int!
+  variants: [CreateWorkspaceResourceExperimentVariantInput!]!
+}
+
+input CreateWorkspaceResourceExperimentVariantInput {
+  allocation: Int!
+  baseline: Boolean!
+  content: WorkspaceResourcesExperienceContentInput!
+  id: VariantId!
+  name: String!
+}
+
+input CreateWorkspaceResourcePayload {
+  audiences: [CreateAudiencePayload!]!
+  components: [CreateComponentPayload!]!
+  experiences: [CreateWorkspaceResourceExperienceInput!]!
+  slots: [WorkspaceResourcesSlotInput!]!
+}
+
+type CurrencyNumberFormat implements NumberFormat {
+  currencyLabel: String!
+  maximumFractionDigits: Int!
+  minimumFractionDigits: Int!
+}
+
+type Dashboard implements DashboardFilterable & Node {
+  defaultTimeWindow: TimeWindow
+  filterGroup(
+    applicationId: ApplicationId
+    applicationSlug: ReadableId
+    experienceId: ExperienceId
+    experimentId: ExperimentId
+
+    """
+    Filters applied to the query. Some filters might be ignored by some queries.
+    """
+    filters: StringMap
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
+    timeWindow: TimeWindowInput
+
+    """
+    TimeZone to be used when calculating intervals when querying the dashboard data.
+    """
+    timeZone: String!
+    workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
+  ): DashboardFilterGroup!
+  id: ID!
+  layout: DashboardLayout!
+  widgets: [Widget!]!
+}
+
+type DashboardContext {
+  applicationId: ApplicationId
+  currentFilters: StringMap!
+  experienceId: ExperienceId
+  experimentId: ExperimentId
+  id: ID!
+  organizationId: OrganizationId!
+  timeWindow: TimeWindow
+  timeZone: String!
+  workspaceId: WorkspaceId
+}
+
+type DashboardFilter {
+  defaultValue: String
+  id: ID!
+  label: String!
+  optional: Boolean!
+  options: [KeyValue!]!
+  queryId: QueryId
+}
+
+type DashboardFilterGroup {
+  context: DashboardContext!
+  filters: [DashboardFilter!]!
+}
+
+interface DashboardFilterable implements Node {
+  filterGroup(
+    applicationId: ApplicationId
+    applicationSlug: ReadableId
+    experienceId: ExperienceId
+    experimentId: ExperimentId
+
+    """
+    Filters applied to the query. Some filters might be ignored by some queries.
+    """
+    filters: StringMap
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
+    timeWindow: TimeWindowInput
+
+    """
+    TimeZone to be used when calculating intervals when querying the dashboard data.
+    """
+    timeZone: String!
+    workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
+  ): DashboardFilterGroup!
+  id: ID!
+}
+
+"""The ID that uniquely identifies a dashboard."""
+scalar DashboardId
+
+type DashboardLayout {
+  lg: [WidgetPlacement!]!
+  md: [WidgetPlacement!]!
+  sm: [WidgetPlacement!]!
+}
+
+type DefinitionConstraints {
+  allowedFileTypes: [AllowedFileTypes!]!
+  attributeNamePattern: String!
+  fileMaximumSize: Int!
+  maximumAttributeDescriptionLength: Int!
+  maximumAttributeLabelLength: Int!
+  maximumAttributeNameLength: Int!
+  maximumAttributesPerStructure: Int!
+  maximumBooleanLabelLength: Int!
+  maximumChoiceDescriptionLength: Int!
+  maximumChoiceLabelLength: Int!
+  maximumChoiceValueLength: Int!
+  maximumChoices: Int!
+  maximumDepth: Int!
+  maximumItemLabelLength: Int!
+  maximumListLength: Int!
+  maximumNodes: Int!
+  maximumPatternLength: Int!
+  maximumReferences: Int!
+  maximumStringLength: Int!
+  maximumUnionCardinality: Int!
+  minimumAttributeNameLength: Int!
+}
+
+type DeleteComponentOutput {
+  id: ID!
+  references: [Component!]!
+}
+
+input DelocalizedContentInput {
+  content: JSONObject!
+  slot: ReadableId!
+}
+
+type DiscardExperienceDraftResult {
+  """
+  The ID of the deleted resource. Refer either to an Experience or and ExperienceDraft.
+  """
+  deletedResourceId: ID!
+
+  """
+  The Experience associated with the discarded draft. When the Experience itself is deleted, this field is null.
+  """
+  experience: Experience
+}
+
+type DiscardExperimentDraftResult {
+  """
+  The ID of the deleted resource. Refer either to an Experiment or and ExperimentDraft.
+  """
+  deletedResourceId: ID!
+
+  """
+  The Experiment associated with the discarded draft. When the Experiment itself is deleted, this field is null.
+  """
+  experiment: Experiment
+}
+
+type DonutChart implements Chart {
+  categoryLabel: String!
+  colorProgression: ColorProgression!
+  colors: [Color!]!
+  data(
+    applicationId: ApplicationId
+    applicationSlug: ReadableId
+    experienceId: ExperienceId
+    experimentId: ExperimentId
+
+    """
+    Filters applied to the query. Some filters might be ignored by some queries.
+    """
+    filters: StringMap
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
+    timeWindow: TimeWindowInput
+
+    """
+    TimeZone to be used when calculating intervals when querying the dashboard data.
+    """
+    timeZone: String!
+    workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
+  ): ChartData!
+  id: ID!
+  legendPlacement: ChartLegendPlacement
+  numberFormat: PlainNumberFormat!
+  percentageFormat: PercentageNumberFormat!
+  queryId: QueryId!
+}
+
+type Experience implements Node {
+  creationTime: Instant!
+  currentExperiment(excludeDraft: Boolean! = false): Experiment
+  draft(scheduled: Boolean! = false): ExperienceDraft
+  endTime: LocalDateTime
+  experiment(id: ExperimentId): Experiment
+  experimentCount: Int!
+  experiments(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+
+    """Returns the first n elements from the list."""
+    first: Int!
+  ): ExperimentConnection!
+  hasExperiments: Boolean!
+  id: ID!
+  lastEditor(scheduled: Boolean! = false): User
+  lastUpdateTime(scheduled: Boolean! = false): Instant!
+  name: String!
+  priority: Int
+  revision: String!
+  scheduledSettings: ExperienceSettings
+  self: Experience!
+  settings: ExperienceSettings
+  startTime: LocalDateTime
+  status: ExperienceStatus!
+  testing: Boolean!
+  timeZone: TimeZone!
+  useUserTimeZone: Boolean!
+}
+
+input ExperienceAudienceInput {
+  id: AudienceId!
+}
+
+type ExperienceConnection {
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-Edge-Types
+  """
+  edges: [ExperienceEdge]
+
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+  """
+  pageInfo: PageInfo!
+}
+
+type ExperienceContext {
+  audienceCount: Int!
+  currentExperimentName: String
+  currentExperimentStatus: ExperimentStatus
+  experiment: ExperimentContext
+  name: String!
+  status: ExperienceStatus!
+}
+
+input ExperienceDefaultContentInput {
+  contents: [DelocalizedContentInput!]!
+  id: String!
+}
+
+type ExperienceDraft implements Node {
+  audiences: [Audience!]!
+  content: ContentVariant
+  endTime: LocalDateTime
+  experiment: ExperienceExperimentDraft
+  id: ID!
+  name: String
+  priority: Int
+  publishTime: LocalDateTime!
+  slots: [ExperienceSlot!]!
+  startTime: LocalDateTime
+  timeZone: TimeZone
+  useUserTimeZone: Boolean
+}
+
+type ExperienceEdge {
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Cursor"""
+  cursor: String!
+
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Node"""
+  node: Experience
+}
+
+type ExperienceExperimentDraft {
+  crossDevice: Boolean
+  goalId: String
+  name: String
+  traffic: Float
+  variants: [VariantDraft!]
+}
+
+"""The ID that uniquely identifies the experience."""
+scalar ExperienceId
+
+input ExperienceOptionsDraftInput {
+  endTime: LocalDateTime
+  priority: Int
+  startTime: LocalDateTime
+  timeZone: TimeZone!
+  useUserTimeZone: Boolean!
+}
+
+input ExperienceOptionsInput {
+  endTime: LocalDateTime
+  priority: Int!
+  publishTime: LocalDateTime
+  timeZone: TimeZone!
+  useUserTimeZone: Boolean! = false
+}
+
+enum ExperiencePreviewScope {
+  EXPERIENCE_DRAFT
+  EXPERIMENT_DRAFT
+  PUBLISHED_CONTENT
+  SLOT_DEFAULT_CONTENT
+}
+
+"""An experience revision."""
+scalar ExperienceRevisionId
+
+input ExperienceSegmentedContentInput {
+  audiences: [ReadableId!]!
+  contents: [DelocalizedContentInput!]!
+  id: String!
+}
+
+type ExperienceSettings {
+  audiences: [Audience!]
+  content: ContentVariant!
+  creationTime: Instant!
+  experienceId: ExperienceId!
+  lastUpdateTime: Instant!
+  publishTime: LocalDateTime!
+  slots: [ExperienceSlot!]!
+}
+
+type ExperienceSlot {
+  slot: Slot
+  slotContent: SlotContent!
+  slotId: SlotId!
+  version: Version!
+}
+
+input ExperienceSlotInput {
+  id: SlotId!
+  version: Int!
+}
+
+enum ExperienceStatus {
+  ACTIVE
+  ARCHIVED
+  DRAFT
+  PAUSED
+  SCHEDULED
+}
+
+type Experiment implements Node {
+  creationTime: Instant!
+  crossDevice: Boolean!
+  draft: ExperimentDraft
+  endTime: Instant
+  goalId: String
+  id: ID!
+  lastEditor: User
+  lastUpdateTime: Instant!
+  name: String!
+  revision: Int!
+  self: Experiment!
+  startTime: Instant
+  status: ExperimentStatus!
+  traffic: Float!
+  variants: [Variant!]!
+  winner: WinnerVariant
+  winnerVariant: Variant
+}
+
+type ExperimentConnection {
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-Edge-Types
+  """
+  edges: [ExperimentEdge]
+
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+  """
+  pageInfo: PageInfo!
+}
+
+type ExperimentContext {
+  name: String!
+  status: ExperimentStatus!
+  variantCount: Int!
+}
+
+type ExperimentDraft implements Node {
+  crossDevice: Boolean
+  goalId: String
+  id: ID!
+  name: String
+  traffic: Float
+  variants: [VariantDraft!]
+}
+
+input ExperimentDraftInput {
+  crossDevice: Boolean!
+  goalId: String
+  name: String!
+  traffic: Float!
+  variants: [VariantDraftInput!]!
+}
+
+type ExperimentEdge {
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Cursor"""
+  cursor: String!
+
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Node"""
+  node: Experiment
+}
+
+"""The ID that uniquely identifies the experiment."""
+scalar ExperimentId
+
+input ExperimentInput {
+  crossDevice: Boolean!
+  goalId: String
+  name: String!
+  traffic: Float!
+  variants: [ExperimentVariantInput!]!
+}
+
+enum ExperimentStatus {
+  ACTIVE
+  DRAFT
+  FINISHED
+  INDIRECTLY_PAUSED
+  PAUSED
+  SCHEDULED
+}
+
+input ExperimentVariantInput {
+  allocation: Int!
+  baseline: Boolean!
+  content: ContentVariantInput!
+  id: VariantId!
+  name: String!
+}
+
+enum Expertise {
+  DESIGN
+  ENGINEERING
+  MARKETING
+  OTHER
+  PRODUCT
+}
+
+union ExpirationPolicy = MidnightExpirationPolicy | TimeoutExpirationPolicy
+
+enum ExpirationPolicyType {
+  MIDNIGHT
+  TIMEOUT
+}
+
+enum Feature {
+  API_DATA_EXPORT
+  CROSS_DEVICE_EXPERIMENT
+  EXPERIMENT
+  LOCATION
+  PMS
+  SCHEDULING
+}
+
+type FileMetadata {
+  format: String!
+  size: Float
+  target: String!
+  type: String!
+  url: String!
+}
+
+enum FrameTimeWindowEnum {
+  FULL
+}
+
+input FrameTimeWindowInput {
+  window: FrameTimeWindowEnum!
+}
+
+type FrameTimeWindowObject {
+  end: LocalDate
+  start: LocalDate
+  window: FrameTimeWindowEnum!
+}
+
+input GenerateTypingPayload {
+  components: [VersionSpecifier!]!
+  slots: [VersionSpecifier!]!
+  target: TargetSdk!
+}
+
+type GeographicTableColumn implements TableColumn {
+  city: String
+  country: String!
+  hint: Tooltip
+  region: String
+  title: String!
+}
+
+"""A base64 encoded image data."""
+scalar ImageData
+
+type ImageMetadata {
+  format: String!
+  height: Int!
+  size: Float
+  target: String!
+  type: String!
+  url: String!
+  width: Int!
+}
+
+type IndexTableRowMarker implements TableRowMarker {
+  """
+  This field is here to comply with GraphQL specification, it cannot be read.
+  """
+  _placeholder: Boolean!
+}
+
+"""Instant in milliseconds since Unix epoch"""
+scalar Instant
+
+type Invitation {
+  id: ID!
+  invitationTime: Instant!
+  organization: Organization!
+  replyTime: Instant
+  self: Invitation!
+  status: InvitationStatus!
+}
+
+type InvitationEdge {
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Cursor"""
+  cursor: String!
+
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Node"""
+  node: Invitation
+}
+
+"""The ID that uniquely identifies the invitation."""
+scalar InvitationId
+
+type InvitationNotification implements Notification {
+  id: ID!
+  invitation: Invitation
+  inviter: User
+  read: Boolean!
+  timestamp: Instant!
+}
+
+enum InvitationStatus {
+  ACCEPTED
+  CANCELED
+  DECLINED
+  PENDING
+}
+
+input InviteOrganizationMemberPayload {
+  email: String!
+  permissions: [ApiPermission!]
+  redirectUrl: String
+  role: OrganizationRole!
+}
+
+input InviteWorkspaceMemberPayload {
+  email: String!
+  permissions: [ApiPermission!]
+  role: WorkspaceRole!
+}
+
+type IssueExperiencePreviewTokenResult {
+  token: String!
+}
+
+input IssueTokenPayload {
+  duration: Int!
+}
+
+"""
+The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSONObject @specifiedBy(url: "http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf")
+
+"""
+The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JsonSchema @specifiedBy(url: "http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf")
+
+type KeyValue {
+  key: String!
+  value: String!
+}
+
+type KeyValueConnection {
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-Edge-Types
+  """
+  edges: [KeyValueEdge]
+
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+  """
+  pageInfo: PageInfo!
+}
+
+type KeyValueEdge {
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Cursor"""
+  cursor: String!
+
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Node"""
+  node: KeyValue
+}
+
+type LeaveOrganizationResult {
+  organization: ID!
+  organizationMembership: ID
+  workspaceMembership: [ID!]!
+}
+
+type LineChart implements Chart {
+  colorProgression: ColorProgression!
+  colors: [Color!]!
+  data(
+    applicationId: ApplicationId
+    applicationSlug: ReadableId
+    experienceId: ExperienceId
+    experimentId: ExperimentId
+
+    """
+    Filters applied to the query. Some filters might be ignored by some queries.
+    """
+    filters: StringMap
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
+    timeWindow: TimeWindowInput
+
+    """
+    TimeZone to be used when calculating intervals when querying the dashboard data.
+    """
+    timeZone: String!
+    workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
+  ): ChartData!
+  filledArea: Boolean!
+  hideAxis: Boolean!
+  id: ID!
+  legendPlacement: ChartLegendPlacement
+  queryId: QueryId!
+  seriesLabel: String!
+  seriesOrder: [String!]
+  seriesOverride: [LineSeriesConfiguration!]
+  stacked: Boolean!
+  xAxisFormat: AxisFormat!
+  yAxisFormat: NumberFormat!
+}
+
+type LineSeriesConfiguration {
+  labelValue: String!
+  lineStyle: LineSeriesStyle
+}
+
+enum LineSeriesStyle {
+  dotted
+  solid
+}
+
+"""A local date"""
+scalar LocalDate
+
+"""A local date-time"""
+scalar LocalDateTime
+
+type Locale implements Node {
+  code: String!
+  creationTime: Instant!
+  id: ID!
+  lastUpdateTime: Instant!
+  required: Boolean!
+  self: Locale!
+}
+
+type LocaleConnection {
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-Edge-Types
+  """
+  edges: [LocaleEdge]
+
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+  """
+  pageInfo: PageInfo!
+}
+
+type LocaleEdge {
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Cursor"""
+  cursor: String!
+
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Node"""
+  node: Locale
+}
+
+type LocalizedContent {
+  content: JSONObject!
+  locale: String!
+}
+
+input LocalizedContentInput {
+  content: JSONObject!
+  locale: String!
+}
+
+type LocalizedStaticContent {
+  content: JSONObject!
+  locale: String!
+}
+
+input MarkNotificationsAsReadPayload {
+  notifications: [NotificationId!]!
+}
+
+type Metric {
+  comparison: MetricComparison
+  data(
+    applicationId: ApplicationId
+    applicationSlug: ReadableId
+    experienceId: ExperienceId
+    experimentId: ExperimentId
+
+    """
+    Filters applied to the query. Some filters might be ignored by some queries.
+    """
+    filters: StringMap
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
+    timeWindow: TimeWindowInput
+
+    """
+    TimeZone to be used when calculating intervals when querying the dashboard data.
+    """
+    timeZone: String!
+    workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
+  ): MetricData!
+  format: NumberFormat!
+  hint: Tooltip
+  id: ID!
+  label: String!
+  queryId: QueryId!
+}
+
+type MetricComparison {
+  description: String!
+  direction: TrendDirection!
+  format: NumberFormat!
+}
+
+type MetricData {
+  comparisonValue: Float
+  id: ID!
+  labels: StringMap!
+  mainValue: Float
+  snapshotTime: Instant!
+}
+
+type MetricWidget implements DashboardFilterable & Node & Widget {
+  backgroundChart: Chart
+  custom: Boolean!
+  filterGroup(
+    applicationId: ApplicationId
+    applicationSlug: ReadableId
+    experienceId: ExperienceId
+    experimentId: ExperimentId
+
+    """
+    Filters applied to the query. Some filters might be ignored by some queries.
+    """
+    filters: StringMap
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
+    timeWindow: TimeWindowInput
+
+    """
+    TimeZone to be used when calculating intervals when querying the dashboard data.
+    """
+    timeZone: String!
+    workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
+  ): DashboardFilterGroup!
+  hideTitle: Boolean!
+  id: ID!
+  metric: Metric!
+  orientation: WidgetOrientation!
+  pollInterval: Int!
+  title: String!
+}
+
+type MidnightExpirationPolicy {
+  timezone: String!
+}
+
+input MidnightExpirationPolicyInput {
+  timezone: String!
+}
+
+type MigrateWorkspaceLocaleResult {
+  locale: Locale!
+  workspace: Workspace!
+}
+
+type Mutation {
+  acceptInvitation(invitationId: InvitationId!): Invitation!
+  acceptOrganizationTermsOfService(organizationId: OrganizationId!): Organization!
+  addTrustedOrigin(applicationId: ApplicationId!, origin: TrustedOriginInput!): TrustedOrigin!
+  addWorkspaceLocale(payload: AddWorkspaceLocalesPayload!, workspaceId: WorkspaceId!): Locale!
+  archiveExperience(experienceId: ExperienceId!, workspaceId: WorkspaceId!): Experience!
+  cancelUserEmailChange: UserAccount!
+  changePassword(newPassword: String!, oldPassword: String!, userId: UserId): String!
+
+  """Issue a token for authenticating a session"""
+  closeSession(sessionId: UserSessionId!): CloseSessionResult!
+  completeUpload(payload: CompleteUploadPayload!, workspaceId: WorkspaceId!): CompleteUploadResult!
+  createApiKey(applicationId: ApplicationId!, payload: CreateApiKeyPayload!): CreateApiKeyResult!
+  createAudience(payload: CreateAudiencePayload!, workspaceId: WorkspaceId!): Audience!
+  createComponent(payload: CreateComponentPayload!, workspaceId: WorkspaceId!): Component!
+  createConfiguredOrganization(payload: CreateConfiguredOrganizationPayload!): CreateConfiguredOrganizationResult!
+  createExperienceDraft(payload: CreateExperienceDraftPayload!, workspaceId: WorkspaceId!): Experience!
+  createExperimentDraft(payload: CreateExperimentDraftPayload!, workspaceId: WorkspaceId!): Experiment!
+  createOrganization(payload: CreateOrganizationPayload!): Organization!
+
+  """Create a new session"""
+  createSession(
+    """
+    The destination URL to redirect to after authentication. If not provided, the user will be redirected to the default location.
+    """
+    redirectDestination: String
+  ): UserSessionId!
+  createSlot(payload: CreateSlotPayload!, workspaceId: WorkspaceId!): Slot!
+  createWebApplication(payload: CreateWebApplicationPayload!, workspaceId: WorkspaceId!): WebApplication!
+  createWorkspace(organizationId: OrganizationId!, payload: CreateWorkspacePayload!): Workspace!
+  createWorkspaceResources(payload: CreateWorkspaceResourcePayload!, workspaceId: WorkspaceId!): CreateCreateWorkspaceResourceResult!
+  declineInvitation(invitationId: InvitationId!): Invitation!
+  deleteApiKey(apiKey: ApiKeyId!, applicationId: ApplicationId!, password: String!): ID!
+  deleteApplication(applicationId: ApplicationId!, password: String!): ID!
+  deleteAudience(audienceId: AudienceId!, workspaceId: WorkspaceId!): ID!
+  deleteComponent(componentId: ComponentId!, workspaceId: WorkspaceId!): DeleteComponentOutput!
+  deleteExperienceSchedule(experienceId: ExperienceId!, moveToDraft: Boolean! = false, pause: Boolean! = false, workspaceId: WorkspaceId!): Experience!
+  deleteOrganization(organizationId: OrganizationId!, password: String!): ID!
+  deleteSlot(slotId: SlotId!, workspaceId: WorkspaceId!): ID!
+  deleteUserAccount(password: String!): Viewer!
+  deleteWorkspace(password: String!, workspaceId: WorkspaceId!): ID!
+  discardExperienceDraft(experienceId: ExperienceId!, publishTime: LocalDateTime, revision: ExperienceRevisionId!, workspaceId: WorkspaceId!): DiscardExperienceDraftResult!
+  discardExperimentDraft(experienceId: ExperienceId!, revision: Int!, workspaceId: WorkspaceId!): DiscardExperimentDraftResult!
+  finishExperiment(experienceContent: VariantId, experienceId: ExperienceId!, experimentId: ExperimentId!, winnerVariant: VariantId, workspaceId: WorkspaceId!): Experiment!
+  generateTyping(payload: GenerateTypingPayload!, workspaceId: WorkspaceId!): String!
+  inviteOrganizationMember(organizationId: OrganizationId!, payload: InviteOrganizationMemberPayload!): OrganizationMembership!
+  inviteWorkspaceMember(payload: InviteWorkspaceMemberPayload!, workspaceId: WorkspaceId!): WorkspaceMembership!
+  issueExperiencePreviewToken(audienceId: AudienceId, experienceId: ExperienceId!, locale: String, previewMode: ExperiencePreviewScope!, publishTime: LocalDateTime, variantId: VariantId, workspaceId: WorkspaceId!): IssueExperiencePreviewTokenResult!
+  issueToken(payload: IssueTokenPayload!): String!
+  leaveOrganization(organizationId: OrganizationId!): LeaveOrganizationResult!
+  markAllNotificationsAsRead: [Notification!]!
+  markNotificationsAsRead(payload: MarkNotificationsAsReadPayload!): [Notification!]!
+  migrateWorkspaceLocale(code: String!, newCode: String!, workspaceId: WorkspaceId!): MigrateWorkspaceLocaleResult!
+  pauseExperience(experienceId: ExperienceId!, workspaceId: WorkspaceId!): Experience!
+  pauseExperiment(experienceId: ExperienceId!, experimentId: ExperimentId!, workspaceId: WorkspaceId!): Experiment!
+  prepareUpload(payload: PrepareUploadPayload!, workspaceId: WorkspaceId!): PrepareUploadResult!
+  reactivateOrganizationMembership(id: OrganizationMembershipId!, organizationId: OrganizationId!): OrganizationMembership!
+  removeApplicationLogo(applicationId: ApplicationId!): Application!
+  removeOrganizationLogo(organizationId: OrganizationId!): Organization!
+  removeOrganizationMember(id: OrganizationMembershipId!, organizationId: OrganizationId!): ID!
+  removeTrustedOrigin(applicationId: ApplicationId!, id: OriginId!): ID!
+  removeUserAvatar: User!
+  removeWorkspaceLocale(code: String!, workspaceId: WorkspaceId!): ID!
+  removeWorkspaceLogo(workspaceId: WorkspaceId!): Workspace!
+  removeWorkspaceMember(id: WorkspaceMembershipId!, workspaceId: WorkspaceId!): ID!
+  renameApiKey(apiKey: ApiKeyId!, applicationId: ApplicationId!, newName: String!): ApiKey!
+  renameExperience(experienceId: ExperienceId!, newName: String!, workspaceId: WorkspaceId!): Experience!
+  renameExperiment(experienceId: ExperienceId!, experimentId: ExperimentId!, newName: String!, workspaceId: WorkspaceId!): Experiment!
+  rescheduleExperience(experienceId: ExperienceId!, newPublishTime: LocalDateTime!, workspaceId: WorkspaceId!): Experience!
+  resetPassword(payload: ResetPasswordPayload!): Viewer!
+  restoreExperience(experienceId: ExperienceId!, workspaceId: WorkspaceId!): Experience!
+  resumeExperience(experienceId: ExperienceId!, workspaceId: WorkspaceId!): Experience!
+  resumeExperiment(experienceId: ExperienceId!, experimentId: ExperimentId!, workspaceId: WorkspaceId!): Experiment!
+  retry: RetryMutation!
+  saveExperienceDraft(payload: SaveExperienceDraftPayload!, workspaceId: WorkspaceId!): Experience!
+  saveExperimentDraft(payload: SaveExperimentDraftPayload!, workspaceId: WorkspaceId!): Experiment!
+
+  """
+  Send a password reset link to the user associated with the specified email.
+  """
+  sendMeResetLink: String!
+
+  """
+  Send a password reset link to the user associated with the specified email.
+  """
+  sendResetLink(email: String!, sessionId: UserSessionId): String!
+  signIn(payload: SignInPayload!): Viewer!
+  signOut: Viewer!
+  signUp(payload: SignUpPayload!): SignUpResult!
+  suspendOrganizationMembership(id: OrganizationMembershipId!, organizationId: OrganizationId!): OrganizationMembership!
+  updateApplication(applicationId: ApplicationId!, payload: UpdateApplicationPayload!): Application!
+  updateApplicationLogo(applicationId: ApplicationId!, logo: ImageData!): Application!
+  updateApplicationTokenRequirement(applicationId: ApplicationId!, password: String!, requireAuthenticationToken: Boolean!): Application!
+  updateAudience(payload: UpdateAudiencePayload!, workspaceId: WorkspaceId!): Audience!
+  updateComponent(payload: UpdateComponentPayload!, workspaceId: WorkspaceId!): UpdateComponentResult!
+  updateExperience(payload: UpdateExperiencePayload!, workspaceId: WorkspaceId!): Experience!
+  updateExperiment(payload: UpdateExperimentPayload!, workspaceId: WorkspaceId!): Experiment!
+  updateOnboardingStatus(payload: UpdateOnboardingStatusPayload!): UserAccount!
+  updateOrganization(organizationId: OrganizationId!, payload: UpdateOrganizationPayload!): Organization!
+  updateOrganizationLogo(logo: ImageData!, organizationId: OrganizationId!): Organization!
+  updateOrganizationMemberPermission(organizationId: OrganizationId!, payload: UpdateOrganizationMemberPermissionPayload!): OrganizationMembership!
+  updateOrganizationSubscription(allowOverage: Boolean, customization: UpdateOrganizationSubscriptionPayload, organizationId: OrganizationId!, plan: String!): OrganizationSubscription!
+  updateSlot(payload: UpdateSlotPayload!, workspaceId: WorkspaceId!): Slot!
+  updateTrustedOrigin(allowInsecureProtocol: Boolean, allowSubdomains: Boolean, applicationId: ApplicationId!, id: OriginId!): TrustedOrigin!
+  updateUserAccount(currentPassword: String, payload: UpdateUserAccountPayload!): UserAccount!
+  updateUserAvatar(avatar: ImageData!): User!
+  updateWorkspace(payload: UpdateWorkspacePayload!, workspaceId: WorkspaceId!): Workspace!
+  updateWorkspaceDefaultLocale(defaultLocale: String!, workspaceId: WorkspaceId!): Workspace!
+  updateWorkspaceLocale(payload: UpdateWorkspaceLocalePayload!, workspaceId: WorkspaceId!): UpdateWorkspaceLocaleResult!
+  updateWorkspaceLogo(logo: ImageData!, workspaceId: WorkspaceId!): Workspace!
+  updateWorkspaceMemberPermission(payload: UpdateWorkspaceMemberPermissionPayload!, workspaceId: WorkspaceId!): WorkspaceMembership!
+}
+
+interface Node {
+  id: ID!
+}
+
+type NonConsumableQuotas {
+  audiencesPerExperience: Int!
+  dynamicAttributesPerContent: Int!
+  nodesPerContent: Int!
+  nodesPerDefinition: Int!
+}
+
+"""An arbitrary map of strings"""
+scalar NonNullStringMap
+
+interface Notification {
+  id: ID!
+  read: Boolean!
+  timestamp: Instant!
+}
+
+type NotificationEdge {
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Cursor"""
+  cursor: String!
+
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Node"""
+  node: Notification
+}
+
+"""The ID that uniquely identifies the notification."""
+scalar NotificationId
+
+enum NotificationType {
+  INVITATION
+  WELCOME
+  WORKSPACE_ACCESS_GRANTED
+}
+
+type NumberAxisFormat implements AxisFormat {
+  """
+  This field is here to comply with GraphQL specification, it cannot be read.
+  """
+  _placeholder: Boolean!
+  format: NumberFormat!
+  label: String!
+}
+
+interface NumberFormat {
+  maximumFractionDigits: Int!
+  minimumFractionDigits: Int!
+}
+
+type NumericTableColumn implements TableColumn {
+  format: NumberFormat!
+  hint: Tooltip
+  indicator: ColumnIndicator
+  prefix: String
+  suffix: String
+  title: String!
+}
+
+enum OnboardingStatus {
+  ABSENT
+  BYPASSED
+  COMPLETED
+  DONE
+  INITIATED
+  SKIPPED
+  UNINITIALIZED
+}
+
+type Organization implements Node {
+  canManage(permissions: [ApiPermission!], role: OrganizationRole!): Boolean!
+  capabilities: Capabilities!
+  creationTime: Instant!
+  email: String!
+  id: ID!
+  lastUpdateTime: Instant!
+  logo(
+    """Ensure the URL is always unique to prevent caching."""
+    noCache: Boolean! = false
+  ): String
+  memberCount(role: OrganizationRole, status: OrganizationMembershipStatus): Int!
+  members(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+
+    """Returns the first n elements from the list."""
+    first: Int!
+    searchTerm: String
+  ): OrganizationMembershipConnection!
+  name: String!
+  quotas: OrganizationQuotas!
+  self: Organization!
+  slug: ReadableId!
+  subscription: OrganizationSubscription
+  termsOfServiceAcceptance: TermAcceptance
+  type: OrganizationType!
+  viewerRole: OrganizationRole
+  website: String
+  workspace(slug: ReadableId): Workspace
+  workspaceCount: Int!
+  workspaces(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+
+    """Returns the first n elements from the list."""
+    first: Int!
+    pinnedIds: [WorkspaceId!]
+    searchTerm: String
+  ): WorkspaceConnection!
+}
+
+type OrganizationConnection {
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-Edge-Types
+  """
+  edges: [OrganizationEdge]
+
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+  """
+  pageInfo: PageInfo!
+}
+
+type OrganizationConsumableQuotas {
+  monthlyActiveUsers: QuotaUsage!
+  workspaces: QuotaUsage!
+}
+
+type OrganizationContext {
+  consumableQuotas: OrganizationConsumableQuotas!
+  creationDate: Instant!
+  features: [Feature!]!
+  membershipCount: Int!
+  name: String!
+  nonConsumableQuotas: NonConsumableQuotas!
+  plan: String!
+  role: OrganizationRole
+  slug: String!
+  workspace: WorkspaceContext
+  workspaceCount: Int!
+}
+
+type OrganizationEdge {
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Cursor"""
+  cursor: String!
+
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Node"""
+  node: Organization
+}
+
+"""The ID that uniquely identifies the organization."""
+scalar OrganizationId
+
+type OrganizationMembership {
+  id: ID!
+  invitationEmail: String
+  organization: Organization!
+  permissions: [ApiPermission!]
+  role: OrganizationRole!
+  self: OrganizationMembership!
+  since: Instant!
+  status: OrganizationMembershipStatus!
+  user: User
+}
+
+type OrganizationMembershipConnection {
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-Edge-Types
+  """
+  edges: [OrganizationMembershipEdge]
+
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+  """
+  pageInfo: PageInfo!
+}
+
+type OrganizationMembershipEdge {
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Cursor"""
+  cursor: String!
+
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Node"""
+  node: OrganizationMembership
+}
+
+"""The ID that uniquely identifies the membership."""
+scalar OrganizationMembershipId
+
+enum OrganizationMembershipStatus {
+  ACTIVE
+  DECLINED
+  PENDING
+  SUSPENDED
+}
+
+type OrganizationQuotas {
+  monthlyActiveUsers: Int!
+  remainingMonthlyActiveUsers: Int!
+  remainingWorkspaces: Int!
+  workspace: Int!
+}
+
+enum OrganizationRole {
+  CUSTOM
+  MAINTAINER
+  MANAGER
+  OWNER
+}
+
+type OrganizationSubscription {
+  allowOverage: Boolean!
+  features: [Feature!]!
+  id: ID!
+  organization: Organization!
+  planName: String!
+  quotas: PlanQuota!
+  startTime: Instant!
+}
+
+enum OrganizationType {
+  BUSINESS
+  PERSONAL
+}
+
+"""The ID that uniquely identifies a trusted origin."""
+scalar OriginId
+
+"""
+PageInfo cursor, as defined in https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+"""
+type PageInfo {
+  """
+  The cursor corresponding to the last nodes in edges. Null if the connection is empty.
+  """
+  endCursor: String
+
+  """
+  Used to indicate whether more edges exist following the set defined by the clients arguments.
+  """
+  hasNextPage: Boolean!
+
+  """
+  Used to indicate whether more edges exist prior to the set defined by the clients arguments.
+  """
+  hasPreviousPage: Boolean!
+
+  """
+  The cursor corresponding to the first nodes in edges. Null if the connection is empty.
+  """
+  startCursor: String
+}
+
+type PageMetadata {
+  audio: AudioMetadata
+  description: String
+  image: ImageMetadata
+  logo: ImageMetadata
+  publisher: String
+  target: String!
+  title: String!
+  type: String!
+  video: VideoMetadata
+}
+
+type PercentageNumberFormat implements NumberFormat {
+  maximumFractionDigits: Int!
+  minimumFractionDigits: Int!
+}
+
+type PlainNumberFormat implements NumberFormat {
+  maximumFractionDigits: Int!
+  minimumFractionDigits: Int!
+}
+
+type Plan {
+  features: [String!]!
+  name: String!
+  quotas: PlanQuota!
+}
+
+type PlanQuota {
+  applicationsPerWorkspace: Int!
+  audiencesPerExperience: Int!
+  audiencesPerWorkspace: Int!
+  componentsPerWorkspace: Int!
+  dynamicAttributesPerContent: Int!
+  experiencesPerWorkspace: Int!
+  experimentsPerWorkspace: Int!
+  localesPerWorkspace: Int!
+  monthlyActiveUsers: Int!
+  nodesPerContent: Int!
+  nodesPerDefinition: Int!
+  slotsPerWorkspace: Int!
+  workspacesPerOrganization: Int!
+}
+
+enum Platform {
+  JAVASCRIPT
+  NEXT
+  REACT
+}
+
+input PrepareUploadPayload {
+  contentType: String!
+  fileSize: Int!
+  name: String!
+}
+
+type PrepareUploadResult {
+  token: String!
+  url: String!
+}
+
+"""The ID that publicly identifies the application."""
+scalar PublicId
+
+type Query {
+  builtinComponents: [BuiltinComponentDefinition!]!
+  checkAvailability: AvailabilityCheck!
+  contextOverview(payload: ContextOverviewPayload!): ContextData!
+  dashboard(id: DashboardId!): Dashboard!
+  invitationCount: Int!
+  invitations(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+
+    """Returns the first n elements from the list."""
+    first: Int!
+  ): QueryInvitations_Connection!
+  isFeatureActive(applicationId: ApplicationId, feature: Feature!, organizationId: OrganizationId, workspaceId: WorkspaceId): Boolean!
+  node(id: ID!): Node
+  notifications(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+    filterByType: NotificationType
+
+    """Returns the first n elements from the list."""
+    first: Int!
+  ): QueryNotifications_Connection!
+  organization(slug: ReadableId): Organization
+  organizationCount: Int!
+  organizationRolePermissions(role: OrganizationRole): [String!]!
+  organizations(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+
+    """
+    When set, the returned connection will include only organizations the viewer explicitly joined by accepting the organization's invitation, not including other organizations the viewer might have permission to view. For example, the Demo organization is included when this flag is false but not when it is true.
+    """
+    explicitlyAccepted: Boolean = false
+
+    """Returns the first n elements from the list."""
+    first: Int!
+    pinnedIds: [OrganizationId!]
+    searchTerm: String
+  ): OrganizationConnection!
+  plansQuery: [Plan!]!
+  urlPreviewMetadata(url: String!): UrlMetadata!
+  userAccount: UserAccount!
+  validateDynamicContent(optional: Boolean!, query: String!, type: ContentTypes!, workspaceId: WorkspaceId!): ValidateDynamicContentQueryResult!
+  validateSlotContent(payload: ValidateSlotContentPayload!, workspaceId: WorkspaceId!): JSONObject!
+  viewer: Viewer!
+  websiteMetadata(url: String!): WebsiteMetadata!
+  workspaceRolePermissions(role: WorkspaceRole): [String!]!
+}
+
+"""The ID that uniquely identifies a query from a dashboard."""
+scalar QueryId
+
+type QueryInvitations_Connection {
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-Edge-Types
+  """
+  edges: [InvitationEdge]
+
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+  """
+  pageInfo: PageInfo!
+  total: Int
+}
+
+type QueryNotifications_Connection {
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-Edge-Types
+  """
+  edges: [NotificationEdge]
+
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+  """
+  pageInfo: PageInfo!
+  totalUnread: Int
+}
+
+enum Quota {
+  APPLICATIONS_PER_WORKSPACE
+  AUDIENCES_PER_EXPERIENCE
+  AUDIENCES_PER_WORKSPACE
+  COMPONENTS_PER_WORKSPACE
+  DYNAMIC_ATTRIBUTES_PER_CONTENT
+  EXPERIENCES_PER_WORKSPACE
+  EXPERIMENTS_PER_WORKSPACE
+  LOCALES_PER_WORKSPACE
+  MONTHLY_ACTIVE_USERS
+  NODES_PER_CONTENT
+  NODES_PER_DEFINITION
+  SLOTS_PER_WORKSPACE
+  WORKSPACES_PER_ORGANIZATION
+}
+
+type QuotaUsage {
+  total: Int!
+  used: Int!
+}
+
+"""
+A URL-safe identifier matching the regular expression /^[A-Za-z]+(-?[A-Za-z0-9]+)*$/
+"""
+scalar ReadableId
+
+enum RelativeTimeWindow {
+  LAST_3_MONTHS
+  LAST_7_DAYS
+  LAST_14_DAYS
+  LAST_28_DAYS
+  LAST_30_DAYS
+  TODAY
+  YESTERDAY
+}
+
+input ResetPasswordPayload {
+  password: String!
+  token: String!
+}
+
+type RetryMutation {
+  accountActivation(email: String!, sessionId: UserSessionId): String!
+  retryUserEmailVerification: UserAccount!
+}
+
+input SaveExperienceDraftPayload {
+  audiences: [ExperienceAudienceInput!]!
+  content: ContentVariantInput!
+  experienceId: ExperienceId!
+  experiment: ExperimentDraftInput
+  options: ExperienceOptionsDraftInput
+  publishTime: LocalDateTime
+  revision: ExperienceRevisionId!
+  slots: [ExperienceSlotInput!]!
+}
+
+input SaveExperimentDraftPayload {
+  draft: ExperimentDraftInput!
+  experienceId: ExperienceId!
+  experimentId: ExperimentId!
+  revision: Int!
+}
+
+type ScaleIndicator implements ColumnIndicator {
+  direction: TrendDirection
+  high: Float!
+  low: Float!
+}
+
+type SegmentedContentGroup {
+  audiences: [ContentAudience!]!
+  contents: [SlotLocalizedContent!]!
+  groupId: String!
+}
+
+input SegmentedContentGroupInput {
+  audiences: [ExperienceAudienceInput!]!
+  contents: [SlotLocalizedContentInput!]!
+  id: String!
+}
+
+input SignInPayload {
+  duration: Int
+  email: String!
+  password: String!
+  remember: Boolean!
+  sessionId: UserSessionId
+}
+
+input SignUpPayload {
+  bypassOnboarding: Boolean
+  email: String!
+  expertise: Expertise!
+  firstName: String!
+  invitationToken: String
+  lastName: String
+  password: String!
+  sessionId: UserSessionId
+  username: ReadableId!
+}
+
+type SignUpResult {
+  userId: UserId!
+  viewer: Viewer
+}
+
+type Signatory {
+  email: String!
+  ip: String!
+  user: UserId!
+  username: String!
+}
+
+type SingleBarChart implements Chart {
+  colorProgression: ColorProgression!
+  colors: [Color!]!
+  data(
+    applicationId: ApplicationId
+    applicationSlug: ReadableId
+    experienceId: ExperienceId
+    experimentId: ExperimentId
+
+    """
+    Filters applied to the query. Some filters might be ignored by some queries.
+    """
+    filters: StringMap
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
+    timeWindow: TimeWindowInput
+
+    """
+    TimeZone to be used when calculating intervals when querying the dashboard data.
+    """
+    timeZone: String!
+    workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
+  ): ChartData!
+  divisionLabel: String!
+  id: ID!
+  legendPlacement: ChartLegendPlacement
+  numberFormat: PlainNumberFormat!
+  percentageFormat: PercentageNumberFormat!
+  queryId: QueryId!
+}
+
+type Slot implements Node {
+  content(majorVersion: Int): SlotContent!
+  creationTime: Instant!
+  customId: ReadableId!
+  experienceCount: Int!
+  id: ID!
+  lastUpdateTime: Instant!
+  name: String!
+
+  """
+  Indication that the Slot is using an old version of the associated component.
+  """
+  outdated: Boolean!
+  self: Slot!
+  staticContent(majorVersion: Int): [LocalizedStaticContent!]!
+  workspaceId: WorkspaceId!
+}
+
+type SlotConnection {
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-Edge-Types
+  """
+  edges: [SlotEdge]
+
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+  """
+  pageInfo: PageInfo!
+}
+
+type SlotContent implements Node {
+  component: Component
+  componentDefinition: ComponentDefinition!
+  creationTime: Instant!
+  default: [LocalizedContent!]!
+  id: ID!
+
+  """
+  Indication that the Slot Content is not valid for the most recent patch Component version compatible with it's linked version.
+  """
+  invalidContents: [String!]!
+  version: Version!
+}
+
+type SlotEdge {
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Cursor"""
+  cursor: String!
+
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Node"""
+  node: Slot
+}
+
+"""The ID that uniquely identifies the slot."""
+scalar SlotId
+
+type SlotLocalizedContent {
+  content: JSONObject!
+  locale: String!
+  slotId: SlotId!
+}
+
+input SlotLocalizedContentInput {
+  content: JSONObject!
+  locale: String!
+  slotId: SlotId!
+}
+
+"""An arbitrary map of nullable strings"""
+scalar StringMap
+
+input SubscriptionFeatures {
+  apiDataExport: Boolean
+  crossDeviceExperiment: Boolean
+  experiment: Boolean
+  location: Boolean
+  pms: Boolean
+  scheduling: Boolean
+}
+
+input SubscriptionQuotas {
+  applicationsPerWorkspace: Int
+  audiencesPerExperience: Int
+  audiencesPerWorkspace: Int
+  componentsPerWorkspace: Int
+  dynamicAttributesPerContent: Int
+  experiencesPerWorkspace: Int
+  experimentsPerWorkspace: Int
+  monthlyActiveUsers: Int
+  nodesPerContent: Int
+  nodesPerDefinition: Int
+  slotsPerWorkspace: Int
+  workspacesPerOrganization: Int
+}
+
+type SunburstChart implements Chart {
+  colorProgression: ColorProgression!
+  colors: [Color!]!
+  data(
+    applicationId: ApplicationId
+    applicationSlug: ReadableId
+    experienceId: ExperienceId
+    experimentId: ExperimentId
+
+    """
+    Filters applied to the query. Some filters might be ignored by some queries.
+    """
+    filters: StringMap
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
+    timeWindow: TimeWindowInput
+
+    """
+    TimeZone to be used when calculating intervals when querying the dashboard data.
+    """
+    timeZone: String!
+    workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
+  ): ChartData!
+  id: ID!
+  layerLabels: [String!]!
+  legendPlacement: ChartLegendPlacement
+  numberFormat: PlainNumberFormat!
+  percentageFormat: PercentageNumberFormat!
+  queryId: QueryId!
+}
+
+type SymbolTableRowMarker implements TableRowMarker {
+  """
+  This field is here to comply with GraphQL specification, it cannot be read.
+  """
+  _placeholder: Boolean!
+  colorProgression: ColorProgression!
+  colors: [Color!]!
+  referenceColumn: Int!
+}
+
+type Table {
+  columns: [TableColumn!]!
+  data(
+    applicationId: ApplicationId
+    applicationSlug: ReadableId
+    experienceId: ExperienceId
+    experimentId: ExperimentId
+
+    """
+    Filters applied to the query. Some filters might be ignored by some queries.
+    """
+    filters: StringMap
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
+    timeWindow: TimeWindowInput
+
+    """
+    TimeZone to be used when calculating intervals when querying the dashboard data.
+    """
+    timeZone: String!
+    workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
+  ): TableData!
+  hideHeader: Boolean!
+  id: ID!
+  minimumRowCount: Int
+  queryId: QueryId!
+  rowMarker: TableRowMarker
+}
+
+type TableCell {
+  labels: StringMap!
+  numberValue: Float
+  textValue: String
+}
+
+interface TableColumn {
+  hint: Tooltip
+  title: String!
+}
+
+type TableData {
+  id: ID!
+  rows: [TableRow!]!
+}
+
+type TableRow {
+  cells: [TableCell!]!
+}
+
+interface TableRowMarker {
+  """
+  This field is here to comply with GraphQL specification, it cannot be read.
+  """
+  _placeholder: Boolean!
+}
+
+type TableWidget implements DashboardFilterable & Node & Widget {
+  custom: Boolean!
+  filterGroup(
+    applicationId: ApplicationId
+    applicationSlug: ReadableId
+    experienceId: ExperienceId
+    experimentId: ExperimentId
+
+    """
+    Filters applied to the query. Some filters might be ignored by some queries.
+    """
+    filters: StringMap
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
+    timeWindow: TimeWindowInput
+
+    """
+    TimeZone to be used when calculating intervals when querying the dashboard data.
+    """
+    timeZone: String!
+    workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
+  ): DashboardFilterGroup!
+  hideTitle: Boolean!
+  id: ID!
+  pollInterval: Int!
+  table: Table!
+  tabs: [WidgetTab!]
+  title: String!
+}
+
+enum TargetSdk {
+  PLUG_JS
+}
+
+type TemporalTableColumn implements TableColumn {
+  format: TimeFormat!
+  hint: Tooltip
+  title: String!
+}
+
+type TermAcceptance {
+  acceptanceTime: Instant!
+  signatory: Signatory!
+}
+
+type TextAxisFormat implements AxisFormat {
+  """
+  This field is here to comply with GraphQL specification, it cannot be read.
+  """
+  _placeholder: Boolean!
+  label: String!
+}
+
+type TextualTableColumn implements TableColumn {
+  hint: Tooltip
+  title: String!
+}
+
+type TimeAxisFormat implements AxisFormat {
+  """
+  This field is here to comply with GraphQL specification, it cannot be read.
+  """
+  _placeholder: Boolean!
+}
+
+enum TimeFormat {
+  DATE
+  DATE_TIME
+  TIME
+}
+
+type TimeWindow {
+  absolute: AbsoluteTimeWindow
+  frame: FrameTimeWindowObject
+  relative: RelativeTimeWindow
+}
+
+input TimeWindowInput {
+  absolute: AbsoluteTimeWindowInput
+  frame: FrameTimeWindowInput
+  relative: RelativeTimeWindow
+}
+
+"""A time zone identifier"""
+scalar TimeZone
+
+type TimeoutExpirationPolicy {
+  inactivityPeriod: Int!
+}
+
+input TimeoutExpirationPolicyInput {
+  inactivityPeriod: Int!
+}
+
+type Tooltip {
+  message: String!
+  type: TooltipType!
+}
+
+enum TooltipType {
+  help
+  info
+}
+
+enum TrendDirection {
+  DOWN
+  UP
+}
+
+type TrendIndicator implements ColumnIndicator {
+  direction: TrendDirection
+  noTrendLabel: Boolean
+}
+
+type TrustedOrigin {
+  allowInsecureProtocol: Boolean!
+  allowSubdomains: Boolean!
+  domain: String!
+  id: ID!
+  lastEditor: User
+  lastUpdateTime: Instant!
+  port: Int
+  self: TrustedOrigin!
+}
+
+type TrustedOriginConnection {
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-Edge-Types
+  """
+  edges: [TrustedOriginEdge]
+
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+  """
+  pageInfo: PageInfo!
+}
+
+type TrustedOriginEdge {
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Cursor"""
+  cursor: String!
+
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Node"""
+  node: TrustedOrigin
+}
+
+input TrustedOriginInput {
+  allowInsecureProtocol: Boolean!
+  allowSubdomains: Boolean!
+  domain: String!
+  port: Int
+}
+
+type UnknownMetadata {
+  target: String!
+  type: String!
+}
+
+input UpdateApplicationPayload {
+  anonymityScope: AnonymityScope
+  name: String
+  platform: Platform
+  slug: ReadableId
+  timeZone: TimeZone
+  website: String
+}
+
+input UpdateAudiencePayload {
+  audienceId: AudienceId!
+  criteria: String
+  name: String
+}
+
+input UpdateComponentPayload {
+  componentId: ComponentId!
+  definition: ContentDefinition
+  description: String
+  name: String
+}
+
+type UpdateComponentResult {
+  component: Component!
+  invalidContentSlotCount: Int!
+}
+
+input UpdateExperiencePayload {
+  audiences: [ExperienceAudienceInput!]!
+  content: ContentVariantInput!
+  discardSchedule: Boolean! = false
+  experienceId: ExperienceId!
+  experiment: ExperimentInput
+  options: ExperienceOptionsInput!
+  publish: Boolean
+  revision: ExperienceRevisionId!
+  slots: [ExperienceSlotInput!]!
+}
+
+input UpdateExperimentPayload {
+  crossDevice: Boolean!
+  experienceId: ExperienceId!
+  experimentId: ExperimentId!
+  goalId: String
+  name: String!
+  revision: Int!
+  start: Boolean
+  traffic: Float!
+  variants: [ExperimentVariantInput!]!
+}
+
+input UpdateOnboardingStatusPayload {
+  onboardingStatus: OnboardingStatus!
+}
+
+input UpdateOrganizationMemberPermissionPayload {
+  id: OrganizationMembershipId!
+  permissions: [ApiPermission!]
+  role: OrganizationRole!
+}
+
+input UpdateOrganizationPayload {
+  email: String
+  name: String
+  slug: ReadableId
+  website: String
+}
+
+input UpdateOrganizationSubscriptionPayload {
+  features: SubscriptionFeatures
+  quotas: SubscriptionQuotas
+}
+
+input UpdateSlotPayload {
+  componentId: ComponentId
+  defaultContent: [LocalizedContentInput!]
+  majorVersion: Int
+  name: String
+  slotId: SlotId!
+}
+
+input UpdateUserAccountPayload {
+  email: String
+  password: String
+  profile: UserProfileInput!
+  username: ReadableId
+}
+
+input UpdateWorkspaceLocalePayload {
+  code: String!
+  default: Boolean
+  required: Boolean
+}
+
+type UpdateWorkspaceLocaleResult {
+  locale: Locale!
+  workspace: Workspace!
+}
+
+input UpdateWorkspaceMemberPermissionPayload {
+  id: WorkspaceMembershipId!
+  permissions: [ApiPermission!]
+  role: WorkspaceRole!
+}
+
+input UpdateWorkspacePayload {
+  name: String
+  slug: ReadableId
+  timeZone: TimeZone
+  website: String
+}
+
+union UrlMetadata = AudioMetadata | FileMetadata | ImageMetadata | PageMetadata | UnknownMetadata | VideoMetadata
+
+"""A user of the Croct Admin."""
+type User implements Node {
+  email: String!
+  id: ID!
+  lastUpdateTime: Instant!
+  memberships(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+
+    """Returns the first n elements from the list."""
+    first: Int!
+  ): OrganizationMembershipConnection!
+  profile: UserProfile!
+  signupTime: Instant!
+  username: ReadableId!
+}
+
+type UserAccount {
+  id: ID!
+  onboardingStatus: OnboardingStatus!
+  pendingEmail: String
+  solelyOwnedOrganizations: [Organization!]!
+  user: User!
+}
+
+type UserContext {
+  accountCreationTime: Instant!
+  expertise: Expertise
+  name: String!
+  organizationCount: Int!
+  userId: UserId!
+  username: String!
+}
+
+"""The ID that uniquely identifies the user."""
+scalar UserId
+
+type UserProfile {
+  avatar(
+    """Ensure the URL is always unique to prevent caching."""
+    noCache: Boolean! = false
+  ): String
+  expertise: Expertise
+  firstName: String!
+  lastName: String
+}
+
+input UserProfileInput {
+  firstName: String
+  lastName: String
+}
+
+"""The ID that uniquely identifies a user's session."""
+scalar UserSessionId
+
+type ValidateDynamicContentQueryResult {
+  """
+  Indication that the dynamic content query is assignable to the required type.
+  """
+  assignable: Boolean!
+
+  """Indication that the dynamic content query is nullable."""
+  nullable: Boolean!
+
+  """
+  Indication that the dynamic content query is valid to the required conditions.
+  """
+  valid: Boolean!
+}
+
+input ValidateSlotContentPayload {
+  componentId: ComponentId
+  content: JSONObject!
+  majorVersion: Int
+  slotId: SlotId
+}
+
+type Variant {
+  allocation: Int!
+  baseline: Boolean!
+  content: ContentVariant!
+  name: String!
+  variantId: ID!
+}
+
+type VariantDraft {
+  allocation: Int
+  baseline: Boolean
+  content: ContentVariant
+  name: String
+  variantId: ID
+}
+
+input VariantDraftInput {
+  allocation: Int!
+  baseline: Boolean!
+  content: ContentVariantInput!
+  id: VariantId!
+  name: String!
+}
+
+"""The ID that uniquely identifies the variant."""
+scalar VariantId
+
+type Version {
+  major: Int!
+  minor: Int!
+}
+
+input VersionSpecifier {
+  id: ReadableId!
+  version: String!
+}
+
+type VideoMetadata {
+  duration: Int!
+  format: String!
+  height: Int!
+  size: Float
+  target: String!
+  type: String!
+  url: String!
+  width: Int!
+}
+
+"""A resource representing the actor utilizing the API."""
+type Viewer {
+  capabilities: Capabilities!
+
+  """
+  The ID of the Viewer is always constant to allow clients to update the correct node.
+  """
+  id: ID!
+  token: String
+  user: User
+  userAccount: UserAccount!
+}
+
+"""Represents NULL values"""
+scalar Void
+
+type WebApplication implements Application & Node {
+  apiKeys(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+
+    """Returns the first n elements from the list."""
+    first: Int!
+    searchTerm: String
+  ): ApiKeyConnection!
+  applicationStatus: ApplicationTrafficStatus!
+  capabilities: Capabilities!
+  creationTime: Instant!
+  environment: ApplicationEnvironment!
+  id: ID!
+  lastUpdateTime: Instant!
+  logo(
+    """Ensure the URL is always unique to prevent caching."""
+    noCache: Boolean! = false
+  ): String
+  name: String!
+  platform: Platform
+  publicId: PublicId!
+  self: WebApplication!
+  settings: WebApplicationSettings!
+  slug: ReadableId!
+  trustedOrigins(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+
+    """Returns the first n elements from the list."""
+    first: Int!
+    searchTerm: String
+  ): TrustedOriginConnection!
+  website: String!
+}
+
+type WebApplicationSettings implements ApplicationSettings {
+  anonymityScope: AnonymityScope!
+  expirationPolicy: ExpirationPolicy!
+  maxTokenAge: Int!
+  requiresAuthentication: Boolean!
+  timeZone: TimeZone!
+  weekStart: Weekday!
+  weekends: [Weekday!]!
+}
+
+type WebsiteMetadata {
+  description: String
+  domain: String!
+  languages: [String!]!
+  logo: WebsiteMetadataImage
+  platform: Platform!
+  siteName: String!
+  technologies: [WebsiteMetadataTechnology!]!
+  title: String
+  url: String!
+}
+
+type WebsiteMetadataImage {
+  data: String!
+  height: Int!
+  url: String!
+  width: Int!
+}
+
+type WebsiteMetadataTechnology {
+  name: String!
+  tags: [String!]!
+  version: String
+  website: String!
+}
+
+enum Weekday {
+  FRIDAY
+  MONDAY
+  SATURDAY
+  SUNDAY
+  THURSDAY
+  TUESDAY
+  WEDNESDAY
+}
+
+type WelcomeNotification implements Notification {
+  id: ID!
+  read: Boolean!
+  timestamp: Instant!
+  user: User
+}
+
+interface Widget implements DashboardFilterable & Node {
+  custom: Boolean!
+  filterGroup(
+    applicationId: ApplicationId
+    applicationSlug: ReadableId
+    experienceId: ExperienceId
+    experimentId: ExperimentId
+
+    """
+    Filters applied to the query. Some filters might be ignored by some queries.
+    """
+    filters: StringMap
+    organizationId: OrganizationId
+    organizationSlug: ReadableId
+    timeWindow: TimeWindowInput
+
+    """
+    TimeZone to be used when calculating intervals when querying the dashboard data.
+    """
+    timeZone: String!
+    workspaceId: WorkspaceId
+    workspaceSlug: ReadableId
+  ): DashboardFilterGroup!
+  hideTitle: Boolean!
+  id: ID!
+  pollInterval: Int!
+  title: String!
+}
+
+scalar WidgetId
+
+enum WidgetOrientation {
+  HORIZONTAL
+  VERTICAL
+}
+
+type WidgetPlacement {
+  position: WidgetPosition!
+  size: WidgetSize!
+  widgetId: WidgetId!
+}
+
+type WidgetPosition {
+  column: Int!
+  row: Int!
+}
+
+type WidgetSize {
+  height: Int!
+  width: Int!
+}
+
+type WidgetTab {
+  id: String!
+  label: String!
+}
+
+type WinnerVariant {
+  stable: Boolean!
+  variant: Variant
+  winnerImprovement: Float
+}
+
+type Workspace implements Node {
+  application(slug: ReadableId): Application
+  applicationCount: Int!
+  applications(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+
+    """Returns the first n elements from the list."""
+    first: Int!
+    pinnedIds: [ApplicationId!]
+    searchTerm: String
+  ): ApplicationConnection!
+  audience(customId: ReadableId): Audience
+  audienceCount: Int!
+  audiences(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+
+    """Returns the first n elements from the list."""
+    first: Int
+    searchTerm: String
+  ): AudienceConnection!
+  canManage(permissions: [ApiPermission!], role: WorkspaceRole!): Boolean!
+  capabilities: Capabilities!
+  component(customId: ReadableId): Component
+  componentCount: Int!
+  componentDefinitionJsonSchema(excludeComponentCustomId: ReadableId, lenient: Boolean): JsonSchema!
+  components(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+    componentCustomId: ReadableId
+
+    """Returns the first n elements from the list."""
+    first: Int!
+    searchTerm: String
+  ): ComponentConnection!
+  constraints: WorkspaceConstraints!
+  creationTime: Instant!
+  defaultLocale: String!
+  earliestTraffic: Instant
+  experience(id: ExperienceId): Experience
+  experienceCount: Int!
+  experiences(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+    audienceCustomId: ReadableId
+    audienceId: AudienceId
+
+    """Returns the first n elements from the list."""
+    first: Int
+    inTest: Boolean
+    overlappingWithExperience: ExperienceId
+    searchTerm: String
+    slotCustomId: ReadableId
+    slotId: SlotId
+    status: [ExperienceStatus!]
+  ): ExperienceConnection!
+  goalIds(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+
+    """Returns the first n elements from the list."""
+    first: Int!
+    searchTerm: String
+  ): KeyValueConnection!
+  id: ID!
+  lastUpdateTime: Instant!
+  locale(code: String): Locale
+  localeCount: Int!
+  locales(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+
+    """Returns the first n elements from the list."""
+    first: Int
+    searchTerm: String
+  ): LocaleConnection!
+  logo(
+    """Ensure the URL is always unique to prevent caching."""
+    noCache: Boolean! = false
+  ): String
+  memberCount(role: WorkspaceRole, status: WorkspaceMembershipStatus): Int!
+  members(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+
+    """Returns the first n elements from the list."""
+    first: Int!
+    searchTerm: String
+  ): WorkspaceMembershipConnection!
+  name: String!
+  quotas: WorkspaceQuotas!
+  receivingTraffic: ApplicationTrafficStatus!
+  self: Workspace!
+  slot(customId: ReadableId): Slot
+  slotCount(componentCustomId: ReadableId, componentId: ComponentId, excludeLocale: String, searchTerm: String): Int!
+  slots(
+    """Returns the elements in the list that come after the specified cursor"""
+    after: String
+    componentCustomId: ReadableId
+    componentId: ComponentId
+    excludeLocale: String
+
+    """Returns the first n elements from the list."""
+    first: Int
+    searchTerm: String
+  ): SlotConnection!
+  slug: ReadableId!
+  timeZone: TimeZone!
+  website: String
+}
+
+type WorkspaceAccessGrantedNotification implements Notification {
+  id: ID!
+  inviter: User
+  read: Boolean!
+  timestamp: Instant!
+  workspace: Workspace
+}
+
+type WorkspaceConnection {
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-Edge-Types
+  """
+  edges: [WorkspaceEdge]
+
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+  """
+  pageInfo: PageInfo!
+}
+
+type WorkspaceConstraints {
+  content: ContentConstraints!
+  definition: DefinitionConstraints!
+}
+
+type WorkspaceConsumableQuotas {
+  applications: QuotaUsage!
+  audiences: QuotaUsage!
+  components: QuotaUsage!
+  experiences: QuotaUsage!
+  experiments: QuotaUsage!
+  locales: QuotaUsage!
+  slots: QuotaUsage!
+}
+
+type WorkspaceContext {
+  application: ApplicationContext
+  applicationCount: Int!
+  audienceCount: Int!
+  componentCount: Int!
+  consumableQuotas: WorkspaceConsumableQuotas!
+  creationDate: Instant!
+  experience: ExperienceContext
+  experienceCount: ActiveUsageCount!
+  experimentCount: ActiveUsageCount!
+  localeCount: Int!
+  membershipCount: Int!
+  name: String!
+  role: WorkspaceRole
+  slotCount: Int!
+  slug: String!
+}
+
+type WorkspaceEdge {
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Cursor"""
+  cursor: String!
+
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Node"""
+  node: Workspace
+}
+
+"""The ID that uniquely identifies the workspace."""
+scalar WorkspaceId
+
+type WorkspaceMembership {
+  id: ID!
+  invitationEmail: String
+  permissions: [ApiPermission!]
+  role: WorkspaceRole!
+  self: WorkspaceMembership!
+  since: Instant!
+  status: WorkspaceMembershipStatus!
+  user: User
+  workspace: Workspace!
+}
+
+type WorkspaceMembershipConnection {
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-Edge-Types
+  """
+  edges: [WorkspaceMembershipEdge]
+
+  """
+  https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
+  """
+  pageInfo: PageInfo!
+}
+
+type WorkspaceMembershipEdge {
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Cursor"""
+  cursor: String!
+
+  """https://facebook.github.io/relay/graphql/connections.htm#sec-Node"""
+  node: WorkspaceMembership
+}
+
+"""The ID that uniquely identifies the membership."""
+scalar WorkspaceMembershipId
+
+enum WorkspaceMembershipStatus {
+  ACTIVE
+  DECLINED
+  PENDING
+  SUSPENDED
+}
+
+type WorkspaceQuotas {
+  application: Int!
+  audience: Int!
+  audiencesPerExperience: Int!
+  component: Int!
+  dynamicAttributesPerContent: Int!
+  experience: Int!
+  experiment: Int!
+  locales: Int!
+  nodesPerContent: Int!
+  nodesPerDefinition: Int!
+  remainingApplications: Int!
+  remainingAudiences: Int!
+  remainingComponents: Int!
+  remainingExperiences: Int!
+  remainingExperiments: Int!
+  remainingLocales: Int!
+  remainingSlots: Int!
+  slot: Int!
+}
+
+input WorkspaceResourceContentInput {
+  content: JSONObject!
+  locale: String
+  slot: ReadableId!
+}
+
+input WorkspaceResourceExperienceDefaultContentInput {
+  contents: [WorkspaceResourceContentInput!]!
+  id: String!
+}
+
+type WorkspaceResourceExperienceResult {
+  experimentId: ExperimentId
+  id: ExperienceId!
+}
+
+input WorkspaceResourceExperienceSegmentedContentInput {
+  audiences: [ReadableId!]!
+  contents: [WorkspaceResourceContentInput!]!
+  id: String!
+}
+
+input WorkspaceResourcesExperienceContentInput {
+  default: WorkspaceResourceExperienceDefaultContentInput!
+  segmented: [WorkspaceResourceExperienceSegmentedContentInput!]!
+}
+
+input WorkspaceResourcesSlotInput {
+  component: ReadableId!
+  customId: ReadableId!
+  defaultContent: [LocalizedContentInput!]!
+  name: String!
+}
+
+enum WorkspaceRole {
+  CUSTOM
+  MAINTAINER
+  MANAGER
+  OWNER
+}
