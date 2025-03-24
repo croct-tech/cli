@@ -146,7 +146,7 @@ export class OpenCommand implements Command<OpenInput> {
     private parseArguments(url: URL): string[] {
         const args: string[] = [];
 
-        for (const segment of url.pathname.split('/')) {
+        for (const segment of (url.hostname + url.pathname).split('/')) {
             if (segment !== '') {
                 args.push(segment);
             }
@@ -178,7 +178,6 @@ export class OpenCommand implements Command<OpenInput> {
 
     private isValidUrl(url: URL): boolean {
         return url.protocol === `${this.config.protocol}:`
-            && url.hostname === ''
             && url.username === ''
             && url.password === ''
             && url.port === ''
