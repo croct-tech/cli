@@ -132,7 +132,7 @@ export abstract class JavaScriptSdk implements Sdk {
                 notifier.update('Installing dependencies');
 
                 try {
-                    await this.packageManager.addDependencies(['croct'], true);
+                    await this.packageManager.addDependencies(['croct', JavaScriptSdk.CONTENT_PACKAGE], true);
                     await this.packageManager.addDependencies([...plan.dependencies]);
 
                     notifier.confirm('Dependencies installed');
