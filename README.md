@@ -10,7 +10,7 @@
   </a>
   <br/>
   <strong>Croct CLI</strong><br/>
-  A command-line interface (CLI) for managing projects using Croct.
+  A command-line interface for managing projects using Croct.
 </p>
 <div align="center">
     <strong>📘 <a href="https://docs.croct.com/reference/cli/installation">Quick start &rarr;</a></strong>
