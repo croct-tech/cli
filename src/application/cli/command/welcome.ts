@@ -69,7 +69,7 @@ export class WelcomeCommand implements Command<WelcomeInput> {
         const notifier = output.notify('Enabling deep links...');
 
         try {
-            const command = await packageManager.getPackageCommand(cliPackage, ['$url']);
+            const command = await packageManager.getPackageCommand(cliPackage, ['open', '$url']);
 
             await registry.register({
                 ...protocolHandler,
