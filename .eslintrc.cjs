@@ -11,4 +11,7 @@ module.exports = {
         'src/infrastructure/graphql/schema',
         'test/application/project/code/transformation/fixtures',
     ],
+    rules: {
+        'import/extensions': 'off',
+    },
 };

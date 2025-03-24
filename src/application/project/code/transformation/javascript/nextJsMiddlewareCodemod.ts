@@ -1,5 +1,5 @@
 import * as t from '@babel/types';
-import traverse, {NodePath} from '@babel/traverse';
+import {traverse, NodePath} from '@babel/core';
 import {ResultCode, Codemod} from '@/application/project/code/transformation/codemod';
 import {hasReexport} from '@/application/project/code/transformation/javascript/utils/hasReexport';
 import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';

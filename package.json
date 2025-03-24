@@ -14,8 +14,9 @@
     "cli",
     "cms"
   ],
-  "main": "index.js",
-  "bin": "index.js",
+  "type": "module",
+  "exports": "./index.js",
+  "bin": "./index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/croct-tech/cli.git"
@@ -29,19 +30,17 @@
     "test": "jest -c jest.config.js --coverage",
     "validate": "tsc --noEmit",
     "build": "tsup",
-    "postinstall": "graphql-codegen",
     "graphql-codegen": "graphql-codegen --config codegen.ts"
   },
   "dependencies": {
     "@babel/generator": "^7.25.9",
     "@babel/parser": "^7.25.7",
-    "@babel/traverse": "^7.25.7",
+    "@babel/core": "^7.25.7",
     "@babel/types": "^7.25.9",
     "@croct/cache": "^0.4.2",
     "@croct/content": "^1.0.0",
     "@croct/content-model": "^0.19.4",
     "@croct/json": "^2.1.0",
-    "@croct/json-pointer": "^0.3.0",
     "@croct/json5-parser": "^0.1.0",
     "@croct/logging": "^0.2.3",
     "@croct/md-lite": "^0.3.1",

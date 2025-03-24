@@ -1,8 +1,8 @@
 import chalk, {ForegroundColorName} from 'chalk';
 import isUnicodeSupported from 'is-unicode-supported';
-import {render as renderMarkdown} from '@croct/md-lite/rendering';
+import {render as renderMarkdown} from '@croct/md-lite/rendering.js';
 import terminalLink from 'terminal-link';
-import {unescape as unescapeMarkdown} from '@croct/md-lite/parsing';
+import {unescape as unescapeMarkdown} from '@croct/md-lite/parsing.js';
 import {strip} from 'node-emoji';
 import {Semantic} from '@/application/cli/io/output';
 

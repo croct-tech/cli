@@ -1,6 +1,6 @@
 import {File} from '@babel/types';
 import * as recast from 'recast';
-import {parse} from 'recast/parsers/babel-ts';
+import {parse} from 'recast/parsers/babel-ts.js';
 import {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
 import {Language} from '@/application/project/code/transformation/javascript/utils/parse';
 
