@@ -1,5 +1,5 @@
 /* eslint-disable max-len -- Avoid wrapping URLs */
-import stringSimilarity from 'string-similarity-js';
+import {stringSimilarity} from 'string-similarity-js';
 import {Input} from '@/application/cli/io/input';
 import {Form} from '@/application/cli/form/form';
 
