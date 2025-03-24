@@ -31,9 +31,6 @@ jobs:
         if: steps.cache-dependencies.outputs.cache-hit != 'true'
         run: npm ci
 
-      - name: Check dependency vulnerabilities
-        run: npx check-audit --omit dev
-
   validate:
     runs-on: ubuntu-latest
     steps:

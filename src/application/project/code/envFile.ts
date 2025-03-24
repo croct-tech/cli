@@ -79,7 +79,7 @@ export class EnvFile {
             return '';
         }
 
-        return await this.fileSystem.readTextFile(this.path);
+        return this.fileSystem.readTextFile(this.path);
     }
 
     private static escapeRegex(value: string): string {

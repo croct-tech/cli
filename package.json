@@ -29,6 +29,7 @@
     "test": "jest -c jest.config.js --coverage",
     "validate": "tsc --noEmit",
     "build": "tsup",
+    "postinstall": "graphql-codegen",
     "graphql-codegen": "graphql-codegen --config codegen.ts"
   },
   "dependencies": {
