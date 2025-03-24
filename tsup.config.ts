@@ -12,6 +12,7 @@ export default defineConfig({
     treeshake: true,
     banner: ({format}) => {
         if (format === "esm") return ({
+            // Shim for the `require` function in ESM to fix commander.js import
             js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
         })
 
