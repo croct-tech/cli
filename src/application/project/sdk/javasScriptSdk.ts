@@ -1,4 +1,4 @@
-import {JsonArrayNode, JsonObjectNode, JsonParser} from '@croct/json5-parser';
+import {JsonArrayNode, JsonObjectNode, JsonParser} from '@croct/json5-parser/index.js';
 import {
     UpdateOptions as BaseContentOptions,
     Installation,

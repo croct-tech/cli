@@ -1,5 +1,5 @@
 import * as t from '@babel/types';
-import traverse from '@babel/traverse';
+import {traverse} from '@babel/core';
 import {parse} from '@/application/project/code/transformation/javascript/utils/parse';
 
 export type ImportMatcher = {

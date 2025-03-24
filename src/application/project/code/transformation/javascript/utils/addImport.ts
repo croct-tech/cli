@@ -1,5 +1,5 @@
 import * as t from '@babel/types';
-import traverse from '@babel/traverse';
+import {traverse} from '@babel/core';
 
 export type ImportDeclaration = {
     type: 'value' | 'type',
