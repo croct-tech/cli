@@ -72,7 +72,14 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
             $schema: 'https://schema.croct.com/json/v1/template.json',
             title: 'My template',
             actions: empty
-                ? []
+                ? [
+                    {
+                        name: 'print',
+                        semantic: 'info',
+                        title: 'Empty template',
+                        message: 'Edit this template to define your actions.',
+                    },
+                ]
                 : [
                     {
                         name: 'create-resource',

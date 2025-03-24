@@ -1223,6 +1223,24 @@ export class Cli {
 
         return {
             project: {
+                features: LazyPromise.transient(async () => {
+                    const {organization, workspace} = await this.getConfigurationManager().load();
+                    const {features} = await this.getWorkspaceApi().getFeatures({
+                        organizationSlug: organization,
+                        workspaceSlug: workspace,
+                    }) ?? {};
+
+                    return features ?? {};
+                }),
+                quotas: LazyPromise.transient(async () => {
+                    const {organization, workspace} = await this.getConfigurationManager().load();
+                    const {quotas} = await this.getWorkspaceApi().getFeatures({
+                        organizationSlug: organization,
+                        workspaceSlug: workspace,
+                    }) ?? {};
+
+                    return quotas ?? {};
+                }),
                 organization: LazyPromise.transient(
                     async () => {
                         const {organization} = await this.getConfigurationManager().load();
