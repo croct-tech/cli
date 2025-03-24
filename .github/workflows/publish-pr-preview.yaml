@@ -6,10 +6,6 @@ on:
       - synchronize
       - opened
 
-env:
-  BASE_ENDPOINT: https://api.croct.io
-  MAX_QUERY_LENGTH: 500
-
 jobs:
   preview:
     runs-on: ubuntu-latest
