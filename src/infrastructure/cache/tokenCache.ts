@@ -8,11 +8,14 @@ export type Configuration = {
     clock: Clock,
     tokenIssuer: TokenIssuer,
     tokenFreshPeriod: number,
+    clockSkewTolerance: number,
     cacheProvider: CacheProvider<string, string>,
 };
 
 export class TokenCache implements CacheProvider<string, string|null> {
     private readonly clock: Clock;
+
+    private readonly clockSkewTolerance: number;
 
     private readonly tokenIssuer: TokenIssuer;
 
@@ -23,8 +26,9 @@ export class TokenCache implements CacheProvider<string, string|null> {
     private readonly revalidating = new Map<string, true>();
 
     public constructor(config: Configuration) {
-        this.cacheProvider = config.cacheProvider;
         this.clock = config.clock;
+        this.clockSkewTolerance = config.clockSkewTolerance;
+        this.cacheProvider = config.cacheProvider;
         this.tokenFreshPeriod = config.tokenFreshPeriod;
         this.tokenIssuer = config.tokenIssuer;
     }
@@ -36,11 +40,15 @@ export class TokenCache implements CacheProvider<string, string|null> {
             return null;
         }
 
-        const now = this.clock.getInstant();
         const token = this.parseToken(cachedToken);
 
         if (token !== null) {
-            if (!token.isValidNow(now.getSeconds())) {
+            const tolerance = this.clockSkewTolerance;
+            const now = this.clock
+                .getInstant()
+                .getSeconds();
+
+            if (!token.isValidNow(now - tolerance) && !token.isValidNow(now + tolerance)) {
                 return null;
             }
 
