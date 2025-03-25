@@ -638,7 +638,7 @@ export abstract class JavaScriptSdk implements Sdk {
 
         const directory = installation.configuration.paths.content ?? this.projectDirectory.get();
 
-        const typeFile = this.fileSystem
+        const slotTypeFile = this.fileSystem
             .getRelativePath(
                 this.fileSystem.getDirectoryName(configPath),
                 this.getTypeFile(directory),
@@ -648,28 +648,27 @@ export abstract class JavaScriptSdk implements Sdk {
         const config = JsonParser.parse(await this.fileSystem.readTextFile(configPath), JsonObjectNode);
 
         if (config.has('files')) {
-            const files = config.get('files', JsonArrayNode);
-            const currentFiles = files.toJSON();
+            const types = config.get('files', JsonArrayNode).toJSON();
 
-            if (currentFiles.includes(typeFile)) {
+            if (types.includes(slotTypeFile)) {
                 return output.confirm('Type file already registered');
             }
 
             const fileName = this.getTypeFile('.');
 
-            for (let index = 0; index < currentFiles.length; index++) {
-                const type = `${currentFiles[index]}`;
+            for (let index = 0; index < types.length; index++) {
+                const type = `${types[index]}`;
 
-                if (type !== typeFile && type.endsWith(fileName)) {
-                    currentFiles.splice(index, 1);
+                if (type !== slotTypeFile && type.endsWith(fileName)) {
+                    types.splice(index, 1);
                 }
             }
 
-            currentFiles.push(typeFile);
+            types.push(slotTypeFile);
 
-            config.set('files', currentFiles);
+            config.set('files', types);
         } else {
-            config.set('files', [typeFile]);
+            config.set('files', [slotTypeFile]);
         }
 
         await this.fileSystem.writeTextFile(configPath, config.toString(), {overwrite: true});
