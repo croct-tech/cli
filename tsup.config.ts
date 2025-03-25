@@ -8,7 +8,7 @@ export default defineConfig({
     target: 'esnext',
     clean: true,
     sourcemap: false,
-    minify: false,
+    minify: true,
     outDir: 'build',
     treeshake: true,
     banner: ({format}) => {
