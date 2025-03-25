@@ -51,23 +51,25 @@ export class ConsoleInput implements Input {
             ? selection.options.findIndex(option => option.value === selection.default)
             : -1;
 
-        return this.interact({
+        return this.interact<string, string>({
             type: selection.options.length > 10 ? 'autocomplete' : 'select',
             instructions: false,
             message: selection.message,
             choices: selection.options.map(
-                option => ({
+                (option, index) => ({
                     title: option.label,
-                    value: option.value,
+                    // Prompts returns the label for falsy values:
+                    // https://github.com/terkelg/prompts/issues/349
+                    value: `${index}`,
                     disabled: option.disabled,
                 }),
             ),
             initial: initial === -1 ? undefined : initial,
-        });
+        }).then(index => selection.options[Number.parseInt(index, 10)].value);
     }
 
     public selectMultiple<T>(selection: MultipleSelection<T>): Promise<T[]> {
-        return this.interact({
+        return this.interact<string, string[]>({
             type: selection.options.length > 10 ? 'autocompleteMultiselect' : 'multiselect',
             hint: '<space> to select. <a> to toggle all. <enter> to submit.',
             message: selection.message,
@@ -75,14 +77,14 @@ export class ConsoleInput implements Input {
             min: selection.min,
             max: selection.max,
             choices: selection.options.map(
-                option => ({
+                (option, index) => ({
                     title: option.label,
-                    value: option.value,
+                    value: `${index}`,
                     disabled: option.disabled,
                     selected: option.selected,
                 }),
             ),
-        });
+        }).then(indices => indices.map(index => selection.options[Number.parseInt(index, 10)].value));
     }
 
     public confirm(confirmation: Confirmation): Promise<boolean> {
