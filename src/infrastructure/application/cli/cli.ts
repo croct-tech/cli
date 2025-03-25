@@ -199,7 +199,6 @@ import {PnpmAgent} from '@/application/project/packageManager/agent/pnpmAgent';
 import {
     Configuration as ExecutableAgentConfiguration,
 } from '@/application/project/packageManager/agent/executableAgent';
-import {PtyExecutor} from '@/infrastructure/application/system/command/ptyExecutor';
 import {PackageManager} from '@/application/project/packageManager/packageManager';
 import {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
 import {NodeImportResolver} from '@/application/project/import/nodeImportResolver';
@@ -1017,14 +1016,11 @@ export class Cli {
                         packageManager: this.getPackageManager(),
                         packageManagerProvider: this.getPackageManagerRegistry(),
                         workingDirectory: this.workingDirectory,
-                        commandExecutor: new PtyExecutor({
-                            cols: 80,
-                            rows: 24,
-                        }),
+                        commandExecutor: this.getCommandExecutor(),
                         commandTimeout: 2 * 60 * 1000, // 2 minutes
                         sourceChecker: {
-                            // @todo: Add safety check to prevent running arbitrary commands
-                            test: (): boolean => true,
+                            test: (url): boolean => url.protocol === 'file:'
+                                    || `${url}`.startsWith('https://github.com/croct-tech'),
                         },
                     }),
                     validator: new ExecutePackageOptionsValidator(),
