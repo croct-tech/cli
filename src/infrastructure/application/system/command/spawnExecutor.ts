@@ -31,7 +31,6 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
             : undefined;
 
         const subprocess = spawn(command.name, command.arguments, {
-            shell: true,
             stdio: ['pipe', 'pipe', 'pipe'],
             cwd: options?.workingDirectory ?? this.currentDirectory?.get(),
             signal: timeoutSignal,
