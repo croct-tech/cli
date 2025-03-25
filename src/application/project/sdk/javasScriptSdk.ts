@@ -582,9 +582,10 @@ export abstract class JavaScriptSdk implements Sdk {
                  *
                  * To regenerate, run \`croct update\`.
                  */
-                 
-                 // module
-                 export {};
+
+                // module
+
+                export {};
              `.replace('// module', module);
 
             await this.fileSystem.writeTextFile(filePath, module, {overwrite: true});
