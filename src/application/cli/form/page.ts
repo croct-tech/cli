@@ -1,5 +1,5 @@
 /* eslint-disable max-len -- Avoid wrapping URLs */
-import {stringSimilarity} from 'string-similarity-js';
+import fuzzysort from 'fuzzysort';
 import {Input} from '@/application/cli/io/input';
 import {Form} from '@/application/cli/form/form';
 
@@ -74,14 +74,14 @@ export class PageForm implements Form<string, PageOptions> {
         }
 
         let match = null;
-        let max = 0.5;
+        let min = 0;
 
         for (const label of Object.keys(PageForm.getSitemap(options))) {
-            const similarity = stringSimilarity(page, label);
+            const {score} = fuzzysort.single(page, label) ?? {score: 0};
 
-            if (similarity > max) {
+            if (score > min) {
                 match = PageForm.SITEMAP[label];
-                max = similarity;
+                min = score;
             }
         }
 
