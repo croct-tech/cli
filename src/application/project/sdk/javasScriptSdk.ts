@@ -655,10 +655,12 @@ export abstract class JavaScriptSdk implements Sdk {
                 return output.confirm('Type file already registered');
             }
 
+            const fileName = this.getTypeFile('.');
+
             for (let index = 0; index < currentFiles.length; index++) {
                 const type = `${currentFiles[index]}`;
 
-                if (type !== typeFile && type.endsWith('slots.d.ts')) {
+                if (type !== typeFile && type.endsWith(fileName)) {
                     currentFiles.splice(index, 1);
                 }
             }
