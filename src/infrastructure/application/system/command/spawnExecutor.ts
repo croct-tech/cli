@@ -100,6 +100,15 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
                     }
                 });
             }),
+            endWriting: () => new Promise<void>(resolve => {
+                if (exitCode !== null) {
+                    resolve();
+
+                    return;
+                }
+
+                subprocess.stdin.end(resolve);
+            }),
             read: async (): Promise<string> => {
                 let data = '';
 
@@ -110,6 +119,12 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
                 return data;
             },
             wait: () => new Promise<number>((resolve, reject) => {
+                if (exitCode !== null) {
+                    resolve(exitCode);
+
+                    return;
+                }
+
                 errorCallbacks.push(reject);
 
                 subprocess.on('exit', code => {

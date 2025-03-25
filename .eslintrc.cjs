@@ -14,4 +14,12 @@ module.exports = {
     rules: {
         'import/extensions': 'off',
     },
+    overrides: [
+        {
+            files: ['tsup.config.ts'],
+            rules: {
+                'import/no-default-export': 'off',
+            },
+        },
+    ],
 };

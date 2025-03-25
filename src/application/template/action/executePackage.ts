@@ -11,8 +11,10 @@ import {AnsiScreenEmulator} from '@/infrastructure/application/cli/io/ansiScreen
 
 export type Interactions = {
     when: string,
-    once?: boolean,
-    then: string[],
+    pattern?: boolean,
+    always?: boolean,
+    then?: string[],
+    final?: boolean,
 };
 
 export type ExecutePackageOptions = {
@@ -114,19 +116,35 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
         });
 
         const nextInteractions = [...interactions];
+
+        if (nextInteractions.length === 0) {
+            await execution.endWriting();
+        }
+
         const emulator = new AnsiScreenEmulator();
 
         for await (const line of execution.output) {
             emulator.buffer(line);
 
             for (const [index, interaction] of nextInteractions.entries()) {
-                if (emulator.toRawString().includes(interaction.when)) {
-                    if (interaction.once === true) {
+                const output = emulator.toRawString();
+                const matches = interaction.pattern === true
+                    ? new RegExp(interaction.when).test(output)
+                    : output.includes(interaction.when);
+
+                if (matches) {
+                    if (interaction.always !== true) {
                         nextInteractions.splice(index, 1);
                     }
 
-                    for (const input of interaction.then) {
+                    for (const input of interaction.then ?? []) {
                         await execution.write(ExecutePackage.INPUT_MAP[input] ?? input);
+                    }
+
+                    if (interaction.final === true) {
+                        await execution.endWriting();
+
+                        nextInteractions.length = 0;
                     }
 
                     break;
