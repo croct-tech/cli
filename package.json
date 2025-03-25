@@ -62,7 +62,6 @@
     "jsep": "^1.4.0",
     "minimatch": "^10.0.1",
     "node-emoji": "^2.2.0",
-    "node-pty": "^1.0.0",
     "open": "^10.1.0",
     "prompts": "^2.4.2",
     "recast": "^0.23.11",

@@ -22,6 +22,7 @@ export interface Execution {
     write(data: string): Promise<void>;
     wait(): Promise<number>;
     kill(signal?: Signal): Promise<void>;
+    endWriting(): Promise<void>;
     onExit(callback: ExitCallback): DisposableListener;
 }
 
