@@ -362,8 +362,8 @@ export abstract class JavaScriptSdk implements Sdk {
                 const defaultLocale = ${JSON.stringify(configuration.defaultLocale)};
 
                 export function getSlotContent(slotId, language = defaultLocale) {
-                    if (contentEntries[language]?.[slotId] !== undefined) {
-                        return contentEntries[language][slotId];
+                    if (contentMap[language]?.[slotId] !== undefined) {
+                        return contentMap[language][slotId];
                     }
 
                     if (language !== defaultLocale) {
@@ -391,8 +391,8 @@ export abstract class JavaScriptSdk implements Sdk {
 
                 module.exports = {
                     getSlotContent: function getSlotContent(slotId, language = defaultLocale) {
-                        if (contentEntries[language]?.[slotId] !== undefined) {
-                            return contentEntries[language][slotId];
+                        if (contentMap[language]?.[slotId] !== undefined) {
+                            return contentMap[language][slotId];
                         }
 
                         if (language !== defaultLocale) {
@@ -418,8 +418,8 @@ export abstract class JavaScriptSdk implements Sdk {
                 const defaultLocale = ${JSON.stringify(configuration.defaultLocale)};
 
                 export function loadSlotContent(slotId, language = defaultLocale) {
-                    if (contentEntries[language]?.[slotId] !== undefined) {
-                        return contentEntries[language][slotId]().then(module => module.default);
+                    if (contentMap[language]?.[slotId] !== undefined) {
+                        return contentMap[language][slotId]().then(module => module.default);
                     }
 
                     if (language !== defaultLocale) {
@@ -445,8 +445,8 @@ export abstract class JavaScriptSdk implements Sdk {
 
                 module.exports = {
                     loadSlotContent: function loadSlotContent(slotId, language = defaultLocale) {
-                        if (contentEntries[language]?.[slotId] !== undefined) {
-                            return contentEntries[language][slotId]().then(module => module.default);
+                        if (contentMap[language]?.[slotId] !== undefined) {
+                            return contentMap[language][slotId]().then(module => module.default);
                         }
 
                         if (language !== defaultLocale) {
