@@ -15,7 +15,7 @@ export class FailSafeRegistry implements ProtocolRegistry {
         try {
             await this.registry.register(handler);
         } catch (error) {
-            this.handleError(error);
+            FailSafeRegistry.handleError(error);
         }
     }
 
@@ -23,15 +23,13 @@ export class FailSafeRegistry implements ProtocolRegistry {
         try {
             await this.registry.unregister(protocol);
         } catch (error) {
-            this.handleError(error);
+            FailSafeRegistry.handleError(error);
         }
     }
 
-    private handleError(error: any): void {
+    private static handleError(error: any): void {
         if (!(error instanceof ProtocolRegistryError)) {
             throw error;
         }
-
-        throw error;
     }
 }
