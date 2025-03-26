@@ -358,7 +358,7 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
             .filter(locale => !workspace.locales.includes(locale));
 
         if (missingLocales.length > 0) {
-            warnings.push('Content in unsupported locales have been mapped to default or removed');
+            warnings.push('Content in unsupported locales have been mapped to default or dropped');
         }
 
         if (!workspace.features.crossDevice && analysis.experiences.some(experience => experience.crossDevice)) {
