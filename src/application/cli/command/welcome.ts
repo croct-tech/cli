@@ -53,8 +53,6 @@ export class WelcomeCommand implements Command<WelcomeInput> {
             packageManager.isInstalled(),
         ]);
 
-        await registry.unregister('croct');
-
         if (isRegistered || !isPackageManagerInstalled) {
             return;
         }
