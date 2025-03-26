@@ -1,2 +1,4 @@
 #!/usr/bin/env node
-import '@/infrastructure/application/cli/program';
+import {run} from '@/infrastructure/application/cli/program';
+
+run();

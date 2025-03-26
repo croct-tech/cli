@@ -162,7 +162,6 @@ export class GraphqlUserApi implements UserApi {
                 email: request.email,
                 password: request.password,
                 duration: request.duration,
-                // @todo remove this
                 remember: false,
             },
         });

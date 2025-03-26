@@ -378,7 +378,7 @@ function getTemplate(args: string[]): string | null {
     return null;
 }
 
-(async function run(args: string[] = process.argv, welcome = true): Promise<void> {
+export async function run(args: string[] = process.argv, welcome = true): Promise<void> {
     const invocation = createProgram({interactive: true}).parse(args);
 
     const options = invocation.opts();
@@ -412,4 +412,4 @@ function getTemplate(args: string[]): string | null {
     }
 
     await program.parseAsync(args);
-}());
+}

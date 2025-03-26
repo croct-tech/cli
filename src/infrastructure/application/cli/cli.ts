@@ -1325,7 +1325,6 @@ export class Cli {
             }
 
             const input = this.getFormInput();
-            const fileSystem = this.getFileSystem();
             const credentialsAuthenticator = new CredentialsAuthenticator({
                 input: input,
                 output: this.getOutput(),
@@ -1369,12 +1368,13 @@ export class Cli {
                 cacheKey: 'token',
                 cacheProvider: new TokenCache({
                     clock: this.getClock(),
+                    clockSkewTolerance: 5,
                     tokenFreshPeriod: this.configuration.cliTokenFreshPeriod,
                     tokenIssuer: () => api.issueToken({
                         duration: this.configuration.cliTokenDuration,
                     }),
                     cacheProvider: new FileSystemCache({
-                        fileSystem: fileSystem,
+                        fileSystem: this.getFileSystem(),
                         directory: this.configuration.directories.config,
                         useKeyAsFileName: true,
                     }),
