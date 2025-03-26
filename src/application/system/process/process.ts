@@ -9,7 +9,7 @@ export interface ProcessObserver extends EventObserver<ProcessEvents> {
 }
 
 export interface Process extends ProcessObserver {
-    getPlatform(): string;
+    getPlatform(): Process.Platform;
     getCurrentDirectory(): string;
     getStandardInput(): Readable;
     getStandardOutput(): Writable;
@@ -18,4 +18,8 @@ export interface Process extends ProcessObserver {
     getEnvList(name: string): string[] | null;
     changeDirectory(directory: string): void;
     exit(exitCode?: number): Promise<never>;
+}
+
+export namespace Process {
+    export type Platform = NodeJS.Platform;
 }

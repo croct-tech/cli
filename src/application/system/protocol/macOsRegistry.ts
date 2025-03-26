@@ -30,9 +30,7 @@ export class MacOsRegistry implements ProtocolRegistry {
 
     public async register(handler: ProtocolHandler): Promise<void> {
         if (await this.isRegistered(handler.protocol)) {
-            throw new ProtocolRegistryError(`Protocol \`${handler.protocol}\` is already registered.`, {
-                reason: ErrorReason.PRECONDITION,
-            });
+            return;
         }
 
         try {

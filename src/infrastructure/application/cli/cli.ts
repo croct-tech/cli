@@ -281,6 +281,9 @@ import {JavaScriptImportCodemod} from '@/application/project/code/transformation
 import {ChainedCodemod} from '@/application/project/code/transformation/chainedCodemod';
 import {AttributeType} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
 import {HierarchyResolver} from '@/infrastructure/application/api/graphql/hierarchyResolver';
+import {MultiRegistry} from '@/application/system/protocol/multiRegistry';
+import {FailSafeRegistry} from '@/application/system/protocol/failSafeRegistry';
+import {FirefoxRegistry} from '@/application/system/protocol/firefoxRegistry';
 
 export type Configuration = {
     program: Program,
@@ -2143,11 +2146,25 @@ export class Cli {
 
                 switch (process.getPlatform()) {
                     case 'darwin':
-                        return new MacOsRegistry({
-                            fileSystem: fileSystem,
-                            appDirectory: fileSystem.joinPaths(this.configuration.directories.data, 'apps'),
-                            commandExecutor: this.getCommandExecutor(),
-                        });
+                        return new MultiRegistry(
+                            new MacOsRegistry({
+                                fileSystem: fileSystem,
+                                appDirectory: fileSystem.joinPaths(this.configuration.directories.data, 'apps'),
+                                commandExecutor: this.getCommandExecutor(),
+                            }),
+                            // Firefox on macOS has a known bug that forces the user to select
+                            // the application every time a URL is opened.
+                            // See: https://bugzilla.mozilla.org/show_bug.cgi?id=718422
+                            // To work around this, configure the application in the Firefox profile.
+                            // In addition, wrap the registry in a FailSafeRegistry to avoid errors
+                            // if Firefox is not installed or if the profile directory cannot be located.
+                            new FailSafeRegistry(
+                                FirefoxRegistry.macOs({
+                                    fileSystem: fileSystem,
+                                    homeDirectory: this.configuration.directories.home,
+                                }),
+                            ),
+                        );
 
                     case 'win32':
                         return new WindowsRegistry({

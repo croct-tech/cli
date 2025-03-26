@@ -24,7 +24,7 @@ export class NodeProcess implements Process {
         return this.getEnvValue(name)?.split(delimiter) ?? null;
     }
 
-    public getPlatform(): string {
+    public getPlatform(): Process.Platform {
         return process.platform;
     }
 
