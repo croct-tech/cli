@@ -6,6 +6,7 @@ import {Cli} from '@/infrastructure/application/cli/cli';
 import {Resource} from '@/application/cli/command/init';
 import {OptionMap} from '@/application/template/template';
 import {ApiKeyPermission, ApplicationEnvironment} from '@/application/model/application';
+import packageJson from '@/../package.json';
 
 type Configuration = {
     interactive: boolean,
@@ -54,7 +55,7 @@ function createProgram(config: Configuration): typeof program {
                 .implies({interaction: false}),
         )
         .option('--debug', 'Enable debug mode.')
-        .version('0.0.1', '-v, --version', 'Display the version number.')
+        .version(packageJson.version, '-v, --version', 'Display the version number.')
         .helpOption('-h, --help', 'Display help for a command.')
         .helpCommand('help [command]', 'Display help for a command.');
 
