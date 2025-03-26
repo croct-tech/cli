@@ -44,25 +44,8 @@ export class ComponentForm implements Form<Component[], ComponentOptions> {
                 : components.filter(({slug}) => allowed.includes(slug)),
         );
 
-        if (options.includeDependencies !== true) {
-            return selectedComponents;
-        }
-
-        for (const component of selectedComponents) {
-            const references = new Set([
-                ...component.metadata.directReferences,
-                ...component.metadata.indirectReferences,
-            ]);
-
-            for (const reference of references) {
-                if (!selectedComponents.some(({slug}) => slug === reference)) {
-                    const referencedComponent = components.find(({slug}) => slug === reference);
-
-                    if (referencedComponent !== undefined) {
-                        selectedComponents.push(referencedComponent);
-                    }
-                }
-            }
+        if (options.includeDependencies === true) {
+            selectedComponents.push(...this.getReferencedComponents(components, selectedComponents));
         }
 
         return selectedComponents;
@@ -82,6 +65,15 @@ export class ComponentForm implements Form<Component[], ComponentOptions> {
         }
 
         const selected = options.selected ?? [];
+
+        if (options.includeDependencies === true) {
+            selected.push(
+                ...this.getReferencedComponents(
+                    components,
+                    components.filter(({slug}) => selected.includes(slug)),
+                ).map(component => component.slug),
+            );
+        }
 
         if (components.length === 0 || (selected.length > 0 && components.every(({slug}) => selected.includes(slug)))) {
             return components.filter(({slug}) => selected.includes(slug));
@@ -110,5 +102,28 @@ export class ComponentForm implements Form<Component[], ComponentOptions> {
                 },
             ),
         });
+    }
+
+    private getReferencedComponents(components: Component[], selectedComponents: Component[]): Component[] {
+        const referencedComponents = new Map<string, Component>();
+
+        for (const component of selectedComponents) {
+            const references = new Set([
+                ...component.metadata.directReferences,
+                ...component.metadata.indirectReferences,
+            ]);
+
+            for (const reference of references) {
+                if (!selectedComponents.some(({slug}) => slug === reference)) {
+                    const referencedComponent = components.find(({slug}) => slug === reference);
+
+                    if (referencedComponent !== undefined) {
+                        referencedComponents.set(referencedComponent.slug, referencedComponent);
+                    }
+                }
+            }
+        }
+
+        return [...referencedComponents.values()];
     }
 }
