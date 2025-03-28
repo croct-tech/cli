@@ -207,9 +207,15 @@ export class PlugNextSdk extends JavaScriptSdk {
             ),
             this.locateFile(
                 ...(project.router === 'app'
-                    ? [this.fileSystem.joinPaths('app', 'layout.jsx'), this.fileSystem.joinPaths('app', 'layout.tsx')]
-                    : [this.fileSystem.joinPaths('pages', '_app.jsx'), this.fileSystem.joinPaths('pages', '_app.tsx')]
-                ).map(file => this.fileSystem.joinPaths(project.sourceDirectory, file)),
+                    ? [this.fileSystem.joinPaths('app', 'layout'), this.fileSystem.joinPaths('app', 'layout')]
+                    : [this.fileSystem.joinPaths('pages', '_app'), this.fileSystem.joinPaths('pages', '_app')]
+                ).flatMap(
+                    file => (
+                        ['js', 'jsx', 'ts', 'tsx'].map(
+                            extension => this.fileSystem.joinPaths(project.sourceDirectory, `${file}.${extension}`),
+                        )
+                    ),
+                ),
             ),
         ]);
 
@@ -240,8 +246,8 @@ export class PlugNextSdk extends JavaScriptSdk {
                 file: providerComponentFile
                     ?? (
                         project.router === 'app'
-                            ? this.fileSystem.joinPaths('app', `layout.${extension}x`)
-                            : this.fileSystem.joinPaths('pages', `_app.${extension}x`)
+                            ? this.fileSystem.joinPaths(project.sourceDirectory, 'app', `layout.${extension}x`)
+                            : this.fileSystem.joinPaths(project.sourceDirectory, 'pages', `_app.${extension}x`)
                     ),
             },
         };
