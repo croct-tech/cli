@@ -101,7 +101,7 @@ export class ApplicationForm implements Form<Application, ApplicationOptions> {
                         return 'Invalid URL';
                     }
 
-                    if (!ApplicationForm.isValidUrl(defaultWebsite, environment)) {
+                    if (!ApplicationForm.isValidUrl(url, environment)) {
                         return 'Production URL must not be localhost';
                     }
 
