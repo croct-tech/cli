@@ -10,7 +10,7 @@ import {
     SynchronousCommandExecutor,
 } from '@/application/system/process/executor';
 import {BufferedIterator} from '@/infrastructure/bufferedIterator';
-import {ErrorReason} from '@/application/error';
+import {ErrorReason, HelpfulError} from '@/application/error';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {Command} from '@/application/system/process/command';
 
@@ -31,6 +31,7 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
             : undefined;
 
         const subprocess = spawn(command.name, command.arguments, {
+            shell: true,
             stdio: ['pipe', 'pipe', 'pipe'],
             cwd: options?.workingDirectory ?? this.currentDirectory?.get(),
             signal: timeoutSignal,
@@ -46,7 +47,7 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
                             reason: ErrorReason.PRECONDITION,
                             cause: error,
                         })
-                        : new ExecutionError('Failed to run command.', {
+                        : new ExecutionError(`Failed to run command: ${HelpfulError.formatCause(error)}`, {
                             cause: error,
                         }),
                 );
@@ -173,7 +174,7 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
                 });
             }
 
-            throw new ExecutionError('Failed to run command.', {
+            throw new ExecutionError(`Failed to run command: ${HelpfulError.formatCause(error)}`, {
                 cause: error,
             });
         }
