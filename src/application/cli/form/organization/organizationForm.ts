@@ -30,11 +30,23 @@ export class OrganizationForm implements Form<Organization, OrganizationOptions>
         if (options.new !== true) {
             const notifier = output.notify('Loading organizations');
 
-            const organizations = await api.getOrganizations();
+            const organizations: Organization[] = [];
 
-            const defaultOrganization = OrganizationForm.getDefaultOrganization(organizations, options.default);
+            if (options.default !== undefined) {
+                const defaultOrganization = await api.getOrganization(options.default);
 
-            if (defaultOrganization !== null) {
+                if (defaultOrganization !== null) {
+                    organizations.push(defaultOrganization);
+                }
+            }
+
+            if (organizations.length === 0) {
+                organizations.push(...await api.getOrganizations());
+            }
+
+            if (organizations.length === 1) {
+                const defaultOrganization = organizations[0];
+
                 notifier.confirm(`Organization: ${defaultOrganization.name}`);
 
                 return defaultOrganization;
@@ -119,17 +131,5 @@ export class OrganizationForm implements Form<Organization, OrganizationOptions>
                 notifier.stop(persist);
             },
         };
-    }
-
-    private static getDefaultOrganization(organizations: Organization[], defaultSlug?: string): Organization | null {
-        if (organizations.length === 1) {
-            return organizations[0];
-        }
-
-        if (defaultSlug !== undefined) {
-            return organizations.find(({slug}) => slug === defaultSlug) ?? null;
-        }
-
-        return null;
     }
 }
