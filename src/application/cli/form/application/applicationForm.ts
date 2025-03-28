@@ -91,12 +91,22 @@ export class ApplicationForm implements Form<Application, ApplicationOptions> {
 
         const defaultWebsite = workspace.website ?? organization.website ?? undefined;
 
-        const website = customized || !ApplicationForm.isValidProductionUrl(defaultWebsite)
+        const website = customized || !ApplicationForm.isValidUrl(defaultWebsite, environment)
             ? await UrlInput.prompt({
                 input: input,
                 label: 'Application website',
                 default: defaultWebsite,
-                validate: ApplicationForm.isValidProductionUrl,
+                validate: url => {
+                    if (!URL.canParse(url)) {
+                        return 'Invalid URL';
+                    }
+
+                    if (!ApplicationForm.isValidUrl(defaultWebsite, environment)) {
+                        return 'Production URL must not be localhost';
+                    }
+
+                    return true;
+                },
             })
             : defaultWebsite;
 
@@ -121,8 +131,12 @@ export class ApplicationForm implements Form<Application, ApplicationOptions> {
         }
     }
 
-    private static isValidProductionUrl(url?: string): url is string {
-        return url !== undefined && new URL(url).hostname !== 'localhost';
+    private static isValidUrl(url: string|undefined, environment: ApplicationEnvironment): url is string {
+        if (url === undefined || !URL.canParse(url)) {
+            return false;
+        }
+
+        return environment !== ApplicationEnvironment.PRODUCTION || new URL(url).hostname !== 'localhost';
     }
 
     private static formatSelection(application: Application): string {
