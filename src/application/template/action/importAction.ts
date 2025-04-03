@@ -194,15 +194,15 @@ export class ImportAction implements Action<ImportOptions> {
 
                 if (
                     definition.type === 'string'
-                    && definition.options !== undefined
-                    && !definition.options.includes(value as string)
+                    && definition.choices !== undefined
+                    && !definition.choices.includes(value as string)
                 ) {
                     throw new ActionError(
                         `Invalid value for option \`${name}\`.`,
                         {
                             reason: ErrorReason.INVALID_INPUT,
                             details: [
-                                `Allowed values: \`${definition.options.join('`, `')}\`.`,
+                                `Allowed values: \`${definition.choices.join('`, `')}\`.`,
                             ],
                         },
                     );

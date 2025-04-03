@@ -25,7 +25,7 @@ const optionSchema: ZodType<OptionDefinition> = z.discriminatedUnion('type', [
     }),
     baseOptionSchema.extend({
         type: z.literal('string'),
-        options: z.array(z.string()).optional(),
+        choices: z.array(z.string()).optional(),
         default: z.string().optional(),
     }),
     baseOptionSchema.extend({
@@ -46,16 +46,15 @@ const optionSchema: ZodType<OptionDefinition> = z.discriminatedUnion('type', [
     }),
 ]);
 
+const optionName = z.string()
+    .regex(/^[a-zA-Z0-9_]+$/)
+    .min(1);
+
 const templateSchema: ZodType<Template> = z.strictObject({
     $schema: z.string().optional(),
-    title: z.string()
-        .min(1)
-        .optional(),
-    description: z.string().optional(),
-    options: z.record(
-        z.string().min(1),
-        optionSchema,
-    ).optional(),
+    title: z.string().min(1),
+    description: z.string().min(1),
+    options: z.record(optionName, optionSchema).optional(),
     actions: z.array(z.any()),
 });
 
