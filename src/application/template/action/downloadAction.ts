@@ -12,7 +12,7 @@ export type DownloadOptions = {
     source: string,
     filter?: string,
     destination: string,
-    override?: boolean,
+    overwrite?: boolean,
     result?: {
         destination?: string,
     },
@@ -65,7 +65,7 @@ export class DownloadAction implements Action<DownloadOptions> {
 
     private async download(url: URL, options: DownloadOptions, input?: Input): Promise<void> {
         const {provider, fileSystem, codemod} = this.config;
-        const {destination, override = false} = options;
+        const {destination, overwrite = false} = options;
         const matcher = options.filter !== undefined
             ? new Minimatch(options.filter)
             : undefined;
@@ -109,7 +109,7 @@ export class DownloadAction implements Action<DownloadOptions> {
         if (await fileSystem.exists(destination)) {
             if (entries.length === 1 && entries[0].type === 'file') {
                 if (
-                    !override
+                    !overwrite
                     && await fileSystem.exists(entries[0].name)
                     && await input?.confirm({
                         message: `File ${entries[0].name} already exists. Do you want to overwrite it?`,
@@ -130,7 +130,7 @@ export class DownloadAction implements Action<DownloadOptions> {
                         suggestions: ['Delete the file'],
                     });
                 } else if (
-                    !override
+                    !overwrite
                     && !await fileSystem.isEmptyDirectory(destination)
                     && await input?.confirm({
                         message: `Directory ${destination} is not empty. Do you want to clear it?`,
