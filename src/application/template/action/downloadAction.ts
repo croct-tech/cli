@@ -143,35 +143,37 @@ export class DownloadAction implements Action<DownloadOptions> {
                         suggestions: ['Delete the file'],
                     });
                 }
-            } else if (!await fileSystem.isDirectory(destination)) {
-                if (
-                    await input?.confirm({
-                        message: `Destination ${destination} is not a directory. Do you want to delete it?`,
+            } else {
+                if (!await fileSystem.isDirectory(destination)) {
+                    if (
+                        await input?.confirm({
+                            message: `Destination ${destination} is not a directory. Do you want to delete it?`,
+                            default: false,
+                        }) !== true
+                    ) {
+                        throw new ActionError('Destination is not a directory.', {
+                            reason: ErrorReason.PRECONDITION,
+                            details: [`Path: ${destination}`],
+                            suggestions: ['Delete the file'],
+                        });
+                    }
+                } else if (
+                    !overwrite
+                    && !await fileSystem.isEmptyDirectory(destination)
+                    && await input?.confirm({
+                        message: `Directory ${destination} is not empty. Do you want to clear it?`,
                         default: false,
                     }) !== true
                 ) {
-                    throw new ActionError('Destination is not a directory.', {
+                    throw new ActionError('Destination directory is not empty.', {
                         reason: ErrorReason.PRECONDITION,
-                        details: [`Path: ${destination}`],
-                        suggestions: ['Delete the file'],
+                        details: [`Directory: ${destination}`],
+                        suggestions: ['Clear the directory'],
                     });
                 }
-            } else if (
-                !overwrite
-                && !await fileSystem.isEmptyDirectory(destination)
-                && await input?.confirm({
-                    message: `Directory ${destination} is not empty. Do you want to clear it?`,
-                    default: false,
-                }) !== true
-            ) {
-                throw new ActionError('Destination directory is not empty.', {
-                    reason: ErrorReason.PRECONDITION,
-                    details: [`Directory: ${destination}`],
-                    suggestions: ['Clear the directory'],
-                });
-            }
 
-            await fileSystem.delete(destination, {recursive: true});
+                await fileSystem.delete(destination, {recursive: true});
+            }
         }
 
         return fileSystem.createDirectory(destination, {
