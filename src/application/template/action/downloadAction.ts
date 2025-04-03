@@ -106,6 +106,27 @@ export class DownloadAction implements Action<DownloadOptions> {
             return;
         }
 
+        await this.createDirectory(entries, destination, overwrite, input);
+
+        for (const entry of entries) {
+            await fileSystem.create(entry);
+        }
+
+        for (const entry of entries) {
+            if (entry.type === 'file') {
+                await codemod.apply(await fileSystem.getRealPath(entry.name));
+            }
+        }
+    }
+
+    private async createDirectory(
+        entries: FileSystemEntry[],
+        destination: string,
+        overwrite: boolean,
+        input?: Input,
+    ): Promise<void> {
+        const {fileSystem} = this.config;
+
         if (await fileSystem.exists(destination)) {
             if (entries.length === 1 && entries[0].type === 'file') {
                 if (
@@ -124,11 +145,18 @@ export class DownloadAction implements Action<DownloadOptions> {
                 }
             } else {
                 if (!await fileSystem.isDirectory(destination)) {
-                    throw new ActionError('Destination is not a directory.', {
-                        reason: ErrorReason.PRECONDITION,
-                        details: [`Path: ${destination}`],
-                        suggestions: ['Delete the file'],
-                    });
+                    if (
+                        await input?.confirm({
+                            message: `Destination ${destination} is not a directory. Do you want to delete it?`,
+                            default: false,
+                        }) !== true
+                    ) {
+                        throw new ActionError('Destination is not a directory.', {
+                            reason: ErrorReason.PRECONDITION,
+                            details: [`Path: ${destination}`],
+                            suggestions: ['Delete the file'],
+                        });
+                    }
                 } else if (
                     !overwrite
                     && !await fileSystem.isEmptyDirectory(destination)
@@ -151,15 +179,5 @@ export class DownloadAction implements Action<DownloadOptions> {
         await fileSystem.createDirectory(destination, {
             recursive: true,
         });
-
-        for (const entry of entries) {
-            await fileSystem.create(entry);
-        }
-
-        for (const entry of entries) {
-            if (entry.type === 'file') {
-                await codemod.apply(await fileSystem.getRealPath(entry.name));
-            }
-        }
     }
 }
