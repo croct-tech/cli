@@ -47,7 +47,7 @@ const optionSchema: ZodType<OptionDefinition> = z.discriminatedUnion('type', [
 ]);
 
 const optionName = z.string()
-    .regex(/^[a-zA-Z0-9_-]+$/)
+    .regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/)
     .min(1);
 
 const templateSchema: ZodType<Template> = z.strictObject({
