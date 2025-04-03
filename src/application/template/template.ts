@@ -12,7 +12,7 @@ type OptionTypes = {
     },
     string: {
         type: string,
-        options?: string[],
+        choices?: string[],
     },
     boolean: {
         type: boolean,

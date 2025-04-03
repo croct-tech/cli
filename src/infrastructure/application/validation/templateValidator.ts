@@ -25,7 +25,7 @@ const optionSchema: ZodType<OptionDefinition> = z.discriminatedUnion('type', [
     }),
     baseOptionSchema.extend({
         type: z.literal('string'),
-        options: z.array(z.string()).optional(),
+        choices: z.array(z.string()).optional(),
         default: z.string().optional(),
     }),
     baseOptionSchema.extend({
