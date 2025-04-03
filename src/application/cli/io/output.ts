@@ -32,11 +32,11 @@ export type TaskList = TaskOptions & {
     tasks: Task[],
 };
 
-export type Semantic = 'neutral' | 'info' | 'error' | 'warning' | 'success';
+export type Semantics = 'neutral' | 'info' | 'error' | 'warning' | 'success';
 
 export interface Output {
     announce(callout: Callout): void;
-    log(message: string, semantic?: Semantic): void;
+    log(message: string, semantics?: Semantics): void;
     inform(message: string): void;
     warn(message: string): void;
     alert(message: string): void;

@@ -706,7 +706,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                     customId: slug,
                     name: definition.name,
                     description: definition.description,
-                    definition: definition.definition,
+                    definition: definition.schema,
                 }),
             ),
             slots: Object.entries(resources.slots ?? {}).map(

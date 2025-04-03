@@ -22,7 +22,7 @@ export type LocateFileOptions = {
     matcher?: ContentMatcher,
     limit?: number,
     depth?: number,
-    result?: string,
+    result: string,
 };
 
 export type PathMatcher = Predicate<[string]>;
@@ -59,11 +59,7 @@ export class LocateFileAction implements Action<LocateFileOptions> {
     }
 
     private async findMatches(options: LocateFileOptions, context: ActionContext): Promise<void> {
-        const matches = await this.findMatch(options.path, options);
-
-        if (options.result !== undefined) {
-            context.set(options.result, matches);
-        }
+        context.set(options.result, await this.findMatch(options.path, options));
     }
 
     private async findMatch(pattern: string, options: LocateFileOptions): Promise<string[]> {

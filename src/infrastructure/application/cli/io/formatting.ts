@@ -4,11 +4,11 @@ import {render as renderMarkdown} from '@croct/md-lite/rendering.js';
 import terminalLink from 'terminal-link';
 import {unescape as unescapeMarkdown} from '@croct/md-lite/parsing.js';
 import {strip} from 'node-emoji';
-import {Semantic} from '@/application/cli/io/output';
+import {Semantics} from '@/application/cli/io/output';
 
 const unicodeSupport = isUnicodeSupported();
 
-export const colors: Record<Semantic, ForegroundColorName> = {
+export const colors: Record<Semantics, ForegroundColorName> = {
     neutral: 'cyan',
     info: 'blue',
     error: 'red',
@@ -16,7 +16,7 @@ export const colors: Record<Semantic, ForegroundColorName> = {
     success: 'green',
 };
 
-const icons: Record<Semantic, string> = {
+const icons: Record<Semantics, string> = {
     neutral: unicodeSupport ? '➜' : '>',
     info: unicodeSupport ? 'ℹ' : 'i',
     error: unicodeSupport ? '✘' : '×',
@@ -26,9 +26,9 @@ const icons: Record<Semantic, string> = {
 
 export type FormatingOptions = {
     basic?: boolean,
-    text?: Semantic,
+    text?: Semantics,
     icon?: {
-        semantic: Semantic,
+        semantics: Semantics,
         symbol?: {
             unicode: string,
             ascii: string,
@@ -48,11 +48,11 @@ export function format(message: string, options: FormatingOptions = {}): string 
     }
 
     if (options.icon !== undefined) {
-        const {semantic, symbol} = options.icon;
+        const {semantics, symbol} = options.icon;
 
         result = symbol !== undefined
-            ? `${chalk[colors[semantic]](symbol[unicodeSupport ? 'unicode' : 'ascii'])} ${result}`
-            : `${chalk[colors[semantic]](icons[semantic])} ${result}`;
+            ? `${chalk[colors[semantics]](symbol[unicodeSupport ? 'unicode' : 'ascii'])} ${result}`
+            : `${chalk[colors[semantics]](icons[semantics])} ${result}`;
     }
 
     return result;

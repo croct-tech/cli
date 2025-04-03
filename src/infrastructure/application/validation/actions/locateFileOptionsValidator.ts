@@ -26,7 +26,7 @@ const schema: ZodType<LocateFileOptions> = z.strictObject({
         .int()
         .nonnegative()
         .optional(),
-    result: z.string().optional(),
+    result: z.string(),
 });
 
 export class LocateFileOptionsValidator extends ActionOptionsValidator<LocateFileOptions> {
