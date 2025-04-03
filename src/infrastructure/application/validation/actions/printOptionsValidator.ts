@@ -3,7 +3,7 @@ import {PrintOptions} from '@/application/template/action/printAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const schema: ZodType<PrintOptions> = z.strictObject({
-    semantic: z.enum(['neutral', 'info', 'error', 'warning', 'success']).optional(),
+    semantics: z.enum(['neutral', 'info', 'error', 'warning', 'success']).optional(),
     title: z.string().optional(),
     message: z.string(),
 });

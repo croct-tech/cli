@@ -1,14 +1,14 @@
-import {ZodType} from 'zod';
+import {ZodType, ZodTypeDef} from 'zod';
 import {Validator, ValidationResult, Violation} from '@/application/validation';
 
-export class ZodValidator<T> implements Validator<T> {
-    protected readonly schema: ZodType<T>;
+export class ZodValidator<O, I = O> implements Validator<O> {
+    protected readonly schema: ZodType<O, ZodTypeDef, I>;
 
-    public constructor(schema: ZodType<T>) {
+    public constructor(schema: ZodType<O, ZodTypeDef, I>) {
         this.schema = schema;
     }
 
-    public async validate(data: unknown): Promise<ValidationResult<T>> {
+    public async validate(data: unknown): Promise<ValidationResult<O>> {
         const result = await this.schema.safeParseAsync(data);
 
         if (result.success) {

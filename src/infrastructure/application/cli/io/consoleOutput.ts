@@ -1,5 +1,5 @@
 import {Writable, PassThrough} from 'stream';
-import {Output, Notifier, TaskList, TaskResolver, Semantic} from '@/application/cli/io/output';
+import {Output, Notifier, TaskList, TaskResolver, Semantics} from '@/application/cli/io/output';
 import {InteractiveTaskMonitor} from '@/infrastructure/application/cli/io/interactiveTaskMonitor';
 import {format} from '@/infrastructure/application/cli/io/formatting';
 import {TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
@@ -67,8 +67,8 @@ export class ConsoleOutput implements Output {
         this.write(`${this.formatter.formatCallout(callout)}\n`);
     }
 
-    public log(text: string, semantic?: Semantic): void {
-        this.writeLog(text, semantic ?? 'neutral');
+    public log(text: string, semantics?: Semantics): void {
+        this.writeLog(text, semantics ?? 'neutral');
     }
 
     public confirm(text: string): void {
@@ -125,8 +125,8 @@ export class ConsoleOutput implements Output {
         return this.onExit();
     }
 
-    private writeLog(text: string, semantic: Semantic): void {
-        this.write(`${format(text, semantic === 'neutral' ? {} : {icon: {semantic: semantic}})}\n`);
+    private writeLog(text: string, semantics: Semantics): void {
+        this.write(`${format(text, semantics === 'neutral' ? {} : {icon: {semantics: semantics}})}\n`);
     }
 
     private write(text: string, critical = false): void {

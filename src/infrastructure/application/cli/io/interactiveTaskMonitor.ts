@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import {Writable} from 'stream';
 import readline from 'node:readline';
 import {WriteStream} from 'tty';
-import {Task, TaskList, TaskOptions, Notifier, Semantic} from '@/application/cli/io/output';
+import {Task, TaskList, TaskOptions, Notifier, Semantics} from '@/application/cli/io/output';
 import {format} from '@/infrastructure/application/cli/io/formatting';
 import {TaskExecution, TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
 
@@ -213,12 +213,12 @@ class TaskWatcher {
     }
 
     private formatTask(task: TaskState): string {
-        const semantic = TaskWatcher.getSemantic(task.status);
+        const semantics = TaskWatcher.getSemantics(task.status);
         let message = task.status === 'loading'
             ? `${spinnerFrames[this.frame % spinnerFrames.length]} ${format(task.title)}`
             : format(task.title, {
                 icon: {
-                    semantic: semantic,
+                    semantics: semantics,
                     symbol: task.status === 'pending'
                         ? {
                             unicode: '◷',
@@ -230,9 +230,9 @@ class TaskWatcher {
 
         if (task.subtitle !== undefined) {
             message += `\n${format(task.subtitle, {
-                text: semantic,
+                text: semantics,
                 icon: {
-                    semantic: semantic,
+                    semantics: semantics,
                     symbol: {
                         unicode: '↳',
                         ascii: '›',
@@ -244,7 +244,7 @@ class TaskWatcher {
         return message;
     }
 
-    private static getSemantic(status: TaskStatus): Semantic {
+    private static getSemantics(status: TaskStatus): Semantics {
         return status === 'loading' || status === 'pending' ? 'neutral' : status;
     }
 }

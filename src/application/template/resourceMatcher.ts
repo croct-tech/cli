@@ -236,7 +236,7 @@ export class ResourceMatcher {
     }
 
     private static isSimilarComponent(definition: ComponentDefinition, component: Component): boolean {
-        return deepEqual(definition.definition, component.definition);
+        return deepEqual(definition.schema, component.definition);
     }
 
     private static isSimilarSlot(definition: SlotDefinition, slug: Slot): boolean {

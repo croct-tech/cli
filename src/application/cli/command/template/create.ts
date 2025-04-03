@@ -75,7 +75,7 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
                 ? [
                     {
                         name: 'print',
-                        semantic: 'info',
+                        semantics: 'info',
                         title: 'Empty template',
                         message: 'Edit this template to define your actions.',
                     },
@@ -113,7 +113,7 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
                     component => [component.slug, {
                         name: component.name,
                         description: component.description,
-                        definition: component.definition,
+                        schema: component.definition,
                     }],
                 ),
             ),

@@ -1,6 +1,7 @@
-import {z} from 'zod';
+import {z, ZodTypeDef} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {Version} from '@/application/model/version';
+import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 
 const identifierSchema = z.string().regex(
     /^[a-z]+(-?[a-z0-9]+)*$/i,
@@ -15,7 +16,7 @@ const localeSchema = z.string().regex(
 const versionSchema = z.string()
     .refine(
         Version.isValid,
-        'Version must be exact (1), range (1 - 2), or set (1 || 2).',
+        'Version must be exact (1), range (1 - 2), or set (1, 2).',
     )
     .refine(
         version => {
@@ -28,7 +29,10 @@ const versionSchema = z.string()
         'Version range must not exceed 5 major versions.',
     );
 
-const configurationSchema = z.strictObject({
+type PartialProjectConfiguration = Omit<ProjectConfiguration, 'slots' | 'components'>
+    & Partial<Pick<ProjectConfiguration, 'slots' | 'components'>>;
+
+const configurationSchema: z.ZodType<ProjectConfiguration, ZodTypeDef, PartialProjectConfiguration> = z.strictObject({
     $schema: z.string().optional(),
     organization: identifierSchema,
     workspace: identifierSchema,
@@ -36,10 +40,12 @@ const configurationSchema = z.strictObject({
         development: identifierSchema,
         production: identifierSchema.optional(),
     }),
-    locales: z.array(localeSchema),
+    locales: z.array(localeSchema).min(1),
     defaultLocale: localeSchema,
-    slots: z.record(versionSchema),
-    components: z.record(versionSchema),
+    slots: z.record(versionSchema)
+        .default({}),
+    components: z.record(versionSchema)
+        .default({}),
     paths: z.strictObject({
         components: z.string(),
         examples: z.string(),
@@ -50,7 +56,7 @@ const configurationSchema = z.strictObject({
     path: ['defaultLocale'],
 });
 
-export class CroctConfigurationValidator extends ZodValidator<z.infer<typeof configurationSchema>> {
+export class CroctConfigurationValidator extends ZodValidator<ProjectConfiguration, PartialProjectConfiguration> {
     public constructor() {
         super(configurationSchema);
     }

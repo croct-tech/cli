@@ -1,7 +1,7 @@
-import {Semantic} from '@/application/cli/io/output';
+import {Semantics} from '@/application/cli/io/output';
 
 export type Callout = {
-    semantics: Semantic,
+    semantics: Semantics,
     title: string,
     message: string,
     alignment?: 'left' | 'center' | 'right',

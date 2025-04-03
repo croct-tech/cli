@@ -80,7 +80,7 @@ export type SlotDefinition = {
 export type ComponentDefinition = {
     name: string,
     description?: string,
-    definition: RootDefinition,
+    schema: RootDefinition,
 };
 
 export type AudienceDefinition = {

@@ -9,14 +9,11 @@ import {
 } from '@/application/template/action/promptAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
-const baseSchema = z.strictObject({
-    result: z.string().optional(),
-});
-
-const confirmationOptionsSchema = baseSchema.extend({
+const confirmationOptionsSchema = z.strictObject({
     type: z.literal('confirmation'),
     message: z.string(),
     default: z.boolean().optional(),
+    result: z.string(),
 }) satisfies ZodType<ConfirmationOptions>;
 
 const choiceValueSchema = z.string();
@@ -44,11 +41,12 @@ const choiceSchema: ZodType<ChoiceOptions['options'][number], ZodTypeDef, any> =
     }),
 );
 
-const choiceOptionsSchema = baseSchema.extend({
+const choiceOptionsSchema = z.strictObject({
     type: z.literal('choice'),
     message: z.string(),
     options: z.array(choiceSchema),
     default: choiceValueSchema.optional(),
+    result: z.string(),
 }) satisfies ZodType<ChoiceOptions>;
 
 const multipleChoiceSchema: ZodType<MultipleChoiceOptions['options'][number], ZodTypeDef, any> = z.preprocess(
@@ -75,22 +73,24 @@ const multipleChoiceSchema: ZodType<MultipleChoiceOptions['options'][number], Zo
     }),
 );
 
-const multipleChoiceOptionsSchema = baseSchema.extend({
+const multipleChoiceOptionsSchema = z.strictObject({
     type: z.literal('multi-choice'),
     message: z.string(),
     min: z.number().optional(),
     max: z.number().optional(),
     options: z.array(multipleChoiceSchema),
+    result: z.string(),
 }) satisfies ZodType<MultipleChoiceOptions>;
 
-const textOptionsSchema = baseSchema.extend({
+const textOptionsSchema = z.strictObject({
     type: z.literal('text'),
     message: z.string(),
     default: z.string().optional(),
     required: z.boolean().optional(),
+    result: z.string(),
 }) satisfies ZodType<TextOptions>;
 
-const keypressOptionsSchema = baseSchema.extend({
+const keypressOptionsSchema = z.strictObject({
     type: z.literal('keypress'),
     message: z.string(),
     key: z.union([
@@ -98,6 +98,7 @@ const keypressOptionsSchema = baseSchema.extend({
         z.literal('space'),
         z.string().length(1),
     ]).optional(),
+    result: z.string().optional(),
 }) satisfies ZodType<KeypressOptions>;
 
 const schema: ZodType<PromptOptions> = z.discriminatedUnion('type', [

@@ -133,7 +133,7 @@ const componentDefinitionSchema: ZodType<ComponentDefinition> = z.strictObject({
     description: z.string()
         .min(1)
         .optional(),
-    definition: rootContentDefinitionSchema,
+    schema: rootContentDefinitionSchema,
 });
 
 const stringContentValueSchema: ZodType<PrimitiveValue<string>> = z.union([
@@ -275,7 +275,6 @@ const experienceDefinitionSchema: ZodType<ExperienceDefinition> = z.strictObject
             .min(0)
             .max(1),
         variants: z.array(experimentVariantSchema),
-        content: localizedSlotContentSchema,
     }).optional(),
     content: personalizedContentSchema,
 });

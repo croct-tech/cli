@@ -1,5 +1,5 @@
 import {Writable} from 'stream';
-import {TaskList, Notifier, Semantic} from '@/application/cli/io/output';
+import {TaskList, Notifier, Semantics} from '@/application/cli/io/output';
 import {TaskExecution, TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
 import {format} from '@/infrastructure/application/cli/io/formatting';
 
@@ -57,9 +57,9 @@ export class NonInteractiveTaskMonitor implements TaskMonitor {
     }
 
     public notify(initialStatus: string, clear = false): InternalNotifier {
-        const stop = (title?: string, subtitle?: string, semantic?: Semantic, persist = !clear): void => {
+        const stop = (title?: string, subtitle?: string, semantics?: Semantics, persist = !clear): void => {
             if (!this.stopped && !notifier.stopped && persist) {
-                this.log(title ?? notifier.lastStatus, subtitle ?? notifier.latestDetails, semantic);
+                this.log(title ?? notifier.lastStatus, subtitle ?? notifier.latestDetails, semantics);
             }
 
             const index = this.notifiers.indexOf(notifier);
@@ -96,22 +96,22 @@ export class NonInteractiveTaskMonitor implements TaskMonitor {
         return notifier;
     }
 
-    private log(title: string, subtitle?: string, semantic?: Semantic): void {
-        this.output.write(`${this.format(title, subtitle, semantic)}\n`);
+    private log(title: string, subtitle?: string, semantics?: Semantics): void {
+        this.output.write(`${this.format(title, subtitle, semantics)}\n`);
     }
 
-    private format(title: string, subtitle?: string, semantic: Semantic = 'neutral'): string {
+    private format(title: string, subtitle?: string, semantics: Semantics = 'neutral'): string {
         let message = format(title, {
             icon: {
-                semantic: semantic,
+                semantics: semantics,
             },
         });
 
         if (subtitle !== undefined) {
             message += `\n${format(subtitle, {
-                text: semantic,
+                text: semantics,
                 icon: {
-                    semantic: semantic,
+                    semantics: semantics,
                     symbol: {
                         unicode: '↳',
                         ascii: '›',
