@@ -94,7 +94,10 @@ export class ImportAction implements Action<ImportOptions> {
 
             const resolvedValue = await (value ?? definition.resolveDefault?.(this.config.variables));
 
-            if (resolvedValue !== undefined) {
+            if (resolvedValue === undefined) {
+                // Set omitted options to null
+                values[name] = null;
+            } else {
                 if (definition.type === 'reference') {
                     ImportAction.checkOptionValue<'string'>(name, resolvedValue, {
                         ...definition,
