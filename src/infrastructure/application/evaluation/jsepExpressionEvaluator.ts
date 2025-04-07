@@ -10,7 +10,7 @@ import {
     VariableMap,
 } from '@/application/template/evaluation';
 import {Deferred, Deferrable} from '@/application/template/deferral';
-import {HelpfulError} from '@/application/error';
+import {Help, HelpfulError} from '@/application/error';
 
 export type Configuration = {
     functions?: Record<string, GenericFunction>,
@@ -50,6 +50,14 @@ type Properties<T> = Exclude<
 
 type MethodOwner<T, P extends string> = T & Record<P, GenericFunction>;
 type PropertyOwner<T, P extends string> = T & Record<P, Deferrable<JsonValue>>;
+
+class UndefinedValueError extends EvaluationError {
+    public constructor(message: string, help?: Help) {
+        super(message, help);
+
+        Object.setPrototypeOf(this, UndefinedValueError.prototype);
+    }
+}
 
 export class JsepExpressionEvaluator implements ExpressionEvaluator {
     private static readonly ALLOWED_ARRAY_PROPERTIES: Array<Properties<any[]>> = [
@@ -101,7 +109,19 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
         },
         '??': {
             precedence: 1,
-            evaluate: async (left, right) => (await left()) ?? right(),
+            evaluate: async (left, right) => {
+                let value: Deferrable<JsonValue> = null;
+
+                try {
+                    value = await left();
+                } catch (error) {
+                    if (!(error instanceof UndefinedValueError)) {
+                        throw error;
+                    }
+                }
+
+                return value ?? right();
+            },
         },
         '&&': {
             precedence: 2,
@@ -260,15 +280,15 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
 
             case matches(expression, 'ArrayExpression'): {
                 const elements = await Promise.all(
-                    expression.elements.map(element => {
+                    expression.elements.map(async element => {
                         if (element === null) {
                             return [];
                         }
 
                         if (matches(element, 'SpreadElement')) {
-                            const value = this.evaluateExpression(element.argument, context);
+                            const value = await this.evaluateExpression(element.argument, context);
 
-                            if (!(value instanceof Promise) && !Array.isArray(value)) {
+                            if (!Array.isArray(value)) {
                                 throw new EvaluationError(
                                     'Spread expression must evaluate to an array, '
                                     + `got ${HelpfulError.describeType(value)}.`,
@@ -278,54 +298,55 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                             return value;
                         }
 
-                        return [this.evaluateExpression(element, context)];
+                        return [await this.evaluateExpression(element, context)];
                     }),
                 );
 
                 return elements.flat();
             }
 
-            case matches(expression, 'ObjectExpression'):
-                return Object.fromEntries(
-                    await Promise.all(
-                        expression.properties.flatMap(
-                            async property => {
-                                if (matches(property, 'SpreadElement')) {
-                                    const value = await this.evaluateExpression(property.argument, context);
+            case matches(expression, 'ObjectExpression'): {
+                const entries = await Promise.all(
+                    expression.properties.map(
+                        async property => {
+                            if (matches(property, 'SpreadElement')) {
+                                const value = await this.evaluateExpression(property.argument, context);
 
-                                    if (typeof value !== 'object' || value === null) {
-                                        throw new EvaluationError(
-                                            'Spread expression must evaluate to an object, '
-                                            + `got ${HelpfulError.describeType(value)}.`,
-                                        );
-                                    }
-
-                                    return Object.entries(value);
+                                if (typeof value !== 'object' || value === null) {
+                                    throw new EvaluationError(
+                                        'Spread expression must evaluate to an object, '
+                                        + `got ${HelpfulError.describeType(value)}.`,
+                                    );
                                 }
 
-                                if (property.value === undefined && matches(property.key, 'Identifier')) {
-                                    return [property.key.name, await this.evaluateExpression(property.key, context)];
-                                }
+                                return Object.entries(value);
+                            }
 
-                                const name = matches(property.key, 'Identifier')
-                                    ? property.key.name
-                                    : this.evaluateExpression(property.key, context)
-                                        .then(result => {
-                                            if (typeof result !== 'string' && typeof result !== 'number') {
-                                                throw new EvaluationError(
-                                                    'Property name must be a string or a number, '
-                                                    + `got ${HelpfulError.describeType(result)}.`,
-                                                );
-                                            }
+                            if (property.value === undefined && matches(property.key, 'Identifier')) {
+                                return [[property.key.name, await this.evaluateExpression(property.key, context)]];
+                            }
 
-                                            return result;
-                                        });
+                            const name = matches(property.key, 'Identifier')
+                                ? property.key.name
+                                : await this.evaluateExpression(property.key, context)
+                                    .then(result => {
+                                        if (typeof result !== 'string' && typeof result !== 'number') {
+                                            throw new EvaluationError(
+                                                'Property name must be a string or a number, '
+                                                + `got ${HelpfulError.describeType(result)}.`,
+                                            );
+                                        }
 
-                                return [[name, await this.evaluateExpression(property.value!, context)]];
-                            },
-                        ),
+                                        return result;
+                                    });
+
+                            return [[name, await this.evaluateExpression(property.value!, context)]];
+                        },
                     ),
                 );
+
+                return Object.fromEntries(entries.flat());
+            }
 
             case matches(expression, 'UnaryExpression'):
                 return JsepExpressionEvaluator.UNARY_OPERATORS[expression.operator].evaluate(
@@ -355,7 +376,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                     }
 
                     if (property < 0 || property >= object.length) {
-                        throw new EvaluationError('Array index  is out of bounds.');
+                        throw new UndefinedValueError('Array index is out of bounds.');
                     }
 
                     return object[property];
@@ -363,41 +384,41 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
 
                 if (typeof property !== 'string') {
                     throw new EvaluationError(
-                        'Property name must be a string, '
-                        + `got ${HelpfulError.describeType(property)}.`,
+                        `Property name must be a string, got ${HelpfulError.describeType(property)}.`,
                     );
                 }
 
                 if (!JsepExpressionEvaluator.isPropertyAllowed(object, property)) {
-                    throw new EvaluationError(`Property \`${property}\` does not exist or is not accessible.`);
+                    throw new UndefinedValueError(`Property \`${property}\` does not exist or is not accessible.`);
                 }
 
                 return object[property];
             }
 
             case matches(expression, 'CallExpression'): {
-                const fn = await this.getCallee(expression.callee, context);
+                const [fn, argumentValues] = await Promise.all([
+                    this.getCallee(expression.callee, context),
+                    Promise.all(expression.arguments.map(
+                        argument => this.resolve(this.evaluateExpression(argument, context)),
+                    )),
+                ]);
 
-                return fn(
-                    ...await Promise.all(
-                        expression.arguments.flatMap(argument => {
-                            const value = this.resolve(this.evaluateExpression(argument, context));
+                return fn(...expression.arguments.flatMap((argument, index) => {
+                    const value = argumentValues[index];
 
-                            if (matches(argument, 'SpreadElement')) {
-                                if (!Array.isArray(value)) {
-                                    throw new EvaluationError(
-                                        'Spread argument must evaluate to an array, '
-                                        + `got ${HelpfulError.describeType(value)}.`,
-                                    );
-                                }
+                    if (matches(argument, 'SpreadElement')) {
+                        if (!Array.isArray(value)) {
+                            throw new EvaluationError(
+                                'Spread argument must evaluate to an array, '
+                                + `got ${HelpfulError.describeType(value)}.`,
+                            );
+                        }
 
-                                return value;
-                            }
+                        return value;
+                    }
 
-                            return [value];
-                        }),
-                    ),
-                );
+                    return [value];
+                }));
             }
 
             case matches(expression, 'ConditionalExpression'):
@@ -423,7 +444,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
         }
 
         if (matches(expression, 'MemberExpression')) {
-            const value = await this.evaluateExpression(expression.object, context);
+            const value = await this.resolve(this.evaluateExpression(expression.object, context));
 
             const property = matches(expression.property, 'Identifier')
                 ? expression.property.name
