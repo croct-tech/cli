@@ -1,4 +1,4 @@
-import {z} from 'zod';
+import {z, ZodTypeDef} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {Version} from '@/application/model/version';
 import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
@@ -32,7 +32,7 @@ const versionSchema = z.string()
 type PartialProjectConfiguration = Omit<ProjectConfiguration, 'slots' | 'components'>
     & Partial<Pick<ProjectConfiguration, 'slots' | 'components'>>;
 
-const configurationSchema = z.strictObject({
+const configurationSchema: z.ZodType<ProjectConfiguration, ZodTypeDef, PartialProjectConfiguration> = z.strictObject({
     $schema: z.string().optional(),
     organization: identifierSchema,
     workspace: identifierSchema,
