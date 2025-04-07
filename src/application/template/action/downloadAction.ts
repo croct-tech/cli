@@ -148,6 +148,8 @@ export class DownloadAction implements Action<DownloadOptions> {
                 });
             }
 
+            // No need to delete the file as it will be overwritten
+
             return;
         }
 
