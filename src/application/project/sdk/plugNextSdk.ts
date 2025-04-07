@@ -100,15 +100,9 @@ export class PlugNextSdk extends JavaScriptSdk {
 
         const isTypeScript = await this.isTypeScriptProject();
 
-        const slotPath = this.fileSystem.joinPaths(
-            installation.configuration.paths.components,
-            `%slug%${isTypeScript ? '.tsx' : '.jsx'}`,
-        );
-
-        const pagePath = this.fileSystem.joinPaths(
-            installation.configuration.paths.examples,
-            '%slug%',
-        );
+        const paths = await this.getPaths(installation.configuration);
+        const slotPath = this.fileSystem.joinPaths(paths.components, `%slug%${isTypeScript ? '.tsx' : '.jsx'}`);
+        const pagePath = this.fileSystem.joinPaths(paths.examples, '%slug%');
 
         const slotImportPath = await this.importResolver.getImportPath(slotPath, pagePath);
 

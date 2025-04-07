@@ -73,7 +73,7 @@ import {
 } from '@/application/cli/authentication/authenticator/multiAuthenticator';
 import {ApiError} from '@/application/api/error';
 import {UpgradeCommand, UpgradeInput} from '@/application/cli/command/upgrade';
-import {ProjectConfigurationError} from '@/application/project/configuration/projectConfiguration';
+import {ProjectConfigurationError, ProjectPaths} from '@/application/project/configuration/projectConfiguration';
 import {FileSystem, FileSystemIterator} from '@/application/fs/fileSystem';
 import {LocalFilesystem} from '@/application/fs/localFilesystem';
 import {FocusListener} from '@/infrastructure/application/cli/io/focusListener';
@@ -1277,14 +1277,12 @@ export class Cli {
                         };
                     },
                 ),
-                path: {
-                    example: LazyPromise.transient(
-                        async () => (await this.getConfigurationManager().load()).paths.examples,
-                    ),
-                    component: LazyPromise.transient(
-                        async () => (await this.getConfigurationManager().load()).paths.components,
-                    ),
-                },
+                path: LazyPromise.transient(async (): Promise<ProjectPaths> => {
+                    const sdk = this.getSdk();
+                    const configuration = await this.getConfigurationManager().load();
+
+                    return sdk.getPaths(configuration);
+                }),
                 platform: LazyPromise.transient(async () => (await this.getPlatformProvider().get()) ?? 'unknown'),
                 server: LazyPromise.transient(async (): Promise<{running: boolean, url?: string}|null> => {
                     const serverProvider = this.getServerProvider();

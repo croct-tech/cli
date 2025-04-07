@@ -47,10 +47,12 @@ const configurationSchema: z.ZodType<ProjectConfiguration, ZodTypeDef, PartialPr
     components: z.record(versionSchema)
         .default({}),
     paths: z.strictObject({
-        components: z.string(),
-        examples: z.string(),
+        source: z.string().optional(),
+        utilities: z.string().optional(),
+        components: z.string().optional(),
+        examples: z.string().optional(),
         content: z.string().optional(),
-    }),
+    }).optional(),
 }).refine(data => data.locales.includes(data.defaultLocale), {
     message: 'The default locale is not included in the list of locales.',
     path: ['defaultLocale'],

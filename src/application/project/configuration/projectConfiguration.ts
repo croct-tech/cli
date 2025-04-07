@@ -1,5 +1,13 @@
 import {ErrorReason, Help, HelpfulError} from '@/application/error';
 
+export type ProjectPaths = {
+    source: string,
+    utilities: string,
+    components: string,
+    examples: string,
+    content?: string,
+};
+
 export type ProjectConfiguration = {
     organization: string,
     workspace: string,
@@ -11,11 +19,7 @@ export type ProjectConfiguration = {
     locales: string[],
     slots: Record<string, string>,
     components: Record<string, string>,
-    paths: {
-        components: string,
-        examples: string,
-        content?: string,
-    },
+    paths?: Partial<ProjectPaths>,
 };
 
 export class ProjectConfigurationError extends HelpfulError {
