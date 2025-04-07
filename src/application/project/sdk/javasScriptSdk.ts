@@ -228,9 +228,9 @@ export abstract class JavaScriptSdk implements Sdk {
                 [
                     this.fileSystem.joinPaths('src', 'lib', 'utils'),
                     this.fileSystem.joinPaths('src', 'utils'),
+                    this.fileSystem.joinPaths('src', 'lib'),
                     this.fileSystem.joinPaths('lib', 'utils'),
                     'utils',
-                    this.fileSystem.joinPaths('src', 'lib'),
                     'lib',
                 ],
                 configuration.paths?.utilities,
