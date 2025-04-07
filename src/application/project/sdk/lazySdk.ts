@@ -1,6 +1,6 @@
 import {Installation, Sdk, SdkError, UpdateOptions} from '@/application/project/sdk/sdk';
 import {Provider, ProviderError} from '@/application/provider/provider';
-import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
+import {ProjectConfiguration, ProjectPaths} from '@/application/project/configuration/projectConfiguration';
 import {Slot} from '@/application/model/slot';
 
 export class LazySdk implements Sdk {
@@ -22,6 +22,10 @@ export class LazySdk implements Sdk {
 
     public async setup(installation: Installation): Promise<ProjectConfiguration> {
         return (await this.sdk).setup(installation);
+    }
+
+    public async getPaths(configuration: ProjectConfiguration): Promise<ProjectPaths> {
+        return (await this.sdk).getPaths(configuration);
     }
 
     public async update(installation: Installation, options?: UpdateOptions): Promise<void> {

@@ -1,10 +1,10 @@
 import {ZodType, ZodTypeDef} from 'zod';
 import {Validator, ValidationResult, Violation} from '@/application/validation';
 
-export class ZodValidator<O, I = O> implements Validator<O> {
-    protected readonly schema: ZodType<O, ZodTypeDef, I>;
+export class ZodValidator<O, I = O, D extends ZodTypeDef = ZodTypeDef> implements Validator<O> {
+    protected readonly schema: ZodType<O, D, I>;
 
-    public constructor(schema: ZodType<O, ZodTypeDef, I>) {
+    public constructor(schema: ZodType<O, D, I>) {
         this.schema = schema;
     }
 

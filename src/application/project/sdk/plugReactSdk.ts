@@ -71,15 +71,9 @@ export class PlugReactSdk extends JavaScriptSdk {
     protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
         const isTypeScript = await this.isTypeScriptProject();
 
-        const slotPath = this.fileSystem.joinPaths(
-            installation.configuration.paths.components,
-            `%slug%${isTypeScript ? '.tsx' : '.jsx'}`,
-        );
-
-        const pagePath = this.fileSystem.joinPaths(
-            installation.configuration.paths.examples,
-            `%slug%-example${isTypeScript ? '.tsx' : '.jsx'}`,
-        );
+        const paths = await this.getPaths(installation.configuration);
+        const slotPath = this.fileSystem.joinPaths(paths.components, `%slug%${isTypeScript ? '.tsx' : '.jsx'}`);
+        const pagePath = this.fileSystem.joinPaths(paths.examples, `%slug%-example${isTypeScript ? '.tsx' : '.jsx'}`);
 
         const generator = new PlugReactExampleGenerator({
             fileSystem: this.fileSystem,

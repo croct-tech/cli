@@ -44,10 +44,8 @@ export class PlugJsSdk extends JavaScriptSdk {
             });
         }
 
-        const directory = this.fileSystem.joinPaths(
-            installation.configuration.paths.examples,
-            slot.slug,
-        );
+        const paths = await this.getPaths(configuration);
+        const directory = this.fileSystem.joinPaths(paths.examples, slot.slug);
 
         const generator = new PlugJsExampleGenerator({
             fileSystem: this.fileSystem,

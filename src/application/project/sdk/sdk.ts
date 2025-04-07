@@ -1,6 +1,6 @@
 import {Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
-import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
+import {ProjectConfiguration, ProjectPaths} from '@/application/project/configuration/projectConfiguration';
 import {Slot} from '@/application/model/slot';
 import {Help, HelpfulError} from '@/application/error';
 
@@ -23,6 +23,15 @@ export interface Sdk {
      * @throws SdkError If an error occurs.
      */
     setup(installation: Installation): Promise<ProjectConfiguration>;
+
+    /**
+     * Locates the project paths.
+     *
+     * @param configuration The project configuration.
+     *
+     * @returns The project paths.
+     */
+    getPaths(configuration: ProjectConfiguration): Promise<ProjectPaths>;
 
     /**
      * Update the SDK artifacts in the project.

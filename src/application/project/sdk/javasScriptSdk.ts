@@ -6,7 +6,7 @@ import {
     SdkError,
     UpdateOptions,
 } from '@/application/project/sdk/sdk';
-import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
+import {ProjectConfiguration, ProjectPaths} from '@/application/project/configuration/projectConfiguration';
 import {Task, TaskNotifier} from '@/application/cli/io/output';
 import {TargetSdk, WorkspaceApi} from '@/application/api/workspace';
 import {ExampleFile} from '@/application/project/code/generation/example';
@@ -104,14 +104,7 @@ export abstract class JavaScriptSdk implements Sdk {
             ...plan.configuration,
             paths: {
                 content: '.',
-                components: await this.resolvePath(
-                    ['components', 'Components', 'component', 'Component'],
-                    plan.configuration.paths.components,
-                ),
-                examples: await this.resolvePath(
-                    ['examples', 'Examples'],
-                    plan.configuration.paths.examples,
-                ),
+                ...await this.getPaths(installation.configuration),
             },
         };
 
@@ -223,28 +216,64 @@ export abstract class JavaScriptSdk implements Sdk {
         return configuration;
     }
 
-    private async resolvePath(directories: string[], currentPath: string): Promise<string> {
-        if (currentPath !== '') {
+    public async getPaths(configuration: ProjectConfiguration): Promise<ProjectPaths> {
+        return {
+            ...configuration.paths,
+            source: await this.resolvePath(
+                ['src'],
+                configuration.paths?.source,
+                '.',
+            ),
+            utilities: await this.resolvePath(
+                [
+                    this.fileSystem.joinPaths('src', 'lib', 'utils'),
+                    this.fileSystem.joinPaths('src', 'utils'),
+                    this.fileSystem.joinPaths('lib', 'utils'),
+                    'utils',
+                    this.fileSystem.joinPaths('src', 'lib'),
+                    'lib',
+                ],
+                configuration.paths?.utilities,
+                'utils',
+            ),
+            components: await this.resolvePath(
+                ['src', '.'].flatMap(
+                    root => ['components', 'Components', 'component', 'Component'].flatMap(
+                        path => this.fileSystem.joinPaths(root, path),
+                    ),
+                ),
+                configuration.paths?.components,
+                'components',
+            ),
+            examples: await this.resolvePath(
+                ['src', '.'].flatMap(
+                    root => ['examples', 'Examples', 'example', 'examples'].flatMap(
+                        path => this.fileSystem.joinPaths(root, path),
+                    ),
+                ),
+                configuration.paths?.examples,
+                'examples',
+            ),
+
+        };
+    }
+
+    private async resolvePath(
+        paths: string[],
+        currentPath: string|undefined,
+        defaultPath: string,
+    ): Promise<string> {
+        if (currentPath !== undefined) {
             return currentPath;
         }
 
-        const parentDirs = ['src'];
+        const path = await this.locateFile(...paths);
 
-        const path = await this.locateFile(
-            ...parentDirs.flatMap(dir => directories.map(directory => this.fileSystem.joinPaths(dir, directory))),
-            ...directories,
-            ...parentDirs,
-        );
-
-        if (path === null) {
-            return directories[0];
+        if (path !== null) {
+            return path;
         }
 
-        if (parentDirs.includes(path)) {
-            return this.fileSystem.joinPaths(path, directories[0]);
-        }
-
-        return path;
+        return paths[0] ?? defaultPath;
     }
 
     protected abstract getInstallationPlan(installation: Installation): Promise<InstallationPlan>;
@@ -470,7 +499,7 @@ export abstract class JavaScriptSdk implements Sdk {
     private async loadContent(installation: Installation, update = false): Promise<VersionedContentMap> {
         const {configuration} = installation;
 
-        if (configuration.paths.content === undefined) {
+        if (configuration.paths?.content === undefined) {
             return this.loadRemoteContent(installation);
         }
 
@@ -565,7 +594,7 @@ export abstract class JavaScriptSdk implements Sdk {
         const {output, configuration} = installation;
 
         const notifier = options.notifier ?? output.notify('Updating types');
-        const filePath = this.getTypeFile(configuration.paths.content ?? this.projectDirectory.get());
+        const filePath = this.getTypeFile(configuration.paths?.content ?? this.projectDirectory.get());
 
         if (options.clean === true || !await this.fileSystem.exists(filePath)) {
             let module = '';
@@ -617,10 +646,9 @@ export abstract class JavaScriptSdk implements Sdk {
     }
 
     private async registerTypeFile(installation: Installation, notifier?: TaskNotifier): Promise<void> {
-        const configPath = await this.getTypeScriptConfigPath([
-            installation.configuration.paths.components,
-            installation.configuration.paths.examples,
-        ]);
+        const paths = await this.getPaths(installation.configuration);
+
+        const configPath = await this.getTypeScriptConfigPath([paths.components, paths.examples]);
 
         const output = notifier ?? installation.output.notify('Registering type file');
 
@@ -636,7 +664,7 @@ export abstract class JavaScriptSdk implements Sdk {
             throw new SdkError(`TypeScript configuration is outside the project directory: \`${relativePath}\``);
         }
 
-        const directory = installation.configuration.paths.content ?? this.projectDirectory.get();
+        const directory = installation.configuration.paths?.content ?? this.projectDirectory.get();
 
         const slotTypeFile = this.fileSystem
             .getRelativePath(
