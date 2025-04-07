@@ -52,7 +52,7 @@ const configurationSchema = z.strictObject({
         components: z.string().optional(),
         examples: z.string().optional(),
         content: z.string().optional(),
-    }),
+    }).optional(),
 }).refine(data => data.locales.includes(data.defaultLocale), {
     message: 'The default locale is not included in the list of locales.',
     path: ['defaultLocale'],
