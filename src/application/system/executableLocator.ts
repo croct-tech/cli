@@ -30,7 +30,7 @@ export class ExecutableLocator {
 
     private async findPath(command: string): Promise<string|null> {
         for (const path of this.executablePaths) {
-            for (const extension of ['', ...this.executableExtensions]) {
+            for (const extension of [...this.executableExtensions, '']) {
                 const realPath = this.fileSystem.joinPaths(path, command + extension.toLowerCase());
 
                 if (realPath !== null && await this.fileSystem.exists(realPath)) {
