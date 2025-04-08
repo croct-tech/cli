@@ -43,6 +43,10 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
 
         const subprocess = spawn(executable, command.arguments, {
             stdio: ['pipe', 'pipe', 'pipe'],
+            // Node does not allow to spawn .bat or .cmd files on Windows because
+            // arguments are not escaped:
+            // https://github.com/nodejs/node/commit/69ffc6d50dbd9d7d0257f5b9b403026e1aa205ee
+            shell: /\.(bat|cmd)$/i.test(executable),
             cwd: options?.workingDirectory ?? this.currentDirectory?.get(),
             signal: timeoutSignal,
         });
