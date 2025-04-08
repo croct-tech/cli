@@ -128,10 +128,6 @@ export class InitCommand implements Command<InitInput> {
             locales: workspace.locales,
             slots: {},
             components: {},
-            paths: {
-                components: '',
-                examples: '',
-            },
         };
 
         const defaultWebsite = workspace.website ?? organization.website ?? undefined;
@@ -151,13 +147,7 @@ export class InitCommand implements Command<InitInput> {
         const sdk = await sdkProvider.get();
 
         if (sdk === null) {
-            await configurationManager.update({
-                ...updatedConfiguration,
-                paths: {
-                    components: 'components',
-                    examples: 'examples',
-                },
-            });
+            await configurationManager.update(updatedConfiguration);
 
             output.warn('No suitable SDK found, skipping project configuration');
 
@@ -254,21 +244,6 @@ export class InitCommand implements Command<InitInput> {
         return application;
     }
 
-    private async getSlots(organizationSlug: string, workspaceSlug: string): Promise<Record<string, string>> {
-        const {api, io: {output}} = this.config;
-
-        const notifier = output.notify('Loading slots');
-
-        const slots = await api.workspace.getSlots({
-            organizationSlug: organizationSlug,
-            workspaceSlug: workspaceSlug,
-        });
-
-        notifier.stop();
-
-        return Object.fromEntries(slots.map(slot => [slot.slug, `${slot.version.major}`]));
-    }
-
     private async configure(sdk: Sdk, configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
         const {skipConfirmation} = this.config;
 
@@ -277,10 +252,7 @@ export class InitCommand implements Command<InitInput> {
                 ? undefined
                 : this.config.io.input,
             output: this.config.io.output,
-            configuration: {
-                ...configuration,
-                slots: await this.getSlots(configuration.organization, configuration.workspace),
-            },
+            configuration: configuration,
         });
     }
 }
