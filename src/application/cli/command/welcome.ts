@@ -103,7 +103,7 @@ export class WelcomeCommand implements Command<WelcomeInput> {
         const notifier = output.notify('Enabling deep links...');
 
         try {
-            await this.enableDeepLinks();
+            await this.installDeepLinks(registry);
 
             output.confirm('Deep links enabled');
         } finally {
