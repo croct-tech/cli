@@ -1906,10 +1906,8 @@ export class Cli {
         return this.share(
             this.getCommandExecutor,
             () => new SpawnExecutor({
-                // Windows require using shell to find executables
-                shell: this.configuration
-                    .process
-                    .getPlatform() === 'win32',
+                currentDirectory: this.workingDirectory,
+                executableLocator: this.getExecutableLocator(),
             }),
         );
     }

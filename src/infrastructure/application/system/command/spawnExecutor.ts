@@ -13,29 +13,35 @@ import {BufferedIterator} from '@/infrastructure/bufferedIterator';
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {Command} from '@/application/system/process/command';
+import {ExecutableLocator} from '@/application/system/executableLocator';
 
 export type Configuration = {
     currentDirectory?: WorkingDirectory,
-    shell?: boolean,
+    executableLocator: ExecutableLocator,
 };
 
 export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecutor {
     private readonly currentDirectory?: WorkingDirectory;
 
-    private readonly shell: boolean;
+    private readonly executableLocator: ExecutableLocator;
 
-    public constructor({currentDirectory, shell = false}: Configuration = {}) {
+    public constructor({currentDirectory, executableLocator}: Configuration) {
         this.currentDirectory = currentDirectory;
-        this.shell = shell;
+        this.executableLocator = executableLocator;
     }
 
-    public run(command: Command, options: ExecutionOptions = {}): Execution {
+    public async run(command: Command, options: ExecutionOptions = {}): Promise<Execution> {
         const timeoutSignal = options.timeout !== undefined
             ? AbortSignal.timeout(options.timeout)
             : undefined;
 
-        const subprocess = spawn(command.name, command.arguments, {
-            shell: this.shell,
+        const executable = await this.executableLocator.locate(command.name);
+
+        if (executable === null) {
+            throw new ExecutionError(`Unable to locate executable for command \`${command.name}\`.`);
+        }
+
+        const subprocess = spawn(executable, command.arguments, {
             stdio: ['pipe', 'pipe', 'pipe'],
             cwd: options?.workingDirectory ?? this.currentDirectory?.get(),
             signal: timeoutSignal,

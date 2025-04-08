@@ -110,7 +110,7 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
     private async executeCommand(command: Command, interactions: Interactions[] = []): Promise<void> {
         const {workingDirectory, commandExecutor, commandTimeout} = this.configuration;
 
-        const execution = commandExecutor.run(command, {
+        const execution = await commandExecutor.run(command, {
             workingDirectory: workingDirectory.get(),
             timeout: commandTimeout,
         });

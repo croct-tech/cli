@@ -48,7 +48,7 @@ export class ProcessServer implements Server {
         const {commandExecutor, command, workingDirectory, processObserver} = this.configuration;
 
         try {
-            this.execution = commandExecutor.run(command, {
+            this.execution = await commandExecutor.run(command, {
                 workingDirectory: workingDirectory.get(),
             });
         } catch (error) {

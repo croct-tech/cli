@@ -44,7 +44,7 @@ export class JavaScriptFormatter implements CodeFormatter {
     private async run(command: Command): Promise<void> {
         const {commandExecutor, workingDirectory, timeout} = this.configuration;
 
-        const execution = commandExecutor.run(command, {
+        const execution = await commandExecutor.run(command, {
             workingDirectory: workingDirectory.get(),
             timeout: timeout,
         });
