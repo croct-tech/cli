@@ -497,6 +497,11 @@ export class Cli {
                         output: this.getOutput(),
                         workspaceApi: this.getWorkspaceApi(),
                     }),
+                    slot: new SlotForm({
+                        input: this.getFormInput(),
+                        output: this.getOutput(),
+                        workspaceApi: this.getWorkspaceApi(),
+                    }),
                 },
                 io: {
                     input: this.getInput(),

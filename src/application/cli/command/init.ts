@@ -18,6 +18,8 @@ import {Application, ApplicationEnvironment} from '@/application/model/applicati
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {Platform} from '@/application/model/platform';
 import {Provider} from '@/application/provider/provider';
+import {Slot} from '@/application/model/slot';
+import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
 
 export type Resource = 'organization' | 'workspace' | 'application';
 
@@ -40,6 +42,7 @@ export type InitConfig = {
         organization: Form<Organization, OrganizationOptions>,
         workspace: Form<Workspace, WorkspaceOptions>,
         application: Form<Application, ApplicationOptions>,
+        slot: Form<Slot[], SlotOptions>,
     },
     api: {
         user: UserApi,
@@ -128,10 +131,6 @@ export class InitCommand implements Command<InitInput> {
             locales: workspace.locales,
             slots: {},
             components: {},
-            paths: {
-                components: '',
-                examples: '',
-            },
         };
 
         const defaultWebsite = workspace.website ?? organization.website ?? undefined;
@@ -151,13 +150,7 @@ export class InitCommand implements Command<InitInput> {
         const sdk = await sdkProvider.get();
 
         if (sdk === null) {
-            await configurationManager.update({
-                ...updatedConfiguration,
-                paths: {
-                    components: 'components',
-                    examples: 'examples',
-                },
-            });
+            await configurationManager.update(updatedConfiguration);
 
             output.warn('No suitable SDK found, skipping project configuration');
 
@@ -254,33 +247,40 @@ export class InitCommand implements Command<InitInput> {
         return application;
     }
 
-    private async getSlots(organizationSlug: string, workspaceSlug: string): Promise<Record<string, string>> {
-        const {api, io: {output}} = this.config;
-
-        const notifier = output.notify('Loading slots');
-
-        const slots = await api.workspace.getSlots({
-            organizationSlug: organizationSlug,
-            workspaceSlug: workspaceSlug,
-        });
-
-        notifier.stop();
-
-        return Object.fromEntries(slots.map(slot => [slot.slug, `${slot.version.major}`]));
-    }
-
     private async configure(sdk: Sdk, configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
         const {skipConfirmation} = this.config;
+        const slots = await this.getSlots(configuration.organization, configuration.workspace);
 
         return sdk.setup({
             input: this.config.io.input === undefined || await skipConfirmation.get()
                 ? undefined
                 : this.config.io.input,
             output: this.config.io.output,
-            configuration: {
-                ...configuration,
-                slots: await this.getSlots(configuration.organization, configuration.workspace),
+            configuration: Object.keys(slots).length === 0
+                ? configuration
+                : {
+                    ...configuration,
+                    slots: slots,
+                },
+        });
+    }
+
+    private async getSlots(organizationSlug: string, workspaceSlug: string): Promise<Record<string, string>> {
+        const {io: {input}, form} = this.config;
+
+        if (input === undefined) {
+            return {};
+        }
+
+        const slots = await form.slot.handle({
+            organizationSlug: organizationSlug,
+            workspaceSlug: workspaceSlug,
+            selectionConfirmation: {
+                message: 'Do you want to add slots to your project?',
+                default: false,
             },
         });
+
+        return Object.fromEntries(slots.map(slot => [slot.slug, `${slot.version.major}`]));
     }
 }
