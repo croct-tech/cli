@@ -5,6 +5,7 @@ import {Output} from '@/application/cli/io/output';
 import {Provider} from '@/application/provider/provider';
 import {PackageManager} from '@/application/project/packageManager/packageManager';
 import {CliConfigurationProvider} from '@/application/cli/configuration/provider';
+import {HelpfulError} from '@/application/error';
 
 export type WelcomeInput = Record<string, never>;
 
@@ -29,7 +30,13 @@ export class WelcomeCommand implements Command<WelcomeInput> {
     }
 
     public async execute(): Promise<void> {
-        await this.enableDeepLinks();
+        const {output} = this.config.io;
+
+        try {
+            await this.enableDeepLinks();
+        } catch (error) {
+            output.alert(`Failed to enable deep links: ${HelpfulError.formatCause(error)}`);
+        }
     }
 
     private async enableDeepLinks(): Promise<void> {
