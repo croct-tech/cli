@@ -154,8 +154,6 @@ export class MacOsRegistry implements ProtocolRegistry {
         const execution = this.commandExecutor.run(command);
 
         if (await execution.wait() !== 0) {
-            console.log(await execution.read());
-
             throw new HelpfulError(`Failed to execute command \`${command.name}\`.`);
         }
 
