@@ -273,7 +273,7 @@ export abstract class JavaScriptSdk implements Sdk {
             return path;
         }
 
-        return paths[0] ?? defaultPath;
+        return defaultPath;
     }
 
     protected abstract getInstallationPlan(installation: Installation): Promise<InstallationPlan>;
