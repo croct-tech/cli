@@ -250,7 +250,7 @@ import {InvitationForm} from '@/application/cli/form/user/invitationForm';
 import {
     InvitationReminderAuthenticator,
 } from '@/application/cli/authentication/authenticator/invitationReminderAuthenticator';
-import {CliConfigurationProvider} from '@/application/cli/configuration/store';
+import {CliConfigurationProvider} from '@/application/cli/configuration/provider';
 import {FileConfigurationStore} from '@/application/cli/configuration/fileConfigurationStore';
 import {NormalizedConfigurationStore} from '@/application/cli/configuration/normalizedConfigurationStore';
 import {CreateApiKeyCommand, CreateApiKeyInput} from '@/application/cli/command/apiKey/create';
@@ -291,6 +291,7 @@ export type Configuration = {
     quiet: boolean,
     debug: boolean,
     interactive: boolean,
+    version: string,
     apiKey?: ApiKey,
     skipPrompts: boolean,
     adminUrl: URL,
@@ -390,6 +391,7 @@ export class Cli {
             quiet: configuration.quiet ?? false,
             debug: configuration.debug ?? false,
             interactive: configuration.interactive ?? !ci.isCI,
+            version: configuration.version ?? '0.0.0',
             apiKey: configuration.apiKey,
             skipPrompts: configuration.skipPrompts ?? false,
             adminTokenDuration: configuration.adminTokenDuration ?? 7 * LocalTime.SECONDS_PER_DAY,
@@ -426,8 +428,10 @@ export class Cli {
     public welcome(input: WelcomeInput): Promise<void> {
         return this.execute(
             new WelcomeCommand({
+                version: this.configuration.version,
                 packageManager: this.getNodePackageManager(),
                 protocolRegistryProvider: this.getProtocolRegistryProvider(),
+                configurationProvider: this.getCliConfigurationProvider(),
                 cliPackage: 'croct@latest',
                 protocolHandler: {
                     id: 'com.croct.cli',
@@ -448,7 +452,7 @@ export class Cli {
             new OpenCommand({
                 program: this.configuration.program,
                 protocol: this.configuration.deepLinkProtocol,
-                configurationProvider: this.getCliConfigurationStore(),
+                configurationProvider: this.getCliConfigurationProvider(),
                 workingDirectory: new ProcessWorkingDirectory(this.configuration.process),
                 fileSystem: this.getFileSystem(),
                 io: {
@@ -1899,7 +1903,15 @@ export class Cli {
     }
 
     private getCommandExecutor(): CommandExecutor & SynchronousCommandExecutor {
-        return this.share(this.getCommandExecutor, () => new SpawnExecutor());
+        return this.share(
+            this.getCommandExecutor,
+            () => new SpawnExecutor({
+                // Windows require using shell to find executables
+                shell: this.configuration
+                    .process
+                    .getPlatform() === 'win32',
+            }),
+        );
     }
 
     private getExecutableLocator(): ExecutableLocator {
@@ -1968,7 +1980,7 @@ export class Cli {
 
             return new IndexedConfigurationManager({
                 workingDirectory: this.workingDirectory,
-                store: this.getCliConfigurationStore(),
+                configurationProvider: this.getCliConfigurationProvider(),
                 manager: new CachedConfigurationManager(
                     this.configuration.interactive && !this.isReadOnlyMode()
                         ? new NewConfigurationManager({
@@ -2183,13 +2195,13 @@ export class Cli {
         );
     }
 
-    private getCliConfigurationStore(): CliConfigurationProvider {
-        return this.share(this.getCliConfigurationStore, () => {
+    private getCliConfigurationProvider(): CliConfigurationProvider {
+        return this.share(this.getCliConfigurationProvider, () => {
             const fileSystem = this.getFileSystem();
 
             return new NormalizedConfigurationStore({
                 fileSystem: fileSystem,
-                store: new FileConfigurationStore({
+                configurationProvider: new FileConfigurationStore({
                     fileSystem: fileSystem,
                     validator: new CliSettingsValidator(),
                     filePath: fileSystem.joinPaths(this.configuration.directories.config, 'config.json'),

@@ -16,13 +16,17 @@ import {Command} from '@/application/system/process/command';
 
 export type Configuration = {
     currentDirectory?: WorkingDirectory,
+    shell?: boolean,
 };
 
 export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecutor {
     private readonly currentDirectory?: WorkingDirectory;
 
-    public constructor({currentDirectory}: Configuration = {}) {
+    private readonly shell: boolean;
+
+    public constructor({currentDirectory, shell = false}: Configuration = {}) {
         this.currentDirectory = currentDirectory;
+        this.shell = shell;
     }
 
     public run(command: Command, options: ExecutionOptions = {}): Execution {
@@ -31,7 +35,7 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
             : undefined;
 
         const subprocess = spawn(command.name, command.arguments, {
-            shell: true,
+            shell: this.shell,
             stdio: ['pipe', 'pipe', 'pipe'],
             cwd: options?.workingDirectory ?? this.currentDirectory?.get(),
             signal: timeoutSignal,

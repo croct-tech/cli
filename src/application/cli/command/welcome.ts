@@ -4,12 +4,15 @@ import {Input} from '@/application/cli/io/input';
 import {Output} from '@/application/cli/io/output';
 import {Provider} from '@/application/provider/provider';
 import {PackageManager} from '@/application/project/packageManager/packageManager';
+import {CliConfigurationProvider} from '@/application/cli/configuration/provider';
 
 export type WelcomeInput = Record<string, never>;
 
 export type WelcomeConfig = {
+    version: string,
     packageManager: PackageManager,
     protocolRegistryProvider: Provider<ProtocolRegistry|null>,
+    configurationProvider: CliConfigurationProvider,
     cliPackage: string,
     protocolHandler: Omit<ProtocolHandler, 'command'>,
     io: {
@@ -26,19 +29,16 @@ export class WelcomeCommand implements Command<WelcomeInput> {
     }
 
     public async execute(): Promise<void> {
-        try {
-            await this.enableDeepLinks();
-        } catch {
-            // suppress
-        }
+        await this.enableDeepLinks();
     }
 
     private async enableDeepLinks(): Promise<void> {
         const {
-            cliPackage,
             packageManager,
             protocolRegistryProvider,
             protocolHandler,
+            configurationProvider,
+            version,
             io: {output, input},
         } = this.config;
 
@@ -53,7 +53,34 @@ export class WelcomeCommand implements Command<WelcomeInput> {
             packageManager.isInstalled(),
         ]);
 
-        if (isRegistered || !isPackageManagerInstalled) {
+        if (!isPackageManagerInstalled) {
+            return;
+        }
+
+        if (isRegistered) {
+            const configuration = await configurationProvider.get();
+
+            if (configuration.version !== version) {
+                // The CLI has been updated, re-register the protocol handler to ensure
+                // any changes are applied
+                await registry.unregister(protocolHandler.protocol);
+
+                const notifier = output.notify('Updating deep links...');
+
+                try {
+                    await this.installDeepLinks(registry);
+
+                    output.confirm('Deep links updated');
+                } finally {
+                    notifier.stop();
+                }
+
+                await configurationProvider.save({
+                    ...configuration,
+                    version: version,
+                });
+            }
+
             return;
         }
 
@@ -69,16 +96,22 @@ export class WelcomeCommand implements Command<WelcomeInput> {
         const notifier = output.notify('Enabling deep links...');
 
         try {
-            const command = await packageManager.getPackageCommand(cliPackage, ['open', '$url']);
-
-            await registry.register({
-                ...protocolHandler,
-                command: `${command.name} ${(command.arguments ?? []).join(' ')}`,
-            });
+            await this.enableDeepLinks();
 
             output.confirm('Deep links enabled');
         } finally {
             notifier.stop();
         }
+    }
+
+    private async installDeepLinks(registry: ProtocolRegistry): Promise<void> {
+        const {cliPackage, packageManager, protocolHandler} = this.config;
+
+        const command = await packageManager.getPackageCommand(cliPackage, ['open', '$url']);
+
+        return registry.register({
+            ...protocolHandler,
+            command: `${command.name} ${(command.arguments ?? []).join(' ')}`,
+        });
     }
 }
