@@ -2,6 +2,7 @@ import {Provider} from '@/application/provider/provider';
 
 export type CliConfiguration = {
     projectPaths: string[],
+    version?: string,
     isDeepLinkingEnabled?: boolean,
 };
 

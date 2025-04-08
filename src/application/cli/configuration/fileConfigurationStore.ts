@@ -1,6 +1,6 @@
 import {FileSystem} from '@/application/fs/fileSystem';
 import {Validator} from '@/application/validation';
-import {CliConfiguration, CliConfigurationProvider} from '@/application/cli/configuration/store';
+import {CliConfiguration, CliConfigurationProvider} from '@/application/cli/configuration/provider';
 
 export type Configuration = {
     fileSystem: FileSystem,

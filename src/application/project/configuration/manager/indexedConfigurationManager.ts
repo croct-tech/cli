@@ -1,25 +1,25 @@
 import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
-import {CliConfigurationProvider} from '@/application/cli/configuration/store';
+import {CliConfigurationProvider} from '@/application/cli/configuration/provider';
 
 export type Configuration = {
     manager: ConfigurationManager,
-    store: CliConfigurationProvider,
+    configurationProvider: CliConfigurationProvider,
     workingDirectory: WorkingDirectory,
 };
 
 export class IndexedConfigurationManager implements ConfigurationManager {
     private readonly manager: ConfigurationManager;
 
-    private readonly store: CliConfigurationProvider;
+    private readonly configurationProvider: CliConfigurationProvider;
 
     private readonly workingDirectory: WorkingDirectory;
 
-    public constructor({manager, workingDirectory, store}: Configuration) {
+    public constructor({manager, workingDirectory, configurationProvider}: Configuration) {
         this.manager = manager;
         this.workingDirectory = workingDirectory;
-        this.store = store;
+        this.configurationProvider = configurationProvider;
     }
 
     public isInitialized(): Promise<boolean> {
@@ -40,11 +40,11 @@ export class IndexedConfigurationManager implements ConfigurationManager {
     }
 
     private async updateIndex(): Promise<void> {
-        const settings = await this.store.get();
+        const configuration = await this.configurationProvider.get();
 
-        await this.store.save({
-            ...settings,
-            projectPaths: [this.workingDirectory.get(), ...settings.projectPaths],
+        await this.configurationProvider.save({
+            ...configuration,
+            projectPaths: [this.workingDirectory.get(), ...configuration.projectPaths],
         });
     }
 }

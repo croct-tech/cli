@@ -1,6 +1,6 @@
 import {Command} from '@/application/cli/command/command';
 import {ErrorReason, HelpfulError} from '@/application/error';
-import {CliConfiguration} from '@/application/cli/configuration/store';
+import {CliConfiguration} from '@/application/cli/configuration/provider';
 import {CurrentWorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {Provider} from '@/application/provider/provider';
 import {Input} from '@/application/cli/io/input';

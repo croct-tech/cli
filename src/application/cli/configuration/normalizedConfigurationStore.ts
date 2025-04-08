@@ -1,34 +1,34 @@
 import {FileSystem} from '@/application/fs/fileSystem';
-import {CliConfiguration, CliConfigurationProvider} from '@/application/cli/configuration/store';
+import {CliConfiguration, CliConfigurationProvider} from '@/application/cli/configuration/provider';
 
 export type Configuration = {
     fileSystem: FileSystem,
-    store: CliConfigurationProvider,
+    configurationProvider: CliConfigurationProvider,
 };
 
 export class NormalizedConfigurationStore implements CliConfigurationProvider {
     private readonly fileSystem: FileSystem;
 
-    private readonly store: CliConfigurationProvider;
+    private readonly configurationProvider: CliConfigurationProvider;
 
-    public constructor({fileSystem, store}: Configuration) {
+    public constructor({fileSystem, configurationProvider}: Configuration) {
         this.fileSystem = fileSystem;
-        this.store = store;
+        this.configurationProvider = configurationProvider;
     }
 
     public async get(): Promise<CliConfiguration> {
-        return this.normalizeSettings(await this.store.get());
+        return this.normalizeSettings(await this.configurationProvider.get());
     }
 
     public async save(settings: CliConfiguration): Promise<void> {
-        return this.store.save(await this.normalizeSettings(settings));
+        return this.configurationProvider.save(await this.normalizeSettings(settings));
     }
 
-    private async normalizeSettings(settings: CliConfiguration): Promise<CliConfiguration> {
+    private async normalizeSettings(configuration: CliConfiguration): Promise<CliConfiguration> {
         return {
-            ...settings,
+            ...configuration,
             projectPaths: (await Promise.all(
-                [...new Set(settings.projectPaths)].map(
+                [...new Set(configuration.projectPaths)].map(
                     async path => (await this.fileSystem.exists(path) ? [path] : []),
                 ),
             )).flat(),

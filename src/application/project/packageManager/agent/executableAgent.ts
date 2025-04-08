@@ -68,7 +68,7 @@ export abstract class ExecutableAgent implements PackageManagerAgent {
             throw new PackageManagerError(`Package manager \`${this.getCommandName()}\` is not installed.`);
         }
 
-        const execution = this.commandRunner.run(command, {
+        const execution = await this.commandRunner.run(command, {
             ...options,
             workingDirectory: this.projectDirectory.get(),
         });

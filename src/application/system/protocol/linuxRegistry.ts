@@ -127,7 +127,7 @@ export class LinuxRegistry implements ProtocolRegistry {
     }
 
     private async execute(command: Command): Promise<string> {
-        const execution = this.commandExecutor.run(command);
+        const execution = await this.commandExecutor.run(command);
 
         if (await execution.wait() !== 0) {
             throw new HelpfulError(`Failed to execute command \`${command.name}\`.`);

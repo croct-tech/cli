@@ -13,26 +13,45 @@ import {BufferedIterator} from '@/infrastructure/bufferedIterator';
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {Command} from '@/application/system/process/command';
+import {ExecutableLocator} from '@/application/system/executableLocator';
 
 export type Configuration = {
     currentDirectory?: WorkingDirectory,
+    executableLocator: ExecutableLocator,
+    windows?: boolean,
 };
 
 export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecutor {
     private readonly currentDirectory?: WorkingDirectory;
 
-    public constructor({currentDirectory}: Configuration = {}) {
+    private readonly executableLocator: ExecutableLocator;
+
+    private readonly isWindows: boolean;
+
+    public constructor({currentDirectory, executableLocator, windows = false}: Configuration) {
         this.currentDirectory = currentDirectory;
+        this.executableLocator = executableLocator;
+        this.isWindows = windows;
     }
 
-    public run(command: Command, options: ExecutionOptions = {}): Execution {
+    public async run(command: Command, options: ExecutionOptions = {}): Promise<Execution> {
         const timeoutSignal = options.timeout !== undefined
             ? AbortSignal.timeout(options.timeout)
             : undefined;
 
-        const subprocess = spawn(command.name, command.arguments, {
-            shell: true,
+        const executable = await this.executableLocator.locate(command.name);
+
+        if (executable === null) {
+            throw new ExecutionError(`Unable to locate executable for command \`${command.name}\`.`);
+        }
+
+        const shell = this.isWindows && /\.(bat|cmd)$/i.test(executable);
+        const subprocess = spawn(shell ? `"${executable}"` : executable, command.arguments, {
             stdio: ['pipe', 'pipe', 'pipe'],
+            // Node does not allow to spawn .bat or .cmd files on Windows because
+            // arguments are not escaped:
+            // https://github.com/nodejs/node/commit/69ffc6d50dbd9d7d0257f5b9b403026e1aa205ee
+            shell: shell,
             cwd: options?.workingDirectory ?? this.currentDirectory?.get(),
             signal: timeoutSignal,
         });

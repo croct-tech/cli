@@ -386,6 +386,7 @@ export async function run(args: string[] = process.argv, welcome = true): Promis
 
     const cli = Cli.fromDefaults({
         program: params => run(invocation.args.slice(0, 2).concat(params)),
+        version: packageJson.version,
         quiet: options.quiet,
         debug: options.debug,
         interactive: options.interaction ? undefined : false,

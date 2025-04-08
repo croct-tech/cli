@@ -37,7 +37,7 @@ export type ExecutionOptions = {
 };
 
 export interface CommandExecutor {
-    run(command: Command, options?: ExecutionOptions): Execution;
+    run(command: Command, options?: ExecutionOptions): Promise<Execution>;
 }
 
 export interface SynchronousCommandExecutor {
