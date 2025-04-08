@@ -49,6 +49,16 @@ export class WelcomeCommand implements Command<WelcomeInput> {
             io: {output, input},
         } = this.config;
 
+        const configuration = await configurationProvider.get();
+        const installedVersion = configuration.version;
+
+        if (installedVersion !== version) {
+            await configurationProvider.save({
+                ...configuration,
+                version: version,
+            });
+        }
+
         const registry = await protocolRegistryProvider.get();
 
         if (registry === null || input === undefined) {
@@ -65,9 +75,7 @@ export class WelcomeCommand implements Command<WelcomeInput> {
         }
 
         if (isRegistered) {
-            const configuration = await configurationProvider.get();
-
-            if (configuration.version !== version) {
+            if (installedVersion !== version) {
                 // The CLI has been updated, re-register the protocol handler to ensure
                 // any changes are applied
                 await registry.unregister(protocolHandler.protocol);
@@ -81,11 +89,6 @@ export class WelcomeCommand implements Command<WelcomeInput> {
                 } finally {
                     notifier.stop();
                 }
-
-                await configurationProvider.save({
-                    ...configuration,
-                    version: version,
-                });
             }
 
             return;
