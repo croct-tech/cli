@@ -18,6 +18,7 @@ import {ExecutableLocator} from '@/application/system/executableLocator';
 export type Configuration = {
     currentDirectory?: WorkingDirectory,
     executableLocator: ExecutableLocator,
+    windows?: boolean,
 };
 
 export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecutor {
@@ -25,9 +26,12 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
 
     private readonly executableLocator: ExecutableLocator;
 
-    public constructor({currentDirectory, executableLocator}: Configuration) {
+    private readonly isWindows: boolean;
+
+    public constructor({currentDirectory, executableLocator, windows = false}: Configuration) {
         this.currentDirectory = currentDirectory;
         this.executableLocator = executableLocator;
+        this.isWindows = windows;
     }
 
     public async run(command: Command, options: ExecutionOptions = {}): Promise<Execution> {
@@ -41,7 +45,7 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
             throw new ExecutionError(`Unable to locate executable for command \`${command.name}\`.`);
         }
 
-        const shell = /\.(bat|cmd)$/i.test(executable);
+        const shell = this.isWindows && /\.(bat|cmd)$/i.test(executable);
         const subprocess = spawn(shell ? `"${executable}"` : executable, command.arguments, {
             stdio: ['pipe', 'pipe', 'pipe'],
             // Node does not allow to spawn .bat or .cmd files on Windows because
