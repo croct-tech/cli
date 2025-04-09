@@ -56,14 +56,14 @@ export class DeepLinkCommand implements Command<DeepLinkInput> {
         const {io: {output}} = this.config;
 
         switch (options.operation) {
-            case 'disable':
-                return this.disable(registry, false, output);
+            case 'optionally-enable':
+                return this.optionallyEnable(registry, output);
 
             case 'optionally-update':
                 return this.optionallyUpdate(registry, output);
 
-            case 'optionally-enable':
-                return this.optionallyEnable(registry, output);
+            case 'disable':
+                return this.disable(registry, false, output);
 
             case 'enable':
             default:
