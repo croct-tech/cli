@@ -93,7 +93,7 @@ export class DeepLinkCommand implements Command<DeepLinkInput> {
             return;
         }
 
-        const notifier = output?.notify('Enabling deep links...');
+        const notifier = output?.notify('Enabling deep links');
 
         try {
             const command = await packageManager.getPackageCommand(cliPackage, ['open', '$url']);
@@ -118,7 +118,7 @@ export class DeepLinkCommand implements Command<DeepLinkInput> {
             return;
         }
 
-        const notifier = output?.notify('Disabling deep links...');
+        const notifier = output?.notify('Disabling deep links');
 
         try {
             await registry.unregister(protocolHandler.protocol);
@@ -136,7 +136,7 @@ export class DeepLinkCommand implements Command<DeepLinkInput> {
             return this.optionallyEnable(registry, output);
         }
 
-        const notifier = output?.notify('Updating deep links...');
+        const notifier = output?.notify('Updating deep links');
 
         try {
             await this.disable(registry, true);
