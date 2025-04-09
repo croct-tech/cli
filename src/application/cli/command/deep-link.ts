@@ -38,7 +38,9 @@ export class DeepLinkCommand implements Command<DeepLinkInput> {
         const registry = await protocolRegistryProvider.get();
 
         if (registry === null) {
-            output.alert('Deep linking is not available on your platform.');
+            if (!['optionally-enable', 'optionally-update'].includes(input.operation ?? '')) {
+                output.alert('Deep linking is not available on your platform.');
+            }
 
             return;
         }
