@@ -21,12 +21,6 @@ export class WelcomeCommand implements Command<WelcomeInput> {
     }
 
     public async execute(input: WelcomeInput): Promise<void> {
-        if (input.skipDeepLinkCheck !== true) {
-            await this.setupDeepLinks();
-        }
-    }
-
-    private async setupDeepLinks(): Promise<void> {
         const {configurationProvider, version, deepLinkInstaller} = this.config;
 
         const configuration = await configurationProvider.get();
@@ -40,6 +34,8 @@ export class WelcomeCommand implements Command<WelcomeInput> {
             });
         }
 
-        await deepLinkInstaller(installedVersion !== version);
+        if (input.skipDeepLinkCheck !== true) {
+            await deepLinkInstaller(installedVersion !== version);
+        }
     }
 }
