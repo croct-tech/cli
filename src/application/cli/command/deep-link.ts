@@ -10,7 +10,7 @@ import {HelpfulError} from '@/application/error';
 type Operation = 'enable' | 'disable' | 'optionally-enable' | 'optionally-update';
 
 export type DeepLinkInput = {
-    operation?: Operation,
+    operation: Operation,
 };
 
 export type DeepLinkConfig = {
@@ -38,7 +38,7 @@ export class DeepLinkCommand implements Command<DeepLinkInput> {
         const registry = await protocolRegistryProvider.get();
 
         if (registry === null) {
-            if (!['optionally-enable', 'optionally-update'].includes(input.operation ?? '')) {
+            if (!['optionally-enable', 'optionally-update'].includes(input.operation)) {
                 output.alert('Deep linking is not available on your platform.');
             }
 
@@ -66,7 +66,6 @@ export class DeepLinkCommand implements Command<DeepLinkInput> {
                 return this.disable(registry, false, output);
 
             case 'enable':
-            default:
                 return this.enable(registry, false, output);
         }
     }
