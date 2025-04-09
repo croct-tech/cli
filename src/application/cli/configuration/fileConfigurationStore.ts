@@ -41,7 +41,11 @@ export class FileConfigurationStore implements CliConfigurationProvider {
         return validation.valid ? validation.data : FileConfigurationStore.EMPTY_SETTINGS;
     }
 
-    public save(settings: CliConfiguration): Promise<void> {
+    public async save(settings: CliConfiguration): Promise<void> {
+        const parentDirectory = this.fileSystem.getDirectoryName(this.filePath);
+
+        await this.fileSystem.createDirectory(parentDirectory, {recursive: true});
+
         return this.fileSystem.writeTextFile(
             this.filePath,
             JSON.stringify(settings),

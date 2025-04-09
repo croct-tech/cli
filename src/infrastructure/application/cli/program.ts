@@ -362,6 +362,25 @@ function createProgram(config: Configuration): typeof program {
         useCommand.addOption(option);
     }
 
+    const deepLink = program.command('deep-link')
+        .description('Enable or disable deep link support.');
+
+    deepLink.command('enable')
+        .description('Enable deep link support.')
+        .action(async () => {
+            await config.cli?.deepLink({
+                operation: 'enable',
+            });
+        });
+
+    deepLink.command('disable')
+        .description('Disable deep link support.')
+        .action(async () => {
+            await config.cli?.deepLink({
+                operation: 'disable',
+            });
+        });
+
     return program;
 }
 
@@ -410,7 +429,9 @@ export async function run(args: string[] = process.argv, welcome = true): Promis
     });
 
     if (welcome) {
-        await cli.welcome({});
+        await cli.welcome({
+            skipDeepLinkCheck: invocation.args[0] === 'deep-link',
+        });
     }
 
     await program.parseAsync(args);
