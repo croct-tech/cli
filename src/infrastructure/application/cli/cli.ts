@@ -281,9 +281,9 @@ import {JavaScriptImportCodemod} from '@/application/project/code/transformation
 import {ChainedCodemod} from '@/application/project/code/transformation/chainedCodemod';
 import {AttributeType} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
 import {HierarchyResolver} from '@/infrastructure/application/api/graphql/hierarchyResolver';
-import {MultiRegistry} from '@/application/system/protocol/multiRegistry';
-import {FailSafeRegistry} from '@/application/system/protocol/failSafeRegistry';
+import {MacOsFirefoxRegistry} from '@/application/system/protocol/macOsFirefoxRegistry';
 import {FirefoxRegistry} from '@/application/system/protocol/firefoxRegistry';
+import {DeepLinkCommand, DeepLinkInput} from '@/application/cli/command/deep-link';
 
 export type Configuration = {
     program: Program,
@@ -429,6 +429,18 @@ export class Cli {
         return this.execute(
             new WelcomeCommand({
                 version: this.configuration.version,
+                configurationProvider: this.getCliConfigurationProvider(),
+                deepLinkInstaller: update => this.deepLink({
+                    operation: update ? 'optionally-update' : 'optionally-enable',
+                }),
+            }),
+            input,
+        );
+    }
+
+    public deepLink(input: DeepLinkInput): Promise<void> {
+        return this.execute(
+            new DeepLinkCommand({
                 packageManager: this.getNodePackageManager(),
                 protocolRegistryProvider: this.getProtocolRegistryProvider(),
                 configurationProvider: this.getCliConfigurationProvider(),
@@ -2161,26 +2173,32 @@ export class Cli {
                 const {process} = this.configuration;
 
                 switch (process.getPlatform()) {
-                    case 'darwin':
-                        return new MultiRegistry(
-                            new MacOsRegistry({
+                    case 'darwin': {
+                        const appDirectory = fileSystem.joinPaths(this.configuration.directories.data, 'apps');
+
+                        // Firefox on macOS has a known bug that forces the user to select
+                        // the application every time a URL is opened.
+                        // See: https://bugzilla.mozilla.org/show_bug.cgi?id=718422
+                        // To work around this, configure the application in the Firefox profile.
+                        // In addition, wrap the registry in a FailSafeRegistry to avoid errors
+                        // if Firefox is not installed or if the profile directory cannot be located.
+                        return new MacOsFirefoxRegistry({
+                            output: this.getOutput(),
+                            macOsRegistry: new MacOsRegistry({
                                 fileSystem: fileSystem,
-                                appDirectory: fileSystem.joinPaths(this.configuration.directories.data, 'apps'),
+                                appDirectory: appDirectory,
                                 commandExecutor: this.getCommandExecutor(),
                             }),
-                            // Firefox on macOS has a known bug that forces the user to select
-                            // the application every time a URL is opened.
-                            // See: https://bugzilla.mozilla.org/show_bug.cgi?id=718422
-                            // To work around this, configure the application in the Firefox profile.
-                            // In addition, wrap the registry in a FailSafeRegistry to avoid errors
-                            // if Firefox is not installed or if the profile directory cannot be located.
-                            new FailSafeRegistry(
-                                FirefoxRegistry.macOs({
-                                    fileSystem: fileSystem,
-                                    homeDirectory: this.configuration.directories.home,
-                                }),
-                            ),
-                        );
+                            firefoxRegistry: FirefoxRegistry.macOs({
+                                fileSystem: fileSystem,
+                                homeDirectory: this.configuration.directories.home,
+                                appPath: fileSystem.joinPaths(
+                                    appDirectory,
+                                    `${this.configuration.deepLinkProtocol}.app`,
+                                ),
+                            }),
+                        });
+                    }
 
                     case 'win32':
                         return new WindowsRegistry({

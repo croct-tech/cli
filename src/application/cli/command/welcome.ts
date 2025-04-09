@@ -1,25 +1,16 @@
 import {Command} from '@/application/cli/command/command';
-import {ProtocolHandler, ProtocolRegistry} from '@/application/system/protocol/protocolRegistry';
-import {Input} from '@/application/cli/io/input';
-import {Output} from '@/application/cli/io/output';
-import {Provider} from '@/application/provider/provider';
-import {PackageManager} from '@/application/project/packageManager/packageManager';
 import {CliConfigurationProvider} from '@/application/cli/configuration/provider';
-import {HelpfulError} from '@/application/error';
 
-export type WelcomeInput = Record<string, never>;
+export type WelcomeInput = {
+    skipDeepLinkCheck?: boolean,
+};
+
+export type DeepLinkInstaller = (update: boolean) => Promise<void>;
 
 export type WelcomeConfig = {
     version: string,
-    packageManager: PackageManager,
-    protocolRegistryProvider: Provider<ProtocolRegistry|null>,
     configurationProvider: CliConfigurationProvider,
-    cliPackage: string,
-    protocolHandler: Omit<ProtocolHandler, 'command'>,
-    io: {
-        input?: Input,
-        output: Output,
-    },
+    deepLinkInstaller: DeepLinkInstaller,
 };
 
 export class WelcomeCommand implements Command<WelcomeInput> {
@@ -29,99 +20,26 @@ export class WelcomeCommand implements Command<WelcomeInput> {
         this.config = config;
     }
 
-    public async execute(): Promise<void> {
-        const {output} = this.config.io;
-
-        try {
-            await this.enableDeepLinks();
-        } catch (error) {
-            output.alert(`Failed to enable deep links: ${HelpfulError.formatCause(error)}`);
+    public async execute(input: WelcomeInput): Promise<void> {
+        if (input.skipDeepLinkCheck !== true) {
+            await this.setupDeepLinks();
         }
     }
 
-    private async enableDeepLinks(): Promise<void> {
-        const {
-            packageManager,
-            protocolRegistryProvider,
-            protocolHandler,
-            configurationProvider,
-            version,
-            io: {output, input},
-        } = this.config;
+    private async setupDeepLinks(): Promise<void> {
+        const {configurationProvider, version, deepLinkInstaller} = this.config;
 
         const configuration = await configurationProvider.get();
         const installedVersion = configuration.version;
 
         if (installedVersion !== version) {
+            // Keep track of the previously installed version
             await configurationProvider.save({
                 ...configuration,
                 version: version,
             });
         }
 
-        const registry = await protocolRegistryProvider.get();
-
-        if (registry === null || input === undefined) {
-            return;
-        }
-
-        const [isRegistered, isPackageManagerInstalled] = await Promise.all([
-            registry.isRegistered(protocolHandler.protocol),
-            packageManager.isInstalled(),
-        ]);
-
-        if (!isPackageManagerInstalled) {
-            return;
-        }
-
-        if (isRegistered) {
-            if (installedVersion !== version) {
-                // The CLI has been updated, re-register the protocol handler to ensure
-                // any changes are applied
-                await registry.unregister(protocolHandler.protocol);
-
-                const notifier = output.notify('Updating deep links...');
-
-                try {
-                    await this.installDeepLinks(registry);
-
-                    output.confirm('Deep links updated');
-                } finally {
-                    notifier.stop();
-                }
-            }
-
-            return;
-        }
-
-        if (
-            !await input.confirm({
-                message: 'Turn on deep links to streamline your experience?',
-                default: true,
-            })
-        ) {
-            return;
-        }
-
-        const notifier = output.notify('Enabling deep links...');
-
-        try {
-            await this.installDeepLinks(registry);
-
-            output.confirm('Deep links enabled');
-        } finally {
-            notifier.stop();
-        }
-    }
-
-    private async installDeepLinks(registry: ProtocolRegistry): Promise<void> {
-        const {cliPackage, packageManager, protocolHandler} = this.config;
-
-        const command = await packageManager.getPackageCommand(cliPackage, ['open', '$url']);
-
-        return registry.register({
-            ...protocolHandler,
-            command: `${command.name} ${(command.arguments ?? []).join(' ')}`,
-        });
+        await deepLinkInstaller(installedVersion !== version);
     }
 }

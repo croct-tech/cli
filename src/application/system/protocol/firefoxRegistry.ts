@@ -7,9 +7,10 @@ import {Process} from '@/application/system/process/process';
 export type Configuration = {
     fileSystem: FileSystem,
     appDirectory: string,
+    appPath: string,
 };
 
-export type PartialConfiguration = Pick<Configuration, 'fileSystem'>;
+export type PartialConfiguration = Omit<Configuration, 'appDirectory'>;
 
 export type MacOsConfiguration = PartialConfiguration & {
     homeDirectory: string,
@@ -23,6 +24,19 @@ export type LinuxConfiguration = PartialConfiguration & {
     homeDirectory: string,
 };
 
+type Handlers = {
+    schemes: Record<string, {
+        action?: number|string,
+        ask?: boolean,
+        stubEntry?: boolean,
+        handlers: Array<null|{
+            name: string,
+            uriTemplate?: string,
+            path?: string,
+        }>,
+    }>,
+};
+
 export class FirefoxRegistry implements ProtocolRegistry {
     private static readonly PREFERENCES = [
         'user_pref("network.protocol-handler.expose.%protocol%", false);',
@@ -33,9 +47,12 @@ export class FirefoxRegistry implements ProtocolRegistry {
 
     private readonly profileDirectory: string;
 
-    public constructor({fileSystem, appDirectory}: Configuration) {
+    private readonly configuration: Omit<Configuration, 'appDirectory' | 'fileSystem'>;
+
+    public constructor({fileSystem, appDirectory, ...configuration}: Configuration) {
         this.fileSystem = fileSystem;
         this.profileDirectory = appDirectory;
+        this.configuration = configuration;
     }
 
     public static fromSystem(process: Process, configuration: PartialConfiguration): FirefoxRegistry {
@@ -50,7 +67,7 @@ export class FirefoxRegistry implements ProtocolRegistry {
                 }
 
                 return FirefoxRegistry.windows({
-                    fileSystem: configuration.fileSystem,
+                    ...configuration,
                     appDataDirectory: dataDirectory,
                 });
             }
@@ -65,7 +82,7 @@ export class FirefoxRegistry implements ProtocolRegistry {
                 }
 
                 return FirefoxRegistry.macOs({
-                    fileSystem: configuration.fileSystem,
+                    ...configuration,
                     homeDirectory: home,
                 });
             }
@@ -80,7 +97,7 @@ export class FirefoxRegistry implements ProtocolRegistry {
                 }
 
                 return FirefoxRegistry.linux({
-                    fileSystem: configuration.fileSystem,
+                    ...configuration,
                     homeDirectory: home,
                 });
             }
@@ -94,7 +111,7 @@ export class FirefoxRegistry implements ProtocolRegistry {
 
     public static windows(configuration: WindowsConfiguration): FirefoxRegistry {
         return new FirefoxRegistry({
-            fileSystem: configuration.fileSystem,
+            ...configuration,
             appDirectory: configuration.fileSystem.joinPaths(
                 configuration.appDataDirectory,
                 'Mozilla',
@@ -105,7 +122,7 @@ export class FirefoxRegistry implements ProtocolRegistry {
 
     public static macOs(configuration: MacOsConfiguration): FirefoxRegistry {
         return new FirefoxRegistry({
-            fileSystem: configuration.fileSystem,
+            ...configuration,
             appDirectory: configuration.fileSystem.joinPaths(
                 configuration.homeDirectory,
                 'Library',
@@ -117,7 +134,7 @@ export class FirefoxRegistry implements ProtocolRegistry {
 
     public static linux(configuration: LinuxConfiguration): FirefoxRegistry {
         return new FirefoxRegistry({
-            fileSystem: configuration.fileSystem,
+            ...configuration,
             appDirectory: configuration.fileSystem.joinPaths(
                 configuration.homeDirectory,
                 'snap',
@@ -130,11 +147,13 @@ export class FirefoxRegistry implements ProtocolRegistry {
     }
 
     public async isRegistered(protocol: string): Promise<boolean> {
-        const preferencesPath = await this.getPreferencesFilePath();
+        const profilePath = await this.getProfilePath();
 
-        if (preferencesPath === null) {
+        if (profilePath === null) {
             return false;
         }
+
+        const preferencesPath = this.getUserPreferencesFilePath(profilePath);
 
         const preferences = await this.fileSystem
             .readTextFile(preferencesPath)
@@ -154,21 +173,46 @@ export class FirefoxRegistry implements ProtocolRegistry {
             return;
         }
 
-        const preferencesPath = await this.getPreferencesFilePath();
+        const profilePath = await this.getProfilePath();
 
-        if (preferencesPath === null) {
+        if (profilePath === null) {
             throw new ProtocolRegistryError('Cannot find the default profile file.', {
-                reason: ErrorReason.PRECONDITION,
+                reason: ErrorReason.NOT_FOUND,
             });
         }
 
-        const preferences = await this.fileSystem
-            .readTextFile(preferencesPath)
-            .catch(() => '');
+        const preferencesPath = this.getUserPreferencesFilePath(profilePath);
+        const handlersPath = this.getHandlersFilePath(profilePath);
 
-        const newPreferences = `${preferences}\n${this.getPreferences(handler.protocol).join('\n')}`;
+        const [preferencesData, handlersData] = await Promise.all([
+            await this.fileSystem
+                .readTextFile(preferencesPath)
+                .catch(() => ''),
+            this.fileSystem
+                .readTextFile(handlersPath)
+                .catch(() => ''),
+        ]);
+
+        const newPreferences = `${preferencesData}\n${this.getPreferences(handler.protocol).join('\n')}`;
 
         await this.fileSystem.writeTextFile(preferencesPath, newPreferences, {
+            overwrite: true,
+        });
+
+        const handlers = FirefoxRegistry.parseHandlers(handlersData);
+
+        handlers.schemes[handler.protocol] = {
+            ask: true,
+            action: 2,
+            handlers: [
+                {
+                    name: handler.name,
+                    path: this.configuration.appPath,
+                },
+            ],
+        };
+
+        await this.fileSystem.writeTextFile(handlersPath, JSON.stringify(handlers), {
             overwrite: true,
         });
     }
@@ -178,17 +222,25 @@ export class FirefoxRegistry implements ProtocolRegistry {
             return;
         }
 
-        const preferencesPath = await this.getPreferencesFilePath();
+        const profilePath = await this.getProfilePath();
 
-        if (preferencesPath === null) {
+        if (profilePath === null) {
             return;
         }
 
-        const preferences = await this.fileSystem
-            .readTextFile(preferencesPath)
-            .catch(() => '');
+        const preferencesPath = this.getUserPreferencesFilePath(profilePath);
+        const handlersPath = this.getHandlersFilePath(profilePath);
 
-        const newPreferences = preferences
+        const [preferencesData, handlersData] = await Promise.all([
+            await this.fileSystem
+                .readTextFile(preferencesPath)
+                .catch(() => ''),
+            this.fileSystem
+                .readTextFile(handlersPath)
+                .catch(() => ''),
+        ]);
+
+        const newPreferences = preferencesData
             .split('\n')
             .filter(line => !this.getPreferences(protocol).includes(line))
             .join('\n');
@@ -196,9 +248,27 @@ export class FirefoxRegistry implements ProtocolRegistry {
         await this.fileSystem.writeTextFile(preferencesPath, newPreferences, {
             overwrite: true,
         });
+
+        const handlers = FirefoxRegistry.parseHandlers(handlersData);
+
+        if (handlers.schemes[protocol] !== undefined) {
+            delete handlers.schemes[protocol];
+
+            await this.fileSystem.writeTextFile(handlersPath, JSON.stringify(handlers), {
+                overwrite: true,
+            });
+        }
     }
 
-    private async getPreferencesFilePath(): Promise<string|null> {
+    private getUserPreferencesFilePath(profilePath: string): string {
+        return this.fileSystem.joinPaths(profilePath, 'user.js');
+    }
+
+    private getHandlersFilePath(profilePath: string): string {
+        return this.fileSystem.joinPaths(profilePath, 'handlers.json');
+    }
+
+    private async getProfilePath(): Promise<string|null> {
         const profilesIniPath = this.getPath('profiles.ini');
 
         if (!await this.fileSystem.exists(profilesIniPath)) {
@@ -237,7 +307,7 @@ export class FirefoxRegistry implements ProtocolRegistry {
             }
         }
 
-        return this.getPath(this.fileSystem.joinPaths(resolvedPath, 'user.js'));
+        return this.getPath(resolvedPath);
     }
 
     private getPath(path: string): string {
@@ -246,5 +316,32 @@ export class FirefoxRegistry implements ProtocolRegistry {
 
     private getPreferences(protocolName: string): string[] {
         return FirefoxRegistry.PREFERENCES.map(preference => preference.replace(/%protocol%/g, protocolName));
+    }
+
+    private static parseHandlers(handlers: string): Handlers {
+        let result: Handlers;
+
+        try {
+            result = JSON.parse(handlers);
+        } catch {
+            return {
+                schemes: {},
+            };
+        }
+
+        if (typeof result !== 'object' || result === null) {
+            return {
+                schemes: {},
+            };
+        }
+
+        if (!('schemes' in result) || typeof result.schemes !== 'object' || result.schemes === null) {
+            return {
+                ...result,
+                schemes: {},
+            };
+        }
+
+        return result;
     }
 }
