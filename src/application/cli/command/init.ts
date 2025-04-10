@@ -249,38 +249,13 @@ export class InitCommand implements Command<InitInput> {
 
     private async configure(sdk: Sdk, configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
         const {skipConfirmation} = this.config;
-        const slots = await this.getSlots(configuration.organization, configuration.workspace);
 
         return sdk.setup({
             input: this.config.io.input === undefined || await skipConfirmation.get()
                 ? undefined
                 : this.config.io.input,
             output: this.config.io.output,
-            configuration: Object.keys(slots).length === 0
-                ? configuration
-                : {
-                    ...configuration,
-                    slots: slots,
-                },
+            configuration: configuration,
         });
-    }
-
-    private async getSlots(organizationSlug: string, workspaceSlug: string): Promise<Record<string, string>> {
-        const {io: {input}, form} = this.config;
-
-        if (input === undefined) {
-            return {};
-        }
-
-        const slots = await form.slot.handle({
-            organizationSlug: organizationSlug,
-            workspaceSlug: workspaceSlug,
-            selectionConfirmation: {
-                message: 'Do you want to add slots to your project?',
-                default: false,
-            },
-        });
-
-        return Object.fromEntries(slots.map(slot => [slot.slug, `${slot.version.major}`]));
     }
 }
