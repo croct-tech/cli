@@ -71,14 +71,15 @@ export class GlobImportCodemod implements Codemod<string> {
 
     private async resolvePath(declaration: ImportDeclaration, pattern: string, sourcePath: string): Promise<string> {
         const matcher = new Minimatch(pattern);
+        const rootPath = this.rootPath.get();
 
-        for await (const file of this.fileSystem.list(this.rootPath.get(), this.maxSearchDepth)) {
+        for await (const file of this.fileSystem.list(rootPath, this.maxSearchDepth)) {
             if (
                 file.type === 'file'
                 && matcher.match(file.name)
                 && await this.exportMatcher.test(await new Response(file.content).text(), declaration)
             ) {
-                return this.importResolver.getImportPath(file.name, sourcePath);
+                return this.importResolver.getImportPath(this.fileSystem.joinPaths(rootPath, file.name), sourcePath);
             }
         }
 

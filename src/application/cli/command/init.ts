@@ -250,12 +250,33 @@ export class InitCommand implements Command<InitInput> {
     private async configure(sdk: Sdk, configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
         const {skipConfirmation} = this.config;
 
-        return sdk.setup({
+        const updatedConfiguration = await sdk.setup({
             input: this.config.io.input === undefined || await skipConfirmation.get()
                 ? undefined
                 : this.config.io.input,
             output: this.config.io.output,
             configuration: configuration,
         });
+
+        return InitCommand.canonicalizePaths(updatedConfiguration);
+    }
+
+    private static canonicalizePaths(configuration: ProjectConfiguration): ProjectConfiguration {
+        if (configuration.paths === undefined) {
+            return configuration;
+        }
+
+        return {
+            ...configuration,
+            paths: Object.fromEntries(
+                Object.entries(configuration.paths).map(
+                    ([key, path]) => [key, InitCommand.canonicalizePath(path)],
+                ),
+            ),
+        };
+    }
+
+    private static canonicalizePath(path: string): string {
+        return path.replace(/\\/g, '/');
     }
 }
