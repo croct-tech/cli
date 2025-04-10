@@ -12,6 +12,7 @@ export type DownloadOptions = {
     source: string,
     filter?: string,
     destination: string,
+    mapping?: Record<string, string>,
     overwrite?: boolean,
     result?: {
         destination?: string,
@@ -74,8 +75,17 @@ export class DownloadAction implements Action<DownloadOptions> {
 
         const entries: FileSystemEntry[] = [];
 
+        const mapping = Object.fromEntries(
+            Object.entries(options.mapping ?? {}).map(
+                ([key, value]) => [
+                    fileSystem.normalizeSeparators(key),
+                    fileSystem.normalizeSeparators(value),
+                ],
+            ),
+        );
+
         for await (const entry of iterator) {
-            const path = fileSystem.normalizeSeparators(entry.name);
+            const path = this.resolvePath(fileSystem.normalizeSeparators(entry.name), mapping);
 
             if (fileSystem.isAbsolutePath(path) || !fileSystem.isSubPath(destination, path)) {
                 // Disallow linking outside the destination directory for security reasons
@@ -119,6 +129,30 @@ export class DownloadAction implements Action<DownloadOptions> {
         }
     }
 
+    private resolvePath(path: string, mapping: Record<string, string>): string {
+        if (path in mapping) {
+            return mapping[path];
+        }
+
+        const {fileSystem} = this.config;
+
+        let longestPrefix: string = '';
+        let newPath: string = path;
+
+        const separator = fileSystem.getSeparator();
+
+        for (const [key, value] of Object.entries(mapping)) {
+            const prefix = key.endsWith(separator) ? key : key + separator;
+
+            if (path.startsWith(prefix) && prefix.length > longestPrefix.length) {
+                longestPrefix = prefix;
+                newPath = fileSystem.joinPaths(value, path.slice(prefix.length));
+            }
+        }
+
+        return newPath;
+    }
+
     private async createDirectory(
         entries: FileSystemEntry[],
         destination: string,
@@ -133,9 +167,10 @@ export class DownloadAction implements Action<DownloadOptions> {
             });
         }
 
-        if (entries.length === 1 && entries[0].type === 'file' && await fileSystem.exists(entries[0].name)) {
+        if (entries.length === 1 && entries[0].type === 'file') {
             if (
                 !overwrite
+                && await fileSystem.exists(entries[0].name)
                 && await input?.confirm({
                     message: `File ${entries[0].name} already exists. Do you want to overwrite it?`,
                     default: false,
@@ -147,8 +182,6 @@ export class DownloadAction implements Action<DownloadOptions> {
                     suggestions: ['Delete the file'],
                 });
             }
-
-            // No need to delete the file as it will be overwritten
 
             return;
         }
