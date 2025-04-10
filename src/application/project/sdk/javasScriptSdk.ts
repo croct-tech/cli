@@ -217,44 +217,34 @@ export abstract class JavaScriptSdk implements Sdk {
     }
 
     public async getPaths(configuration: ProjectConfiguration): Promise<ProjectPaths> {
+        const source = await this.resolvePath(['src'], configuration.paths?.source, '.');
+
         return {
             ...configuration.paths,
-            source: await this.resolvePath(
-                ['src'],
-                configuration.paths?.source,
-                '.',
-            ),
+            source: source,
             utilities: await this.resolvePath(
                 [
-                    this.fileSystem.joinPaths('src', 'lib', 'utils'),
-                    this.fileSystem.joinPaths('src', 'utils'),
-                    this.fileSystem.joinPaths('src', 'lib'),
-                    this.fileSystem.joinPaths('lib', 'utils'),
-                    'utils',
-                    'lib',
+                    this.fileSystem.joinPaths(source, 'lib', 'utils'),
+                    this.fileSystem.joinPaths(source, 'utils'),
+                    this.fileSystem.joinPaths(source, 'lib'),
                 ],
                 configuration.paths?.utilities,
-                'utils',
+                this.fileSystem.joinPaths(source, 'utils'),
             ),
             components: await this.resolvePath(
-                ['src', '.'].flatMap(
-                    root => ['components', 'Components', 'component', 'Component'].flatMap(
-                        path => this.fileSystem.joinPaths(root, path),
-                    ),
+                ['components', 'Components', 'component', 'Component'].flatMap(
+                    path => this.fileSystem.joinPaths(source, path),
                 ),
                 configuration.paths?.components,
-                'components',
+                this.fileSystem.joinPaths(source, 'components'),
             ),
             examples: await this.resolvePath(
-                ['src', '.'].flatMap(
-                    root => ['examples', 'Examples', 'example', 'examples'].flatMap(
-                        path => this.fileSystem.joinPaths(root, path),
-                    ),
+                ['examples', 'Examples', 'example', 'examples'].flatMap(
+                    path => this.fileSystem.joinPaths(source, path),
                 ),
                 configuration.paths?.examples,
-                'examples',
+                this.fileSystem.joinPaths(source, 'examples'),
             ),
-
         };
     }
 
@@ -264,7 +254,7 @@ export abstract class JavaScriptSdk implements Sdk {
         defaultPath: string,
     ): Promise<string> {
         if (currentPath !== undefined) {
-            return currentPath;
+            return this.fileSystem.normalizeSeparators(currentPath);
         }
 
         const path = await this.locateFile(...paths);
