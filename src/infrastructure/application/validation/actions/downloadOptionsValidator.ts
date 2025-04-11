@@ -9,7 +9,7 @@ const schema: ZodType<DownloadOptions> = z.strictObject({
         .optional(),
     destination: z.string().min(1),
     mapping: z.record(z.string().min(1), z.string().min(1)).optional(),
-    overwrite: z.boolean(),
+    overwrite: z.boolean().optional(),
     result: z.strictObject({
         destination: z.string()
             .min(1)
