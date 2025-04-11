@@ -1,4 +1,5 @@
 import {Content} from '@croct/content-model/content/content';
+import {ContentDefinition, RootDefinition} from '@croct/content-model/definition/definition';
 import {WorkspaceResources} from '@/application/template/resources';
 import {LocalizedContentMap, SlotContentMap} from '@/application/model/experience';
 import {
@@ -36,7 +37,10 @@ export class ResourceRefactor {
                 Object.entries(template.components ?? {}).map<[string, ComponentDefinition]>(
                     ([slug, component]) => [
                         this.refactoring.componentMapping[slug] ?? slug,
-                        component,
+                        {
+                            ...component,
+                            schema: this.refactorSchema(component.schema) as RootDefinition,
+                        },
                     ],
                 ),
             ),
@@ -58,6 +62,56 @@ export class ResourceRefactor {
             ),
             experiences: template.experiences?.map(experience => this.refactorExperience(experience)) ?? [],
         };
+    }
+
+    private refactorSchema(schema: ContentDefinition): ContentDefinition {
+        switch (schema.type) {
+            case 'boolean':
+            case 'text':
+            case 'number':
+                return schema;
+
+            case 'structure':
+                return {
+                    ...schema,
+                    attributes: Object.fromEntries(
+                        Object.entries(schema.attributes).map(
+                            ([attributeName, attribute]) => [
+                                attributeName,
+                                {
+                                    ...attribute,
+                                    type: this.refactorSchema(attribute.type),
+                                },
+                            ],
+                        ),
+                    ),
+                };
+
+            case 'list':
+                return {
+                    ...schema,
+                    items: this.refactorSchema(schema.items),
+                };
+
+            case 'union':
+                return {
+                    ...schema,
+                    types: Object.fromEntries(
+                        Object.entries(schema.types).map(
+                            ([typeName, type]) => [
+                                typeName,
+                                this.refactorSchema(type) as ContentDefinition<'structure'|'reference'>,
+                            ],
+                        ),
+                    ),
+                };
+
+            case 'reference':
+                return {
+                    ...schema,
+                    id: this.refactoring.componentMapping[schema.id] ?? schema.id,
+                };
+        }
     }
 
     private refactorSlotContent(slot: SlotDefinition): SlotDefinition {
