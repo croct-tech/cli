@@ -180,7 +180,7 @@ export class MacOsRegistry implements ProtocolRegistry {
         return multiline`
             set this_URL to do shell script "defaults read ${id} current_url"
             tell application "Terminal"
-              do script "${command}"
+              do shell script "${command}"
               activate
             end tell
         `;
