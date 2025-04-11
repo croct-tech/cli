@@ -1,3 +1,4 @@
+import stripAnsi from 'strip-ansi';
 import {Action, ActionError} from '@/application/template/action/action';
 import {ErrorReason} from '@/application/error';
 import {ActionContext} from '@/application/template/action/context';
@@ -7,7 +8,6 @@ import {PackageManager} from '@/application/project/packageManager/packageManage
 import {Provider} from '@/application/provider/provider';
 import {CommandExecutor} from '@/application/system/process/executor';
 import {Predicate} from '@/application/predicate/predicate';
-import {AnsiScreenEmulator} from '@/infrastructure/application/cli/io/ansiScreenEmulator';
 
 export type Interactions = {
     when: string,
@@ -121,18 +121,19 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
             await execution.endWriting();
         }
 
-        const emulator = new AnsiScreenEmulator();
+        let buffer = '';
 
         for await (const line of execution.output) {
-            emulator.buffer(line);
+            buffer += stripAnsi(line);
 
             for (const [index, interaction] of nextInteractions.entries()) {
-                const output = emulator.toRawString();
                 const matches = interaction.pattern === true
-                    ? new RegExp(interaction.when).test(output)
-                    : output.includes(interaction.when);
+                    ? new RegExp(interaction.when).test(buffer)
+                    : buffer.includes(interaction.when);
 
                 if (matches) {
+                    buffer = '';
+
                     if (interaction.always !== true) {
                         nextInteractions.splice(index, 1);
                     }
@@ -162,7 +163,7 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
         }
 
         if (exitCode !== 0) {
-            throw new ActionError(`Command failed with output:\n\n${emulator.toString()}`, {
+            throw new ActionError(`Command failed with output:\n\n${buffer}`, {
                 reason: ErrorReason.UNEXPECTED_RESULT,
                 cause: executionError,
             });

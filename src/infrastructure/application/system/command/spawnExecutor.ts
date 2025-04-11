@@ -1,4 +1,4 @@
-import {spawn, spawnSync} from 'child_process';
+import {spawn, sync as spawnSync} from 'cross-spawn';
 import {
     CommandExecutor,
     DisposableListener,
@@ -18,7 +18,6 @@ import {ExecutableLocator} from '@/application/system/executableLocator';
 export type Configuration = {
     currentDirectory?: WorkingDirectory,
     executableLocator: ExecutableLocator,
-    windows?: boolean,
 };
 
 export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecutor {
@@ -26,12 +25,9 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
 
     private readonly executableLocator: ExecutableLocator;
 
-    private readonly isWindows: boolean;
-
-    public constructor({currentDirectory, executableLocator, windows = false}: Configuration) {
+    public constructor({currentDirectory, executableLocator}: Configuration) {
         this.currentDirectory = currentDirectory;
         this.executableLocator = executableLocator;
-        this.isWindows = windows;
     }
 
     public async run(command: Command, options: ExecutionOptions = {}): Promise<Execution> {
@@ -45,13 +41,8 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
             throw new ExecutionError(`Unable to locate executable for command \`${command.name}\`.`);
         }
 
-        const shell = this.isWindows && /\.(bat|cmd)$/i.test(executable);
-        const subprocess = spawn(shell ? `"${executable}"` : executable, command.arguments, {
+        const subprocess = spawn(executable, command.arguments, {
             stdio: ['pipe', 'pipe', 'pipe'],
-            // Node does not allow to spawn .bat or .cmd files on Windows because
-            // arguments are not escaped:
-            // https://github.com/nodejs/node/commit/69ffc6d50dbd9d7d0257f5b9b403026e1aa205ee
-            shell: shell,
             cwd: options?.workingDirectory ?? this.currentDirectory?.get(),
             signal: timeoutSignal,
         });
