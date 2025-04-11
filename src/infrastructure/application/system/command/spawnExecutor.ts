@@ -21,6 +21,10 @@ export type Configuration = {
     windows?: boolean,
 };
 
+type PreparedCommand = Command & {
+    shell: boolean,
+};
+
 export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecutor {
     private readonly currentDirectory?: WorkingDirectory;
 
@@ -45,13 +49,10 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
             throw new ExecutionError(`Unable to locate executable for command \`${command.name}\`.`);
         }
 
-        const shell = this.isWindows && /\.(bat|cmd)$/i.test(executable);
-        const subprocess = spawn(shell ? `"${executable}"` : executable, command.arguments, {
+        const preparedCommand = this.prepareCommand({...command, name: executable});
+        const subprocess = spawn(preparedCommand.name, preparedCommand.arguments, {
             stdio: ['pipe', 'pipe', 'pipe'],
-            // Node does not allow to spawn .bat or .cmd files on Windows because
-            // arguments are not escaped:
-            // https://github.com/nodejs/node/commit/69ffc6d50dbd9d7d0257f5b9b403026e1aa205ee
-            shell: shell,
+            shell: preparedCommand.shell,
             cwd: options?.workingDirectory ?? this.currentDirectory?.get(),
             signal: timeoutSignal,
         });
@@ -177,9 +178,11 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
             ? AbortSignal.timeout(options.timeout)
             : undefined;
 
-        const subprocess = spawnSync(command.name, command.arguments, {
+        const preparedCommand = this.prepareCommand(command);
+        const subprocess = spawnSync(preparedCommand.name, preparedCommand.arguments, {
             stdio: ['ignore', 'pipe', 'pipe'],
             cwd: options?.workingDirectory ?? this.currentDirectory?.get(),
+            shell: preparedCommand.shell,
             signal: timeoutSignal,
         });
 
@@ -210,5 +213,35 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
             exitCode: subprocess.status ?? 1,
             output: output,
         };
+    }
+
+    private prepareCommand(command: Command): PreparedCommand {
+        if (!this.isWindowShell(command.name)) {
+            return {
+                ...command,
+                shell: false,
+            };
+        }
+
+        return {
+            name: SpawnExecutor.escapeCommand(command.name),
+            arguments: (command.arguments ?? []).map(SpawnExecutor.escapeArgument),
+            // Node does not allow to spawn .bat or .cmd files on Windows because
+            // arguments are not escaped:
+            // https://github.com/nodejs/node/commit/69ffc6d50dbd9d7d0257f5b9b403026e1aa205ee
+            shell: true,
+        };
+    }
+
+    private isWindowShell(executable: string): boolean {
+        return this.isWindows && (executable.endsWith('.bat') || executable.endsWith('.cmd'));
+    }
+
+    private static escapeCommand(command: string): string {
+        return `"${command}"`;
+    }
+
+    private static escapeArgument(value: string): string {
+        return `"${value.replace('\\', '\\\\').replace('"', '\\"')}"`;
     }
 }
