@@ -1925,9 +1925,6 @@ export class Cli {
             () => new SpawnExecutor({
                 currentDirectory: this.workingDirectory,
                 executableLocator: this.getExecutableLocator(),
-                windows: this.configuration
-                    .process
-                    .getPlatform() === 'win32',
             }),
         );
     }
