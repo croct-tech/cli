@@ -200,7 +200,6 @@ import {
     Configuration as ExecutableAgentConfiguration,
 } from '@/application/project/packageManager/agent/executableAgent';
 import {PackageManager} from '@/application/project/packageManager/packageManager';
-import {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
 import {NodeImportResolver} from '@/application/project/import/nodeImportResolver';
 import {PartialTsconfigValidator} from '@/infrastructure/application/validation/partialTsconfigValidator';
 import {LazyPackageManager} from '@/application/project/packageManager/lazyPackageManager';
@@ -284,6 +283,7 @@ import {HierarchyResolver} from '@/infrastructure/application/api/graphql/hierar
 import {MacOsFirefoxRegistry} from '@/application/system/protocol/macOsFirefoxRegistry';
 import {FirefoxRegistry} from '@/application/system/protocol/firefoxRegistry';
 import {DeepLinkCommand, DeepLinkInput} from '@/application/cli/command/deep-link';
+import {FileSystemTsConfigLoader} from '@/application/project/import/fileSystemTsConfigLoader';
 
 export type Configuration = {
     program: Program,
@@ -1909,10 +1909,10 @@ export class Cli {
         );
     }
 
-    private getTsConfigLoader(): TsConfigLoader {
+    private getTsConfigLoader(): FileSystemTsConfigLoader {
         return this.share(
             this.getTsConfigLoader,
-            () => new TsConfigLoader({
+            () => new FileSystemTsConfigLoader({
                 fileSystem: this.getFileSystem(),
                 tsconfigValidator: new PartialTsconfigValidator(),
             }),

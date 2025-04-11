@@ -105,6 +105,7 @@ export abstract class JavaScriptSdk implements Sdk {
             paths: {
                 content: '.',
                 ...await this.getPaths(installation.configuration),
+                ...plan.configuration.paths,
             },
         };
 
@@ -229,7 +230,7 @@ export abstract class JavaScriptSdk implements Sdk {
                     this.fileSystem.joinPaths(source, 'lib'),
                 ],
                 configuration.paths?.utilities,
-                this.fileSystem.joinPaths(source, 'utils'),
+                this.fileSystem.joinPaths(source, 'lib'),
             ),
             components: await this.resolvePath(
                 ['components', 'Components', 'component', 'Component'].flatMap(

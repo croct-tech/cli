@@ -23,18 +23,26 @@ export class NodeImportResolver implements ImportResolver {
     }
 
     public async getImportPath(filePath: string, sourcePath: string): Promise<string> {
-        const workingDirectory = this.projectDirectory.get();
-        const config = await this.tsConfigLoader.load(workingDirectory, {
-            sourcePaths: [this.fileSystem.joinPaths(workingDirectory, sourcePath)],
+        const projectDirectory = this.projectDirectory.get();
+        const absoluteSourcePath = this.fileSystem.isAbsolutePath(sourcePath)
+            ? sourcePath
+            : this.fileSystem.joinPaths(projectDirectory, sourcePath);
+
+        const absoluteFilePath = this.fileSystem.isAbsolutePath(filePath)
+            ? filePath
+            : this.fileSystem.joinPaths(projectDirectory, filePath);
+
+        const config = await this.tsConfigLoader.load(projectDirectory, {
+            sourcePaths: [absoluteSourcePath],
         });
 
-        const fileImportPath = /\.m(?:js|ts)?$/.test(filePath)
-            ? filePath
-            : filePath.replace(/\.(ts|js)x?$/, '');
+        const fileImportPath = /\.m(?:js|ts)?$/.test(absoluteFilePath)
+            ? absoluteFilePath
+            : absoluteFilePath.replace(/\.(ts|js)x?$/, '');
 
-        const resolvedBasePath = this.fileSystem.joinPaths(workingDirectory, fileImportPath);
+        if (config !== null && this.fileSystem.isSubPath(projectDirectory, fileImportPath)) {
+            const resolvedBasePath = this.fileSystem.getRelativePath(projectDirectory, fileImportPath);
 
-        if (config !== null) {
             let longestMatchLength = 0;
 
             let currentPath: string | null = null;
@@ -45,7 +53,10 @@ export class NodeImportResolver implements ImportResolver {
 
                 for (const aliasPath of aliasPaths) {
                     const cleanAliasPath = aliasPath.replace(/\*$/, ''); // Remove wildcard from alias path
-                    const aliasBasePath = this.fileSystem.joinPaths(config.baseUrl, cleanAliasPath);
+                    const aliasBasePath = this.fileSystem.getRelativePath(
+                        projectDirectory,
+                        this.fileSystem.joinPaths(config.baseUrl, cleanAliasPath),
+                    );
 
                     // Check if the file path starts with the alias base path
                     if (resolvedBasePath.startsWith(aliasBasePath)) {
@@ -69,8 +80,8 @@ export class NodeImportResolver implements ImportResolver {
         }
 
         const resolvedRelativePath = this.fileSystem.getRelativePath(
-            this.fileSystem.joinPaths(workingDirectory, sourcePath, '..'),
-            this.fileSystem.joinPaths(workingDirectory, fileImportPath),
+            this.fileSystem.joinPaths(absoluteSourcePath, '..'),
+            fileImportPath,
         );
 
         return Promise.resolve(resolvedRelativePath.replace(/\\/g, '/'));
