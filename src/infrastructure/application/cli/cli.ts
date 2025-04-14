@@ -284,6 +284,7 @@ import {MacOsFirefoxRegistry} from '@/application/system/protocol/macOsFirefoxRe
 import {FirefoxRegistry} from '@/application/system/protocol/firefoxRegistry';
 import {DeepLinkCommand, DeepLinkInput} from '@/application/cli/command/deep-link';
 import {FileSystemTsConfigLoader} from '@/application/project/import/fileSystemTsConfigLoader';
+import {ResolvedCommandExecutor} from '@/infrastructure/application/system/command/resolvedCommandExecutor';
 
 export type Configuration = {
     program: Program,
@@ -324,10 +325,10 @@ export type Configuration = {
 export type Options =
     Partial<Omit<Configuration, | 'directories' | 'verificationLinkDestination' | 'emailSubject'>>
     & {
-        directories?: Partial<Configuration['directories']>,
-        verificationLinkDestination?: Partial<Configuration['verificationLinkDestination']>,
-        emailSubject?: Partial<Configuration['emailSubject']>,
-    };
+    directories?: Partial<Configuration['directories']>,
+    verificationLinkDestination?: Partial<Configuration['verificationLinkDestination']>,
+    emailSubject?: Partial<Configuration['emailSubject']>,
+};
 
 type AuthenticationMethods = {
     credentials: CredentialsInput,
@@ -1040,11 +1041,11 @@ export class Cli {
                         packageManager: this.getPackageManager(),
                         packageManagerProvider: this.getPackageManagerRegistry(),
                         workingDirectory: this.workingDirectory,
-                        commandExecutor: this.getCommandExecutor(),
+                        commandExecutor: this.getAsynchronousCommandExecutor(),
                         commandTimeout: 2 * 60 * 1000, // 2 minutes
                         sourceChecker: {
                             test: (url): boolean => url.protocol === 'file:'
-                                    || `${url}`.startsWith('https://github.com/croct-tech'),
+                                || `${url}`.startsWith('https://github.com/croct-tech'),
                         },
                     }),
                     validator: new ExecutePackageOptionsValidator(),
@@ -1305,7 +1306,7 @@ export class Cli {
                     return sdk.getPaths(configuration);
                 }),
                 platform: LazyPromise.transient(async () => (await this.getPlatformProvider().get()) ?? 'unknown'),
-                server: LazyPromise.transient(async (): Promise<{running: boolean, url?: string}|null> => {
+                server: LazyPromise.transient(async (): Promise<{running: boolean, url?: string} | null> => {
                     const serverProvider = this.getServerProvider();
                     const server = await serverProvider.get();
 
@@ -1449,7 +1450,7 @@ export class Cli {
         });
     }
 
-    private getSdkProvider(): Provider<Sdk|null> {
+    private getSdkProvider(): Provider<Sdk | null> {
         return this.share(this.getSdkProvider, () => {
             const formatter = this.getJavaScriptFormatter();
             const fileSystem = this.getFileSystem();
@@ -1727,7 +1728,7 @@ export class Cli {
         });
     }
 
-    private getNodePackageManagerProvider(): Provider<PackageManager|null> {
+    private getNodePackageManagerProvider(): Provider<PackageManager | null> {
         return this.share(this.getNodePackageManagerProvider, () => {
             const managers = this.getNodePackageManagers();
             const fileSystem = this.getFileSystem();
@@ -1787,7 +1788,7 @@ export class Cli {
             const agentConfig: ExecutableAgentConfiguration = {
                 projectDirectory: this.workingDirectory,
                 fileSystem: fileSystem,
-                commandExecutor: this.getCommandExecutor(),
+                commandExecutor: this.getAsynchronousCommandExecutor(),
                 executableLocator: this.getExecutableLocator(),
             };
 
@@ -1820,7 +1821,7 @@ export class Cli {
         });
     }
 
-    private getNodeServerProvider(): Provider<Server|null> {
+    private getNodeServerProvider(): Provider<Server | null> {
         return this.share(
             this.getNodeServerProvider,
             () => new ProjectServerProvider({
@@ -1836,7 +1837,7 @@ export class Cli {
         );
     }
 
-    private getServerProvider(): Provider<Server|null> {
+    private getServerProvider(): Provider<Server | null> {
         return this.share(this.getServerProvider, () => {
             const unknown = Symbol('unknown');
 
@@ -1857,7 +1858,7 @@ export class Cli {
             this.getServerFactory,
             () => new CachedServerFactory(
                 new ProcessServerFactory({
-                    commandExecutor: this.getCommandExecutor(),
+                    commandExecutor: this.getAsynchronousCommandExecutor(),
                     workingDirectory: this.workingDirectory,
                     startupTimeout: 20_000,
                     startupCheckDelay: 1500,
@@ -1873,7 +1874,7 @@ export class Cli {
         return this.share(
             this.getJavaScriptFormatter,
             () => new JavaScriptFormatter({
-                commandExecutor: this.getCommandExecutor(),
+                commandExecutor: this.getAsynchronousCommandExecutor(),
                 workingDirectory: this.workingDirectory,
                 packageManager: this.getNodePackageManager(),
                 fileSystem: this.getFileSystem(),
@@ -1919,12 +1920,25 @@ export class Cli {
         );
     }
 
+    private getAsynchronousCommandExecutor(): CommandExecutor {
+        return this.share(
+            this.getAsynchronousCommandExecutor,
+            () => new ResolvedCommandExecutor({
+                executableLocator: this.getExecutableLocator(),
+                commandExecutor: this.getCommandExecutor(),
+            }),
+        );
+    }
+
+    private getSynchronousCommandExecutor(): SynchronousCommandExecutor {
+        return this.getCommandExecutor();
+    }
+
     private getCommandExecutor(): CommandExecutor & SynchronousCommandExecutor {
         return this.share(
             this.getCommandExecutor,
             () => new SpawnExecutor({
                 currentDirectory: this.workingDirectory,
-                executableLocator: this.getExecutableLocator(),
                 windows: this.configuration
                     .process
                     .getPlatform() === 'win32',
@@ -1948,7 +1962,7 @@ export class Cli {
         );
     }
 
-    private getPlatformProvider(): Provider<Platform|null> {
+    private getPlatformProvider(): Provider<Platform | null> {
         return this.share(this.getPlatformProvider, () => {
             const nodePackageManager = new NodePackageManager({
                 projectDirectory: this.workingDirectory,
@@ -2109,7 +2123,7 @@ export class Cli {
 
                 return new FocusListener({
                     platform: configuration.process.getPlatform(),
-                    commandExecutor: this.getCommandExecutor(),
+                    commandExecutor: this.getSynchronousCommandExecutor(),
                     timeout: 2_000,
                     listener: new SessionCloseListener({
                         api: this.getUserApi(true),
@@ -2165,7 +2179,7 @@ export class Cli {
         return SystemClock.UTC;
     }
 
-    private getProtocolRegistryProvider(): Provider<ProtocolRegistry|null> {
+    private getProtocolRegistryProvider(): Provider<ProtocolRegistry | null> {
         return this.share(
             this.getProtocolRegistryProvider,
             () => new CallbackProvider(() => {
@@ -2187,7 +2201,7 @@ export class Cli {
                             macOsRegistry: new MacOsRegistry({
                                 fileSystem: fileSystem,
                                 appDirectory: appDirectory,
-                                commandExecutor: this.getCommandExecutor(),
+                                commandExecutor: this.getAsynchronousCommandExecutor(),
                             }),
                             firefoxRegistry: FirefoxRegistry.macOs({
                                 fileSystem: fileSystem,
@@ -2202,14 +2216,14 @@ export class Cli {
 
                     case 'win32':
                         return new WindowsRegistry({
-                            commandExecutor: this.getCommandExecutor(),
+                            commandExecutor: this.getAsynchronousCommandExecutor(),
                         });
 
                     case 'linux':
                         return new LinuxRegistry({
                             fileSystem: fileSystem,
                             homeDirectory: this.configuration.directories.home,
-                            commandExecutor: this.getCommandExecutor(),
+                            commandExecutor: this.getAsynchronousCommandExecutor(),
                         });
 
                     default:

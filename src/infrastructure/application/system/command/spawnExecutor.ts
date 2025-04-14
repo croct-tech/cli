@@ -13,11 +13,9 @@ import {BufferedIterator} from '@/infrastructure/bufferedIterator';
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {Command} from '@/application/system/process/command';
-import {ExecutableLocator} from '@/application/system/executableLocator';
 
 export type Configuration = {
     currentDirectory?: WorkingDirectory,
-    executableLocator: ExecutableLocator,
     windows?: boolean,
 };
 
@@ -28,28 +26,19 @@ type PreparedCommand = Command & {
 export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecutor {
     private readonly currentDirectory?: WorkingDirectory;
 
-    private readonly executableLocator: ExecutableLocator;
-
     private readonly isWindows: boolean;
 
-    public constructor({currentDirectory, executableLocator, windows = false}: Configuration) {
+    public constructor({currentDirectory, windows = false}: Configuration) {
         this.currentDirectory = currentDirectory;
-        this.executableLocator = executableLocator;
         this.isWindows = windows;
     }
 
-    public async run(command: Command, options: ExecutionOptions = {}): Promise<Execution> {
+    public run(command: Command, options: ExecutionOptions = {}): Promise<Execution> {
         const timeoutSignal = options.timeout !== undefined
             ? AbortSignal.timeout(options.timeout)
             : undefined;
 
-        const executable = await this.executableLocator.locate(command.name);
-
-        if (executable === null) {
-            throw new ExecutionError(`Unable to locate executable for command \`${command.name}\`.`);
-        }
-
-        const preparedCommand = this.prepareCommand({...command, name: executable});
+        const preparedCommand = this.prepareCommand(command);
         const subprocess = spawn(preparedCommand.name, preparedCommand.arguments, {
             stdio: ['pipe', 'pipe', 'pipe'],
             shell: preparedCommand.shell,
@@ -96,7 +85,7 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
             }
         });
 
-        return {
+        return Promise.resolve({
             output: output,
             get running(): boolean {
                 return exitCode === null;
@@ -170,7 +159,7 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
                     reject(new ExecutionError('Failed to kill the subprocess.'));
                 }
             }),
-        };
+        });
     }
 
     public runSync(command: Command, options: ExecutionOptions = {}): ExecutionResult {
