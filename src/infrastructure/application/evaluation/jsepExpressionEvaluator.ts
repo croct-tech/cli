@@ -67,6 +67,8 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
     private static readonly ALLOWED_ARRAY_METHODS: Array<Methods<any[]>> = [
         'slice',
         'join',
+        'includes',
+        'indexOf',
     ];
 
     // eslint-disable-next-line @typescript-eslint/ban-types -- Intentional use of String for correct type inference
