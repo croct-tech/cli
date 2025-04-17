@@ -258,8 +258,7 @@ const experimentVariantSchema: ZodType<VariantDefinition> = z.strictObject({
     content: personalizedContentSchema,
     baseline: z.boolean().optional(),
     allocation: z.number()
-        .min(0)
-        .max(1),
+        .min(0),
 });
 
 const experienceDefinitionSchema: ZodType<ExperienceDefinition> = z.strictObject({
