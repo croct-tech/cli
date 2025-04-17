@@ -54,6 +54,7 @@ const templateSchema: ZodType<Template> = z.strictObject({
     $schema: z.string().optional(),
     title: z.string().min(1),
     description: z.string().min(1),
+    metadata: z.record(z.string(), jsonSchema).optional(),
     options: z.record(optionName, optionSchema).optional(),
     actions: z.array(z.any()),
 });
