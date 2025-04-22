@@ -257,12 +257,12 @@ export class ResourceMatcher {
         left: PersonalizedContentDefinition,
         right: PersonalizedContentDefinition,
     ): boolean {
-        if (ResourceMatcher.isSimilarSlotContent(left.default, right.default)) {
+        if (ResourceMatcher.isSimilarSlotContent(left.default ?? {}, right.default ?? {})) {
             return true;
         }
 
-        for (const segmentedContent of left.segmented) {
-            for (const otherSegmentedContent of right.segmented) {
+        for (const segmentedContent of left.segmented ?? []) {
+            for (const otherSegmentedContent of right.segmented ?? []) {
                 if (
                     deepEqual(segmentedContent.audiences, otherSegmentedContent.audiences)
                     && ResourceMatcher.isSimilarSlotContent(segmentedContent.content, otherSegmentedContent.content)

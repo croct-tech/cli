@@ -146,8 +146,8 @@ export class ResourceRefactor {
         audiences: string[],
     ): PersonalizedContentDefinition {
         return {
-            default: this.refactorSlotContentMap(content.default),
-            segmented: content.segmented.flatMap(segmentedContent => {
+            default: this.refactorSlotContentMap(content.default ?? {}),
+            segmented: (content.segmented ?? []).flatMap(segmentedContent => {
                 const filteredAudiences = segmentedContent.audiences.filter(slug => audiences.includes(slug));
 
                 if (filteredAudiences.length === 0) {

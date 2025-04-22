@@ -249,8 +249,8 @@ const segmentedContentSchema: ZodType<SegmentedContentDefinition> = z.strictObje
 });
 
 const personalizedContentSchema: ZodType<PersonalizedContentDefinition> = z.strictObject({
-    default: slotContentMap,
-    segmented: z.array(segmentedContentSchema),
+    default: slotContentMap.optional(),
+    segmented: z.array(segmentedContentSchema).optional(),
 });
 
 const experimentVariantSchema: ZodType<VariantDefinition> = z.strictObject({
