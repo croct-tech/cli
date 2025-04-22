@@ -362,10 +362,10 @@ function createProgram(config: Configuration): typeof program {
         useCommand.addOption(option);
     }
 
-    const deepLink = program.command('deep-link')
-        .description('Enable or disable deep link support.');
+    const enable = program.command('enable')
+        .description('Enable a feature.');
 
-    deepLink.command('enable')
+    enable.command('deep-link')
         .description('Enable deep link support.')
         .action(async () => {
             await config.cli?.deepLink({
@@ -373,7 +373,10 @@ function createProgram(config: Configuration): typeof program {
             });
         });
 
-    deepLink.command('disable')
+    const disable = program.command('disable')
+        .description('Disable a feature.');
+
+    disable.command('deep-link')
         .description('Disable deep link support.')
         .action(async () => {
             await config.cli?.deepLink({
@@ -396,6 +399,10 @@ function getTemplate(args: string[]): string | null {
     }
 
     return null;
+}
+
+function isDeepLinkCommand(args: string[]): boolean {
+    return args.length >= 2 && ['enable', 'disable'].includes(args[0]) && args[1] === 'deep-link';
 }
 
 export async function run(args: string[] = process.argv, welcome = true): Promise<void> {
@@ -430,7 +437,7 @@ export async function run(args: string[] = process.argv, welcome = true): Promis
 
     if (welcome) {
         await cli.welcome({
-            skipDeepLinkCheck: invocation.args[0] === 'deep-link',
+            skipDeepLinkCheck: isDeepLinkCommand(invocation.args),
         });
     }
 
