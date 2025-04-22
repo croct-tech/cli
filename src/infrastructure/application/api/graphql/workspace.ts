@@ -796,9 +796,9 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         return {
             default: {
                 id: randomUUID(),
-                contents: GraphqlWorkspaceApi.createSlotContentMap(content.default),
+                contents: GraphqlWorkspaceApi.createSlotContentMap(content.default ?? {}),
             },
-            segmented: content.segmented.map(
+            segmented: (content.segmented ?? []).map(
                 segmentedContent => ({
                     id: randomUUID(),
                     audiences: segmentedContent.audiences,

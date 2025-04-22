@@ -92,7 +92,7 @@ export namespace WorkspaceResources {
 
         let dynamicAttributePerContent = 0;
 
-        for (const [slotSlug, contentMap] of Object.entries(content.default)) {
+        for (const [slotSlug, contentMap] of Object.entries(content.default ?? {})) {
             referencedSlots.add(slotSlug);
 
             for (const [locale, slotContent] of Object.entries(contentMap)) {
@@ -106,7 +106,7 @@ export namespace WorkspaceResources {
 
         let audiencesPerExperience = 0;
 
-        for (const segmentedContent of content.segmented) {
+        for (const segmentedContent of content.segmented ?? []) {
             for (const audience of segmentedContent.audiences) {
                 referencedAudiences.add(audience);
             }
