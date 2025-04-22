@@ -1050,7 +1050,7 @@ export class Cli {
                     }),
                     validator: new ExecutePackageOptionsValidator(),
                 }),
-                'check-dependencies': new ValidatedAction({
+                'check-dependency': new ValidatedAction({
                     action: new CheckDependencyAction({
                         packageManager: this.getPackageManager(),
                     }),
