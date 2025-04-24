@@ -39,6 +39,7 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
             : undefined;
 
         const preparedCommand = this.prepareCommand(command);
+
         const subprocess = spawn(preparedCommand.name, preparedCommand.arguments, {
             stdio: ['pipe', 'pipe', 'pipe'],
             shell: preparedCommand.shell,
@@ -46,24 +47,26 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
             signal: timeoutSignal,
         });
 
+        const output = new BufferedIterator<string>();
         const errorCallbacks: Array<(error: unknown) => void> = [];
+        let lastError: ExecutionError|null = null;
 
         subprocess.on('error', (error: unknown) => {
+            output.close();
+
+            lastError = timeoutSignal?.aborted === true
+                ? new ExecutionError('Command timed out.', {
+                    reason: ErrorReason.PRECONDITION,
+                    cause: error,
+                })
+                : new ExecutionError(`Failed to run command: ${HelpfulError.formatCause(error)}`, {
+                    cause: error,
+                });
+
             for (const callback of errorCallbacks) {
-                callback(
-                    timeoutSignal?.aborted === true
-                        ? new ExecutionError('Command timed out.', {
-                            reason: ErrorReason.PRECONDITION,
-                            cause: error,
-                        })
-                        : new ExecutionError(`Failed to run command: ${HelpfulError.formatCause(error)}`, {
-                            cause: error,
-                        }),
-                );
+                callback(lastError);
             }
         });
-
-        const output = new BufferedIterator<string>();
 
         subprocess.stdout.on('data', data => {
             output.push(data.toString());
@@ -73,22 +76,20 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
             output.push(data.toString());
         });
 
-        let exitCode: number | null = null;
         const exitListeners: ExitCallback[] = [];
 
         subprocess.on('exit', code => {
             output.close();
-            exitCode = code ?? 1;
 
             for (const listener of exitListeners) {
-                listener(exitCode);
+                listener(code ?? 1);
             }
         });
 
         return Promise.resolve({
             output: output,
             get running(): boolean {
-                return exitCode === null;
+                return subprocess.exitCode === null;
             },
             onExit: (callback: ExitCallback): DisposableListener => {
                 exitListeners.push(callback);
@@ -111,7 +112,7 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
                 });
             }),
             endWriting: () => new Promise<void>(resolve => {
-                if (exitCode !== null) {
+                if (subprocess.exitCode !== null) {
                     resolve();
 
                     return;
@@ -129,8 +130,14 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
                 return data;
             },
             wait: () => new Promise<number>((resolve, reject) => {
-                if (exitCode !== null) {
-                    resolve(exitCode);
+                if (lastError !== null) {
+                    reject(lastError);
+
+                    return;
+                }
+
+                if (subprocess.exitCode !== null) {
+                    resolve(subprocess.exitCode);
 
                     return;
                 }
@@ -142,7 +149,7 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
                 });
             }),
             kill: signal => new Promise<void>((resolve, reject) => {
-                if (exitCode !== null) {
+                if (subprocess.exitCode !== null) {
                     resolve();
 
                     return;
@@ -154,7 +161,6 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
 
                 if (subprocess.kill(signal)) {
                     resolve();
-                    exitCode = 1;
                 } else {
                     reject(new ExecutionError('Failed to kill the subprocess.'));
                 }
