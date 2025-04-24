@@ -724,7 +724,7 @@ export class Cli {
         const command = this.getUseTemplateCommand();
         const output = this.getOutput();
 
-        const notifier = output.notify('Loading template');
+        const notifier = output.notify('Loading template options');
 
         try {
             return await command.getOptions(template);
@@ -1042,7 +1042,8 @@ export class Cli {
                         packageManagerProvider: this.getPackageManagerRegistry(),
                         workingDirectory: this.workingDirectory,
                         commandExecutor: this.getAsynchronousCommandExecutor(),
-                        commandTimeout: 2 * 60 * 1000, // 2 minutes
+                        commandTotalTimeout: 5 * 60 * 1000, // 5 minutes
+                        commandUpdateTimeout: 30 * 1000, // 30 seconds
                         sourceChecker: {
                             test: (url): boolean => url.protocol === 'file:'
                                 || `${url}`.startsWith('https://github.com/croct-tech'),

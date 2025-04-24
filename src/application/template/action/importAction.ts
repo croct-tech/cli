@@ -7,6 +7,7 @@ import {VariableMap} from '@/application/template/evaluation';
 import {DeferredOptionDefinition, DeferredTemplate, OptionType, OptionValueType} from '@/application/template/template';
 import {Deferrable} from '@/application/template/deferral';
 import {resolveUrl} from '@/utils/resolveUrl';
+import {Output} from '@/application/cli/io/output';
 
 export type ImportOptions = {
     template: string,
@@ -35,19 +36,14 @@ export class ImportAction implements Action<ImportOptions> {
     }
 
     public async execute(options: ImportOptions, context: ActionContext): Promise<void> {
-        const {output} = context;
-
-        const notifier = output.notify('Loading template');
-
-        try {
-            await this.importTemplate(options, context);
-        } finally {
-            notifier.stop();
-        }
+        await this.importTemplate(options, context);
     }
 
     private async importTemplate(options: ImportOptions, context: ActionContext): Promise<void> {
-        const {value: template, url} = await this.loadTemplate(options.template, context.baseUrl);
+        const {
+            url,
+            value: template,
+        } = await this.loadTemplate(options.template, context.baseUrl, context.output);
 
         const input = await this.getInputValues(template, options.options);
 
@@ -154,9 +150,11 @@ export class ImportAction implements Action<ImportOptions> {
         }
     }
 
-    private async loadTemplate(name: string, baseUrl: URL): Promise<Resource<DeferredTemplate>> {
+    private async loadTemplate(name: string, baseUrl: URL, output: Output): Promise<Resource<DeferredTemplate>> {
         const provider = this.config.templateProvider;
         const url = resolveUrl(name, baseUrl);
+
+        const notifier = output.notify('Loading template');
 
         try {
             return await provider.get(url);
@@ -172,6 +170,8 @@ export class ImportAction implements Action<ImportOptions> {
             }
 
             throw error;
+        } finally {
+            notifier.stop();
         }
     }
 

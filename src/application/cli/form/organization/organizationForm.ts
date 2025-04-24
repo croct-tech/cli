@@ -121,6 +121,8 @@ export class OrganizationForm implements Form<Organization, OrganizationOptions>
             3000,
         );
 
+        interval.unref();
+
         return {
             confirm: (status, details): void => {
                 clearInterval(interval);

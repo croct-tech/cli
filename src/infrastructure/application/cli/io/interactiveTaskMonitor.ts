@@ -184,6 +184,8 @@ class TaskWatcher {
             },
             80,
         );
+
+        this.interval.unref();
     }
 
     private clear(): void {

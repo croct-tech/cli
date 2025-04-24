@@ -26,10 +26,19 @@ export class ChangeDirectoryAction implements Action<ChangeDirectoryOptions> {
         this.currentDirectory = currentDirectory;
     }
 
-    public execute(options: ChangeDirectoryOptions): Promise<void> {
+    public async execute(options: ChangeDirectoryOptions): Promise<void> {
         const target = this.fileSystem.isAbsolutePath(options.path)
             ? options.path
             : this.fileSystem.joinPaths(this.currentDirectory.get(), options.path);
+
+        if (!await this.fileSystem.isDirectory(target)) {
+            throw new ActionError(`Target path \`${options.path}\` is not a directory.`, {
+                reason: ErrorReason.INVALID_INPUT,
+                details: [
+                    `Target path: ${options.path}`,
+                ],
+            });
+        }
 
         if (!this.fileSystem.isSubPath(this.rootDirectory, target)) {
             throw new ActionError('Cannot change to a directory outside the current working directory.', {
