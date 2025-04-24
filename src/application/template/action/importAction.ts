@@ -162,7 +162,7 @@ export class ImportAction implements Action<ImportOptions> {
             return await provider.get(url);
         } catch (error) {
             if (error instanceof ResourceNotFoundError) {
-                throw new HelpfulError(`No template found at \`${url}\`.`, {
+                throw new HelpfulError(`No template found at \`${decodeURIComponent(url.toString())}\`.`, {
                     cause: error,
                     reason: ErrorReason.INVALID_INPUT,
                     suggestions: [
