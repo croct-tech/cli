@@ -240,7 +240,7 @@ class TaskWatcher {
                     symbol: task.status === 'pending'
                         ? {
                             unicode: '◷',
-                            ascii: '•',
+                            ascii: '■',
                         }
                         : undefined,
                 },
