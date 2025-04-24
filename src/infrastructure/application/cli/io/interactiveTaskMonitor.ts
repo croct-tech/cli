@@ -4,6 +4,7 @@ import chalk from 'chalk';
 import {Writable} from 'stream';
 import readline from 'node:readline';
 import {WriteStream} from 'tty';
+import stripAnsi from 'strip-ansi';
 import {Task, TaskList, TaskOptions, Notifier, Semantics} from '@/application/cli/io/output';
 import {format} from '@/infrastructure/application/cli/io/formatting';
 import {TaskExecution, TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
@@ -27,6 +28,7 @@ type StopCallback = (watcher: TaskWatcher) => void;
 
 type TaskWatcherOptions = TaskOptions & {
     manual?: boolean,
+    status?: TaskStatus,
     onStop?: StopCallback,
 };
 
@@ -54,7 +56,7 @@ class TaskWatcher {
             task => ({
                 title: task.title,
                 subtitle: task.subtitle,
-                status: 'pending',
+                status: options.status ?? 'pending',
                 task: task.task,
             }),
         );
@@ -179,8 +181,7 @@ class TaskWatcher {
         this.interval = setInterval(
             () => {
                 this.frame++;
-                this.clear();
-                this.render();
+                this.render(true);
             },
             80,
         );
@@ -197,21 +198,36 @@ class TaskWatcher {
         this.lineCount = 0;
     }
 
-    private render(): void {
-        this.lineCount = 0;
+    private render(autoClear = false): void {
         const terminalWidth = this.output instanceof WriteStream
             ? this.output.columns
             : 0;
+
+        const lines: string[] = [];
+
+        let lineCount = 0;
 
         for (const task of this.tasks) {
             const line = this.formatTask(task);
 
             const wrappedLines = line.split('\n')
-                .map(subLine => (terminalWidth === 0 ? 1 : Math.ceil([...subLine].length / terminalWidth)));
+                .map(subLine => (terminalWidth === 0 ? 1 : Math.ceil([...stripAnsi(subLine)].length / terminalWidth)));
 
-            this.lineCount += wrappedLines.reduce((sum, count) => sum + count, 0);
-            this.output.write(`${line}\n`);
+            lineCount = wrappedLines.reduce((sum, count) => sum + count, lineCount);
+            lines.push(`${line}${autoClear ? '\x1b[0K' : ''}\n`);
         }
+
+        if (autoClear && this.lineCount > lineCount) {
+            this.clear();
+        } else {
+            readline.moveCursor(this.output, 0, -this.lineCount);
+        }
+
+        for (const line of lines) {
+            this.output.write(line);
+        }
+
+        this.lineCount = lineCount;
     }
 
     private formatTask(task: TaskState): string {
@@ -284,7 +300,10 @@ export class InteractiveTaskMonitor implements TaskMonitor {
                     task: () => Promise.resolve(),
                 }],
             },
-            {manual: true},
+            {
+                manual: true,
+                status: 'loading',
+            },
         );
 
         watcher.start();
