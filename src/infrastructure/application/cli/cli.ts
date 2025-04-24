@@ -1042,8 +1042,7 @@ export class Cli {
                         packageManagerProvider: this.getPackageManagerRegistry(),
                         workingDirectory: this.workingDirectory,
                         commandExecutor: this.getAsynchronousCommandExecutor(),
-                        commandTotalTimeout: 5 * 60 * 1000, // 5 minutes
-                        commandUpdateTimeout: 30 * 1000, // 30 seconds
+                        commandTimeout: 3 * 60 * 1000, // 3 minutes
                         sourceChecker: {
                             test: (url): boolean => url.protocol === 'file:'
                                 || `${url}`.startsWith('https://github.com/croct-tech'),
