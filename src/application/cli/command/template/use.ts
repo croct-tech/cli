@@ -62,7 +62,8 @@ export class UseTemplateCommand implements Command<UseTemplateInput> {
         let path = name;
 
         if (URL.canParse(name)) {
-            const url = new URL(name);
+            // Ensure compatibility with URLs like npm://@scope/package
+            const url = new URL(name.replace(/(?<=^[a-z]+:\/*)([^/.:]+)/i, match => match.replace(/@/g, '%40')));
 
             if (url.protocol !== 'file:') {
                 return url;

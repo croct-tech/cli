@@ -68,7 +68,7 @@ export class NpmRegistryProvider implements ResourceProvider<Mapping[]> {
             return null;
         }
 
-        const name = url.pathname.slice(1);
+        const name = decodeURIComponent(url.hostname) + url.pathname;
 
         return new URL(`https://registry.npmjs.org/${name}/latest`);
     }
