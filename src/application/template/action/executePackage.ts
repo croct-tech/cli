@@ -30,8 +30,7 @@ export type Configuration = {
     packageManagerProvider: Provider<PackageManager, [string]>,
     workingDirectory: WorkingDirectory,
     commandExecutor: CommandExecutor,
-    commandTotalTimeout: number,
-    commandUpdateTimeout: number,
+    commandTimeout: number,
 };
 
 export class ExecutePackage implements Action<ExecutePackageOptions> {
@@ -109,11 +108,11 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
     }
 
     private async executeCommand(command: Command, interactions: Interactions[] = []): Promise<void> {
-        const {workingDirectory, commandExecutor, commandTotalTimeout} = this.configuration;
+        const {workingDirectory, commandExecutor, commandTimeout} = this.configuration;
 
         const execution = await commandExecutor.run(command, {
             workingDirectory: workingDirectory.get(),
-            timeout: commandTotalTimeout,
+            timeout: commandTimeout,
         });
 
         const nextInteractions = [...interactions];
@@ -124,13 +123,7 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
 
         let buffer = '';
 
-        let timer: NodeJS.Timeout | null = null;
-
         for await (const line of execution.output) {
-            if (timer !== null) {
-                clearTimeout(timer);
-            }
-
             buffer += stripAnsi(line);
 
             for (const [index, interaction] of nextInteractions.entries()) {
@@ -158,17 +151,6 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
                     break;
                 }
             }
-
-            timer = setTimeout(
-                (): void => {
-                    execution.kill();
-                },
-                this.configuration.commandUpdateTimeout,
-            );
-        }
-
-        if (timer !== null) {
-            clearTimeout(timer);
         }
 
         let exitCode = -1;
