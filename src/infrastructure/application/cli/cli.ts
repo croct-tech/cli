@@ -1128,7 +1128,13 @@ export class Cli {
                 }),
                 initialize: new ValidatedAction({
                     action: new CallbackAction({
-                        callback: () => this.init({}),
+                        callback: async (): Promise<void> => {
+                            const manager = this.getConfigurationManager();
+
+                            if (!await manager.isInitialized()) {
+                                return this.init({});
+                            }
+                        },
                     }),
                     validator: new InitializeOptionsValidator(),
                 }),
