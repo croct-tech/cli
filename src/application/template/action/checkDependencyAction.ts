@@ -23,6 +23,7 @@ export type Configuration = {
 
 type DependencyCheck = {
     dependency: string,
+    satisfied: boolean,
     issue?: string,
 };
 
@@ -48,17 +49,15 @@ export class CheckDependencyAction implements Action<CheckDependencyOptions> {
 
         const missing: DependencyCheck[] = [];
 
-        if (options.result !== undefined) {
-            for (const check of checks) {
-                if (options.result[check.dependency] !== undefined) {
-                    context.set(options.result[check.dependency], check.issue === undefined);
+        for (const check of checks) {
+            if (options?.result?.[check.dependency] !== undefined) {
+                context.set(options.result[check.dependency], check.satisfied);
 
-                    continue;
-                }
+                continue;
+            }
 
-                if (check.issue !== undefined) {
-                    missing.push(check);
-                }
+            if (check.issue !== undefined) {
+                missing.push(check);
             }
         }
 
@@ -75,20 +74,35 @@ export class CheckDependencyAction implements Action<CheckDependencyOptions> {
     private async checkRequirement(requirement: Requirement): Promise<DependencyCheck> {
         const {name, version, optional = false} = requirement;
 
-        if (
-            (optional && (version === undefined || !await this.packageManager.hasDirectDependency(name)))
-            || await this.packageManager.hasDirectDependency(name, version)
-        ) {
-            return {dependency: name};
+        if (version === undefined) {
+            const installed = await this.packageManager.hasDirectDependency(name);
+
+            if (installed || optional) {
+                return {
+                    dependency: name,
+                    satisfied: installed,
+                };
+            }
+        } else {
+            const installed = await this.packageManager.hasDirectDependency(name, version);
+
+            if (installed || optional) {
+                return {
+                    dependency: name,
+                    satisfied: installed,
+                };
+            }
         }
 
         const info = await this.packageManager.getDependency(name);
 
         return {
             dependency: name,
+            satisfied: false,
             issue: info === null
                 ? 'not installed'
-                : `version \`${version}\` is required, found \`${info.version ?? 'unknown'}\``,
+                : `${version !== undefined ? `version \`${version}\` is required` : ''
+                }found \`${info.version ?? 'unknown'}\``,
         };
     }
 }
