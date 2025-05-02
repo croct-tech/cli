@@ -1,0 +1,72 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TypeErasureCodemod should correctly transform typescript.ts: typescript.ts 1`] = `
+"export function addition(operands) {
+    return operands.left + operands.right;
+}"
+`;
+
+exports[`TypeErasureCodemod should correctly transform typescript-jsx.tsx: typescript-jsx.tsx 1`] = `
+"export function Addition(operands) {
+    return <div>{operands.left + operands.right}</div>;
+}"
+`;
+
+exports[`TypeErasureCodemod should correctly transform typescript-line-comments.ts: typescript-line-comments.ts 1`] = `
+"/**
+ * This function takes two operands and returns their sum.
+ *
+ * @param operands
+ */
+export function addition(operands) {
+    return operands.left + operands.right;
+}"
+`;
+
+exports[`TypeErasureCodemod should correctly transform typescript-multiline-comments.ts: typescript-multiline-comments.ts 1`] = `
+"/**
+ * This function takes two operands and returns their sum.
+ *
+ * @param operands
+ */
+export function addition(operands) {
+    return operands.left + operands.right;
+}"
+`;
+
+exports[`TypeErasureCodemod should correctly transform typescript-preserve-comment.ts: typescript-preserve-comment.ts 1`] = `
+"/**
+ * Unrelated comment
+ */
+
+
+/**
+ * This function takes two operands and returns their sum.
+ *
+ * @param operands
+ */
+export function addition(operands) {
+    return operands.left + operands.right;
+}"
+`;
+
+exports[`TypeErasureCodemod should correctly transform typescript-preserve-multiple-comments.ts: typescript-preserve-multiple-comments.ts 1`] = `
+"// Unrelated comment
+/**
+ * Unrelated comment
+ */
+
+
+// Another unrelated comment
+/**
+ * Another unrelated comment
+ */
+/**
+ * This function takes two operands and returns their sum.
+ *
+ * @param operands
+ */
+export function addition(operands) {
+    return operands.left + operands.right;
+}"
+`;
