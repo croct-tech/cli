@@ -18,14 +18,21 @@ describe('NodeImportResolver', () => {
             description: 'resolve absolute paths when no tsconfig is provided',
             filePath: '/src/utils/markdown.ts',
             sourcePath: '/src/index.ts',
-            expected: 'utils/markdown',
+            expected: './utils/markdown',
             tsConfig: null,
         },
         {
             description: 'resolve relative paths when no tsconfig is provided',
             filePath: 'utils/markdown.ts',
             sourcePath: 'index.ts',
-            expected: 'utils/markdown',
+            expected: './utils/markdown',
+            tsConfig: null,
+        },
+        {
+            description: 'resolve relative parent paths when no tsconfig is provided',
+            filePath: 'markdown.ts',
+            sourcePath: 'nested/index.ts',
+            expected: '../markdown',
             tsConfig: null,
         },
         {
