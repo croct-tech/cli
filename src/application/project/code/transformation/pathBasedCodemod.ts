@@ -12,17 +12,18 @@ export class PathBasedCodemod<O extends CodemodOptions> implements Codemod<strin
         this.codemods = codemods;
     }
 
-    public apply(input: string, options?: O): Promise<ResultCode<string>> {
-        const [, codemod] = Object.entries(this.codemods)
-            .find(([pattern]) => minimatch(input, pattern)) ?? [];
+    public async apply(input: string, options?: O): Promise<ResultCode<string>> {
+        let result: ResultCode<string> = {
+            modified: false,
+            result: input,
+        };
 
-        if (codemod === undefined) {
-            return Promise.resolve({
-                modified: false,
-                result: input,
-            });
+        for (const [pattern, codemod] of Object.entries(this.codemods)) {
+            if (minimatch(input, pattern)) {
+                result = await codemod.apply(input, options);
+            }
         }
 
-        return codemod.apply(input, options);
+        return result;
     }
 }

@@ -285,6 +285,7 @@ import {FirefoxRegistry} from '@/application/system/protocol/firefoxRegistry';
 import {DeepLinkCommand, DeepLinkInput} from '@/application/cli/command/deep-link';
 import {FileSystemTsConfigLoader} from '@/application/project/import/fileSystemTsConfigLoader';
 import {ResolvedCommandExecutor} from '@/infrastructure/application/system/command/resolvedCommandExecutor';
+import {TypeErasureCodemod} from '@/application/project/code/transformation/javascript/typeErasureCodemod';
 
 export type Configuration = {
     program: Program,
@@ -1084,6 +1085,19 @@ export class Cli {
                                                 return getExportedNames(code)
                                                     .some(name => names.includes(name));
                                             },
+                                        },
+                                    }),
+                                    new PathBasedCodemod({
+                                        codemods: {
+                                            '**/*.{js,jsx}': new ChainedCodemod(
+                                                new FileCodemod({
+                                                    fileSystem: fileSystem,
+                                                    codemod: new JavaScriptCodemod({
+                                                        codemod: new TypeErasureCodemod(),
+                                                        languages: ['typescript', 'jsx'],
+                                                    }),
+                                                }),
+                                            ),
                                         },
                                     }),
                                     new FormatCodemod(this.getJavaScriptFormatter()),
