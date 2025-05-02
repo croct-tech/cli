@@ -865,8 +865,8 @@ export class Cli {
     private getTemplateProvider(): ResourceProvider<string> {
         return this.share(this.getTemplateProvider, () => {
             const createMappedProvider = <T>(provider: ResourceProvider<T>): ResourceProvider<T> => (
-                new MultiProvider(
-                    ...['template.json5', 'template.json'].map(
+                new MultiProvider({
+                    providers: ['template.json5', 'template.json'].map(
                         fileName => new MappedProvider({
                             dataProvider: provider,
                             registryProvider: new ConstantProvider([
@@ -882,7 +882,7 @@ export class Cli {
                             ]),
                         }),
                     ),
-                )
+                })
             );
 
             const httpProvider = this.traceProvider({provider: this.getHttpProvider()});
@@ -892,35 +892,43 @@ export class Cli {
                 provider: new CachedProvider({
                     resourceCache: new AutoSaveCache(new InMemoryCache()),
                     errorCache: new InMemoryCache(),
-                    provider: new MultiProvider(
-                        new MappedProvider({
-                            dataProvider: this.traceProvider({
-                                label: 'ResourceProvider',
-                                provider: createMappedProvider(
-                                    new FileContentProvider(
-                                        new MultiProvider(
-                                            this.traceProvider({provider: new GithubProvider(httpProvider)}),
-                                            this.traceProvider({provider: new HttpFileProvider(httpProvider)}),
-                                        ),
-                                    ),
-                                ),
-                            }),
-                            registryProvider: this.traceProvider({
-                                label: 'NpmRegistryProvider',
-                                provider: new NpmRegistryProvider(
-                                    new ValidatedProvider({
-                                        provider: HttpResponseBody.json(
-                                            this.traceProvider({
-                                                provider: this.getHttpProvider(),
+                    provider: new MultiProvider({
+                        providers: [
+                            new MappedProvider({
+                                dataProvider: this.traceProvider({
+                                    label: 'ResourceProvider',
+                                    provider: createMappedProvider(
+                                        new FileContentProvider(
+                                            new MultiProvider({
+                                                providers: [
+                                                    this.traceProvider({
+                                                        provider: this.createGitHubProvider(httpProvider),
+                                                    }),
+                                                    this.traceProvider({
+                                                        provider: new HttpFileProvider(httpProvider),
+                                                    }),
+                                                ],
                                             }),
                                         ),
-                                        validator: new PartialNpmRegistryMetadataValidator(),
-                                    }),
-                                ),
+                                    ),
+                                }),
+                                registryProvider: this.traceProvider({
+                                    label: 'NpmRegistryProvider',
+                                    provider: new NpmRegistryProvider(
+                                        new ValidatedProvider({
+                                            provider: HttpResponseBody.json(
+                                                this.traceProvider({
+                                                    provider: this.getHttpProvider(),
+                                                }),
+                                            ),
+                                            validator: new PartialNpmRegistryMetadataValidator(),
+                                        }),
+                                    ),
+                                }),
                             }),
-                        }),
-                        createMappedProvider(new FileContentProvider(this.getFileProvider())),
-                    ),
+                            createMappedProvider(new FileContentProvider(this.getFileProvider())),
+                        ],
+                    }),
                 }),
             });
         });
@@ -930,42 +938,77 @@ export class Cli {
         return this.share(this.getFileProvider, () => {
             const httpProvider = this.traceProvider({provider: this.getHttpProvider()});
             const localSystemProvider = this.traceProvider({provider: new FileSystemProvider(this.getFileSystem())});
-            const fileProvider = new MultiProvider(
-                localSystemProvider,
-                this.traceProvider({provider: new GithubProvider(httpProvider)}),
-                this.traceProvider({provider: new HttpFileProvider(httpProvider)}),
-            );
+            const fileProvider = new MultiProvider({
+                providers: [
+                    localSystemProvider,
+                    this.traceProvider({
+                        provider: this.createGitHubProvider(httpProvider),
+                    }),
+                    this.traceProvider({
+                        provider: new HttpFileProvider(httpProvider),
+                    }),
+                ],
+            });
 
             return this.traceProvider({
                 label: 'FileProvider',
-                provider: new MultiProvider(
-                    localSystemProvider,
-                    this.traceProvider({
-                        provider: new MappedProvider({
-                            baseUrl: new URL('./', this.configuration.templateRegistryUrl),
-                            dataProvider: this.traceProvider({
-                                label: 'ResourceProvider',
-                                provider: fileProvider,
-                            }),
-                            registryProvider: new SpecificResourceProvider({
-                                url: this.configuration.templateRegistryUrl,
-                                provider: this.traceProvider({
-                                    label: 'GlobalRegistryProvider',
-                                    provider: new CachedProvider({
-                                        errorCache: new InMemoryCache(),
-                                        resourceCache: new AutoSaveCache(new InMemoryCache()),
-                                        provider: new ValidatedProvider({
-                                            provider: new Json5Provider(new FileContentProvider(fileProvider)),
-                                            validator: new RegistryValidator(),
+                provider: new MultiProvider({
+                    providers: [
+                        localSystemProvider,
+                        this.traceProvider({
+                            provider: new MappedProvider({
+                                baseUrl: new URL('./', this.configuration.templateRegistryUrl),
+                                dataProvider: this.traceProvider({
+                                    label: 'ResourceProvider',
+                                    provider: fileProvider,
+                                }),
+                                registryProvider: new SpecificResourceProvider({
+                                    url: this.configuration.templateRegistryUrl,
+                                    provider: this.traceProvider({
+                                        label: 'GlobalRegistryProvider',
+                                        provider: new CachedProvider({
+                                            errorCache: new InMemoryCache(),
+                                            resourceCache: new AutoSaveCache(new InMemoryCache()),
+                                            provider: new ValidatedProvider({
+                                                provider: new Json5Provider(new FileContentProvider(fileProvider)),
+                                                validator: new RegistryValidator(),
+                                            }),
                                         }),
                                     }),
                                 }),
                             }),
                         }),
-                    }),
-                ),
+                    ],
+                }),
             });
         });
+    }
+
+    private createGitHubProvider(httpProvider: HttpProvider): ResourceProvider<FileSystemIterator> {
+        return new GithubProvider(
+            new MultiProvider({
+                providers: [
+                    new MultiProvider({
+                        providers: [
+                            new MappedProvider({
+                                dataProvider: httpProvider,
+                                registryProvider: new ConstantProvider([
+                                    {
+                                        // eslint-disable-next-line max-len -- Regex cannot be split
+                                        pattern: /^https:\/\/raw\.github\.com\/croct-tech\/templates\/HEAD\/templates\/(.+)$/i,
+                                        destination: 'https://cdn.croct.io/templates/$1',
+                                    },
+                                ]),
+                            }),
+                            // If the file is not found in the CDN, fallback to the GitHub repository
+                            httpProvider,
+                        ],
+                    }),
+                    // If the URL is not the template repository, fallback to the GitHub server
+                    httpProvider,
+                ],
+            }),
+        );
     }
 
     private traceProvider<T>({provider, label}: ProviderTracingOptions<T>): ResourceProvider<T> {
@@ -1354,7 +1397,15 @@ export class Cli {
     }
 
     private getHttpProvider(): HttpProvider {
-        return this.share(this.getHttpProvider, () => new FetchProvider());
+        return this.share(
+            this.getHttpProvider,
+            () => new FetchProvider({
+                retry: {
+                    maxAttempts: 5,
+                    delay: 1000,
+                },
+            }),
+        );
     }
 
     private getAuthenticator(): Authenticator<AuthenticationInput> {
