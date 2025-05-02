@@ -6,16 +6,24 @@ import {
 } from '@/application/provider/resource/resourceProvider';
 import {ErrorReason} from '@/application/error';
 
+export type Configuration<T> = {
+    providers: Array<ResourceProvider<T>>,
+    expectedErrors?: ErrorReason[],
+};
+
 export class MultiProvider<T> implements ResourceProvider<T> {
-    private static readonly EXPECTED_ERROR_REASONS: ErrorReason[] = [
+    private static readonly DEFAULT_EXPECTED_ERRORS: ErrorReason[] = [
         ErrorReason.NOT_SUPPORTED,
         ErrorReason.NOT_FOUND,
     ];
 
     private readonly providers: Array<ResourceProvider<T>>;
 
-    public constructor(...providers: Array<ResourceProvider<T>>) {
+    private readonly expectedErrors: ErrorReason[];
+
+    public constructor({providers, expectedErrors}: Configuration<T>) {
         this.providers = providers;
+        this.expectedErrors = expectedErrors ?? MultiProvider.DEFAULT_EXPECTED_ERRORS;
     }
 
     public async get(url: URL): Promise<Resource<T>> {
@@ -23,7 +31,7 @@ export class MultiProvider<T> implements ResourceProvider<T> {
             try {
                 return await provider.get(url);
             } catch (error) {
-                if (!MultiProvider.isExpectedError(error)) {
+                if (!this.isExpectedError(error)) {
                     throw error;
                 }
             }
@@ -32,8 +40,8 @@ export class MultiProvider<T> implements ResourceProvider<T> {
         throw new ResourceNotFoundError('Resource not found.', {url: url});
     }
 
-    private static isExpectedError(error: unknown): boolean {
+    private isExpectedError(error: unknown): boolean {
         return error instanceof ResourceProviderError
-            && MultiProvider.EXPECTED_ERROR_REASONS.includes(error.reason);
+            && this.expectedErrors.includes(error.reason);
     }
 }
