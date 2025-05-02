@@ -1401,7 +1401,7 @@ export class Cli {
             this.getHttpProvider,
             () => new FetchProvider({
                 retry: {
-                    maxAttempts: 5,
+                    maxAttempts: 3,
                     delay: 1000,
                 },
             }),
