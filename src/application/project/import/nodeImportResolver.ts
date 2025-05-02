@@ -79,11 +79,17 @@ export class NodeImportResolver implements ImportResolver {
             }
         }
 
-        const resolvedRelativePath = this.fileSystem.getRelativePath(
-            this.fileSystem.joinPaths(absoluteSourcePath, '..'),
-            fileImportPath,
-        );
+        const resolvedRelativePath = this.fileSystem
+            .getRelativePath(
+                this.fileSystem.joinPaths(absoluteSourcePath, '..'),
+                fileImportPath,
+            )
+            .replace(/\\/g, '/');
 
-        return Promise.resolve(resolvedRelativePath.replace(/\\/g, '/'));
+        return Promise.resolve(
+            !/^\.\.?\/ ?/.test(resolvedRelativePath)
+                ? `./${resolvedRelativePath}`
+                : resolvedRelativePath,
+        );
     }
 }
