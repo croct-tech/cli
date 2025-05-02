@@ -286,6 +286,7 @@ import {DeepLinkCommand, DeepLinkInput} from '@/application/cli/command/deep-lin
 import {FileSystemTsConfigLoader} from '@/application/project/import/fileSystemTsConfigLoader';
 import {ResolvedCommandExecutor} from '@/infrastructure/application/system/command/resolvedCommandExecutor';
 import {TypeErasureCodemod} from '@/application/project/code/transformation/javascript/typeErasureCodemod';
+import {ExecutableExists} from '@/application/predicate/executableExists';
 
 export type Configuration = {
     program: Program,
@@ -1843,6 +1844,18 @@ export class Cli {
                                         files: lockFiles[name as keyof NodePackageManagers],
                                     }),
                                 ),
+                            }),
+                        ),
+                    }),
+                    // Finally, try to detect the package manager by the presence of the executable
+                    new ConditionalProvider({
+                        candidates: (Object.entries(managers)).map(
+                            ([name, manager]) => ({
+                                value: manager,
+                                condition: new ExecutableExists({
+                                    executableLocator: this.getExecutableLocator(),
+                                    command: name,
+                                }),
                             }),
                         ),
                     }),
