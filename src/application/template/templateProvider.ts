@@ -285,7 +285,7 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
             return await this.evaluator.evaluate(expression, {
                 variables: variables,
                 functions: {
-                    url: (url: JsonValue): Deferrable<JsonValue> => {
+                    url: (url: JsonValue = ''): Deferrable<JsonValue> => {
                         if (typeof url !== 'string') {
                             const location = node.location.start;
 
