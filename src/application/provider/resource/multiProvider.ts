@@ -15,6 +15,7 @@ export class MultiProvider<T> implements ResourceProvider<T> {
     private static readonly DEFAULT_EXPECTED_ERRORS: ErrorReason[] = [
         ErrorReason.NOT_SUPPORTED,
         ErrorReason.NOT_FOUND,
+        ErrorReason.OTHER,
     ];
 
     private readonly providers: Array<ResourceProvider<T>>;

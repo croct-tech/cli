@@ -112,7 +112,7 @@ import {MultiProvider} from '@/application/provider/resource/multiProvider';
 import {FileSystemProvider} from '@/application/provider/resource/fileSystemProvider';
 import {GithubProvider} from '@/application/provider/resource/githubProvider';
 import {HttpFileProvider} from '@/application/provider/resource/httpFileProvider';
-import {ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import {ResourceProvider, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {PartialNpmPackageValidator} from '@/infrastructure/application/validation/partialNpmPackageValidator';
 import {CroctConfigurationValidator} from '@/infrastructure/application/validation/croctConfigurationValidator';
@@ -2369,6 +2369,18 @@ export class Cli {
 
     private static handleError(error: unknown): any {
         switch (true) {
+            case error instanceof ResourceProviderError:
+                return new HelpfulError(
+                    error.message,
+                    {
+                        ...error.help,
+                        details: [
+                            `URL: ${error.url}`,
+                            ...(error.help.details ?? []),
+                        ],
+                    },
+                );
+
             case error instanceof ApiError:
                 if (error.isAccessDenied()) {
                     return new HelpfulError(
