@@ -119,6 +119,10 @@ export class DownloadAction implements Action<DownloadOptions> {
         await this.createDirectory(entries, destination, overwrite, input);
 
         for (const entry of entries) {
+            await fileSystem.createDirectory(fileSystem.getDirectoryName(entry.name), {
+                recursive: true,
+            });
+
             await fileSystem.create(entry);
         }
 

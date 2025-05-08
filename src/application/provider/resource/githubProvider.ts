@@ -1,6 +1,5 @@
-import tar from 'tar-stream';
-import createGunzip from 'gunzip-maybe';
 import {Readable} from 'stream';
+import {CacheProvider, NoopCache} from '@croct/cache';
 import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
 import {HttpProvider, SuccessResponse} from '@/application/provider/resource/httpProvider';
 import {FileSystemIterator} from '@/application/fs/fileSystem';
@@ -14,11 +13,24 @@ type ParsedUrl = {
     canonicalUrl: URL,
 };
 
-type GithubFile = ParsedUrl & {
+type DownloadedFile = {
     url: URL,
+    response: SuccessResponse,
+};
+
+type FileTree = {
+    path: string,
+    type: 'tree' | 'blob',
+};
+
+export type Configuration = {
+    provider: HttpProvider,
+    cache?: CacheProvider<string, FileTree[]>,
 };
 
 export class GithubProvider implements ResourceProvider<FileSystemIterator> {
+    private static MAX_DOWNLOAD_FILES = 50;
+
     private static readonly PROTOCOL = 'github:';
 
     private static readonly API_HOST = 'api.github.com';
@@ -29,8 +41,11 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
 
     private readonly provider: HttpProvider;
 
-    public constructor(provider: HttpProvider) {
+    private readonly cache: CacheProvider<string, FileTree[]>;
+
+    public constructor({cache, provider}: Configuration) {
         this.provider = provider;
+        this.cache = cache ?? new NoopCache();
     }
 
     public async get(url: URL): Promise<Resource<FileSystemIterator>> {
@@ -43,119 +58,106 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
             });
         }
 
-        const file = this.resolveFile(info);
-
-        const {value: response} = await this.provider.get(file.url);
+        const resolvedFiles = await this.resolveFiles(info);
+        const downloads = await Promise.all(resolvedFiles.map(
+            async (fileUrl): Promise<DownloadedFile> => ({
+                url: fileUrl,
+                response: (await this.provider.get(fileUrl)).value,
+            }),
+        ));
 
         return {
             url: info.canonicalUrl,
-            value: file.url.hostname === GithubProvider.RAW_HOST
-                ? this.extractFile(response, file)
-                : this.extractTarball(response, file),
+            value: this.yieldFiles(downloads, info.path ?? ''),
         };
     }
 
-    private async* extractTarball(response: SuccessResponse, file: GithubFile): FileSystemIterator {
-        const extract = tar.extract();
+    private async* yieldFiles(downloads: DownloadedFile[], path: string): FileSystemIterator {
+        const folders = new Set<string>();
 
-        Readable.fromWeb(response.body!)
-            .pipe(createGunzip())
-            .pipe(extract);
+        for (const {url, response} of downloads) {
+            const segments = url.pathname.split('/');
+            const subPath = segments.slice(4);
 
-        const targetPath = GithubProvider.removeTrailSlash(file.path ?? '');
+            const pathname = subPath.join('/') === path && downloads.length === 1
+                ? segments.slice(-1)
+                : subPath.slice(path.split('/').length);
 
-        for await (const entry of extract) {
-            const {header} = entry;
+            if (pathname.length > 1) {
+                // Yield directories
+                const folderPath = pathname.slice(0, -1);
 
-            entry.resume();
+                for (let index = 0; index < folderPath.length; index++) {
+                    const levelPath = folderPath.slice(0, index + 1).join('/');
 
-            const name = GithubProvider.removeTrailSlash(
-                header.name
-                    .split('/')
-                    .slice(1)
-                    .join('/'),
-            );
+                    if (!folders.has(levelPath)) {
+                        folders.add(levelPath);
 
-            if (
-                name === ''
-                || !name.startsWith(targetPath)
-                || (entry.header.type === 'directory' && name === targetPath)
-            ) {
-                continue;
+                        yield {
+                            type: 'directory',
+                            name: levelPath,
+                        };
+                    }
+                }
             }
 
-            let relativeName = name;
-
-            if (targetPath.length > 0 && name.length > targetPath.length) {
-                relativeName = name.slice(targetPath.length + 1);
-            }
-
-            switch (header.type) {
-                case 'file':
-                    yield {
-                        type: 'file',
-                        name: relativeName,
-                        content: entry,
-                    };
-
-                    break;
-
-                case 'directory':
-                    yield {
-                        type: 'directory',
-                        name: relativeName,
-                    };
-
-                    break;
-
-                case 'link':
-                    yield {
-                        type: 'link',
-                        name: relativeName,
-                        target: header.linkname!,
-                    };
-
-                    break;
-
-                case 'symlink':
-                    yield {
-                        type: 'symlink',
-                        name: relativeName,
-                        target: header.linkname!,
-                    };
-
-                    break;
-            }
-
-            if (relativeName === targetPath) {
-                break;
-            }
+            yield {
+                type: 'file',
+                name: pathname.join('/'),
+                content: Readable.fromWeb(response.body),
+            };
         }
     }
 
-    private async* extractFile(response: SuccessResponse, resolvedUrl: GithubFile): FileSystemIterator {
-        yield {
-            type: 'file',
-            name: resolvedUrl.url
-                .pathname
-                .split('/')
-                .pop()!,
-            content: Readable.fromWeb(response.body),
-        };
-    }
-
-    private resolveFile(info: ParsedUrl): GithubFile {
+    private async resolveFiles(info: ParsedUrl): Promise<URL[]> {
         const {username, repository, path} = info;
-        const ref = info.ref ?? 'HEAD';
 
-        return {
-            ...info,
-            url: new URL(
-                path !== null && /\..+$/.test(path)
-                    ? `https://${GithubProvider.RAW_HOST}/${username}/${repository}/${ref}/${path}`
-                    : `https://${GithubProvider.API_HOST}/repos/${username}/${repository}/tarball/${ref}`,
-            ),
+        const getFileUrl = (filePath: string): URL => {
+            const file = new URL(`https://${GithubProvider.RAW_HOST}`);
+
+            file.pathname = `/${username}/${repository}/${info.ref ?? 'HEAD'}/${filePath}`;
+
+            return file;
         };
+
+        const tree = await this.loadGitTree(info);
+
+        const files: URL[] = [];
+
+        if (path === null) {
+            files.push(...tree.map(match => getFileUrl(match.path)));
+        } else {
+            const targetTree = tree.find(file => file.path === path);
+
+            if (targetTree === undefined) {
+                throw new ResourceProviderError('File not found.', {
+                    reason: ErrorReason.NOT_FOUND,
+                    url: info.canonicalUrl,
+                });
+            }
+
+            if (targetTree.type === 'tree') {
+                files.push(
+                    ...tree.filter(file => file.path.startsWith(path) && file.type === 'blob').map(
+                        match => getFileUrl(match.path),
+                    ),
+                );
+            } else {
+                files.push(getFileUrl(path));
+            }
+        }
+
+        if (files.length > GithubProvider.MAX_DOWNLOAD_FILES) {
+            throw new ResourceProviderError(
+                `The number of files to download exceeds the limit of ${GithubProvider.MAX_DOWNLOAD_FILES}.`,
+                {
+                    reason: ErrorReason.PRECONDITION,
+                    url: info.canonicalUrl,
+                },
+            );
+        }
+
+        return files;
     }
 
     private parseUrl(url: URL): ParsedUrl|null {
@@ -168,7 +170,7 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
         let ref: string|null = null;
         let segments: string[];
 
-        const pathname = url.pathname
+        const pathname = ((url.protocol === GithubProvider.PROTOCOL ? url.hostname : '') + url.pathname)
             .replace(/^\/+/, '')
             .split('/');
 
@@ -203,15 +205,27 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
         };
     }
 
+    private loadGitTree({username, repository, ref}: ParsedUrl): Promise<FileTree[]> {
+        const url = new URL(`https://${GithubProvider.API_HOST}`);
+
+        url.pathname = `repos/${username}/${repository}/git/trees/${ref ?? 'HEAD'}`;
+
+        url.searchParams.set('recursive', 'true');
+
+        return this.cache.get(
+            url.toString(),
+            () => this.provider
+                .get(url)
+                .then(result => result.value.json() as Promise<{tree: FileTree[]}>)
+                .then(({tree}) => tree),
+        );
+    }
+
     private static isUrlSupported(url: URL): boolean {
         if (url.protocol === 'https:') {
             return url.hostname === GithubProvider.MAIN_HOST;
         }
 
         return url.protocol === GithubProvider.PROTOCOL;
-    }
-
-    private static removeTrailSlash(path: string): string {
-        return path.replace(/\/$/, '');
     }
 }
