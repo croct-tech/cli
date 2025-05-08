@@ -285,6 +285,22 @@ export class TemplateProvider implements ResourceProvider<DeferredTemplate> {
             return await this.evaluator.evaluate(expression, {
                 variables: variables,
                 functions: {
+                    url: (url: JsonValue = ''): Deferrable<JsonValue> => {
+                        if (typeof url !== 'string') {
+                            const location = node.location.start;
+
+                            throw new EvaluationError('Invalid argument for function `url`.', {
+                                reason: ErrorReason.INVALID_INPUT,
+                                details: [
+                                    'The `url` argument of the `url` function must be a string, '
+                                    + `but got ${HelpfulError.describeType(url)} at line ${location.line}, `
+                                    + `column ${location.column}.`,
+                                ],
+                            });
+                        }
+
+                        return resolveUrl(url, baseUrl).toString();
+                    },
                     import: (url?: JsonValue, properties?: JsonValue): Deferrable<JsonValue> => {
                         if (typeof url !== 'string') {
                             const location = node.location.start;
