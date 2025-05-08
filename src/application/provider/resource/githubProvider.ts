@@ -1,4 +1,5 @@
 import {Readable} from 'stream';
+import {CacheProvider, NoopCache} from '@croct/cache';
 import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
 import {HttpProvider, SuccessResponse} from '@/application/provider/resource/httpProvider';
 import {FileSystemIterator} from '@/application/fs/fileSystem';
@@ -12,10 +13,6 @@ type ParsedUrl = {
     canonicalUrl: URL,
 };
 
-type GithubFile = ParsedUrl & {
-    url: URL,
-};
-
 type DownloadedFile = {
     url: URL,
     response: SuccessResponse,
@@ -24,6 +21,11 @@ type DownloadedFile = {
 type FileTree = {
     path: string,
     type: 'tree' | 'blob',
+};
+
+export type Configuration = {
+    provider: HttpProvider,
+    cache?: CacheProvider<string, FileTree[]>,
 };
 
 export class GithubProvider implements ResourceProvider<FileSystemIterator> {
@@ -39,8 +41,11 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
 
     private readonly provider: HttpProvider;
 
-    public constructor(provider: HttpProvider) {
+    private readonly cache: CacheProvider<string, FileTree[]>;
+
+    public constructor({cache, provider}: Configuration) {
         this.provider = provider;
+        this.cache = cache ?? new NoopCache();
     }
 
     public async get(url: URL): Promise<Resource<FileSystemIterator>> {
@@ -55,54 +60,72 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
 
         const resolvedFiles = await this.resolveFiles(info);
         const downloads = await Promise.all(resolvedFiles.map(
-            async (file): Promise<DownloadedFile> => ({
-                url: file.url,
-                response: (await this.provider.get(file.url)).value,
+            async (fileUrl): Promise<DownloadedFile> => ({
+                url: fileUrl,
+                response: (await this.provider.get(fileUrl)).value,
             }),
         ));
 
         return {
             url: info.canonicalUrl,
-            value: this.yieldFiles(downloads),
+            value: this.yieldFiles(downloads, info.path ?? ''),
         };
     }
 
-    private async* yieldFiles(downloads: DownloadedFile[]): FileSystemIterator {
+    private async* yieldFiles(downloads: DownloadedFile[], path: string): FileSystemIterator {
+        const folders = new Set<string>();
+
         for (const {url, response} of downloads) {
+            const segments = url.pathname.split('/');
+            const subPath = segments.slice(4);
+
+            const pathname = subPath.join('/') === path && downloads.length === 1
+                ? segments.slice(-1)
+                : subPath.slice(path.split('/').length);
+
+            if (pathname.length > 1) {
+                // Yield directories
+                const folderPath = pathname.slice(0, -1);
+
+                for (let index = 0; index < folderPath.length; index++) {
+                    const levelPath = folderPath.slice(0, index + 1).join('/');
+
+                    if (!folders.has(levelPath)) {
+                        folders.add(levelPath);
+
+                        yield {
+                            type: 'directory',
+                            name: levelPath,
+                        };
+                    }
+                }
+            }
+
             yield {
                 type: 'file',
-                name: url
-                    .pathname
-                    .split('/')
-                    .pop()!,
+                name: pathname.join('/'),
                 content: Readable.fromWeb(response.body),
             };
         }
     }
 
-    private async resolveFiles(info: ParsedUrl): Promise<GithubFile[]> {
+    private async resolveFiles(info: ParsedUrl): Promise<URL[]> {
         const {username, repository, path} = info;
-        const ref = info.ref ?? 'HEAD';
 
-        const {tree} = await this.provider
-            .get(new URL(`https://${GithubProvider.API_HOST}/repos/${username}/${repository}/git/trees/${ref}`))
-            .then(result => result.value.json() as Promise<{tree: FileTree[]}>);
+        const getFileUrl = (filePath: string): URL => {
+            const file = new URL(`https://${GithubProvider.RAW_HOST}`);
 
-        const getFileUrl = (filePath: string): URL => (
-            new URL(`https://${GithubProvider.RAW_HOST}/${username}/${repository}/${ref}/${filePath}`)
-        );
+            file.pathname = `/${username}/${repository}/${info.ref ?? 'HEAD'}/${filePath}`;
 
-        const files: GithubFile[] = [];
+            return file;
+        };
+
+        const tree = await this.loadGitTree(info);
+
+        const files: URL[] = [];
 
         if (path === null) {
-            files.push(
-                ...tree.map(
-                    match => ({
-                        ...info,
-                        url: getFileUrl(match.path),
-                    }),
-                ),
-            );
+            files.push(...tree.map(match => getFileUrl(match.path)));
         } else {
             const targetTree = tree.find(file => file.path === path);
 
@@ -115,18 +138,12 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
 
             if (targetTree.type === 'tree') {
                 files.push(
-                    ...tree.filter(file => file.path.startsWith(path)).map(
-                        match => ({
-                            ...info,
-                            url: getFileUrl(match.path),
-                        }),
+                    ...tree.filter(file => file.path.startsWith(path) && file.type === 'blob').map(
+                        match => getFileUrl(match.path),
                     ),
                 );
             } else {
-                files.push({
-                    ...info,
-                    url: getFileUrl(path),
-                });
+                files.push(getFileUrl(path));
             }
         }
 
@@ -153,7 +170,7 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
         let ref: string|null = null;
         let segments: string[];
 
-        const pathname = url.pathname
+        const pathname = ((url.protocol === GithubProvider.PROTOCOL ? url.hostname : '') + url.pathname)
             .replace(/^\/+/, '')
             .split('/');
 
@@ -186,6 +203,22 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
                 ? segments.join('/')
                 : null,
         };
+    }
+
+    private loadGitTree({username, repository, ref}: ParsedUrl): Promise<FileTree[]> {
+        const url = new URL(`https://${GithubProvider.API_HOST}`);
+
+        url.pathname = `repos/${username}/${repository}/git/trees/${ref ?? 'HEAD'}`;
+
+        url.searchParams.set('recursive', 'true');
+
+        return this.cache.get(
+            url.toString(),
+            () => this.provider
+                .get(url)
+                .then(result => result.value.json() as Promise<{tree: FileTree[]}>)
+                .then(({tree}) => tree),
+        );
     }
 
     private static isUrlSupported(url: URL): boolean {

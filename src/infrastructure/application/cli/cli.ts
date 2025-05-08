@@ -404,7 +404,7 @@ export class Cli {
             cliTokenIssuer: configuration.cliTokenIssuer ?? 'croct.com',
             deepLinkProtocol: configuration.deepLinkProtocol ?? 'croct',
             templateRegistryUrl: configuration.templateRegistryUrl
-                ?? new URL('github:/croct-tech/templates/templates/registry.json5'),
+                ?? new URL('github://croct-tech/templates/templates/registry.json5'),
             adminUrl: configuration.adminUrl
                 ?? new URL('https://app.croct.com'),
             adminTokenParameter: configuration.adminTokenParameter ?? 'accessToken',
@@ -986,8 +986,9 @@ export class Cli {
     }
 
     private createGitHubProvider(httpProvider: HttpProvider): ResourceProvider<FileSystemIterator> {
-        return new GithubProvider(
-            new MultiProvider({
+        return new GithubProvider({
+            cache: new AutoSaveCache(new InMemoryCache()),
+            provider: new MultiProvider({
                 providers: [
                     new MultiProvider({
                         providers: [
@@ -996,8 +997,13 @@ export class Cli {
                                 registryProvider: new ConstantProvider([
                                     {
                                         // eslint-disable-next-line max-len -- Regex cannot be split
-                                        pattern: /^https:\/\/raw\.github\.com\/croct-tech\/templates\/HEAD\/templates\/(.+)$/i,
-                                        destination: 'https://cdn.croct.io/templates/$1',
+                                        pattern: /^https:\/\/raw\.github\.com\/croct-tech\/templates\/(HEAD|master)\/templates\/(.+)$/i,
+                                        destination: 'https://cdn.croct.io/templates/$2',
+                                    },
+                                    {
+                                        // eslint-disable-next-line max-len -- Regex cannot be split
+                                        pattern: /^https:\/\/api\.github\.com\/repos\/croct-tech\/templates\/git\/trees\/(HEAD|master)\?recursive=true/i,
+                                        destination: 'https://cdn.croct.io/templates/git-tree.json',
                                     },
                                 ]),
                             }),
@@ -1009,7 +1015,7 @@ export class Cli {
                     httpProvider,
                 ],
             }),
-        );
+        });
     }
 
     private traceProvider<T>({provider, label}: ProviderTracingOptions<T>): ResourceProvider<T> {

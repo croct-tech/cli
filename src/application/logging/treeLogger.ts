@@ -19,16 +19,23 @@ export class TreeLogger<L extends Log> implements HierarchicalLogger<L> {
     public nest<R>(log: L, callback: Callback<R>): Promise<R> {
         const parentContext = this.storage.getStore();
 
-        if (parentContext !== undefined) {
-            return this.logNested(parentContext, log, callback);
-        }
-
         const subcontext: LogContext<L> = {
-            level: 0,
+            level: parentContext !== undefined ? parentContext.level + 1 : 0,
             logs: [],
         };
 
-        return this.storage.run(subcontext, () => this.logNested(subcontext, log, callback));
+        return this.storage.run(subcontext, async () => {
+            const result = await this.logNested(subcontext, log, callback);
+
+            if (parentContext !== undefined) {
+                parentContext.logs.push(...subcontext.logs);
+            } else {
+                subcontext.logs.forEach(entry => this.logger.log(entry));
+                subcontext.logs = [];
+            }
+
+            return result;
+        });
     }
 
     private async logNested<R>(context: LogContext<L>, log: L, callback: Callback<R>): Promise<R> {
@@ -37,22 +44,13 @@ export class TreeLogger<L extends Log> implements HierarchicalLogger<L> {
             message: `┌─ ${log.message}`,
         });
 
-        context.level++;
-
         try {
             return await callback();
         } finally {
-            context.level--;
-
             this.buffer(context, {
                 ...log,
                 message: '└─',
             });
-
-            if (context.level === 0) {
-                context.logs.forEach(entry => this.logger.log(entry));
-                context.logs = [];
-            }
         }
     }
 
@@ -60,7 +58,7 @@ export class TreeLogger<L extends Log> implements HierarchicalLogger<L> {
         const context = this.storage.getStore();
 
         if (context !== undefined) {
-            this.buffer(context, log);
+            this.buffer(context, {...log, message: `│ ${log.message}`});
 
             return;
         }
@@ -71,7 +69,7 @@ export class TreeLogger<L extends Log> implements HierarchicalLogger<L> {
     private buffer(context: LogContext<L>, log: L): void {
         context.logs.push({
             ...log,
-            message: `${context.level > 0 ? `${'│ '.repeat(context.level - 1)}│ ` : ''}${log.message}`,
+            message: `${context.level > 0 ? `${'│ '.repeat(context.level)}` : ''}${log.message}`,
         });
     }
 }
