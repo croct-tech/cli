@@ -122,7 +122,7 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
         const execution = await commandExecutor.run(command, {
             workingDirectory: workingDirectory.get(),
             timeout: commandTimeout,
-            inheritInput: interactions === true,
+            inheritIo: interactions === true,
         });
 
         let buffer = '';

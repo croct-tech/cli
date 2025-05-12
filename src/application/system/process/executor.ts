@@ -34,7 +34,7 @@ export type ExecutionResult = {
 export type ExecutionOptions = {
     workingDirectory?: string,
     timeout?: number,
-    inheritInput?: boolean,
+    inheritIo?: boolean,
 };
 
 export interface CommandExecutor {

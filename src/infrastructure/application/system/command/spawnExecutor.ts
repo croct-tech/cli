@@ -41,7 +41,7 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
         const preparedCommand = this.prepareCommand(command);
 
         const subprocess = spawn(preparedCommand.name, preparedCommand.arguments ?? [], {
-            stdio: options.inheritInput === true ? 'inherit' : 'pipe',
+            stdio: options.inheritIo === true ? 'inherit' : 'pipe',
             shell: preparedCommand.shell,
             cwd: options?.workingDirectory ?? this.currentDirectory?.get(),
             signal: timeoutSignal,
@@ -180,7 +180,7 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
 
         const preparedCommand = this.prepareCommand(command);
         const subprocess = spawnSync(preparedCommand.name, preparedCommand.arguments, {
-            stdio: [options.inheritInput === true ? 'inherit' : 'ignore', 'pipe', 'pipe'],
+            stdio: [options.inheritIo === true ? 'inherit' : 'ignore', 'pipe', 'pipe'],
             cwd: options?.workingDirectory ?? this.currentDirectory?.get(),
             shell: preparedCommand.shell,
             signal: timeoutSignal,
