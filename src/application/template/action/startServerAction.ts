@@ -113,7 +113,7 @@ export class StartServer implements Action<StartServerOptions> {
         return this.factory.create({
             host: url.hostname,
             protocol: url.protocol === 'https:' ? 'https' : 'http',
-            defaultPort: url.port === '' ? 80 : Number.parseInt(url.port, 10),
+            defaultPort: url.port === '' ? (url.protocol === 'https:' ? 443 : 80) : Number.parseInt(url.port, 10),
             command: await this.packageManager.getScriptCommand(info.script, info.arguments),
         });
     }
