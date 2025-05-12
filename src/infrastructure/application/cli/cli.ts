@@ -160,7 +160,7 @@ import {FailOptionsValidator} from '@/infrastructure/application/validation/acti
 import {SpecificResourceProvider} from '@/application/provider/resource/specificResourceProvider';
 import {ConstantProvider} from '@/application/provider/constantProvider';
 import {Server} from '@/application/project/server/server';
-import {ProjectServerProvider} from '@/application/project/server/provider/projectServerProvider';
+import {ProjectServerProvider, ServerFactory} from '@/application/project/server/provider/projectServerProvider';
 import {NextCommandParser} from '@/application/project/server/provider/parser/nextCommandParser';
 import {ViteCommandParser} from '@/application/project/server/provider/parser/viteCommandParser';
 import {ParcelCommandParser} from '@/application/project/server/provider/parser/parcelCommandParser';
@@ -176,6 +176,7 @@ import {OpenLinkOptionsValidator} from '@/infrastructure/application/validation/
 import {DefineOptionsValidator} from '@/infrastructure/application/validation/actions/defineOptionsValidator';
 import {DefineAction} from '@/application/template/action/defineAction';
 import {VariableMap} from '@/application/template/evaluation';
+import {StopServer} from '@/application/template/action/stopServerAction';
 import {StopServerOptionsValidator} from '@/infrastructure/application/validation/actions/stopServerOptionsValidator';
 import {ProcessServerFactory} from '@/application/project/server/factory/processServerFactory';
 import {CurrentWorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
@@ -284,8 +285,6 @@ import {FileSystemTsConfigLoader} from '@/application/project/import/fileSystemT
 import {ResolvedCommandExecutor} from '@/infrastructure/application/system/command/resolvedCommandExecutor';
 import {TypeErasureCodemod} from '@/application/project/code/transformation/javascript/typeErasureCodemod';
 import {ExecutableExists} from '@/application/predicate/executableExists';
-import {ServerFactory} from '@/application/project/server/factory/serverFactory';
-import {StopServer} from '@/application/template/action/stopServerAction';
 
 export type Configuration = {
     program: Program,
@@ -1917,6 +1916,22 @@ export class Cli {
                 ],
             }),
         );
+    }
+
+    private getServerProvider(): Provider<Server | null> {
+        return this.share(this.getServerProvider, () => {
+            const unknown = Symbol('unknown');
+
+            return new EnumeratedProvider({
+                discriminator: async () => (await this.getPlatformProvider().get()) ?? unknown,
+                mapping: {
+                    [Platform.JAVASCRIPT]: () => this.getNodeServerProvider().get(),
+                    [Platform.REACT]: () => this.getNodeServerProvider().get(),
+                    [Platform.NEXTJS]: () => this.getNodeServerProvider().get(),
+                    [unknown]: () => null,
+                },
+            });
+        });
     }
 
     private getServerFactory(): ServerFactory {
