@@ -74,7 +74,7 @@ import {
 import {ApiError} from '@/application/api/error';
 import {UpgradeCommand, UpgradeInput} from '@/application/cli/command/upgrade';
 import {ProjectConfigurationError, ProjectPaths} from '@/application/project/configuration/projectConfiguration';
-import {FileSystem, FileSystemIterator} from '@/application/fs/fileSystem';
+import {FileSystem, FileSystemIterator, ScanFilter} from '@/application/fs/fileSystem';
 import {LocalFilesystem} from '@/application/fs/localFilesystem';
 import {FocusListener} from '@/infrastructure/application/cli/io/focusListener';
 import {EmailLinkGenerator} from '@/application/cli/email/email';
@@ -93,7 +93,7 @@ import {AudienceForm} from '@/application/cli/form/workspace/audienceForm';
 import {UseTemplateCommand, UseTemplateInput} from '@/application/cli/command/template/use';
 import {DownloadAction} from '@/application/template/action/downloadAction';
 import {AddDependencyAction} from '@/application/template/action/addDependencyAction';
-import {LocateFileAction, PathMatcher} from '@/application/template/action/locateFileAction';
+import {LocateFileAction} from '@/application/template/action/locateFileAction';
 import {ReplaceFileContentAction} from '@/application/template/action/replaceFileContentAction';
 import {OptionMap, SourceLocation} from '@/application/template/template';
 import {AddSlotAction} from '@/application/template/action/addSlotAction';
@@ -220,8 +220,6 @@ import {LazyFormatter} from '@/application/project/code/formatting/lazyFormatter
 import {LazySdk} from '@/application/project/sdk/lazySdk';
 import {MemoizedProvider} from '@/application/provider/memoizedProvider';
 import {CachedServerFactory} from '@/application/project/server/factory/cachedServerFactory';
-import {MatchesGlob} from '@/application/predicate/matchesGlob';
-import {And} from '@/application/predicate/and';
 import {Not} from '@/application/predicate/not';
 import {MatchesGitignore} from '@/application/predicate/matchesGitignore';
 import {LazyPromise} from '@/infrastructure/promise';
@@ -938,7 +936,12 @@ export class Cli {
     private getFileProvider(): ResourceProvider<FileSystemIterator> {
         return this.share(this.getFileProvider, () => {
             const httpProvider = this.traceProvider({provider: this.getHttpProvider()});
-            const localSystemProvider = this.traceProvider({provider: new FileSystemProvider(this.getFileSystem())});
+            const localSystemProvider = this.traceProvider({
+                provider: new FileSystemProvider(
+                    this.getFileSystem(),
+                    this.getScanFilter(),
+                ),
+            });
             const fileProvider = new MultiProvider({
                 providers: [
                     localSystemProvider,
@@ -1029,6 +1032,7 @@ export class Cli {
     private getImportAction(): Action<ImportOptions> {
         return this.share(this.getImportAction, () => {
             const fileSystem = this.getFileSystem();
+            const scanFilter = this.getScanFilter();
 
             const actions = {
                 run: new ValidatedAction<RunOptions>({
@@ -1117,7 +1121,7 @@ export class Cli {
                                     new GlobImportCodemod({
                                         fileSystem: fileSystem,
                                         rootPath: this.workingDirectory,
-                                        maxSearchDepth: 10,
+                                        filter: (path, depth) => depth <= 10 && scanFilter(path, depth),
                                         importResolver: this.getNodeImportResolver(),
                                         importCodemod: new FileCodemod({
                                             fileSystem: fileSystem,
@@ -1167,20 +1171,7 @@ export class Cli {
                     action: new LocateFileAction({
                         projectDirectory: this.workingDirectory,
                         fileSystem: fileSystem,
-                        matcherProvider: {
-                            get: async (pattern): Promise<PathMatcher> => {
-                                const gitignore = fileSystem.joinPaths(this.workingDirectory.get(), '.gitignore');
-                                const predicate = MatchesGlob.fromPattern(pattern);
-
-                                if (await fileSystem.exists(gitignore)) {
-                                    const content = await fileSystem.readTextFile(gitignore);
-
-                                    return new And(new Not(MatchesGitignore.fromPatterns(content)), predicate);
-                                }
-
-                                return predicate;
-                            },
-                        },
+                        scanFilter: this.getScanFilter(),
                     }),
                     validator: new LocateFileOptionsValidator(),
                 }),
@@ -2117,6 +2108,17 @@ export class Cli {
                         : manager,
                 ),
             });
+        });
+    }
+
+    private getScanFilter(): ScanFilter {
+        return this.share(this.getScanFilter, () => {
+            const predicate = new MatchesGitignore({
+                fileSystem: this.getFileSystem(),
+                workingDirectory: this.workingDirectory,
+            });
+
+            return async path => !await predicate.test(path);
         });
     }
 

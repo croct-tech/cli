@@ -304,7 +304,7 @@ export abstract class JavaScriptSdk implements Sdk {
         const directoryPath = this.fileSystem.joinPaths(packageInfo.directory, 'slot');
 
         // Delete all subdirectories and files in the slot directory
-        for await (const entry of this.fileSystem.list(directoryPath, 0)) {
+        for await (const entry of this.fileSystem.list(directoryPath, (_, depth) => depth === 0)) {
             if (entry.type === 'directory') {
                 await this.fileSystem.delete(this.fileSystem.joinPaths(directoryPath, entry.name), {
                     recursive: true,

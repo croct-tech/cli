@@ -39,6 +39,8 @@ export type FileSystemEntry<T extends FileSystemEntryType = FileSystemEntryType>
     }
 }[T];
 
+export type ScanFilter = (path: string, depth: number) => Promise<boolean> | boolean;
+
 export type FileSystemIterator = AsyncGenerator<FileSystemEntry, void, void>;
 
 export interface FileSystem {
@@ -62,7 +64,7 @@ export interface FileSystem {
     copy(source: string, destination: string, options?: CopyOptions): Promise<void>;
     isEmptyDirectory(path: string): Promise<boolean>;
     create(entry: FileSystemEntry): Promise<void>;
-    list(path: string, maxDepth?: number): FileSystemIterator;
+    list(path: string, filter?: ScanFilter): FileSystemIterator;
 }
 
 export class FileSystemError extends HelpfulError {
