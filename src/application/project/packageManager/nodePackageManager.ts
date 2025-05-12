@@ -33,6 +33,8 @@ export class NodePackageManager implements PackageManager {
 
     private readonly packageValidator: Validator<PartialNpmManifest>;
 
+    private readonly manifestPath: Map<string, string|null> = new Map();
+
     public constructor(configuration: Configuration) {
         this.projectDirectory = configuration.projectDirectory;
         this.fileSystem = configuration.fileSystem;
@@ -91,7 +93,12 @@ export class NodePackageManager implements PackageManager {
     }
 
     public async getDependency(name: string): Promise<Dependency | null> {
-        const manifestPath = this.getPackageManifestPath(name);
+        const manifestPath = await this.findPackageManifestPath(name);
+
+        if (manifestPath === null) {
+            return null;
+        }
+
         const info = await this.readManifest(manifestPath);
 
         if (info === null) {
@@ -157,8 +164,28 @@ export class NodePackageManager implements PackageManager {
         await this.fileSystem.writeTextFile(packageFile, packageJson.toString(), {overwrite: true});
     }
 
-    private getPackageManifestPath(name: string): string {
-        return this.fileSystem.joinPaths(this.projectDirectory.get(), 'node_modules', name, 'package.json');
+    private async findPackageManifestPath(name: string, directory?: string): Promise<string|null> {
+        const currentDirectory = directory ?? this.projectDirectory.get();
+        const packagePath = this.fileSystem.joinPaths(currentDirectory, 'node_modules', name, 'package.json');
+        const cachedPath = this.manifestPath.get(packagePath);
+
+        if (cachedPath !== undefined) {
+            return cachedPath;
+        }
+
+        let resolvedPath: string|null = packagePath;
+
+        if (!await this.fileSystem.exists(packagePath)) {
+            const parentDirectory = this.fileSystem.getDirectoryName(currentDirectory);
+
+            resolvedPath = parentDirectory !== currentDirectory
+                ? await this.findPackageManifestPath(name, parentDirectory)
+                : null;
+        }
+
+        this.manifestPath.set(packagePath, resolvedPath);
+
+        return resolvedPath;
     }
 
     private getProjectManifestPath(): string {
