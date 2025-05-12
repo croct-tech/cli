@@ -68,12 +68,12 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
             }
         });
 
-        const dataListeners = (data: Buffer): void => {
+        const dataListener = (data: Buffer): void => {
             output.push(data.toString());
         };
 
-        subprocess.stdout?.on('data', dataListeners);
-        subprocess.stderr?.on('data', dataListeners);
+        subprocess.stdout?.on('data', dataListener);
+        subprocess.stderr?.on('data', dataListener);
 
         const exitListeners: ExitCallback[] = [];
 
