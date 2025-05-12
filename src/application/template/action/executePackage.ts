@@ -8,6 +8,7 @@ import {PackageManager} from '@/application/project/packageManager/packageManage
 import {Provider} from '@/application/provider/provider';
 import {CommandExecutor} from '@/application/system/process/executor';
 import {Predicate} from '@/application/predicate/predicate';
+import {Notifier} from '@/application/cli/io/output';
 
 export type Interactions = {
     when: string,
@@ -21,7 +22,7 @@ export type ExecutePackageOptions = {
     runner?: string,
     package: string,
     arguments?: string[],
-    interactions?: Interactions[],
+    interactions?: Interactions[] | boolean,
 };
 
 export type Configuration = {
@@ -86,14 +87,22 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
             }
         }
 
-        const notifier = output.notify(`Running \`${fullCommand}\``);
+        let notifier: Notifier|null = null;
+
+        const log = `Running \`${fullCommand}\``;
+
+        if (options.interactions !== true) {
+            notifier = output.notify(log);
+        } else {
+            output.log(log);
+        }
 
         try {
-            await this.executeCommand(command, options.interactions);
+            await this.executeCommand(command, options.interactions ?? false);
         } catch (error) {
             throw ActionError.fromCause(error);
         } finally {
-            notifier.stop();
+            notifier?.stop();
         }
     }
 
@@ -107,48 +116,51 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
             .get(name);
     }
 
-    private async executeCommand(command: Command, interactions: Interactions[] = []): Promise<void> {
+    private async executeCommand(command: Command, interactions: Interactions[]|boolean): Promise<void> {
         const {workingDirectory, commandExecutor, commandTimeout} = this.configuration;
 
         const execution = await commandExecutor.run(command, {
             workingDirectory: workingDirectory.get(),
             timeout: commandTimeout,
+            inheritInput: interactions === true,
         });
-
-        const nextInteractions = [...interactions];
-
-        if (nextInteractions.length === 0) {
-            await execution.endWriting();
-        }
 
         let buffer = '';
 
-        for await (const line of execution.output) {
-            buffer += stripAnsi(line);
+        if (interactions !== true) {
+            const nextInteractions = Array.isArray(interactions) ? [...interactions] : [];
 
-            for (const [index, interaction] of nextInteractions.entries()) {
-                const matches = interaction.pattern === true
-                    ? new RegExp(interaction.when).test(buffer)
-                    : buffer.includes(interaction.when);
+            if (nextInteractions.length === 0) {
+                await execution.endWriting();
+            }
 
-                if (matches) {
-                    buffer = '';
+            for await (const line of execution.output) {
+                buffer += stripAnsi(line);
 
-                    if (interaction.always !== true) {
-                        nextInteractions.splice(index, 1);
+                for (const [index, interaction] of nextInteractions.entries()) {
+                    const matches = interaction.pattern === true
+                        ? new RegExp(interaction.when).test(buffer)
+                        : buffer.includes(interaction.when);
+
+                    if (matches) {
+                        buffer = '';
+
+                        if (interaction.always !== true) {
+                            nextInteractions.splice(index, 1);
+                        }
+
+                        for (const input of interaction.then ?? []) {
+                            await execution.write(ExecutePackage.INPUT_MAP[input] ?? input);
+                        }
+
+                        if (interaction.final === true) {
+                            await execution.endWriting();
+
+                            nextInteractions.length = 0;
+                        }
+
+                        break;
                     }
-
-                    for (const input of interaction.then ?? []) {
-                        await execution.write(ExecutePackage.INPUT_MAP[input] ?? input);
-                    }
-
-                    if (interaction.final === true) {
-                        await execution.endWriting();
-
-                        nextInteractions.length = 0;
-                    }
-
-                    break;
                 }
             }
         }
@@ -165,9 +177,12 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
         }
 
         if (exitCode !== 0) {
-            throw new ActionError(`Command failed with output:\n\n${buffer}`, {
-                reason: ErrorReason.UNEXPECTED_RESULT,
-            });
+            throw new ActionError(
+                `Command execution failed${buffer === '' ? '.' : `with output:\n\n${buffer}`}`,
+                {
+                    reason: ErrorReason.UNEXPECTED_RESULT,
+                },
+            );
         }
     }
 }

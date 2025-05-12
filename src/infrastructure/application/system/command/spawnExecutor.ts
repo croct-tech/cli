@@ -40,8 +40,8 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
 
         const preparedCommand = this.prepareCommand(command);
 
-        const subprocess = spawn(preparedCommand.name, preparedCommand.arguments, {
-            stdio: ['pipe', 'pipe', 'pipe'],
+        const subprocess = spawn(preparedCommand.name, preparedCommand.arguments ?? [], {
+            stdio: options.inheritInput === true ? 'inherit' : 'pipe',
             shell: preparedCommand.shell,
             cwd: options?.workingDirectory ?? this.currentDirectory?.get(),
             signal: timeoutSignal,
@@ -68,13 +68,12 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
             }
         });
 
-        subprocess.stdout.on('data', data => {
+        const dataListeners = (data: Buffer): void => {
             output.push(data.toString());
-        });
+        };
 
-        subprocess.stderr.on('data', data => {
-            output.push(data.toString());
-        });
+        subprocess.stdout?.on('data', dataListeners);
+        subprocess.stderr?.on('data', dataListeners);
 
         const exitListeners: ExitCallback[] = [];
 
@@ -103,6 +102,12 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
                 };
             },
             write: (data: string) => new Promise((resolve, reject) => {
+                if (subprocess.stdin === null) {
+                    reject(new ExecutionError('Subprocess is not writable.'));
+
+                    return;
+                }
+
                 subprocess.stdin.write(data, error => {
                     if (error === null) {
                         resolve();
@@ -112,7 +117,7 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
                 });
             }),
             endWriting: () => new Promise<void>(resolve => {
-                if (subprocess.exitCode !== null) {
+                if (subprocess.stdin === null || subprocess.exitCode !== null) {
                     resolve();
 
                     return;
@@ -155,9 +160,9 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
                     return;
                 }
 
-                subprocess.stdout.destroy();
-                subprocess.stderr.destroy();
-                subprocess.stdin.destroy();
+                subprocess.stdout?.destroy();
+                subprocess.stderr?.destroy();
+                subprocess.stdin?.destroy();
 
                 if (subprocess.kill(signal)) {
                     resolve();
@@ -175,7 +180,7 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
 
         const preparedCommand = this.prepareCommand(command);
         const subprocess = spawnSync(preparedCommand.name, preparedCommand.arguments, {
-            stdio: ['ignore', 'pipe', 'pipe'],
+            stdio: [options.inheritInput === true ? 'inherit' : 'ignore', 'pipe', 'pipe'],
             cwd: options?.workingDirectory ?? this.currentDirectory?.get(),
             shell: preparedCommand.shell,
             signal: timeoutSignal,
