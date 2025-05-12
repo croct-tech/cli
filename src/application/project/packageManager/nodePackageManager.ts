@@ -162,8 +162,26 @@ export class NodePackageManager implements PackageManager {
         await this.fileSystem.writeTextFile(packageFile, packageJson.toString(), {overwrite: true});
     }
 
-    private getPackageManifestPath(name: string): string {
-        return this.fileSystem.joinPaths(this.projectDirectory.get(), 'node_modules', name, 'package.json');
+    private async getPackageManifestPath(name: string): Promise<string|null> {
+        let currentDirectory = this.projectDirectory.get();
+
+        while (true) {
+            const nodeModulesPath = this.fileSystem.joinPaths(currentDirectory, 'node_modules', name, 'package.json');
+
+            if (await this.fileSystem.exists(nodeModulesPath)) {
+                return nodeModulesPath;
+            }
+
+            const parentDirectory = this.fileSystem.getDirectoryName(currentDirectory);
+
+            if (parentDirectory === currentDirectory) {
+                break;
+            }
+
+            currentDirectory = parentDirectory;
+        }
+
+        return null;
     }
 
     private getProjectManifestPath(): string {
