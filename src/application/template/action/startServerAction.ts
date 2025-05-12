@@ -109,11 +109,13 @@ export class StartServer implements Action<StartServerOptions> {
         }
 
         const url = new URL(info.url);
+        const isHttps = url.protocol === 'https:';
+        const defaultPort = isHttps ? 443 : 80;
 
         return this.factory.create({
             host: url.hostname,
-            protocol: url.protocol === 'https:' ? 'https' : 'http',
-            defaultPort: url.port === '' ? (url.protocol === 'https:' ? 443 : 80) : Number.parseInt(url.port, 10),
+            protocol: isHttps ? 'https' : 'http',
+            defaultPort: url.port === '' ? defaultPort : Number.parseInt(url.port, 10),
             command: await this.packageManager.getScriptCommand(info.script, info.arguments),
         });
     }
