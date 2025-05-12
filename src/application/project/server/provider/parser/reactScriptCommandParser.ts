@@ -1,4 +1,5 @@
-import {ServerInfo, ServerCommandParser} from '@/application/project/server/provider/projectServerProvider';
+import {ServerCommandParser} from '@/application/project/server/provider/projectServerProvider';
+import {ServerInfo} from '@/application/project/server/factory/serverFactory';
 
 export class ReactScriptCommandParser implements ServerCommandParser {
     public parse(command: string): ServerInfo|null {

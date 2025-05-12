@@ -3,9 +3,14 @@ import {StartServerOptions} from '@/application/template/action/startServerActio
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const schema: ZodType<StartServerOptions> = z.strictObject({
+    server: z.strictObject({
+        script: z.string(),
+        arguments: z.array(z.string()).optional(),
+        url: z.string(),
+    }).optional(),
     result: z.strictObject({
+        id: z.string().optional(),
         url: z.string().optional(),
-        owned: z.string().optional(),
     }).optional(),
 });
 

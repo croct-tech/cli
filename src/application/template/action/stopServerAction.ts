@@ -1,37 +1,40 @@
 import {Action} from '@/application/template/action/action';
 import {Server} from '@/application/project/server/server';
 import {ActionContext} from '@/application/template/action/context';
-import {Provider} from '@/application/provider/provider';
 import {HelpfulError} from '@/application/error';
 
-export type StopServerOptions = Record<never, never>;
+export type StopServerOptions = {
+    id: string,
+};
 
 export type Configuration = {
-    serverProvider: Provider<Server|null>,
+    serverMap: Map<string, Server>,
 };
 
 export class StopServer implements Action<StopServerOptions> {
-    private readonly provider: Provider<Server|null>;
+    private readonly serverMap: Map<string, Server>;
 
-    public constructor({serverProvider}: Configuration) {
-        this.provider = serverProvider;
+    public constructor({serverMap}: Configuration) {
+        this.serverMap = serverMap;
     }
 
-    public async execute(_: StopServerOptions, context: ActionContext): Promise<void> {
+    public async execute({id}: StopServerOptions, context: ActionContext): Promise<void> {
         const {output} = context;
 
-        const notifier = output.notify('Stopping server');
+        const server = this.serverMap.get(id);
 
-        const server = await this.provider.get();
-
-        if (server === null) {
-            throw new HelpfulError('No server detected.');
+        if (server === undefined) {
+            throw new HelpfulError(`No server with id "${id}" found.`);
         }
+
+        const notifier = output.notify('Stopping server');
 
         try {
             await server.stop();
         } finally {
             notifier.stop();
         }
+
+        this.serverMap.delete(id);
     }
 }

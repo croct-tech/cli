@@ -160,7 +160,7 @@ import {FailOptionsValidator} from '@/infrastructure/application/validation/acti
 import {SpecificResourceProvider} from '@/application/provider/resource/specificResourceProvider';
 import {ConstantProvider} from '@/application/provider/constantProvider';
 import {Server} from '@/application/project/server/server';
-import {ProjectServerProvider, ServerFactory} from '@/application/project/server/provider/projectServerProvider';
+import {ProjectServerProvider} from '@/application/project/server/provider/projectServerProvider';
 import {NextCommandParser} from '@/application/project/server/provider/parser/nextCommandParser';
 import {ViteCommandParser} from '@/application/project/server/provider/parser/viteCommandParser';
 import {ParcelCommandParser} from '@/application/project/server/provider/parser/parcelCommandParser';
@@ -176,7 +176,6 @@ import {OpenLinkOptionsValidator} from '@/infrastructure/application/validation/
 import {DefineOptionsValidator} from '@/infrastructure/application/validation/actions/defineOptionsValidator';
 import {DefineAction} from '@/application/template/action/defineAction';
 import {VariableMap} from '@/application/template/evaluation';
-import {StopServer} from '@/application/template/action/stopServerAction';
 import {StopServerOptionsValidator} from '@/infrastructure/application/validation/actions/stopServerOptionsValidator';
 import {ProcessServerFactory} from '@/application/project/server/factory/processServerFactory';
 import {CurrentWorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
@@ -219,7 +218,6 @@ import {SpawnExecutor} from '@/infrastructure/application/system/command/spawnEx
 import {LazyFormatter} from '@/application/project/code/formatting/lazyFormatter';
 import {LazySdk} from '@/application/project/sdk/lazySdk';
 import {MemoizedProvider} from '@/application/provider/memoizedProvider';
-import {CachedServerFactory} from '@/application/project/server/factory/cachedServerFactory';
 import {Not} from '@/application/predicate/not';
 import {MatchesGitignore} from '@/application/predicate/matchesGitignore';
 import {LazyPromise} from '@/infrastructure/promise';
@@ -285,6 +283,8 @@ import {FileSystemTsConfigLoader} from '@/application/project/import/fileSystemT
 import {ResolvedCommandExecutor} from '@/infrastructure/application/system/command/resolvedCommandExecutor';
 import {TypeErasureCodemod} from '@/application/project/code/transformation/javascript/typeErasureCodemod';
 import {ExecutableExists} from '@/application/predicate/executableExists';
+import {ServerFactory} from '@/application/project/server/factory/serverFactory';
+import {StopServer} from '@/application/template/action/stopServerAction';
 
 export type Configuration = {
     program: Program,
@@ -1033,6 +1033,7 @@ export class Cli {
         return this.share(this.getImportAction, () => {
             const fileSystem = this.getFileSystem();
             const scanFilter = this.getScanFilter();
+            const serverMap = new Map<string, Server>();
 
             const actions = {
                 run: new ValidatedAction<RunOptions>({
@@ -1082,12 +1083,15 @@ export class Cli {
                 'start-server': new ValidatedAction({
                     action: new StartServer({
                         serverProvider: this.getServerProvider(),
+                        serverFactory: this.getServerFactory(),
+                        packageManager: this.getPackageManager(),
+                        serverMap: serverMap,
                     }),
                     validator: new StartServerOptionsValidator(),
                 }),
                 'stop-server': new ValidatedAction({
                     action: new StopServer({
-                        serverProvider: this.getServerProvider(),
+                        serverMap: serverMap,
                     }),
                     validator: new StopServerOptionsValidator(),
                 }),
@@ -1902,23 +1906,7 @@ export class Cli {
         });
     }
 
-    private getNodeServerProvider(): Provider<Server | null> {
-        return this.share(
-            this.getNodeServerProvider,
-            () => new ProjectServerProvider({
-                packageManager: this.getNodePackageManager(),
-                factory: this.getServerFactory(),
-                parsers: [
-                    new NextCommandParser(),
-                    new ViteCommandParser(),
-                    new ParcelCommandParser(),
-                    new ReactScriptCommandParser(),
-                ],
-            }),
-        );
-    }
-
-    private getServerProvider(): Provider<Server | null> {
+    private getServerProvider(): Provider<Server|null> {
         return this.share(this.getServerProvider, () => {
             const unknown = Symbol('unknown');
 
@@ -1934,20 +1922,34 @@ export class Cli {
         });
     }
 
+    private getNodeServerProvider(): Provider<Server> {
+        return this.share(
+            this.getNodeServerProvider,
+            () => new ProjectServerProvider({
+                packageManager: this.getNodePackageManager(),
+                factory: this.getServerFactory(),
+                parsers: [
+                    new NextCommandParser(),
+                    new ViteCommandParser(),
+                    new ParcelCommandParser(),
+                    new ReactScriptCommandParser(),
+                ],
+            }),
+        );
+    }
+
     private getServerFactory(): ServerFactory {
         return this.share(
             this.getServerFactory,
-            () => new CachedServerFactory(
-                new ProcessServerFactory({
-                    commandExecutor: this.getAsynchronousCommandExecutor(),
-                    workingDirectory: this.workingDirectory,
-                    startupTimeout: 20_000,
-                    startupCheckDelay: 1500,
-                    lookupMaxPorts: 30,
-                    lookupTimeout: 2_000,
-                    processObserver: this.configuration.process,
-                }),
-            ),
+            () => new ProcessServerFactory({
+                commandExecutor: this.getAsynchronousCommandExecutor(),
+                workingDirectory: this.workingDirectory,
+                startupTimeout: 20_000,
+                startupCheckDelay: 1500,
+                lookupMaxPorts: 30,
+                lookupTimeout: 2_000,
+                processObserver: this.configuration.process,
+            }),
         );
     }
 

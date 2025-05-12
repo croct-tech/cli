@@ -1,22 +1,7 @@
 import {Server} from '@/application/project/server/server';
 import {Provider, ProviderError} from '@/application/provider/provider';
-import {Command} from '@/application/system/process/command';
 import {PackageManager} from '@/application/project/packageManager/packageManager';
-
-export type ServerInfo = {
-    protocol: string,
-    host: string,
-    port?: number,
-    defaultPort: number,
-};
-
-export type ServerConfiguration = ServerInfo & {
-    command: Command,
-};
-
-export type ServerFactory = {
-    create(configuration: ServerConfiguration): Server,
-};
+import {ServerFactory, ServerInfo} from '@/application/project/server/factory/serverFactory';
 
 export interface ServerCommandParser {
     parse(command: string): ServerInfo|null;
