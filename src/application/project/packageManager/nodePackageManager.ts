@@ -91,7 +91,12 @@ export class NodePackageManager implements PackageManager {
     }
 
     public async getDependency(name: string): Promise<Dependency | null> {
-        const manifestPath = this.getPackageManifestPath(name);
+        const manifestPath = await this.getPackageManifestPath(name);
+
+        if (manifestPath === null) {
+            return null;
+        }
+
         const info = await this.readManifest(manifestPath);
 
         if (info === null) {
