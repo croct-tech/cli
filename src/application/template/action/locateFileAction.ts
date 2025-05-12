@@ -1,9 +1,8 @@
 import {Action} from '@/application/template/action/action';
-import {FileSystem} from '@/application/fs/fileSystem';
+import {FileSystem, ScanFilter} from '@/application/fs/fileSystem';
 import {ActionContext} from '@/application/template/action/context';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
-import {Provider} from '@/application/provider/provider';
-import {Predicate} from '@/application/predicate/predicate';
+import {MatchesGlob} from '@/application/predicate/matchesGlob';
 
 export type PatternMatcher = {
     pattern: string,
@@ -25,12 +24,10 @@ export type LocateFileOptions = {
     result: string,
 };
 
-export type PathMatcher = Predicate<[string]>;
-
 export type Configuration = {
     projectDirectory: WorkingDirectory,
     fileSystem: FileSystem,
-    matcherProvider: Provider<PathMatcher, [string]>,
+    scanFilter?: ScanFilter,
 };
 
 export class LocateFileAction implements Action<LocateFileOptions> {
@@ -38,12 +35,12 @@ export class LocateFileAction implements Action<LocateFileOptions> {
 
     private readonly fileSystem: FileSystem;
 
-    private readonly matcherProvider: Provider<PathMatcher, [string]>;
+    private readonly scanFilter?: ScanFilter;
 
-    public constructor({projectDirectory, fileSystem, matcherProvider}: Configuration) {
+    public constructor({projectDirectory, fileSystem, scanFilter}: Configuration) {
         this.projectDirectory = projectDirectory;
         this.fileSystem = fileSystem;
-        this.matcherProvider = matcherProvider;
+        this.scanFilter = scanFilter;
     }
 
     public async execute(options: LocateFileOptions, context: ActionContext): Promise<void> {
@@ -63,12 +60,23 @@ export class LocateFileAction implements Action<LocateFileOptions> {
     }
 
     private async findMatch(pattern: string, options: LocateFileOptions): Promise<string[]> {
-        const filter = await this.matcherProvider.get(pattern);
+        const filter: ScanFilter = (path, depth) => {
+            if (options.depth !== undefined && depth > options.depth) {
+                return false;
+            }
+
+            if (this.scanFilter !== undefined) {
+                return this.scanFilter(path, depth);
+            }
+
+            return true;
+        };
 
         const matches: string[] = [];
+        const matcher = MatchesGlob.fromPattern(pattern);
 
-        for await (const file of this.fileSystem.list(this.projectDirectory.get(), options.depth)) {
-            if (!await filter.test(file.name)) {
+        for await (const file of this.fileSystem.list(this.projectDirectory.get(), filter)) {
+            if (!await matcher.test(file.name)) {
                 continue;
             }
 

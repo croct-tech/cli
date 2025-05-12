@@ -1,7 +1,7 @@
 import {Minimatch} from 'minimatch';
 import {Codemod, CodemodError, ResultCode} from '@/application/project/code/transformation/codemod';
 import {ImportResolver} from '@/application/project/import/importResolver';
-import {FileSystem} from '@/application/fs/fileSystem';
+import {FileSystem, ScanFilter} from '@/application/fs/fileSystem';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {Predicate} from '@/application/predicate/predicate';
 import {ErrorReason} from '@/application/error';
@@ -28,7 +28,7 @@ export type Configuration = {
     importResolver: ImportResolver,
     exportMatcher: ExportMatcher,
     fileSystem: FileSystem,
-    maxSearchDepth: number,
+    filter?: ScanFilter,
 };
 
 export class GlobImportCodemod implements Codemod<string> {
@@ -44,7 +44,7 @@ export class GlobImportCodemod implements Codemod<string> {
 
     private readonly fileSystem: FileSystem;
 
-    private readonly maxSearchDepth: number;
+    private readonly scanFilter?: ScanFilter;
 
     public constructor(configuration: Configuration) {
         this.rootPath = configuration.rootPath;
@@ -52,7 +52,7 @@ export class GlobImportCodemod implements Codemod<string> {
         this.exportMatcher = configuration.exportMatcher;
         this.importCodemod = configuration.importCodemod;
         this.fileSystem = configuration.fileSystem;
-        this.maxSearchDepth = configuration.maxSearchDepth;
+        this.scanFilter = configuration.filter;
     }
 
     public apply(path: string): Promise<ResultCode<string>> {
@@ -82,7 +82,7 @@ export class GlobImportCodemod implements Codemod<string> {
                 : pattern,
         );
 
-        for await (const file of this.fileSystem.list(rootPath, this.maxSearchDepth)) {
+        for await (const file of this.fileSystem.list(rootPath, this.scanFilter)) {
             if (
                 file.type === 'file'
                 && matcher.match(file.name)

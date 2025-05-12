@@ -25,6 +25,7 @@ import {
     FileSystemError,
     FileSystemIterator,
     FileWritingOptions,
+    ScanFilter,
 } from '@/application/fs/fileSystem';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {ErrorReason} from '@/application/error';
@@ -154,14 +155,14 @@ export class LocalFilesystem implements FileSystem {
         }
     }
 
-    public list(path: string, maxDepth = Number.POSITIVE_INFINITY): FileSystemIterator {
+    public list(path: string, filter?: ScanFilter): FileSystemIterator {
         const root = this.resolvePath(path);
 
-        return this.listRelatively(root, root, maxDepth);
+        return this.listRelatively(root, root, 0, filter ?? ((): boolean => true));
     }
 
-    private async* listRelatively(path: string, root: string, maxDepth: number): FileSystemIterator {
-        if (maxDepth < 0) {
+    private async* listRelatively(path: string, root: string, depth: number, filter: ScanFilter): FileSystemIterator {
+        if (!await filter(path, depth)) {
             return;
         }
 
@@ -172,7 +173,7 @@ export class LocalFilesystem implements FileSystem {
         }
 
         if (!stats.isDirectory()) {
-            return yield* this.createEntry(path, dirname(root), stats, 0);
+            return yield* this.createEntry(path, dirname(root), stats, depth, filter);
         }
 
         const files = await this.execute(() => readdir(path));
@@ -181,11 +182,19 @@ export class LocalFilesystem implements FileSystem {
             const entryPath = join(path, entry);
             const entryStats = await this.execute(() => lstat(entryPath));
 
-            yield* this.createEntry(entryPath, root, entryStats, maxDepth);
+            if (await filter(entryPath, depth)) {
+                yield* this.createEntry(entryPath, root, entryStats, depth, filter);
+            }
         }
     }
 
-    private async* createEntry(path: string, root: string, stats: Stats, maxDepth: number): FileSystemIterator {
+    private async* createEntry(
+        path: string,
+        root: string,
+        stats: Stats,
+        depth: number,
+        filter: ScanFilter,
+    ): FileSystemIterator {
         const name = relative(root, path);
 
         if (stats.isFile()) {
@@ -204,9 +213,7 @@ export class LocalFilesystem implements FileSystem {
                 name: name,
             };
 
-            if (maxDepth > 0) {
-                yield* this.listRelatively(path, root, maxDepth - 1);
-            }
+            yield* this.listRelatively(path, root, depth + 1, filter);
         } else if (stats.isSymbolicLink()) {
             yield {
                 type: 'symlink',
@@ -289,7 +296,7 @@ export class LocalFilesystem implements FileSystem {
 
     private execute<T>(action: () => T): T;
 
-    private execute<T>(action: () => Promise<T>|T): Promise<T>|T {
+    private execute<T>(action: () => Promise<T> | T): Promise<T> | T {
         try {
             const result = action();
 
