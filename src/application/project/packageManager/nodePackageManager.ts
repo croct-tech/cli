@@ -33,6 +33,8 @@ export class NodePackageManager implements PackageManager {
 
     private readonly packageValidator: Validator<PartialNpmManifest>;
 
+    private readonly nodeModulesCache: Map<string, string|null> = new Map();
+
     public constructor(configuration: Configuration) {
         this.projectDirectory = configuration.projectDirectory;
         this.fileSystem = configuration.fileSystem;
@@ -163,12 +165,20 @@ export class NodePackageManager implements PackageManager {
     }
 
     private async getPackageManifestPath(name: string): Promise<string|null> {
+        const cachedPath = this.nodeModulesCache.get(name);
+
+        if (cachedPath !== undefined) {
+            return cachedPath;
+        }
+
         let currentDirectory = this.projectDirectory.get();
 
         while (true) {
             const nodeModulesPath = this.fileSystem.joinPaths(currentDirectory, 'node_modules', name, 'package.json');
 
             if (await this.fileSystem.exists(nodeModulesPath)) {
+                this.nodeModulesCache.set(name, nodeModulesPath);
+
                 return nodeModulesPath;
             }
 
@@ -180,6 +190,8 @@ export class NodePackageManager implements PackageManager {
 
             currentDirectory = parentDirectory;
         }
+
+        this.nodeModulesCache.set(name, null);
 
         return null;
     }
