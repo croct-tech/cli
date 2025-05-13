@@ -989,6 +989,9 @@ export class Cli {
     }
 
     private createGitHubProvider(httpProvider: HttpProvider): ResourceProvider<FileSystemIterator> {
+        // Cache busting
+        const time = Date.now();
+
         return new GithubProvider({
             cache: new AutoSaveCache(new InMemoryCache()),
             provider: new MultiProvider({
@@ -1001,12 +1004,12 @@ export class Cli {
                                     {
                                         // eslint-disable-next-line max-len -- Regex cannot be split
                                         pattern: /^https:\/\/raw\.github\.com\/croct-tech\/templates\/(HEAD|master)\/templates\/(.+)$/i,
-                                        destination: 'https://cdn.croct.io/templates/$2',
+                                        destination: `https://cdn.croct.io/templates/$2?c=${time}`,
                                     },
                                     {
                                         // eslint-disable-next-line max-len -- Regex cannot be split
                                         pattern: /^https:\/\/api\.github\.com\/repos\/croct-tech\/templates\/git\/trees\/(HEAD|master)\?recursive=true/i,
-                                        destination: 'https://cdn.croct.io/templates/git-tree.json',
+                                        destination: `https://cdn.croct.io/templates/git-tree.json?c=${time}`,
                                     },
                                 ]),
                             }),
