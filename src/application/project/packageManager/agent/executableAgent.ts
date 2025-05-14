@@ -37,6 +37,10 @@ export abstract class ExecutableAgent implements PackageManagerAgent {
         return this.installed;
     }
 
+    public getName(): Promise<string> {
+        return Promise.resolve(this.getCommandName());
+    }
+
     public addDependencies(packages: string[], dev = false): Promise<void> {
         return this.run(this.createAddDependencyCommand(packages, dev));
     }

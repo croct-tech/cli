@@ -3,6 +3,10 @@ import {PackageManagerAgent} from '@/application/project/packageManager/agent/pa
 import {PackageManagerError} from '@/application/project/packageManager/packageManager';
 
 export class NoopAgent implements PackageManagerAgent {
+    public getName(): Promise<string> {
+        return Promise.resolve('noop');
+    }
+
     public isInstalled(): Promise<boolean> {
         return Promise.resolve(false);
     }

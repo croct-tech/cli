@@ -38,6 +38,11 @@ export type CommandOptions = Omit<ExecutionOptions, 'workingDirectory'>;
 
 export interface PackageManager {
     /**
+     * Returns the package manager name.
+     */
+    getName(): Promise<string>;
+
+    /**
      * Checks if the package manager is installed on the system.
      *
      * @returns A promise that resolves to true if the package manager is installed, false otherwise.

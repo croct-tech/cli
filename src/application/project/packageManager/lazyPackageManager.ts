@@ -19,6 +19,10 @@ export class LazyPackageManager implements PackageManager {
         });
     }
 
+    public async getName(): Promise<string> {
+        return (await this.manager).getName();
+    }
+
     public async isInstalled(): Promise<boolean> {
         return (await this.manager).isInstalled();
     }
