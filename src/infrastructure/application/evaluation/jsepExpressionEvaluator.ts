@@ -435,8 +435,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                     this.getCallee(expression.callee, context),
                     Promise.all(
                         expression.arguments.map(
-                            argument => this.resolve(this.evaluateExpression(argument, context))
-                                .then(JsepExpressionEvaluator.unbox),
+                            argument => this.resolve(this.evaluateExpression(argument, context)),
                         ),
                     ),
                 ]);
@@ -497,7 +496,9 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                 throw new EvaluationError(`Method \`${property}\` does not exist or is not accessible.`);
             }
 
-            return value[property].bind(value);
+            const fn = value[property].bind(value);
+
+            return (...args: JsonValue[]) => fn(...args.map(JsepExpressionEvaluator.unbox));
         }
 
         throw new EvaluationError('Callee is not callable.');
