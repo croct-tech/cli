@@ -334,7 +334,7 @@ function createProgram(config: Configuration): typeof program {
                         throw new InvalidArgumentError('The value must be a JSON array.');
                     }
 
-                    return list.split(',');
+                    return value;
                 });
 
                 break;
