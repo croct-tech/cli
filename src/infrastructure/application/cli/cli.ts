@@ -1311,6 +1311,13 @@ export class Cli {
         const getUrl = (path: string): string => new URL(path, this.configuration.adminUrl).toString();
 
         return {
+            packageManager: LazyPromise.transient(() => {
+                const manager = this.getPackageManager();
+
+                return {
+                    name: manager.getName(),
+                };
+            }),
             project: {
                 features: LazyPromise.transient(async () => {
                     const {organization, workspace} = await this.getConfigurationManager().load();

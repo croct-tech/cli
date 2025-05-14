@@ -42,6 +42,10 @@ export class NodePackageManager implements PackageManager {
         this.packageValidator = configuration.packageValidator;
     }
 
+    public getName(): Promise<string> {
+        return this.agent.getName();
+    }
+
     public isInstalled(): Promise<boolean> {
         return this.agent.isInstalled();
     }
@@ -73,13 +77,17 @@ export class NodePackageManager implements PackageManager {
             return false;
         }
 
-        const installedVersion = manifest.dependencies?.[name] ?? manifest.devDependencies?.[name];
+        const info = await this.getDependency(name);
 
-        if (installedVersion === undefined) {
+        if (info === null) {
             return false;
         }
 
-        return version === undefined || semver.satisfies(installedVersion, version);
+        if (version === undefined || info.version === null) {
+            return version === undefined;
+        }
+
+        return semver.satisfies(info.version, version);
     }
 
     public async hasDependency(name: string, version?: string): Promise<boolean> {

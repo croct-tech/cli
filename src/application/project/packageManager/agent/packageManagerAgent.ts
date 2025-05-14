@@ -2,6 +2,7 @@ import {PackageManager} from '@/application/project/packageManager/packageManage
 
 export interface PackageManagerAgent extends Pick<
     PackageManager,
+    | 'getName'
     | 'isInstalled'
     | 'installDependencies'
     | 'addDependencies'
