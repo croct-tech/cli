@@ -1,7 +1,8 @@
-import {JsonValue} from '@croct/json';
+import {JsonPrimitive, JsonValue} from '@croct/json';
 import jsep, {CoreExpression, Expression} from 'jsep';
 import jsepObject, {Property} from '@jsep-plugin/object';
 import jsepSpread, {SpreadElement} from '@jsep-plugin/spread';
+import jsepRegex from '@jsep-plugin/regex';
 import {
     EvaluationContext,
     EvaluationError,
@@ -29,10 +30,10 @@ type BinaryOperator = {
 
 interface ExtendedObjectExpression extends Expression {
     type: 'ObjectExpression';
-    properties: Array<Property|SpreadElement>;
+    properties: Array<Property | SpreadElement>;
 }
 
-type ExtendedExpression = Expression|CoreExpression|SpreadElement|ExtendedObjectExpression;
+type ExtendedExpression = Expression | CoreExpression | SpreadElement | ExtendedObjectExpression;
 
 type JsepExpression<T extends ExtendedExpression['type']> = {
     [K in T]: Extract<ExtendedExpression, {type: K}>;
@@ -59,6 +60,8 @@ class UndefinedValueError extends EvaluationError {
     }
 }
 
+const regexSymbol = Symbol('regex');
+
 export class JsepExpressionEvaluator implements ExpressionEvaluator {
     private static readonly ALLOWED_ARRAY_PROPERTIES: Array<Properties<any[]>> = [
         'length',
@@ -79,11 +82,26 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
     // eslint-disable-next-line @typescript-eslint/ban-types -- Intentional use of String for correct type inference
     private static readonly ALLOWED_STRING_METHODS: Array<Methods<String>> = [
         'slice',
+        'indexOf',
+        'match',
+        'matchAll',
+        'replace',
+        'replaceAll',
         'includes',
         'startsWith',
         'endsWith',
         'toLowerCase',
         'toUpperCase',
+        'repeat',
+        'split',
+    ];
+
+    private static readonly ALLOWED_REGEX_PROPERTIES: Array<Properties<RegExp>> = [
+        'source',
+    ];
+
+    private static readonly ALLOWED_REGEX_METHODS: Array<Methods<RegExp>> = [
+        'test',
     ];
 
     private static readonly LITERALS: Record<string, JsonValue> = {
@@ -225,6 +243,7 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
 
         jsep.plugins.register(jsepObject);
         jsep.plugins.register(jsepSpread);
+        jsep.plugins.register(jsepRegex);
 
         jsep.removeAllUnaryOps();
 
@@ -265,6 +284,19 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
     private async evaluateExpression(expression: Expression, context?: EvaluationContext): Deferred<JsonValue> {
         switch (true) {
             case matches(expression, 'Literal'):
+                if (expression.raw.startsWith('/')) {
+                    const lastIndex = expression.raw.lastIndexOf('/');
+                    const flags = expression.raw.slice(lastIndex + 1);
+                    const pattern = expression.raw.slice(1, lastIndex);
+
+                    // eslint-disable-next-line no-new-wrappers -- Boxed regex for JSEP
+                    const regex = new String(expression.raw) as string;
+
+                    Object.assign(regex, {[regexSymbol]: new RegExp(pattern, flags)});
+
+                    return regex;
+                }
+
                 return expression.value as JsonValue;
 
             case matches(expression, 'ThisExpression'):
@@ -362,7 +394,8 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
                 );
 
             case matches(expression, 'MemberExpression'): {
-                const object = await this.evaluateExpression(expression.object, context);
+                const object = await this.evaluateExpression(expression.object, context)
+                    .then(JsepExpressionEvaluator.unbox);
 
                 if (typeof object !== 'object' || object === null) {
                     throw new EvaluationError('Cannot access property of a non-object.');
@@ -400,9 +433,12 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
             case matches(expression, 'CallExpression'): {
                 const [fn, argumentValues] = await Promise.all([
                     this.getCallee(expression.callee, context),
-                    Promise.all(expression.arguments.map(
-                        argument => this.resolve(this.evaluateExpression(argument, context)),
-                    )),
+                    Promise.all(
+                        expression.arguments.map(
+                            argument => this.resolve(this.evaluateExpression(argument, context))
+                                .then(JsepExpressionEvaluator.unbox),
+                        ),
+                    ),
                 ]);
 
                 return fn(...expression.arguments.flatMap((argument, index) => {
@@ -446,7 +482,8 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
         }
 
         if (matches(expression, 'MemberExpression')) {
-            const value = await this.resolve(this.evaluateExpression(expression.object, context));
+            const value = await this.resolve(this.evaluateExpression(expression.object, context))
+                .then(JsepExpressionEvaluator.unbox);
 
             const property = matches(expression.property, 'Identifier')
                 ? expression.property.name
@@ -475,6 +512,10 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
             return JsepExpressionEvaluator.ALLOWED_ARRAY_METHODS.includes(method as any);
         }
 
+        if (value instanceof RegExp) {
+            return JsepExpressionEvaluator.ALLOWED_REGEX_METHODS.includes(method as any);
+        }
+
         return false;
     }
 
@@ -487,6 +528,10 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
             return JsepExpressionEvaluator.ALLOWED_ARRAY_PROPERTIES.includes(property as any);
         }
 
+        if (value instanceof RegExp) {
+            return JsepExpressionEvaluator.ALLOWED_REGEX_PROPERTIES.includes(property as any);
+        }
+
         return typeof value === 'object'
             && value !== null
             && Object.hasOwn(value, property)
@@ -494,11 +539,18 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
     }
 
     private async resolve(value: Deferrable<JsonValue>): Promise<JsonValue> {
-        if (!(value instanceof Promise) && (typeof value !== 'object' || value === null)) {
+        if (
+            !(value instanceof Promise)
+            && (JsepExpressionEvaluator.isBoxed(value) || (typeof value !== 'object' || value === null))
+        ) {
             return value;
         }
 
         const resolvedValue = await value;
+
+        if (JsepExpressionEvaluator.isBoxed(resolvedValue)) {
+            return resolvedValue;
+        }
 
         if (Array.isArray(resolvedValue)) {
             return Promise.all(resolvedValue.map(item => this.resolve(item)));
@@ -527,6 +579,20 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
         }
 
         return resolvedValue;
+    }
+
+    private static unbox(value: unknown): unknown {
+        if (value instanceof String && regexSymbol in value) {
+            return value[regexSymbol];
+        }
+
+        return value;
+    }
+
+    private static isBoxed(value: unknown): value is JsonPrimitive {
+        return value instanceof String
+            || value instanceof Number
+            || value instanceof Boolean;
     }
 }
 
