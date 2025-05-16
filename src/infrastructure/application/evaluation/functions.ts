@@ -13,7 +13,7 @@ export const ext: GenericFunction = (path: JsonValue): JsonValue => {
     return path.split('.').pop() ?? '';
 };
 
-export const basename: GenericFunction = (path: JsonValue): JsonValue => {
+export const basename: GenericFunction = (path: JsonValue, omitExtension: JsonValue = false): JsonValue => {
     if (typeof path !== 'string') {
         throw new EvaluationError(
             'The `path` argument of the `basename` function must be a string, '
@@ -21,7 +21,20 @@ export const basename: GenericFunction = (path: JsonValue): JsonValue => {
         );
     }
 
-    return path.split(/[\\/]/).pop() ?? '';
+    if (typeof omitExtension !== 'boolean') {
+        throw new EvaluationError(
+            'The `omitExtension` argument of the `basename` function must be a boolean, '
+            + `but got ${HelpfulError.describeType(omitExtension)}.`,
+        );
+    }
+
+    const result = path.split(/[\\/]/).pop() ?? '';
+
+    if (omitExtension) {
+        return result.replace(/\.[^/.]+$/, '');
+    }
+
+    return result;
 };
 
 export const dirname: GenericFunction = (path: JsonValue): JsonValue => {
