@@ -73,10 +73,18 @@ export class NodePackageManager implements PackageManager {
     public async hasDirectDependency(name: string, version?: string): Promise<boolean> {
         const manifest = await this.readManifest(this.getProjectManifestPath());
 
-        if (manifest === null) {
+        if (manifest?.dependencies?.[name] === undefined && manifest?.devDependencies?.[name] === undefined) {
             return false;
         }
 
+        if (version === undefined) {
+            return true;
+        }
+
+        return this.hasDependency(name, version);
+    }
+
+    public async hasDependency(name: string, version?: string): Promise<boolean> {
         const info = await this.getDependency(name);
 
         if (info === null) {
@@ -85,16 +93,6 @@ export class NodePackageManager implements PackageManager {
 
         if (version === undefined || info.version === null) {
             return version === undefined;
-        }
-
-        return semver.satisfies(info.version, version);
-    }
-
-    public async hasDependency(name: string, version?: string): Promise<boolean> {
-        const info = await this.getDependency(name);
-
-        if (info === null) {
-            return false;
         }
 
         return version === undefined || (info.version !== null && semver.satisfies(info.version, version));
