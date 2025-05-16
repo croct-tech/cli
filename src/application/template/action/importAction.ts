@@ -4,7 +4,12 @@ import {ActionContext} from '@/application/template/action/context';
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {Resource, ResourceNotFoundError, ResourceProvider} from '@/application/provider/resource/resourceProvider';
 import {VariableMap} from '@/application/template/evaluation';
-import {DeferredOptionDefinition, DeferredTemplate, OptionType, OptionValueType} from '@/application/template/template';
+import {
+    DeferredOptionDefinition,
+    DeferredTemplate,
+    OptionType,
+    OptionValueType,
+} from '@/application/template/template';
 import {Deferrable} from '@/application/template/deferral';
 import {resolveUrl} from '@/utils/resolveUrl';
 import {Output} from '@/application/cli/io/output';
