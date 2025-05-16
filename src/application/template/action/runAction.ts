@@ -1,7 +1,9 @@
+import {JsonParseError} from '@croct/json5-parser/error';
 import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {ErrorReason} from '@/application/error';
 import {ActionDefinition, SourceLocation} from '@/application/template/template';
+import {TemplateError} from '@/application/template/templateProvider';
 
 export type RunOptions = {
     actions: ActionDefinition|ActionDefinition[],
@@ -19,6 +21,23 @@ export class RunAction implements Action<RunOptions> {
             try {
                 await this.run(action, context);
             } catch (error) {
+                if (error instanceof TemplateError && error.help.cause instanceof JsonParseError) {
+                    const {location} = error.help.cause;
+
+                    throw ActionError.fromCause(error, {
+                        tracing: [
+                            {
+                                name: action.name,
+                                source: {
+                                    url: error.url,
+                                    start: location.start,
+                                    end: location.end,
+                                },
+                            },
+                        ],
+                    });
+                }
+
                 throw ActionError.fromCause(error, {
                     tracing: [
                         {
