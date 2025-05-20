@@ -13,6 +13,9 @@ export class MatchesGitignore implements Predicate<[string]> {
 
     private readonly workingDirectory: WorkingDirectory;
 
+    // The cache stores predicates for each `.gitignore` file path. 
+    // By default, the predicate returns `false`, ensuring no paths are ignored 
+    // when no `.gitignore` file is present or the cache is uninitialized.
     private readonly cache: Map<string, Predicate<[string]>> = new Map();
 
     public constructor({fileSystem, workingDirectory}: Configuration) {
