@@ -1,4 +1,4 @@
-import {JsonParseError} from '@croct/json5-parser/error';
+import {JsonParseError} from '@croct/json5-parser';
 import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {ErrorReason} from '@/application/error';
