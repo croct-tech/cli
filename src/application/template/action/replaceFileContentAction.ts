@@ -63,7 +63,7 @@ export class ReplaceFileContentAction implements Action<ReplaceFileContentOption
         for (const {pattern, caseSensitive, value} of replacements) {
             const flags = caseSensitive === true ? 'gi' : 'g';
 
-            result = result.replaceAll(new RegExp(pattern, flags), `${value}`);
+            result = result.replace(new RegExp(pattern, flags), `${value}`);
         }
 
         return result;
