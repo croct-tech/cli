@@ -1,7 +1,8 @@
-import {Argument, Command, InvalidArgumentError, Option} from '@commander-js/extra-typings';
+import {Argument, Command, InvalidOptionArgumentError, Option} from '@commander-js/extra-typings';
 import {JsonPrimitive, JsonValue} from '@croct/json';
 import {realpathSync} from 'fs';
 import {ApiKey} from '@croct/sdk/apiKey';
+import {Token} from '@croct/sdk/token';
 import {Cli} from '@/infrastructure/application/cli/cli';
 import {Resource} from '@/application/cli/command/init';
 import {OptionMap} from '@/application/template/template';
@@ -23,7 +24,7 @@ function createProgram(config: Configuration): typeof program {
             try {
                 return realpathSync(path);
             } catch {
-                throw new InvalidArgumentError('The path does not exist.');
+                throw new InvalidOptionArgumentError('The path does not exist.');
             }
         })
         .addOption(
@@ -33,13 +34,32 @@ function createProgram(config: Configuration): typeof program {
                     try {
                         return ApiKey.parse(key);
                     } catch {
-                        throw new InvalidArgumentError('The API key is malformed.');
+                        throw new InvalidOptionArgumentError('The API key is malformed.');
                     }
+                }).conflicts('token'),
+        )
+        .addOption(
+            new Option('--token <token>', 'The JWT-formatted token to use for authentication.')
+                .env('CROCT_TOKEN')
+                .argParser(jwt => {
+                    let token: Token;
+
+                    try {
+                        token = Token.parse(jwt);
+                    } catch {
+                        throw new InvalidOptionArgumentError('The token is malformed.');
+                    }
+
+                    if (!token.isValidNow()) {
+                        throw new InvalidOptionArgumentError('The token is expired.');
+                    }
+
+                    return token;
                 }),
         )
         .option('--registry <url>', 'The template registry.', url => {
             if (!URL.canParse(url)) {
-                throw new InvalidArgumentError('Malformed URL.');
+                throw new InvalidOptionArgumentError('Malformed URL.');
             }
 
             return url;
@@ -252,7 +272,7 @@ function createProgram(config: Configuration): typeof program {
                 try {
                     return ApiKeyPermission.fromValue(permission);
                 } catch {
-                    throw new InvalidArgumentError(`Unknown permission "${permission}".`);
+                    throw new InvalidOptionArgumentError(`Unknown permission "${permission}".`);
                 }
             }),
         );
@@ -318,7 +338,7 @@ function createProgram(config: Configuration): typeof program {
                     const number = Number.parseFloat(value);
 
                     if (Number.isNaN(number)) {
-                        throw new InvalidArgumentError('The value must be a number.');
+                        throw new InvalidOptionArgumentError('The value must be a number.');
                     }
 
                     return number;
@@ -337,7 +357,7 @@ function createProgram(config: Configuration): typeof program {
                     }
 
                     if (value === undefined || !Array.isArray(value)) {
-                        throw new InvalidArgumentError('The value must be a JSON array.');
+                        throw new InvalidOptionArgumentError('The value must be a JSON array.');
                     }
 
                     return value;
@@ -352,11 +372,11 @@ function createProgram(config: Configuration): typeof program {
                     try {
                         value = JSON.parse(json);
                     } catch {
-                        throw new InvalidArgumentError('The JSON is malformed.');
+                        throw new InvalidOptionArgumentError('The JSON is malformed.');
                     }
 
                     if (typeof value !== 'object' || value === null) {
-                        throw new InvalidArgumentError('The value must be a JSON object.');
+                        throw new InvalidOptionArgumentError('The value must be a JSON object.');
                     }
                 });
 
@@ -423,6 +443,7 @@ export async function run(args: string[] = process.argv, welcome = true): Promis
         debug: options.debug,
         interactive: options.interaction ? undefined : false,
         apiKey: options.apiKey,
+        token: options.token,
         skipPrompts: options.skipPrompts === true,
         templateRegistryUrl: options.registry === undefined
             ? undefined
