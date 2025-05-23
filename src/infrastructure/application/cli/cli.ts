@@ -7,6 +7,7 @@ import {homedir} from 'os';
 import XDGAppPaths from 'xdg-app-paths';
 import ci from 'ci-info';
 import {FilteredLogger, Logger, LogLevel} from '@croct/logging';
+import {Token} from '@croct/sdk/token';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput} from '@/infrastructure/application/cli/io/consoleOutput';
 import {Sdk} from '@/application/project/sdk/sdk';
@@ -285,6 +286,7 @@ import {TypeErasureCodemod} from '@/application/project/code/transformation/java
 import {ExecutableExists} from '@/application/predicate/executableExists';
 import {ServerFactory} from '@/application/project/server/factory/serverFactory';
 import {StopServer} from '@/application/template/action/stopServerAction';
+import {ProvidedTokenAuthenticator} from '@/application/cli/authentication/authenticator/providedTokenAuthenticator';
 
 export type Configuration = {
     program: Program,
@@ -294,6 +296,7 @@ export type Configuration = {
     interactive: boolean,
     version: string,
     apiKey?: ApiKey,
+    token?: Token,
     skipPrompts: boolean,
     adminUrl: URL,
     adminTokenParameter: string,
@@ -394,6 +397,7 @@ export class Cli {
             interactive: configuration.interactive ?? !ci.isCI,
             version: configuration.version ?? '0.0.0',
             apiKey: configuration.apiKey,
+            token: configuration.token,
             skipPrompts: configuration.skipPrompts ?? false,
             adminTokenDuration: configuration.adminTokenDuration ?? 7 * LocalTime.SECONDS_PER_DAY,
             apiKeyTokenDuration: configuration.apiKeyTokenDuration ?? 30 * LocalTime.SECONDS_PER_MINUTE,
@@ -1427,6 +1431,12 @@ export class Cli {
                     apiKey: this.configuration.apiKey,
                     clock: this.getClock(),
                     tokenDuration: this.configuration.apiKeyTokenDuration,
+                });
+            }
+
+            if (this.configuration.token !== undefined) {
+                return new ProvidedTokenAuthenticator({
+                    token: this.configuration.token,
                 });
             }
 
