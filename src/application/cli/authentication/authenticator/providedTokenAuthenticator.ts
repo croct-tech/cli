@@ -1,6 +1,6 @@
 import {Token} from '@croct/sdk/token';
 import {Authenticator} from '@/application/cli/authentication/authenticator/index';
-import {HelpfulError} from '@/application/error';
+import {ErrorReason, HelpfulError} from '@/application/error';
 
 export type Configuration = {
     token: Token,
@@ -18,10 +18,23 @@ export class ProvidedTokenAuthenticator implements Authenticator<Record<never, n
     }
 
     public login(): Promise<string> {
-        throw new HelpfulError('Login is not supported when using an externally provided token.');
+        this.reportUnsupportedOperation('logout');
     }
 
     public logout(): Promise<void> {
-        throw new HelpfulError('Logout is not supported when using an externally provided token.');
+        this.reportUnsupportedOperation('logout');
+    }
+
+    private reportUnsupportedOperation(operation: 'login' | 'logout'): never {
+        throw new HelpfulError(
+            `${operation === 'login' ? 'Login' : 'Logout'} is not supported when using an externally provided token.`,
+            {
+                title: 'Unsupported operation',
+                reason: ErrorReason.PRECONDITION,
+                suggestions: [
+                    'Do not specify the `--token` option or the `CROCT_TOKEN` environment variable.',
+                ],
+            },
+        );
     }
 }
