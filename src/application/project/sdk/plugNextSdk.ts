@@ -339,8 +339,6 @@ export class PlugNextSdk extends JavaScriptSdk {
 
         notifier.update('Loading information');
 
-        console.log(installation.skipApiKeySetup);
-
         const [developmentApplication, productionApplication] = await Promise.all([
             this.workspaceApi.getApplication({
                 organizationSlug: configuration.organization,
