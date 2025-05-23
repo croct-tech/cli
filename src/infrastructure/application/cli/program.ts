@@ -120,7 +120,7 @@ function createProgram(config: Configuration): typeof program {
                 .choices(['javascript', 'react', 'next'] as const),
         )
         .addOption(
-            new Option('--skip-api-key', 'Skip API key setup.')
+            new Option('--skip-api-key-setup', 'Opt-out of API key setup.')
                 .default(false)
                 .env('CROCT_SKIP_API_KEY_SETUP'),
         )
@@ -154,7 +154,7 @@ function createProgram(config: Configuration): typeof program {
                 workspace: options.wor,
                 devApplication: options.devApp,
                 prodApplication: options.prodApp,
-                skipApiKeySetup: options.skipApiKey,
+                skipApiKeySetup: options.skipApiKeySetup,
             });
         });
 
