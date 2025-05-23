@@ -18,7 +18,7 @@ export class ProvidedTokenAuthenticator implements Authenticator<Record<never, n
     }
 
     public login(): Promise<string> {
-        this.reportUnsupportedOperation('logout');
+        this.reportUnsupportedOperation('login');
     }
 
     public logout(): Promise<void> {
