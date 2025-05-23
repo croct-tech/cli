@@ -31,6 +31,7 @@ export type InitInput = {
     workspace?: string,
     devApplication?: string,
     prodApplication?: string,
+    skipApiKeySetup?: boolean,
 };
 
 export type InitConfig = {
@@ -157,7 +158,9 @@ export class InitCommand implements Command<InitInput> {
             return;
         }
 
-        await configurationManager.update(await this.configure(sdk, updatedConfiguration));
+        await configurationManager.update(
+            await this.configure(sdk, updatedConfiguration, input.skipApiKeySetup === true),
+        );
     }
 
     private async getOrganization(options: OrganizationOptions, organizationSlug?: string): Promise<Organization> {
@@ -247,7 +250,11 @@ export class InitCommand implements Command<InitInput> {
         return application;
     }
 
-    private async configure(sdk: Sdk, configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
+    private async configure(
+        sdk: Sdk,
+        configuration: ProjectConfiguration,
+        skipApiKeySetup: boolean,
+    ): Promise<ProjectConfiguration> {
         const {skipConfirmation} = this.config;
 
         const updatedConfiguration = await sdk.setup({
@@ -255,6 +262,7 @@ export class InitCommand implements Command<InitInput> {
                 ? undefined
                 : this.config.io.input,
             output: this.config.io.output,
+            skipApiKeySetup: skipApiKeySetup,
             configuration: configuration,
         });
 

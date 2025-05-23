@@ -53,15 +53,17 @@ export class EnvFile {
             return this.write(`${name}=${value}`);
         }
 
+        const entry = `${name}=${value}`;
+
         const updatedContent = content.replace(
             new RegExp(
                 `${escapedName}\\s*=\\s*((?!['"\`]).*$|\`(?:\\.|[^\`])*\`|'(?:\\.|[^'])*'|"(?:\\.|[^"])*")`,
                 'm',
             ),
-            `${name}=${value}`,
+            entry,
         );
 
-        if (updatedContent !== content) {
+        if (updatedContent !== content || updatedContent.includes(entry)) {
             return this.write(updatedContent);
         }
 

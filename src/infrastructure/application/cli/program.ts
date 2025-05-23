@@ -119,6 +119,11 @@ function createProgram(config: Configuration): typeof program {
             new Option('-s, --sdk <platform>', 'The SDK to use.')
                 .choices(['javascript', 'react', 'next'] as const),
         )
+        .addOption(
+            new Option('--skip-api-key', 'Skip API key setup.')
+                .default(false)
+                .env('CROCT_SKIP_API_KEY_SETUP'),
+        )
         .addOption(config.interactive ? organizationOption : organizationOption.makeOptionMandatory())
         .addOption(config.interactive ? workspaceOption : workspaceOption.makeOptionMandatory())
         .addOption(config.interactive ? devApplicationOption : devApplicationOption.makeOptionMandatory())
@@ -149,6 +154,7 @@ function createProgram(config: Configuration): typeof program {
                 workspace: options.wor,
                 devApplication: options.devApp,
                 prodApplication: options.prodApp,
+                skipApiKeySetup: options.skipApiKey,
             });
         });
 

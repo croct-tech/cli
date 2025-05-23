@@ -529,10 +529,11 @@ export class Cli {
             }),
             {
                 ...input,
-                organization: process.getEnvValue('CROCT_ORGANIZATION') ?? input.organization ?? undefined,
-                workspace: process.getEnvValue('CROCT_WORKSPACE') ?? input.workspace ?? undefined,
-                devApplication: process.getEnvValue('CROCT_DEV_APPLICATION') ?? input.devApplication ?? undefined,
-                prodApplication: process.getEnvValue('CROCT_PROD_APPLICATION') ?? input.prodApplication ?? undefined,
+                organization: input.organization ?? process.getEnvValue('CROCT_ORGANIZATION') ?? undefined,
+                workspace: input.workspace ?? process.getEnvValue('CROCT_WORKSPACE') ?? undefined,
+                devApplication: input.devApplication ?? process.getEnvValue('CROCT_DEV_APPLICATION') ?? undefined,
+                prodApplication: input.prodApplication ?? process.getEnvValue('CROCT_PROD_APPLICATION') ?? undefined,
+                skipApiKeySetup: input.skipApiKeySetup ?? process.getEnvValue('CROCT_SKIP_API_KEY_SETUP') !== null,
             },
         );
     }
