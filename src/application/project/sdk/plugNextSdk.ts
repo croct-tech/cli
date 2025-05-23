@@ -337,31 +337,32 @@ export class PlugNextSdk extends JavaScriptSdk {
     private async updateEnvVariables(installation: NextInstallation): Promise<void> {
         const {project: {env: plan}, configuration, notifier} = installation;
 
-        if (!await plan.localFile.hasVariable(NextEnvVar.API_KEY)) {
-            notifier.update('Loading information');
+        notifier.update('Loading information');
 
-            const [user, developmentApplication, productionApplication] = await Promise.all([
-                this.userApi.getUser(),
-                this.workspaceApi.getApplication({
+        const [developmentApplication, productionApplication] = await Promise.all([
+            this.workspaceApi.getApplication({
+                organizationSlug: configuration.organization,
+                workspaceSlug: configuration.workspace,
+                applicationSlug: configuration.applications.development,
+            }),
+            configuration.applications.production === undefined
+                ? null
+                : this.workspaceApi.getApplication({
                     organizationSlug: configuration.organization,
                     workspaceSlug: configuration.workspace,
-                    applicationSlug: configuration.applications.development,
+                    applicationSlug: configuration.applications.production,
                 }),
-                configuration.applications.production === undefined
-                    ? null
-                    : this.workspaceApi.getApplication({
-                        organizationSlug: configuration.organization,
-                        workspaceSlug: configuration.workspace,
-                        applicationSlug: configuration.applications.production,
-                    }),
-            ]);
+        ]);
 
-            if (developmentApplication === null) {
-                throw new SdkError(
-                    `Development application \`${configuration.applications.development}\` not found.`,
-                    {reason: ErrorReason.NOT_FOUND},
-                );
-            }
+        if (developmentApplication === null) {
+            throw new SdkError(
+                `Development application \`${configuration.applications.development}\` not found.`,
+                {reason: ErrorReason.NOT_FOUND},
+            );
+        }
+
+        if (!await plan.localFile.hasVariable(NextEnvVar.API_KEY) && installation.skipApiKeySetup !== true) {
+            const user = await this.userApi.getUser();
 
             notifier.update('Creating API key');
 
@@ -391,18 +392,20 @@ export class PlugNextSdk extends JavaScriptSdk {
             await plan.localFile.setVariables({
                 [NextEnvVar.API_KEY]: apiKey.secret,
             });
-
-            await Promise.all([
-                plan.developmentFile.setVariables({
-                    [NextEnvVar.APP_ID]: developmentApplication.publicId,
-                }),
-                productionApplication === null
-                    ? Promise.resolve()
-                    : plan.productionFile.setVariables({
-                        [NextEnvVar.APP_ID]: productionApplication.publicId,
-                    }),
-            ]);
         }
+
+        // Always configure the app ID to ensure it matches the application
+        // defined in the project configuration
+        await Promise.all([
+            plan.developmentFile.setVariables({
+                [NextEnvVar.APP_ID]: developmentApplication.publicId,
+            }),
+            productionApplication === null
+                ? Promise.resolve()
+                : plan.productionFile.setVariables({
+                    [NextEnvVar.APP_ID]: productionApplication.publicId,
+                }),
+        ]);
     }
 
     private async detectRouter(directory?: string): Promise<NextRouter> {

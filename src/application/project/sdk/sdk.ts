@@ -7,6 +7,7 @@ import {Help, HelpfulError} from '@/application/error';
 export type Installation = {
     input?: Input,
     output: Output,
+    skipApiKeySetup?: boolean,
     configuration: ProjectConfiguration,
 };
 
