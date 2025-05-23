@@ -18,10 +18,10 @@ export class ProvidedTokenAuthenticator implements Authenticator<Record<never, n
     }
 
     public login(): Promise<string> {
-        throw new HelpfulError('Externally provided token cannot be used to login.');
+        throw new HelpfulError('Login is not supported when using an externally provided token.');
     }
 
     public logout(): Promise<void> {
-        return Promise.resolve();
+        throw new HelpfulError('Logout is not supported when using an externally provided token.');
     }
 }
