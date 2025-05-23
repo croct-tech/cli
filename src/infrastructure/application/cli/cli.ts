@@ -478,6 +478,8 @@ export class Cli {
     }
 
     public init(input: InitInput): Promise<void> {
+        const {process} = this.configuration;
+
         return this.execute(
             new InitCommand({
                 sdkProvider: this.getSdkProvider(),
@@ -525,7 +527,13 @@ export class Cli {
                     output: this.getOutput(),
                 },
             }),
-            input,
+            {
+                ...input,
+                organization: process.getEnvValue('CROCT_ORGANIZATION') ?? input.organization ?? undefined,
+                workspace: process.getEnvValue('CROCT_WORKSPACE') ?? input.workspace ?? undefined,
+                devApplication: process.getEnvValue('CROCT_DEV_APPLICATION') ?? input.devApplication ?? undefined,
+                prodApplication: process.getEnvValue('CROCT_PROD_APPLICATION') ?? input.prodApplication ?? undefined,
+            },
         );
     }
 
