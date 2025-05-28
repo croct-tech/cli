@@ -5,6 +5,7 @@ export type Configuration = {
     input: Input,
     label: string,
     default?: string,
+    initial?: string,
     unavailableSlugs?: string[],
 };
 
@@ -20,11 +21,12 @@ export class SlugInput implements Form<string> {
     }
 
     public handle(): Promise<string> {
-        const {input, unavailableSlugs = [], default: defaultValue} = this.config;
+        const {input, unavailableSlugs = []} = this.config;
 
         return input.prompt({
             message: this.config.label,
-            default: defaultValue,
+            default: this.config.default,
+            initial: this.config.initial,
             validate: value => {
                 if (!/^[a-z]+(-?[a-z0-9]+)*$/i.test(value)) {
                     return 'The slug must start with a letter and contain only letters, numbers, and hyphens.';

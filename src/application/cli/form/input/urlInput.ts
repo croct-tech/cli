@@ -5,6 +5,7 @@ export type Configuration = {
     input: Input,
     label: string,
     default?: string,
+    initial?: string,
     validate?: (value: string) => boolean | string,
 };
 
@@ -24,7 +25,8 @@ export class UrlInput implements Form<string> {
 
         return input.prompt({
             message: this.config.label,
-            default: this.config.default ?? 'https://',
+            default: this.config.default,
+            initial: this.config.initial ?? 'https://',
             validate: value => {
                 if (!URL.canParse(value)) {
                     return 'Invalid URL';
