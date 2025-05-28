@@ -64,9 +64,15 @@ function createProgram(config: Configuration): typeof program {
 
             return url;
         })
-        .option('--no-interaction', 'Disable interaction mode.')
+        .option('--no-interaction', 'Run the CLI in non-interactive mode.')
         .addOption(
-            new Option('-s, --skip-prompts', 'Skip prompts with default options.')
+            new Option('--stateless', 'Run the CLI without saving any state locally.')
+                .env('CROCT_STATELESS')
+                .default(false),
+        )
+        .addOption(
+            new Option('--dnd', 'Run the CLI with minimal interaction and interruption.')
+                .env('CROCT_DND')
                 .default(false),
         )
         .addOption(
@@ -442,9 +448,10 @@ export async function run(args: string[] = process.argv, welcome = true): Promis
         quiet: options.quiet,
         debug: options.debug,
         interactive: options.interaction ? undefined : false,
+        stateless: options.stateless,
         apiKey: options.apiKey,
         token: options.token,
-        skipPrompts: options.skipPrompts === true,
+        dnd: options.dnd,
         templateRegistryUrl: options.registry === undefined
             ? undefined
             : new URL(options.registry),

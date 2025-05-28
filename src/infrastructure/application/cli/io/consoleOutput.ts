@@ -8,7 +8,9 @@ import {Callout, LogFormatter} from '@/application/cli/io/logFormatter';
 
 export type ExitCallback = () => Promise<never>;
 
-export type LinkOpener = (target: string) => Promise<void>;
+export interface LinkOpener {
+    open(target: string): Promise<void>;
+}
 
 export type Configuration = {
     output: Writable,
@@ -56,7 +58,7 @@ export class ConsoleOutput implements Output {
     }
 
     public async open(target: string): Promise<void> {
-        await this.linkOpener(target);
+        await this.linkOpener.open(target);
     }
 
     public break(): void {

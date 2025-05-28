@@ -67,7 +67,7 @@ function render(message: string): string {
         strike: node => chalk.strikethrough(node.children),
         code: node => chalk.cyan(node.content),
         link: node => terminalLink(node.children, node.href, {
-            fallback: (text, url) => `${text} (${url})`,
+            fallback: (text, url) => (text.includes(url) ? text : `${text} (${url})`),
         }),
         image: node => unescapeMarkdown(node.source),
         paragraph: node => `${node.children.join('')}\n\n`,
