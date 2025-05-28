@@ -9,6 +9,7 @@ export class ConsoleLinkOpener implements LinkOpener {
     }
 
     public open(target: string): Promise<void> {
+        // Escape special characters that could break the Markdown link syntax.
         const url = target.replace(/([\\`*_{}[\]()#+\-.!])/g, '\\$1');
 
         this.output.log(`[${url}](${url})`);

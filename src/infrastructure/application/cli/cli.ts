@@ -1513,7 +1513,7 @@ export class Cli {
                     tokenIssuer: () => api.issueToken({
                         duration: this.configuration.cliTokenDuration,
                     }),
-                    cacheProvider: this.getCache(
+                    cacheProvider: this.selectCacheProvider(
                         () => (
                             new FileSystemCache({
                                 fileSystem: this.getFileSystem(),
@@ -2219,7 +2219,7 @@ export class Cli {
                 return new HierarchyResolver(
                     this.getGraphqlClient(),
                     AdaptedCache.transformValues(
-                        this.getCache(
+                        this.selectCacheProvider(
                             () => new FileSystemCache({
                                 fileSystem: fileSystem,
                                 directory: fileSystem.joinPaths(
@@ -2377,7 +2377,7 @@ export class Cli {
         );
     }
 
-    private getCache<V>(factory: () => CacheProvider<string, V>): CacheProvider<string, V> {
+    private selectCacheProvider<V>(factory: () => CacheProvider<string, V>): CacheProvider<string, V> {
         if (this.configuration.stateless) {
             return new InMemoryCache();
         }
@@ -2393,7 +2393,7 @@ export class Cli {
                 fileSystem: fileSystem,
                 configurationProvider: new CachedConfigurationStore({
                     cacheKey: 'config.json',
-                    cache: this.getCache(
+                    cache: this.selectCacheProvider(
                         () => new FileSystemCache({
                             fileSystem: fileSystem,
                             directory: this.configuration.directories.config,
