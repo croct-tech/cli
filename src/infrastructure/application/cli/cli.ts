@@ -872,6 +872,8 @@ export class Cli {
                             const consoleOpener = new ConsoleLinkOpener(output);
 
                             if (this.configuration.dnd) {
+                                // When DND mode is enabled, minimize interruptions
+                                // by logging links to the console instead of opening them.
                                 return consoleOpener;
                             }
 
