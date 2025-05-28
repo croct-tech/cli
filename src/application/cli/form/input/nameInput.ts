@@ -5,6 +5,7 @@ export type Configuration = {
     input: Input,
     label: string,
     default?: string,
+    initial?: string,
     minimumLength?: number,
     maximumLength?: number,
     validator?: (value: string) => string | boolean,
@@ -27,6 +28,7 @@ export class NameInput implements Form<string> {
         return input.prompt({
             message: this.config.label,
             default: this.config.default,
+            initial: this.config.initial,
             validate: value => {
                 if (/(^\s|\s$|\s{2,})/.test(value)) {
                     return 'No leading, trailing, or multiple spaces.';

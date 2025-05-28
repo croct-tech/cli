@@ -32,6 +32,7 @@ export type Prompt = {
     message: string,
     type?: 'text' | 'password',
     default?: string,
+    initial?: string,
     validate?: (input: string) => ValidationResult,
 };
 

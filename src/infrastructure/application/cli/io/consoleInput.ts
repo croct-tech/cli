@@ -41,7 +41,7 @@ export class ConsoleInput implements Input {
         return this.interact({
             type: prompt.type === 'password' ? 'invisible' : 'text',
             message: prompt.message,
-            initial: prompt.default,
+            initial: prompt.default ?? prompt.initial,
             validate: prompt.validate,
         });
     }

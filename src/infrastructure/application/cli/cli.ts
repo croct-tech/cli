@@ -1,15 +1,14 @@
-import {AdaptedCache, AutoSaveCache, InMemoryCache} from '@croct/cache';
+import {AdaptedCache, AutoSaveCache, CacheProvider, InMemoryCache} from '@croct/cache';
 import {ApiKey} from '@croct/sdk/apiKey';
 import {Clock, Instant, LocalTime} from '@croct/time';
 import {SystemClock} from '@croct/time/clock/systemClock';
-import open from 'open';
 import {homedir} from 'os';
 import XDGAppPaths from 'xdg-app-paths';
 import ci from 'ci-info';
 import {FilteredLogger, Logger, LogLevel} from '@croct/logging';
 import {Token} from '@croct/sdk/token';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
-import {ConsoleOutput} from '@/infrastructure/application/cli/io/consoleOutput';
+import {ConsoleOutput, LinkOpener} from '@/infrastructure/application/cli/io/consoleOutput';
 import {Sdk} from '@/application/project/sdk/sdk';
 import {Configuration as JavaScriptSdkConfiguration} from '@/application/project/sdk/javasScriptSdk';
 import {PlugJsSdk} from '@/application/project/sdk/plugJsSdk';
@@ -247,7 +246,7 @@ import {
     InvitationReminderAuthenticator,
 } from '@/application/cli/authentication/authenticator/invitationReminderAuthenticator';
 import {CliConfigurationProvider} from '@/application/cli/configuration/provider';
-import {FileConfigurationStore} from '@/application/cli/configuration/fileConfigurationStore';
+import {CachedConfigurationStore} from '@/application/cli/configuration/cachedConfigurationStore';
 import {NormalizedConfigurationStore} from '@/application/cli/configuration/normalizedConfigurationStore';
 import {CreateApiKeyCommand, CreateApiKeyInput} from '@/application/cli/command/apiKey/create';
 import {ApiKeyAuthenticator} from '@/application/cli/authentication/authenticator/apiKeyAuthenticator';
@@ -287,17 +286,21 @@ import {ExecutableExists} from '@/application/predicate/executableExists';
 import {ServerFactory} from '@/application/project/server/factory/serverFactory';
 import {StopServer} from '@/application/template/action/stopServerAction';
 import {ProvidedTokenAuthenticator} from '@/application/cli/authentication/authenticator/providedTokenAuthenticator';
+import {LazyLinkOpener} from '@/infrastructure/application/cli/io/lazyLinkOpener';
+import {ConsoleLinkOpener} from '@/infrastructure/application/cli/io/consoleLinkOpener';
+import {BrowserLinkOpener} from '@/infrastructure/application/cli/io/browserLinkOpener';
 
 export type Configuration = {
     program: Program,
     process: Process,
     quiet: boolean,
     debug: boolean,
+    stateless: boolean,
     interactive: boolean,
     version: string,
     apiKey?: ApiKey,
     token?: Token,
-    skipPrompts: boolean,
+    dnd: boolean,
     adminUrl: URL,
     adminTokenParameter: string,
     adminGraphqlEndpoint: URL,
@@ -368,8 +371,6 @@ export class Cli {
 
     private readonly configuration: Configuration;
 
-    private readonly skipPrompts: boolean;
-
     private readonly initialDirectory: string;
 
     private readonly workingDirectory: CurrentWorkingDirectory;
@@ -378,7 +379,6 @@ export class Cli {
 
     public constructor(configuration: Configuration) {
         this.configuration = configuration;
-        this.skipPrompts = configuration.skipPrompts;
         this.initialDirectory = configuration.directories.current ?? configuration.process.getCurrentDirectory();
         this.workingDirectory = new VirtualizedWorkingDirectory(this.initialDirectory);
     }
@@ -394,11 +394,12 @@ export class Cli {
             process: configuration.process ?? process,
             quiet: configuration.quiet ?? false,
             debug: configuration.debug ?? false,
+            stateless: configuration.stateless ?? false,
             interactive: configuration.interactive ?? !ci.isCI,
             version: configuration.version ?? '0.0.0',
             apiKey: configuration.apiKey,
             token: configuration.token,
-            skipPrompts: configuration.skipPrompts ?? false,
+            dnd: configuration.dnd ?? false,
             adminTokenDuration: configuration.adminTokenDuration ?? 7 * LocalTime.SECONDS_PER_DAY,
             apiKeyTokenDuration: configuration.apiKeyTokenDuration ?? 30 * LocalTime.SECONDS_PER_MINUTE,
             cliTokenDuration: configuration.cliTokenDuration ?? 90 * LocalTime.SECONDS_PER_DAY,
@@ -439,7 +440,11 @@ export class Cli {
                     operation: update ? 'optionally-update' : 'optionally-enable',
                 }),
             }),
-            input,
+            {
+                skipDeepLinkCheck: !this.configuration.interactive
+                    || this.configuration.dnd
+                    || input.skipDeepLinkCheck === true,
+            },
         );
     }
 
@@ -811,7 +816,7 @@ export class Cli {
                 onInteractionEnd: () => output.resume(),
             });
 
-            if (this.skipPrompts) {
+            if (this.configuration.dnd) {
                 return new DefaultChoiceInput(input);
             }
 
@@ -822,16 +827,16 @@ export class Cli {
     private getNonInteractiveOutput(quiet = false): ConsoleOutput {
         const {configuration} = this;
 
-        return new ConsoleOutput({
+        const output = new ConsoleOutput({
             output: configuration.process.getStandardOutput(),
             formatter: this.getLogFormatter(),
             interactive: false,
             quiet: quiet,
             onExit: () => configuration.process.exit(),
-            linkOpener: async (url): Promise<void> => {
-                await open(url, {wait: true});
-            },
+            linkOpener: new LazyLinkOpener((): LinkOpener => new ConsoleLinkOpener(output)),
         });
+
+        return output;
     }
 
     private getHierarchicalLogger(): HierarchicalLogger {
@@ -856,16 +861,28 @@ export class Cli {
             () => {
                 const {configuration} = this;
 
-                return new ConsoleOutput({
+                const output = new ConsoleOutput({
                     output: configuration.process.getStandardOutput(),
                     formatter: this.getLogFormatter(),
                     interactive: this.configuration.interactive,
                     quiet: this.configuration.quiet,
                     onExit: () => configuration.process.exit(),
-                    linkOpener: async (url): Promise<void> => {
-                        await open(url);
-                    },
+                    linkOpener: new LazyLinkOpener(
+                        (): LinkOpener => {
+                            const consoleOpener = new ConsoleLinkOpener(output);
+
+                            if (this.configuration.dnd) {
+                                // When DND mode is enabled, minimize interruptions
+                                // by logging links to the console instead of opening them.
+                                return consoleOpener;
+                            }
+
+                            return new BrowserLinkOpener(consoleOpener);
+                        },
+                    ),
                 });
+
+                return output;
             },
         );
     }
@@ -1498,11 +1515,15 @@ export class Cli {
                     tokenIssuer: () => api.issueToken({
                         duration: this.configuration.cliTokenDuration,
                     }),
-                    cacheProvider: new FileSystemCache({
-                        fileSystem: this.getFileSystem(),
-                        directory: this.configuration.directories.config,
-                        useKeyAsFileName: true,
-                    }),
+                    cacheProvider: this.selectCacheProvider(
+                        () => (
+                            new FileSystemCache({
+                                fileSystem: this.getFileSystem(),
+                                directory: this.configuration.directories.config,
+                                useKeyAsFileName: true,
+                            })
+                        ),
+                    ),
                 }),
                 authenticator: new MultiAuthenticator<AuthenticationMethods>({
                     default: this.configuration.interactive
@@ -2200,13 +2221,15 @@ export class Cli {
                 return new HierarchyResolver(
                     this.getGraphqlClient(),
                     AdaptedCache.transformValues(
-                        new FileSystemCache({
-                            fileSystem: fileSystem,
-                            directory: fileSystem.joinPaths(
-                                this.configuration.directories.cache,
-                                'hierarchy',
-                            ),
-                        }),
+                        this.selectCacheProvider(
+                            () => new FileSystemCache({
+                                fileSystem: fileSystem,
+                                directory: fileSystem.joinPaths(
+                                    this.configuration.directories.cache,
+                                    'hierarchy',
+                                ),
+                            }),
+                        ),
                         AdaptedCache.jsonSerializer(),
                         AdaptedCache.jsonDeserializer(),
                     ),
@@ -2356,16 +2379,30 @@ export class Cli {
         );
     }
 
+    private selectCacheProvider<V>(factory: () => CacheProvider<string, V>): CacheProvider<string, V> {
+        if (this.configuration.stateless) {
+            return new InMemoryCache();
+        }
+
+        return factory();
+    }
+
     private getCliConfigurationProvider(): CliConfigurationProvider {
         return this.share(this.getCliConfigurationProvider, () => {
             const fileSystem = this.getFileSystem();
 
             return new NormalizedConfigurationStore({
                 fileSystem: fileSystem,
-                configurationProvider: new FileConfigurationStore({
-                    fileSystem: fileSystem,
+                configurationProvider: new CachedConfigurationStore({
+                    cacheKey: 'config.json',
+                    cache: this.selectCacheProvider(
+                        () => new FileSystemCache({
+                            fileSystem: fileSystem,
+                            directory: this.configuration.directories.config,
+                            useKeyAsFileName: true,
+                        }),
+                    ),
                     validator: new CliSettingsValidator(),
-                    filePath: fileSystem.joinPaths(this.configuration.directories.config, 'config.json'),
                 }),
             });
         });
