@@ -704,14 +704,24 @@ export abstract class JavaScriptSdk implements Sdk {
         }
 
         const [slots, components] = await Promise.all([
-            this.workspaceApi.getSlots({
-                organizationSlug: configuration.organization,
-                workspaceSlug: configuration.workspace,
-            }),
-            this.workspaceApi.getComponents({
-                organizationSlug: configuration.organization,
-                workspaceSlug: configuration.workspace,
-            }),
+            Promise.all(listedSlots.map(
+                slot => (
+                    this.workspaceApi.getSlot({
+                        organizationSlug: configuration.organization,
+                        workspaceSlug: configuration.workspace,
+                        slotSlug: slot,
+                    })
+                ),
+            )).then(list => list.filter(slot => slot !== null)),
+            Promise.all(listedComponents.map(
+                component => (
+                    this.workspaceApi.getComponent({
+                        organizationSlug: configuration.organization,
+                        workspaceSlug: configuration.workspace,
+                        componentSlug: component,
+                    })
+                ),
+            )).then(list => list.filter(component => component !== null)),
         ]);
 
         return {
