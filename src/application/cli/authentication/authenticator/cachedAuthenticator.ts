@@ -14,6 +14,8 @@ export class CachedAuthenticator<I extends AuthenticationInput> implements Authe
 
     private readonly cacheProvider: CacheProvider<string, string|null>;
 
+    private promise?: Promise<string>;
+
     public constructor({authenticator, cacheKey, cacheProvider}: Configuration<I>) {
         this.authenticator = authenticator;
         this.cacheKey = cacheKey;
@@ -24,7 +26,17 @@ export class CachedAuthenticator<I extends AuthenticationInput> implements Authe
         return this.cacheProvider.get(this.cacheKey, () => this.authenticator.getToken());
     }
 
-    public async login(input: I): Promise<string> {
+    public login(input: I): Promise<string> {
+        if (this.promise === undefined) {
+            this.promise = this.issueToken(input).finally(() => {
+                this.promise = undefined;
+            });
+        }
+
+        return this.promise;
+    }
+
+    private async issueToken(input: I): Promise<string> {
         const token = await this.authenticator.login(input);
 
         await this.cacheProvider.set(this.cacheKey, token);
