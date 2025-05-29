@@ -1,4 +1,5 @@
 import {CacheProvider} from '@croct/cache';
+import {deepEqual} from 'fast-equals';
 import {AuthenticationInput, Authenticator} from '@/application/cli/authentication/authenticator/index';
 
 export type Configuration<I extends AuthenticationInput>= {
@@ -12,28 +13,46 @@ export class CachedAuthenticator<I extends AuthenticationInput> implements Authe
 
     private readonly cacheKey: string;
 
-    private readonly cacheProvider: CacheProvider<string, string|null>;
+    private readonly tokenCache: CacheProvider<string, string|null>;
+
+    private readonly inFlightCache: Map<I, Promise<string>> = new Map();
 
     public constructor({authenticator, cacheKey, cacheProvider}: Configuration<I>) {
         this.authenticator = authenticator;
         this.cacheKey = cacheKey;
-        this.cacheProvider = cacheProvider;
+        this.tokenCache = cacheProvider;
     }
 
     public getToken(): Promise<string|null> {
-        return this.cacheProvider.get(this.cacheKey, () => this.authenticator.getToken());
+        return this.tokenCache.get(this.cacheKey, () => this.authenticator.getToken());
     }
 
-    public async login(input: I): Promise<string> {
+    public login(input: I): Promise<string> {
+        for (const [key, promise] of this.inFlightCache.entries()) {
+            if (deepEqual(input, key)) {
+                return promise;
+            }
+        }
+
+        const promise = this.issueToken(input).finally(() => {
+            this.inFlightCache.delete(input);
+        });
+
+        this.inFlightCache.set(input, promise);
+
+        return promise;
+    }
+
+    private async issueToken(input: I): Promise<string> {
         const token = await this.authenticator.login(input);
 
-        await this.cacheProvider.set(this.cacheKey, token);
+        await this.tokenCache.set(this.cacheKey, token);
 
         return token;
     }
 
     public async logout(): Promise<void> {
         await this.authenticator.logout();
-        await this.cacheProvider.delete(this.cacheKey);
+        await this.tokenCache.delete(this.cacheKey);
     }
 }
