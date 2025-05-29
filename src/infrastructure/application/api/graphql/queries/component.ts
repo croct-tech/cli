@@ -4,7 +4,7 @@ export const componentsQuery = graphql(`
     query Components($organizationSlug: ReadableId!, $workspaceSlug: ReadableId!) {
         organization(slug: $organizationSlug) {
             workspace(slug: $workspaceSlug) {
-                components(first: 100) {
+                components(first: 500) {
                     edges {
                         node {
                             id
