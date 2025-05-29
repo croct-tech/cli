@@ -4,7 +4,7 @@ export const slotsQuery = graphql(`
     query Slots($organizationSlug: ReadableId!, $workspaceSlug: ReadableId!) {
         organization(slug: $organizationSlug) {
             workspace(slug: $workspaceSlug) {
-                slots(first: 100) {
+                slots(first: 500) {
                     edges {
                         node {
                             id
