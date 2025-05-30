@@ -29,7 +29,7 @@ const schema: ZodType<LocatePathOptions> = z.strictObject({
     result: z.string(),
 });
 
-export class LocateFileOptionsValidator extends ActionOptionsValidator<LocatePathOptions> {
+export class LocatePathOptionsValidator extends ActionOptionsValidator<LocatePathOptions> {
     public constructor() {
         super(schema);
     }

@@ -88,8 +88,11 @@ export class DownloadAction implements Action<DownloadOptions> {
             const path = this.resolvePath(fileSystem.normalizeSeparators(entry.name), mapping);
 
             if (fileSystem.isAbsolutePath(path)) {
-                // Disallow linking outside the destination directory for security reasons
-                continue;
+                throw new ActionError('Path to downloaded file cannot be absolute.', {
+                    reason: ErrorReason.PRECONDITION,
+                    details: [`Path: ${path}`],
+                    suggestions: ['Use relative paths'],
+                });
             }
 
             if (matcher !== undefined && !matcher.match(path)) {

@@ -135,7 +135,7 @@ import {DownloadOptionsValidator} from '@/infrastructure/application/validation/
 import {
     AddDependencyOptionsValidator,
 } from '@/infrastructure/application/validation/actions/addDependencyOptionsValidator';
-import {LocateFileOptionsValidator} from '@/infrastructure/application/validation/actions/locateFileOptionsValidator';
+import {LocatePathOptionsValidator} from '@/infrastructure/application/validation/actions/locatePathOptionsValidator';
 import {
     ReplaceFileContentOptionsValidator,
 } from '@/infrastructure/application/validation/actions/replaceFileContentOptionsValidator';
@@ -1230,7 +1230,7 @@ export class Cli {
                         fileSystem: fileSystem,
                         scanFilter: this.getScanFilter(),
                     }),
-                    validator: new LocateFileOptionsValidator(),
+                    validator: new LocatePathOptionsValidator(),
                 }),
                 'move-path': new ValidatedAction({
                     action: new MovePathAction({
