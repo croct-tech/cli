@@ -10,7 +10,7 @@ export class BrowserLinkOpener implements LinkOpener {
 
     public async open(target: string): Promise<void> {
         try {
-            await open(target, {wait: true});
+            await open(target);
         } catch {
             return this.fallbackOpener.open(target);
         }
