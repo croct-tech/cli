@@ -118,7 +118,7 @@ export interface PackageManager {
     installDependencies(): Promise<void>;
 
     /**
-     * Updates a specific a local or global package.
+     * Updates a specific local or global package.
      *
      * @param packageName The name of the package to update.
      * @param global If true, the package should be updated globally.
