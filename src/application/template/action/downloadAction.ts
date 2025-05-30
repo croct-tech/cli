@@ -87,7 +87,7 @@ export class DownloadAction implements Action<DownloadOptions> {
         for await (const entry of iterator) {
             const path = this.resolvePath(fileSystem.normalizeSeparators(entry.name), mapping);
 
-            if (fileSystem.isAbsolutePath(path) || !fileSystem.isSubPath(destination, path)) {
+            if (fileSystem.isAbsolutePath(path)) {
                 // Disallow linking outside the destination directory for security reasons
                 continue;
             }

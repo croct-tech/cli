@@ -93,7 +93,7 @@ import {AudienceForm} from '@/application/cli/form/workspace/audienceForm';
 import {UseTemplateCommand, UseTemplateInput} from '@/application/cli/command/template/use';
 import {DownloadAction} from '@/application/template/action/downloadAction';
 import {AddDependencyAction} from '@/application/template/action/addDependencyAction';
-import {LocateFileAction} from '@/application/template/action/locateFileAction';
+import {LocatePathAction} from '@/application/template/action/locatePathAction';
 import {ReplaceFileContentAction} from '@/application/template/action/replaceFileContentAction';
 import {OptionMap, SourceLocation} from '@/application/template/template';
 import {AddSlotAction} from '@/application/template/action/addSlotAction';
@@ -289,6 +289,20 @@ import {ProvidedTokenAuthenticator} from '@/application/cli/authentication/authe
 import {LazyLinkOpener} from '@/infrastructure/application/cli/io/lazyLinkOpener';
 import {ConsoleLinkOpener} from '@/infrastructure/application/cli/io/consoleLinkOpener';
 import {BrowserLinkOpener} from '@/infrastructure/application/cli/io/browserLinkOpener';
+import {InstallDependenciesAction} from '@/application/template/action/installDependenciesAction';
+import {
+    InstallDependenciesOptionsValidator,
+} from '@/infrastructure/application/validation/actions/installDependenciesOptionsValidator';
+import {MovePathAction} from '@/application/template/action/movePathAction';
+import {ReadFileAction} from '@/application/template/action/readFile';
+import {MovePathOptionsValidator} from '@/infrastructure/application/validation/actions/movePathOptionsValidator';
+import {ReadFileOptionsValidator} from '@/infrastructure/application/validation/actions/readFileOptionsValidator';
+import {CreateDirectoryAction} from '@/application/template/action/createDirectory';
+import {
+    CreateDirectoryOptionsValidator,
+} from '@/infrastructure/application/validation/actions/createDirectoryOptionsValidator';
+import {WriteFileAction} from '@/application/template/action/writeFile';
+import {WriteFileOptionsValidator} from '@/infrastructure/application/validation/actions/writeFileOptionsValidator';
 
 export type Configuration = {
     program: Program,
@@ -1128,20 +1142,6 @@ export class Cli {
                     }),
                     validator: new StopServerOptionsValidator(),
                 }),
-                'execute-package': new ValidatedAction({
-                    action: new ExecutePackage({
-                        packageManager: this.getPackageManager(),
-                        packageManagerProvider: this.getPackageManagerRegistry(),
-                        workingDirectory: this.workingDirectory,
-                        commandExecutor: this.getAsynchronousCommandExecutor(),
-                        commandTimeout: 3 * 60 * 1000, // 3 minutes
-                        sourceChecker: {
-                            test: (url): boolean => url.protocol === 'file:'
-                                || `${url}`.startsWith('https://github.com/croct-tech'),
-                        },
-                    }),
-                    validator: new ExecutePackageOptionsValidator(),
-                }),
                 'check-dependency': new ValidatedAction({
                     action: new CheckDependencyAction({
                         packageManager: this.getPackageManager(),
@@ -1198,19 +1198,58 @@ export class Cli {
                     }),
                     validator: new DownloadOptionsValidator(),
                 }),
+                install: new ValidatedAction({
+                    action: new InstallDependenciesAction({
+                        packageManager: this.getPackageManager(),
+                    }),
+                    validator: new InstallDependenciesOptionsValidator(),
+                }),
                 'add-dependency': new ValidatedAction({
                     action: new AddDependencyAction({
                         packageManager: this.getPackageManager(),
                     }),
                     validator: new AddDependencyOptionsValidator(),
                 }),
-                'locate-file': new ValidatedAction({
-                    action: new LocateFileAction({
+                'execute-package': new ValidatedAction({
+                    action: new ExecutePackage({
+                        packageManager: this.getPackageManager(),
+                        packageManagerProvider: this.getPackageManagerRegistry(),
+                        workingDirectory: this.workingDirectory,
+                        commandExecutor: this.getAsynchronousCommandExecutor(),
+                        commandTimeout: 3 * 60 * 1000, // 3 minutes
+                        sourceChecker: {
+                            test: (url): boolean => url.protocol === 'file:'
+                                || `${url}`.startsWith('https://github.com/croct-tech'),
+                        },
+                    }),
+                    validator: new ExecutePackageOptionsValidator(),
+                }),
+                'locate-path': new ValidatedAction({
+                    action: new LocatePathAction({
                         projectDirectory: this.workingDirectory,
                         fileSystem: fileSystem,
                         scanFilter: this.getScanFilter(),
                     }),
                     validator: new LocateFileOptionsValidator(),
+                }),
+                'move-path': new ValidatedAction({
+                    action: new MovePathAction({
+                        fileSystem: fileSystem,
+                    }),
+                    validator: new MovePathOptionsValidator(),
+                }),
+                'read-file': new ValidatedAction({
+                    action: new ReadFileAction({
+                        fileSystem: fileSystem,
+                    }),
+                    validator: new ReadFileOptionsValidator(),
+                }),
+                'write-file': new ValidatedAction({
+                    action: new WriteFileAction({
+                        fileSystem: fileSystem,
+                        input: this.getInput(),
+                    }),
+                    validator: new WriteFileOptionsValidator(),
                 }),
                 'replace-file-content': new ValidatedAction({
                     action: new ReplaceFileContentAction({
@@ -1218,7 +1257,13 @@ export class Cli {
                     }),
                     validator: new ReplaceFileContentOptionsValidator(),
                 }),
-                initialize: new ValidatedAction({
+                'create-directory': new ValidatedAction({
+                    action: new CreateDirectoryAction({
+                        fileSystem: fileSystem,
+                    }),
+                    validator: new CreateDirectoryOptionsValidator(),
+                }),
+                'integrate-croct': new ValidatedAction({
                     action: new CallbackAction({
                         callback: async (): Promise<void> => {
                             const manager = this.getConfigurationManager();
