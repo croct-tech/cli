@@ -55,6 +55,7 @@ const schema: ZodType<ExecutePackageOptions> = z.strictObject({
         z.boolean(),
         interactionsSchemaList,
     ]),
+    output: z.string().optional(),
 });
 
 export class ExecutePackageOptionsValidator extends ActionOptionsValidator<ExecutePackageOptions> {
