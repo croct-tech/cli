@@ -83,6 +83,7 @@ export class ScreenBuffer {
      * @param sequence - The full ANSI sequence (e.g., "\x1b[2K" or "\x1b[32m").
      */
     private processAnsiSequence(sequence: string): void {
+        // eslint-disable-next-line no-control-regex -- More readable regex for ANSI sequences
         const match = sequence.match(/\x1b\[(\d*(?:;\d+)*)?([A-Za-z])/);
 
         if (match === null) {
