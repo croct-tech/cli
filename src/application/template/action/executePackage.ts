@@ -1,4 +1,3 @@
-import stripAnsi from 'strip-ansi';
 import {Action, ActionError} from '@/application/template/action/action';
 import {ErrorReason} from '@/application/error';
 import {ActionContext} from '@/application/template/action/context';
@@ -9,6 +8,7 @@ import {Provider} from '@/application/provider/provider';
 import {CommandExecutor} from '@/application/system/process/executor';
 import {Predicate} from '@/application/predicate/predicate';
 import {Notifier} from '@/application/cli/io/output';
+import {ScreenBuffer} from '@/application/cli/io/screenBuffer';
 
 export type Interactions = {
     when: string,
@@ -23,6 +23,7 @@ export type ExecutePackageOptions = {
     package: string,
     arguments?: string[],
     interactions?: Interactions[] | boolean,
+    output?: string,
 };
 
 export type Configuration = {
@@ -55,6 +56,15 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
         const {input, output} = context;
         const {sourceChecker} = this.configuration;
 
+        if (options.interactions === true && options.output !== undefined) {
+            throw new ActionError('Cannot capture output when interactions are enabled.', {
+                reason: ErrorReason.NOT_SUPPORTED,
+                details: [
+                    'Either use `interactions` or `output`, but not both.',
+                ],
+            });
+        }
+
         const packageManager = await this.getPackageManager(options.runner);
         const command = await packageManager.getPackageCommand(options.package, options.arguments);
 
@@ -62,7 +72,13 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
             command.name
                 .split(/[\\/]/)
                 .pop(),
-            ...(command.arguments ?? []),
+            ...(command.arguments ?? []).map(
+                argument => (
+                    !argument.startsWith('-') && argument.includes(' ')
+                        ? JSON.stringify(argument)
+                        : argument
+                ),
+            ),
         ].join(' ');
 
         if (!await sourceChecker.test(context.baseUrl)) {
@@ -97,12 +113,18 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
             output.log(log);
         }
 
+        let commandOutput: string;
+
         try {
-            await this.executeCommand(command, options.interactions ?? false);
+            commandOutput = await this.executeCommand(command, options.interactions ?? false);
         } catch (error) {
             throw ActionError.fromCause(error);
         } finally {
             notifier?.stop();
+        }
+
+        if (options.output !== undefined) {
+            context.set(options.output, commandOutput);
         }
     }
 
@@ -116,7 +138,7 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
             .get(name);
     }
 
-    private async executeCommand(command: Command, interactions: Interactions[]|boolean): Promise<void> {
+    private async executeCommand(command: Command, interactions: Interactions[]|boolean): Promise<string> {
         const {workingDirectory, commandExecutor, commandTimeout} = this.configuration;
 
         const execution = await commandExecutor.run(command, {
@@ -125,7 +147,7 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
             inheritIo: interactions === true,
         });
 
-        let buffer = '';
+        const buffer = new ScreenBuffer();
 
         if (interactions !== true) {
             const nextInteractions = Array.isArray(interactions) ? [...interactions] : [];
@@ -135,15 +157,17 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
             }
 
             for await (const line of execution.output) {
-                buffer += stripAnsi(line);
+                buffer.write(line);
+
+                const diff = buffer.getSnapshotDiff();
 
                 for (const [index, interaction] of nextInteractions.entries()) {
                     const matches = interaction.pattern === true
-                        ? new RegExp(interaction.when).test(buffer)
-                        : buffer.includes(interaction.when);
+                        ? new RegExp(interaction.when).test(diff)
+                        : diff.includes(interaction.when);
 
                     if (matches) {
-                        buffer = '';
+                        buffer.saveSnapshot();
 
                         if (interaction.always !== true) {
                             nextInteractions.splice(index, 1);
@@ -176,13 +200,17 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
             });
         }
 
+        const output = ScreenBuffer.getRawString(buffer.getSnapshot());
+
         if (exitCode !== 0) {
             throw new ActionError(
-                `Command execution failed${buffer === '' ? '.' : `with output:\n\n${buffer}`}`,
+                `Command execution failed${output === '' ? '.' : `with output:\n\n${output}`}`,
                 {
                     reason: ErrorReason.UNEXPECTED_RESULT,
                 },
             );
         }
+
+        return output;
     }
 }
