@@ -65,7 +65,7 @@ export class AutoUpdater {
         this.output.announce({
             semantics: 'info',
             title: 'New version',
-            message: `Update your CLI from ~~${this.currentVersion}~~ → \`${latestVersion}\``,
+            message: `Update your CLI from ${this.currentVersion} → \`${latestVersion}\``,
         });
 
         const update = (await this.input?.confirm({
