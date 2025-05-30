@@ -303,6 +303,7 @@ import {
 } from '@/infrastructure/application/validation/actions/createDirectoryOptionsValidator';
 import {WriteFileAction} from '@/application/template/action/writeFile';
 import {WriteFileOptionsValidator} from '@/infrastructure/application/validation/actions/writeFileOptionsValidator';
+import {AutoUpdater} from '@/application/cli/autoUpdater';
 
 export type Configuration = {
     program: Program,
@@ -446,18 +447,30 @@ export class Cli {
     }
 
     public welcome(input: WelcomeInput): Promise<void> {
+        const skip = !this.configuration.interactive || this.configuration.dnd;
+
         return this.execute(
             new WelcomeCommand({
-                version: this.configuration.version,
+                cliVersion: this.configuration.version,
+                autoUpdater: new AutoUpdater({
+                    currentVersion: this.configuration.version,
+                    input: this.getInput(),
+                    configurationProvider: this.getCliConfigurationProvider(),
+                    packageManager: this.getNodePackageManager(),
+                    output: this.getOutput(),
+                    // Check for updates every 12 hours
+                    checkFrequency: LocalTime.MILLIS_PER_DAY / 2,
+                    // Abort if the update check takes longer than 500 milliseconds
+                    checkTimeout: 500,
+                }),
                 configurationProvider: this.getCliConfigurationProvider(),
                 deepLinkInstaller: update => this.deepLink({
                     operation: update ? 'optionally-update' : 'optionally-enable',
                 }),
             }),
             {
-                skipDeepLinkCheck: !this.configuration.interactive
-                    || this.configuration.dnd
-                    || input.skipDeepLinkCheck === true,
+                skipDeepLinkCheck: skip || input.skipDeepLinkCheck === true,
+                skipUpdateCheck: skip || input.skipUpdateCheck === true,
             },
         );
     }

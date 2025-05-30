@@ -6,6 +6,7 @@ const schema: ZodType<CliConfiguration> = z.strictObject({
     version: z.string().optional(),
     projectPaths: z.array(z.string().min(1)),
     isDeepLinkingEnabled: z.boolean().optional(),
+    lastUpdateCheck: z.number().optional(),
 });
 
 export class CliSettingsValidator extends ZodValidator<CliConfiguration> {

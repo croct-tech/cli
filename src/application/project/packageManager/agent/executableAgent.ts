@@ -41,16 +41,24 @@ export abstract class ExecutableAgent implements PackageManagerAgent {
         return Promise.resolve(this.getCommandName());
     }
 
-    public addDependencies(packages: string[], dev = false): Promise<void> {
-        return this.run(this.createAddDependencyCommand(packages, dev));
+    public async addDependencies(packages: string[], dev = false): Promise<void> {
+        return this.run(await this.createAddDependencyCommand(packages, dev));
     }
 
-    public installDependencies(): Promise<void> {
-        return this.run(this.createInstallDependenciesCommand());
+    public async installDependencies(): Promise<void> {
+        return this.run(await this.createInstallDependenciesCommand());
+    }
+
+    public async updatePackage(packageName: string, global?: boolean): Promise<void> {
+        return this.run(await this.createPackageUpdateCommand(packageName, global));
     }
 
     public getPackageCommand(packageName: string, args?: string[]): Promise<Command> {
         return this.createPackageCommand(packageName, args);
+    }
+
+    public getPackageUpdateCommand(packageName: string, global: boolean): Promise<Command> {
+        return this.createPackageUpdateCommand(packageName, global);
     }
 
     public getScriptCommand(script: string, args?: string[]): Promise<Command> {
@@ -63,9 +71,11 @@ export abstract class ExecutableAgent implements PackageManagerAgent {
 
     protected abstract createPackageCommand(packageName: string, args?: string[]): Promise<Command>;
 
-    protected abstract createAddDependencyCommand(dependencies: string[], dev: boolean): Command;
+    protected abstract createPackageUpdateCommand(packageName: string, global?: boolean): Promise<Command>;
 
-    protected abstract createInstallDependenciesCommand(): Command;
+    protected abstract createAddDependencyCommand(dependencies: string[], dev: boolean): Promise<Command>;
+
+    protected abstract createInstallDependenciesCommand(): Promise<Command>;
 
     protected async run(command: Command, options: CommandOptions = {}): Promise<void> {
         if (!await this.isInstalled()) {

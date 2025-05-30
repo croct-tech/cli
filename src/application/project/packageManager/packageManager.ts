@@ -118,6 +118,14 @@ export interface PackageManager {
     installDependencies(): Promise<void>;
 
     /**
+     * Updates a specific local or global package.
+     *
+     * @param packageName The name of the package to update.
+     * @param global If true, the package should be updated globally.
+     */
+    updatePackage(packageName: string, global?: boolean): Promise<void>;
+
+    /**
      * Retrieves the scripts defined in the project.
      *
      * @returns A promise that resolves with the list of scripts defined in the project.
@@ -155,4 +163,12 @@ export interface PackageManager {
      * @returns A promise that resolves to the command to run the package.
      */
     getPackageCommand(packageName: string, args?: string[]): Promise<Command>;
+
+    /**
+     * Returns the command to update a package.
+     *
+     * @param packageName The name of the package to update.
+     * @param global If true, the package should be updated globally.
+     */
+    getPackageUpdateCommand(packageName: string, global?: boolean): Promise<Command>;
 }

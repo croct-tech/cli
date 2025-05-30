@@ -19,12 +19,26 @@ export class NpmAgent extends ExecutableAgent {
         );
     }
 
-    protected createAddDependencyCommand(dependencies: string[], dev: boolean): Command {
-        return this.getCommand(this.getCommandName(), ['install', ...(dev ? ['--save-dev'] : []), ...dependencies]);
+    protected createAddDependencyCommand(dependencies: string[], dev: boolean): Promise<Command> {
+        return Promise.resolve(
+            this.getCommand(
+                this.getCommandName(),
+                ['install', ...(dev ? ['--save-dev'] : []), ...dependencies],
+            ),
+        );
     }
 
-    protected createInstallDependenciesCommand(): Command {
-        return this.getCommand(this.getCommandName(), ['install']);
+    protected createInstallDependenciesCommand(): Promise<Command> {
+        return Promise.resolve(this.getCommand(this.getCommandName(), ['install']));
+    }
+
+    protected createPackageUpdateCommand(packageName: string, global = false): Promise<Command> {
+        return Promise.resolve(
+            this.getCommand(
+                this.getCommandName(),
+                ['update', ...(global ? ['--global'] : []), packageName],
+            ),
+        );
     }
 
     private getCommand(command: string, args: string[] = []): Command {

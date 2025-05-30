@@ -19,11 +19,19 @@ export class NoopAgent implements PackageManagerAgent {
         return this.fail();
     }
 
+    public updatePackage(): Promise<void> {
+        return this.fail();
+    }
+
     public getPackageCommand(): Promise<Command> {
         return this.fail();
     }
 
     public getScriptCommand(): Promise<Command> {
+        return this.fail();
+    }
+
+    public getPackageUpdateCommand(): Promise<Command> {
         return this.fail();
     }
 

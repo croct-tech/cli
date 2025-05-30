@@ -14,12 +14,26 @@ export class YarnAgent extends ExecutableAgent {
         return Promise.resolve(this.getCommand(this.getCommandName(), ['run', script, ...args]));
     }
 
-    protected createAddDependencyCommand(dependencies: string[], dev: boolean): Command {
-        return this.getCommand(this.getCommandName(), ['add', ...(dev ? ['--dev'] : []), ...dependencies]);
+    protected createAddDependencyCommand(dependencies: string[], dev: boolean): Promise<Command> {
+        return Promise.resolve(
+            this.getCommand(
+                this.getCommandName(),
+                ['add', ...(dev ? ['--dev'] : []), ...dependencies],
+            ),
+        );
     }
 
-    protected createInstallDependenciesCommand(): Command {
-        return this.getCommand(this.getCommandName(), ['install']);
+    protected createInstallDependenciesCommand(): Promise<Command> {
+        return Promise.resolve(this.getCommand(this.getCommandName(), ['install']));
+    }
+
+    protected createPackageUpdateCommand(packageName: string, global = false): Promise<Command> {
+        return Promise.resolve(
+            this.getCommand(
+                this.getCommandName(),
+                global ? ['global', 'add', `${packageName}@latest`] : ['upgrade', packageName],
+            ),
+        );
     }
 
     private getCommand(command: string, args: string[] = []): Command {

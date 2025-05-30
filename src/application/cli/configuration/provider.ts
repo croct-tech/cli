@@ -4,6 +4,7 @@ export type CliConfiguration = {
     projectPaths: string[],
     version?: string,
     isDeepLinkingEnabled?: boolean,
+    lastUpdateCheck?: number,
 };
 
 export interface CliConfigurationProvider extends Provider<CliConfiguration> {

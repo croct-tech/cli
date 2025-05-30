@@ -5,8 +5,10 @@ export interface PackageManagerAgent extends Pick<
     | 'getName'
     | 'isInstalled'
     | 'installDependencies'
+    | 'updatePackage'
     | 'addDependencies'
     | 'getScriptCommand'
     | 'getPackageCommand'
+    | 'getPackageUpdateCommand'
 > {
 }
