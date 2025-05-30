@@ -16,7 +16,7 @@ export type CombinationMatcher = {
 
 export type ContentMatcher = PatternMatcher | CombinationMatcher;
 
-export type LocateFileOptions = {
+export type LocatePathOptions = {
     path: string,
     matcher?: ContentMatcher,
     limit?: number,
@@ -30,7 +30,7 @@ export type Configuration = {
     scanFilter?: ScanFilter,
 };
 
-export class LocateFileAction implements Action<LocateFileOptions> {
+export class LocatePathAction implements Action<LocatePathOptions> {
     private readonly projectDirectory: WorkingDirectory;
 
     private readonly fileSystem: FileSystem;
@@ -43,7 +43,7 @@ export class LocateFileAction implements Action<LocateFileOptions> {
         this.scanFilter = scanFilter;
     }
 
-    public async execute(options: LocateFileOptions, context: ActionContext): Promise<void> {
+    public async execute(options: LocatePathOptions, context: ActionContext): Promise<void> {
         const {output} = context;
 
         const notifier = output?.notify('Locating files');
@@ -55,11 +55,11 @@ export class LocateFileAction implements Action<LocateFileOptions> {
         }
     }
 
-    private async findMatches(options: LocateFileOptions, context: ActionContext): Promise<void> {
+    private async findMatches(options: LocatePathOptions, context: ActionContext): Promise<void> {
         context.set(options.result, await this.findMatch(options.path, options));
     }
 
-    private async findMatch(pattern: string, options: LocateFileOptions): Promise<string[]> {
+    private async findMatch(pattern: string, options: LocatePathOptions): Promise<string[]> {
         const filter: ScanFilter = (path, depth) => {
             if (options.depth !== undefined && depth > options.depth) {
                 return false;

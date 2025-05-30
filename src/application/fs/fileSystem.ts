@@ -17,6 +17,10 @@ export type DeletionOptions = {
     recursive?: boolean,
 };
 
+export type MoveOptions = {
+    overwrite?: boolean,
+};
+
 type FileSystemEntries = {
     file: {
         content: Readable,
@@ -49,6 +53,7 @@ export interface FileSystem {
     getRealPath(path: string): Promise<string>;
     exists(path: string): Promise<boolean>;
     delete(path: string, options?: DeletionOptions): Promise<void>;
+    move(source: string, destination: string, options?: MoveOptions): Promise<void>;
     readTextFile(path: string): Promise<string>;
     writeTextFile(path: string, data: string, options?: FileWritingOptions): Promise<void>;
     isAbsolutePath(path: string): boolean;

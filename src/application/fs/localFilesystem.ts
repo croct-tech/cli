@@ -1,5 +1,6 @@
 import {
     cp,
+    rename,
     link,
     lstat,
     mkdir,
@@ -25,6 +26,7 @@ import {
     FileSystemError,
     FileSystemIterator,
     FileWritingOptions,
+    MoveOptions,
     ScanFilter,
 } from '@/application/fs/fileSystem';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
@@ -97,7 +99,7 @@ export class LocalFilesystem implements FileSystem {
 
     public isSubPath(parent: string, path: string): boolean {
         const parentPath = this.resolvePath(parent);
-        const subPath = isAbsolute(path) ? path : join(parentPath, path);
+        const subPath = this.resolvePath(path);
         const relativePath = relative(parentPath, subPath);
 
         return !relativePath.startsWith('..') && !isAbsolute(relativePath);
@@ -252,6 +254,27 @@ export class LocalFilesystem implements FileSystem {
             recursive: options?.recursive ?? false,
             force: true,
         });
+    }
+
+    public move(source: string, destination: string, options?: MoveOptions): Promise<void> {
+        return this.execute(
+            async () => {
+                const sourcePath = this.resolvePath(source);
+                const destinationPath = this.resolvePath(destination);
+
+                if (options?.overwrite === true) {
+                    await rm(destinationPath, {
+                        force: true,
+                        recursive: true,
+                    });
+                }
+
+                // Create parent directory if it does not exist
+                await mkdir(dirname(destinationPath), {recursive: true});
+
+                await rename(sourcePath, destinationPath);
+            },
+        );
     }
 
     public readTextFile(path: string): Promise<string> {

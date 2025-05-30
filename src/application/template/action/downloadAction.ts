@@ -87,9 +87,12 @@ export class DownloadAction implements Action<DownloadOptions> {
         for await (const entry of iterator) {
             const path = this.resolvePath(fileSystem.normalizeSeparators(entry.name), mapping);
 
-            if (fileSystem.isAbsolutePath(path) || !fileSystem.isSubPath(destination, path)) {
-                // Disallow linking outside the destination directory for security reasons
-                continue;
+            if (fileSystem.isAbsolutePath(path)) {
+                throw new ActionError('Path to downloaded file cannot be absolute.', {
+                    reason: ErrorReason.PRECONDITION,
+                    details: [`Path: ${path}`],
+                    suggestions: ['Use relative paths'],
+                });
             }
 
             if (matcher !== undefined && !matcher.match(path)) {
