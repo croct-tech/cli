@@ -2,20 +2,20 @@ import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {PackageManager} from '@/application/project/packageManager/packageManager';
 
-export type InstallDependenciesOptions = Record<string, never>;
+export type InstallOptions = Record<string, never>;
 
 export type Configuration = {
     packageManager: PackageManager,
 };
 
-export class InstallDependenciesAction implements Action<InstallDependenciesOptions> {
+export class InstallAction implements Action<InstallOptions> {
     private readonly packageManager: PackageManager;
 
     public constructor({packageManager}: Configuration) {
         this.packageManager = packageManager;
     }
 
-    public async execute(_: InstallDependenciesOptions, context: ActionContext): Promise<void> {
+    public async execute(_: InstallOptions, context: ActionContext): Promise<void> {
         const {output} = context;
 
         const notifier = output?.notify('Installing dependencies');

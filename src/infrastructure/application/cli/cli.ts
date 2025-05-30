@@ -259,7 +259,9 @@ import {LogFormatter} from '@/application/cli/io/logFormatter';
 import {BoxenFormatter} from '@/infrastructure/application/cli/io/boxenFormatter';
 import {NodeProcess} from '@/infrastructure/application/system/nodeProcess';
 import {CallbackAction} from '@/application/template/action/callbackAction';
-import {InitializeOptionsValidator} from '@/infrastructure/application/validation/actions/initializeOptionsValidator';
+import {
+    IntegrateCroctOptionsValidator,
+} from '@/infrastructure/application/validation/actions/integrateCroctOptionsValidator';
 import {NpmRegistryProvider} from '@/application/provider/resource/npmRegistryProvider';
 import {HttpResponseBody} from '@/application/provider/resource/httpResponseBody';
 import {
@@ -289,10 +291,8 @@ import {ProvidedTokenAuthenticator} from '@/application/cli/authentication/authe
 import {LazyLinkOpener} from '@/infrastructure/application/cli/io/lazyLinkOpener';
 import {ConsoleLinkOpener} from '@/infrastructure/application/cli/io/consoleLinkOpener';
 import {BrowserLinkOpener} from '@/infrastructure/application/cli/io/browserLinkOpener';
-import {InstallDependenciesAction} from '@/application/template/action/installDependenciesAction';
-import {
-    InstallDependenciesOptionsValidator,
-} from '@/infrastructure/application/validation/actions/installDependenciesOptionsValidator';
+import {InstallAction} from '@/application/template/action/installAction';
+import {InstallOptionsValidator} from '@/infrastructure/application/validation/actions/installOptionsValidator';
 import {MovePathAction} from '@/application/template/action/movePathAction';
 import {ReadFileAction} from '@/application/template/action/readFile';
 import {MovePathOptionsValidator} from '@/infrastructure/application/validation/actions/movePathOptionsValidator';
@@ -1199,10 +1199,10 @@ export class Cli {
                     validator: new DownloadOptionsValidator(),
                 }),
                 install: new ValidatedAction({
-                    action: new InstallDependenciesAction({
+                    action: new InstallAction({
                         packageManager: this.getPackageManager(),
                     }),
-                    validator: new InstallDependenciesOptionsValidator(),
+                    validator: new InstallOptionsValidator(),
                 }),
                 'add-dependency': new ValidatedAction({
                     action: new AddDependencyAction({
@@ -1273,7 +1273,7 @@ export class Cli {
                             }
                         },
                     }),
-                    validator: new InitializeOptionsValidator(),
+                    validator: new IntegrateCroctOptionsValidator(),
                 }),
                 'add-slot': new ValidatedAction({
                     action: new AddSlotAction({
