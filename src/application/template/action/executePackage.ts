@@ -56,6 +56,15 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
         const {input, output} = context;
         const {sourceChecker} = this.configuration;
 
+        if (options.interactions === true && options.output !== undefined) {
+            throw new ActionError('Cannot capture output when interactions are enabled.', {
+                reason: ErrorReason.PRECONDITION,
+                details: [
+                    'Either use `interactions` or `output`, but not both.',
+                ],
+            });
+        }
+
         const packageManager = await this.getPackageManager(options.runner);
         const command = await packageManager.getPackageCommand(options.package, options.arguments);
 
