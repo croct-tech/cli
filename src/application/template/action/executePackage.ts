@@ -58,7 +58,7 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
 
         if (options.interactions === true && options.output !== undefined) {
             throw new ActionError('Cannot capture output when interactions are enabled.', {
-                reason: ErrorReason.PRECONDITION,
+                reason: ErrorReason.NOT_SUPPORTED,
                 details: [
                     'Either use `interactions` or `output`, but not both.',
                 ],
