@@ -62,12 +62,20 @@ export class NodePackageManager implements PackageManager {
         return this.agent.installDependencies();
     }
 
+    public updatePackage(packageName: string, global?: boolean): Promise<void> {
+        return this.agent.updatePackage(packageName, global);
+    }
+
     public getPackageCommand(packageName: string, args: string[] = []): Promise<Command> {
         return this.agent.getPackageCommand(packageName, args);
     }
 
     public getScriptCommand(script: string, args: string[] = []): Promise<Command> {
         return this.agent.getScriptCommand(script, args);
+    }
+
+    public getPackageUpdateCommand(packageName: string, global?: boolean): Promise<Command> {
+        return this.agent.getPackageUpdateCommand(packageName, global);
     }
 
     public async hasDirectDependency(name: string, version?: string): Promise<boolean> {

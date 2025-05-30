@@ -47,6 +47,10 @@ export class LazyPackageManager implements PackageManager {
         return (await this.manager).addDependencies(dependencies, dev);
     }
 
+    public async updatePackage(packageName: string, global?: boolean): Promise<void> {
+        return (await this.manager).updatePackage(packageName, global);
+    }
+
     public async installDependencies(): Promise<void> {
         return (await this.manager).installDependencies();
     }
@@ -65,5 +69,9 @@ export class LazyPackageManager implements PackageManager {
 
     public async getPackageCommand(packageName: string, args?: string[]): Promise<Command> {
         return (await this.manager).getPackageCommand(packageName, args);
+    }
+
+    public async getPackageUpdateCommand(packageName: string, global?: boolean): Promise<Command> {
+        return (await this.manager).getPackageUpdateCommand(packageName, global);
     }
 }

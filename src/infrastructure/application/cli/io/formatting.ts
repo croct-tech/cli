@@ -64,7 +64,7 @@ function render(message: string): string {
         text: node => node.content,
         bold: node => chalk.bold(node.children),
         italic: node => chalk.italic(node.children),
-        strike: node => chalk.strikethrough(node.children),
+        strike: node => chalk.dim(node.children),
         code: node => chalk.cyan(node.content),
         link: node => terminalLink(node.children, node.href, {
             fallback: (text, url) => (text.includes(url) ? text : `${text} (${url})`),

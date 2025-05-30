@@ -25,7 +25,7 @@ export class BoxenFormatter implements LogFormatter {
         return boxen(format(callout.message), {
             ...this.boxenStyle,
             title: format(callout.title, {basic: true}),
-            textAlignment: callout.alignment,
+            textAlignment: callout.alignment ?? 'left',
             borderColor: colors[callout.semantics],
         });
     }

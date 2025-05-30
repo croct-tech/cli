@@ -14,12 +14,16 @@ export class PnpmAgent extends ExecutableAgent {
         return Promise.resolve(this.getCommand(['run', script, ...args]));
     }
 
-    protected createAddDependencyCommand(dependencies: string[], dev: boolean): Command {
-        return this.getCommand(['install', ...(dev ? ['--save-dev'] : []), ...dependencies]);
+    protected createAddDependencyCommand(dependencies: string[], dev: boolean): Promise<Command> {
+        return Promise.resolve(this.getCommand(['install', ...(dev ? ['--save-dev'] : []), ...dependencies]));
     }
 
-    protected createInstallDependenciesCommand(): Command {
-        return this.getCommand(['install']);
+    protected createInstallDependenciesCommand(): Promise<Command> {
+        return Promise.resolve(this.getCommand(['install']));
+    }
+
+    protected createPackageUpdateCommand(packageName: string, global = false): Promise<Command> {
+        return Promise.resolve(this.getCommand(['update', ...(global ? ['--global'] : []), packageName]));
     }
 
     private getCommand(args: string[] = []): Command {
