@@ -77,19 +77,23 @@ export class AutoUpdater {
             return;
         }
 
+        const notifier = this.output.notify('Updating the CLI');
+
         try {
             await this.packageManager.updatePackage('croct', isInstalledGlobally);
         } catch (error) {
             const updateCommand = await this.packageManager.getPackageUpdateCommand('croct', isInstalledGlobally);
             const fullCommand = `${updateCommand.name} ${updateCommand.arguments?.join(' ')}`;
 
-            this.output.alert('Failed to update the Croct CLI automatically');
+            notifier.alert('Failed to update the CLI automatically');
+
             this.output.log(`Please run the command:\n\`${fullCommand}\``);
 
             return;
         }
 
-        this.output.confirm('CLI updated successfully!');
+        notifier.confirm('CLI updated successfully!');
+
         this.output.inform('The new version will take effect the next time you run a command');
     }
 
