@@ -1174,7 +1174,7 @@ export class Cli {
                         codemod: new PathBasedCodemod({
                             codemods: {
                                 '**/*.{js,jsx,ts,tsx}': new ChainedCodemod(
-                                    this.getNodeImportResolverCodeMod(),
+                                    this.getNodeImportResolverCodemod(),
                                     new PathBasedCodemod({
                                         codemods: {
                                             '**/*.{js,jsx}': new ChainedCodemod(
@@ -1203,7 +1203,7 @@ export class Cli {
                         codemod: new PathBasedCodemod({
                             codemods: {
                                 '**/*.{js,jsx,ts,tsx}': new ChainedCodemod(
-                                    this.getNodeImportResolverCodeMod(),
+                                    this.getNodeImportResolverCodemod(),
                                     new FormatCodemod(this.getJavaScriptFormatter()),
                                 ),
                             },
@@ -2227,8 +2227,8 @@ export class Cli {
         });
     }
 
-    private getNodeImportResolverCodeMod(): Codemod<string> {
-        return this.share(this.getNodeImportResolverCodeMod, () => {
+    private getNodeImportResolverCodemod(): Codemod<string> {
+        return this.share(this.getNodeImportResolverCodemod, () => {
             const fileSystem = this.getFileSystem();
             const scanFilter = this.getScanFilter();
 
