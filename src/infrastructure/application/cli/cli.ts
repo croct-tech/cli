@@ -465,8 +465,8 @@ export class Cli {
                     configurationProvider: this.getCliConfigurationProvider(),
                     packageManager: this.getNodePackageManager(),
                     output: this.getOutput(),
-                    // Check for updates every 12 hours
-                    checkFrequency: LocalTime.MILLIS_PER_DAY / 2,
+                    // Check for updates every 6 hours
+                    checkFrequency: LocalTime.MILLIS_PER_SECOND * LocalTime.SECONDS_PER_HOUR * 6,
                     // Abort if the update check takes longer than 500 milliseconds
                     checkTimeout: 500,
                 }),
