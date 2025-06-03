@@ -426,32 +426,34 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
             }
         }
 
-        if (variables.experiences !== undefined) {
-            const {experiences} = processedTemplate.matches;
+        const {experiences} = processedTemplate.matches;
 
-            let newIndex = 0;
+        let newIndex = 0;
 
-            for (const [index, experience] of experiences.entries()) {
-                if (variables.experiences[index] !== undefined) {
-                    context.set(
-                        variables.experiences[index],
-                        'id' in experience
-                            ? experience.id
-                            : newResources.experiences[newIndex].experienceId,
-                    );
-                }
+        for (const [index, experience] of experiences.entries()) {
+            if (variables.experiences?.[index] !== undefined) {
+                context.set(
+                    variables.experiences[index],
+                    'id' in experience && experience.id !== undefined
+                        ? experience.id
+                        : newResources.experiences[newIndex].experienceId,
+                );
+            }
 
-                const experienceId = experience.experiment !== undefined && 'id' in experience.experiment
-                    ? experience.experiment.id
+            if (variables.experiments?.[index] !== undefined) {
+                const {experiment} = experience;
+
+                const experimentId = experiment !== undefined && 'id' in experiment && experiment.id !== undefined
+                    ? experiment.id
                     : newResources.experiences[newIndex].experimentId;
 
-                if (experienceId !== undefined && variables.experiments?.[index] !== undefined) {
-                    context.set(variables.experiments[index], experienceId);
+                if (experimentId !== undefined) {
+                    context.set(variables.experiments[index], experimentId);
                 }
+            }
 
-                if (!('id' in experience)) {
-                    newIndex++;
-                }
+            if (!('id' in experience) || experience.id === undefined) {
+                newIndex++;
             }
         }
     }
