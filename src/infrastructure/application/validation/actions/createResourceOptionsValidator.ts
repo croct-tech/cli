@@ -284,8 +284,7 @@ const variableListSchema = z.record(
         // Matches a non-negative integer
         z.string()
             .min(1)
-            .regex(/^\d+$/)
-            .transform(value => parseInt(value, 10)),
+            .regex(/^\d+$/),
         z.number().nonnegative(),
     ]),
     z.string().min(1),
