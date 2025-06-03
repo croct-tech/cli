@@ -781,11 +781,15 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                     ({customId}, index) => [customId, result.audiences[index]],
                 ),
             ),
-            experiences: result.experiences.map(
-                experience => ({
-                    experienceId: experience.id,
-                    experimentId: experience.experimentId ?? null,
-                }),
+            experiences: result.experiences.map<NewResourceIds['experiences'][number]>(
+                experience => {
+                    const experimentId = experience.experimentId ?? null;
+
+                    return {
+                        experienceId: experience.id,
+                        ...(experimentId !== null ? {experimentId: experimentId} : {}),
+                    };
+                },
             ),
         };
     }
