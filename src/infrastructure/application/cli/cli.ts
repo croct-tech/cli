@@ -304,6 +304,13 @@ import {
 import {WriteFileAction} from '@/application/template/action/writeFile';
 import {WriteFileOptionsValidator} from '@/infrastructure/application/validation/actions/writeFileOptionsValidator';
 import {AutoUpdater} from '@/application/cli/autoUpdater';
+import {DeletePathAction} from '@/application/template/action/deletePathAction';
+import {DeletePathOptionsValidator} from '@/infrastructure/application/validation/actions/deletePathOptionsValidator';
+import {Codemod} from '@/application/project/code/transformation/codemod';
+import {ResolveImportAction} from '@/application/template/action/resolveImportAction';
+import {
+    ResolveImportOptionsValidator,
+} from '@/infrastructure/application/validation/actions/resolveImportOptionsValidator';
 
 export type Configuration = {
     program: Program,
@@ -1092,7 +1099,6 @@ export class Cli {
     private getImportAction(): Action<ImportOptions> {
         return this.share(this.getImportAction, () => {
             const fileSystem = this.getFileSystem();
-            const scanFilter = this.getScanFilter();
             const serverMap = new Map<string, Server>();
 
             const actions = {
@@ -1168,29 +1174,7 @@ export class Cli {
                         codemod: new PathBasedCodemod({
                             codemods: {
                                 '**/*.{js,jsx,ts,tsx}': new ChainedCodemod(
-                                    new GlobImportCodemod({
-                                        fileSystem: fileSystem,
-                                        rootPath: this.workingDirectory,
-                                        filter: (path, depth) => depth <= 10 && scanFilter(path, depth),
-                                        importResolver: this.getNodeImportResolver(),
-                                        importCodemod: new FileCodemod({
-                                            fileSystem: fileSystem,
-                                            codemod: new JavaScriptCodemod({
-                                                languages: ['typescript', 'jsx'],
-                                                codemod: new JavaScriptImportCodemod(),
-                                            }),
-                                        }),
-                                        exportMatcher: {
-                                            test: (code, {names}): boolean => {
-                                                if (names.length === 0) {
-                                                    return true;
-                                                }
-
-                                                return getExportedNames(code)
-                                                    .some(name => names.includes(name));
-                                            },
-                                        },
-                                    }),
+                                    this.getNodeImportResolverCodeMod(),
                                     new PathBasedCodemod({
                                         codemods: {
                                             '**/*.{js,jsx}': new ChainedCodemod(
@@ -1210,6 +1194,22 @@ export class Cli {
                         }),
                     }),
                     validator: new DownloadOptionsValidator(),
+                }),
+                'resolve-import': new ValidatedAction({
+                    action: new ResolveImportAction({
+                        projectDirectory: this.workingDirectory,
+                        fileSystem: fileSystem,
+                        scanFilter: this.getScanFilter(),
+                        codemod: new PathBasedCodemod({
+                            codemods: {
+                                '**/*.{js,jsx,ts,tsx}': new ChainedCodemod(
+                                    this.getNodeImportResolverCodeMod(),
+                                    new FormatCodemod(this.getJavaScriptFormatter()),
+                                ),
+                            },
+                        }),
+                    }),
+                    validator: new ResolveImportOptionsValidator(),
                 }),
                 install: new ValidatedAction({
                     action: new InstallAction({
@@ -1250,6 +1250,12 @@ export class Cli {
                         fileSystem: fileSystem,
                     }),
                     validator: new MovePathOptionsValidator(),
+                }),
+                'delete-path': new ValidatedAction({
+                    action: new DeletePathAction({
+                        fileSystem: fileSystem,
+                    }),
+                    validator: new DeletePathOptionsValidator(),
                 }),
                 'read-file': new ValidatedAction({
                     action: new ReadFileAction({
@@ -2217,6 +2223,37 @@ export class Cli {
                         })
                         : manager,
                 ),
+            });
+        });
+    }
+
+    private getNodeImportResolverCodeMod(): Codemod<string> {
+        return this.share(this.getNodeImportResolverCodeMod, () => {
+            const fileSystem = this.getFileSystem();
+            const scanFilter = this.getScanFilter();
+
+            return new GlobImportCodemod({
+                fileSystem: fileSystem,
+                rootPath: this.workingDirectory,
+                filter: (path, depth) => depth <= 10 && scanFilter(path, depth),
+                importResolver: this.getNodeImportResolver(),
+                importCodemod: new FileCodemod({
+                    fileSystem: fileSystem,
+                    codemod: new JavaScriptCodemod({
+                        languages: ['typescript', 'jsx'],
+                        codemod: new JavaScriptImportCodemod(),
+                    }),
+                }),
+                exportMatcher: {
+                    test: (code, {names}): boolean => {
+                        if (names.length === 0) {
+                            return true;
+                        }
+
+                        return getExportedNames(code)
+                            .some(name => names.includes(name));
+                    },
+                },
             });
         });
     }

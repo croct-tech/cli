@@ -1,6 +1,7 @@
 import {Action, ActionError} from '@/application/template/action/action';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {ActionContext} from '@/application/template/action/context';
+import {ErrorReason} from '@/application/error';
 
 type Replacement = {
     pattern: string,
@@ -40,10 +41,14 @@ export class ReplaceFileContentAction implements Action<ReplaceFileContentOption
     }
 
     private async replaceFiles(options: ReplaceFileContentOptions): Promise<void> {
+        let matched = false;
+
         for (const {path, replacements} of options.files) {
             if (!await this.fileSystem.exists(path)) {
                 continue;
             }
+
+            matched = true;
 
             try {
                 await this.fileSystem.writeTextFile(
@@ -54,6 +59,12 @@ export class ReplaceFileContentAction implements Action<ReplaceFileContentOption
             } catch (error) {
                 throw ActionError.fromCause(error);
             }
+        }
+
+        if (!matched) {
+            throw new ActionError('No files matched for content replacement.', {
+                reason: ErrorReason.UNEXPECTED_RESULT,
+            });
         }
     }
 
