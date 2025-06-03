@@ -279,7 +279,18 @@ const experienceDefinitionSchema: ZodType<ExperienceDefinition> = z.strictObject
 });
 
 const variableMapSchema = z.record(z.string().min(1), z.string().min(1));
-const variableListSchema = z.record(z.number().nonnegative(), z.string().min(1));
+const variableListSchema = z.record(
+    z.union([
+        // Matches a non-negative integer
+        z.string()
+            .min(1)
+            .regex(/^\d+$/)
+            .transform(value => parseInt(value, 10)),
+        z.number().nonnegative(),
+    ]),
+    z.string().min(1),
+);
+
 const versionedResourceMapSchema = z.record(
     z.string().min(1),
     z.strictObject({

@@ -123,21 +123,27 @@ export class ResourceRefactor {
     }
 
     private refactorExperience(experience: ExperienceDefinition): ExperienceDefinition {
+        const audiences = experience.audiences.slice(0, this.refactoring.maximumAudiencePerExperience);
+        const {experiment} = experience;
+
         return {
             ...experience,
             audiences: experience.audiences.map(audience => this.refactoring.audienceMapping[audience] ?? audience),
             slots: experience.slots.map(slot => this.refactoring.slotMapping[slot] ?? slot),
-            experiment: experience.experiment !== undefined
+            experiment: experiment !== undefined
                 ? {
-                    ...experience.experiment,
-                    crossDevice: (experience.experiment.crossDevice ?? false)
+                    ...experiment,
+                    variants: experiment.variants.map(
+                        variant => ({
+                            ...variant,
+                            content: this.refactorPersonalizedContent(variant.content, audiences),
+                        }),
+                    ),
+                    crossDevice: (experiment.crossDevice ?? false)
                         && this.refactoring.isCrossDeviceFeatureEnabled,
                 }
                 : undefined,
-            content: this.refactorPersonalizedContent(
-                experience.content,
-                experience.audiences.slice(0, this.refactoring.maximumAudiencePerExperience),
-            ),
+            content: this.refactorPersonalizedContent(experience.content, audiences),
         };
     }
 
