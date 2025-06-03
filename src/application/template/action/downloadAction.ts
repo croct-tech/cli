@@ -116,7 +116,13 @@ export class DownloadAction implements Action<DownloadOptions> {
         }
 
         if (entries.length === 0) {
-            return;
+            throw new ActionError('No matching files found for download.', {
+                reason: ErrorReason.UNEXPECTED_RESULT,
+                details: [
+                    `Source: ${url}`,
+                    `Filter: ${options.filter ?? 'none'}`,
+                ],
+            });
         }
 
         await this.createDirectory(entries, destination, overwrite, input);
