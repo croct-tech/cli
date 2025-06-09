@@ -112,15 +112,15 @@ export abstract class ExecutableAgent implements PackageManagerAgent {
             buffer.write(line);
             logger?.log({
                 level: LogLevel.DEBUG,
-                message: ScreenBuffer.getRawString(line),
+                message: ScreenBuffer.getRawString(line).trim(),
                 details: {
-                    output: ScreenBuffer.getRawString(buffer.getSnapshot()),
+                    output: ScreenBuffer.getRawString(buffer.getSnapshot()).trim(),
                 },
             });
         }
 
         if (await execution.wait() !== 0) {
-            const output = ScreenBuffer.getRawString(buffer.getSnapshot());
+            const output = ScreenBuffer.getRawString(buffer.getSnapshot()).trim();
 
             logger?.log({
                 level: LogLevel.ERROR,
