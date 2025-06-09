@@ -1,16 +1,29 @@
+import {Logger, LogLevel} from '@croct/logging';
 import {Command} from '@/application/system/process/command';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {PackageManagerAgent} from '@/application/project/packageManager/agent/packageManagerAgent';
-import {CommandOptions, PackageManagerError} from '@/application/project/packageManager/packageManager';
+import {
+    AddDependencyOptions,
+    CommandOptions as BaseCommandOptions,
+    InstallDependenciesOptions,
+    PackageManagerError,
+    UpdateCommandOptions,
+    UpdatePackageOptions,
+} from '@/application/project/packageManager/packageManager';
 import {CommandExecutor} from '@/application/system/process/executor';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {ExecutableLocator} from '@/application/system/executableLocator';
+import {ScreenBuffer} from '@/application/cli/io/screenBuffer';
 
 export type Configuration = {
     projectDirectory: WorkingDirectory,
     fileSystem: FileSystem,
     commandExecutor: CommandExecutor,
     executableLocator: ExecutableLocator,
+};
+
+type CommandOptions = BaseCommandOptions & {
+    logger?: Logger,
 };
 
 export abstract class ExecutableAgent implements PackageManagerAgent {
@@ -41,24 +54,30 @@ export abstract class ExecutableAgent implements PackageManagerAgent {
         return Promise.resolve(this.getCommandName());
     }
 
-    public async addDependencies(packages: string[], dev = false): Promise<void> {
-        return this.run(await this.createAddDependencyCommand(packages, dev));
+    public async addDependencies(packages: string[], options?: AddDependencyOptions): Promise<void> {
+        return this.run(await this.createAddDependencyCommand(packages, options?.dev ?? false), {
+            logger: options?.logger,
+        });
     }
 
-    public async installDependencies(): Promise<void> {
-        return this.run(await this.createInstallDependenciesCommand());
+    public async installDependencies(options?: InstallDependenciesOptions): Promise<void> {
+        return this.run(await this.createInstallDependenciesCommand(), {
+            logger: options?.logger,
+        });
     }
 
-    public async updatePackage(packageName: string, global?: boolean): Promise<void> {
-        return this.run(await this.createPackageUpdateCommand(packageName, global));
+    public async updatePackage(packageName: string, options?: UpdatePackageOptions): Promise<void> {
+        return this.run(await this.createPackageUpdateCommand(packageName, options?.global ?? false), {
+            logger: options?.logger,
+        });
     }
 
     public getPackageCommand(packageName: string, args?: string[]): Promise<Command> {
         return this.createPackageCommand(packageName, args);
     }
 
-    public getPackageUpdateCommand(packageName: string, global: boolean): Promise<Command> {
-        return this.createPackageUpdateCommand(packageName, global);
+    public getPackageUpdateCommand(packageName: string, options: UpdateCommandOptions = {}): Promise<Command> {
+        return this.createPackageUpdateCommand(packageName, options.global ?? false);
     }
 
     public getScriptCommand(script: string, args?: string[]): Promise<Command> {
@@ -77,7 +96,7 @@ export abstract class ExecutableAgent implements PackageManagerAgent {
 
     protected abstract createInstallDependenciesCommand(): Promise<Command>;
 
-    protected async run(command: Command, options: CommandOptions = {}): Promise<void> {
+    protected async run(command: Command, {logger, ...options}: CommandOptions = {}): Promise<void> {
         if (!await this.isInstalled()) {
             throw new PackageManagerError(`Package manager \`${this.getCommandName()}\` is not installed.`);
         }
@@ -87,12 +106,39 @@ export abstract class ExecutableAgent implements PackageManagerAgent {
             workingDirectory: this.projectDirectory.get(),
         });
 
+        const buffer = new ScreenBuffer();
+
+        for await (const line of execution.output) {
+            buffer.write(line);
+            logger?.log({
+                level: LogLevel.DEBUG,
+                message: ScreenBuffer.getRawString(line),
+                details: {
+                    output: ScreenBuffer.getRawString(buffer.getSnapshot()),
+                },
+            });
+        }
+
         if (await execution.wait() !== 0) {
-            throw new PackageManagerError(`Failed to run \`${command.name}\` command.`);
+            const output = ScreenBuffer.getRawString(buffer.getSnapshot());
+
+            logger?.log({
+                level: LogLevel.ERROR,
+                message: `Failed to run \`${command.name}\` command.`,
+                details: {
+                    command: command.name,
+                    arguments: command.arguments ?? [],
+                    output: output,
+                },
+            });
+
+            throw new PackageManagerError(
+                `Failed to run \`${command.name}\` command${output === '' ? '.' : `:\n\n${output}`}`,
+            );
         }
     }
 
-    private getExecutable(command: string): Promise<string|null> {
+    private getExecutable(command: string): Promise<string | null> {
         return this.executableLocator.locate(command);
     }
 }

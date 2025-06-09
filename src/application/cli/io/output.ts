@@ -32,7 +32,7 @@ export type TaskList = TaskOptions & {
     tasks: Task[],
 };
 
-export type Semantics = 'neutral' | 'info' | 'error' | 'warning' | 'success';
+export type Semantics = 'neutral' | 'info' | 'error' | 'warning' | 'success' | 'secondary';
 
 export interface Output {
     announce(callout: Callout): void;
@@ -45,7 +45,7 @@ export interface Output {
     break(): void;
     monitor<T>(resolver: TaskResolver<T>): Promise<T>;
     monitor(tasks: TaskList): Promise<void>;
-    notify(status?: string): Notifier;
+    notify(status: string): Notifier;
     report(error: any): void;
     open(url: string): Promise<void>;
     exit(): Promise<never>;

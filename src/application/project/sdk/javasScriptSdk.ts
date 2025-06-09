@@ -1,4 +1,5 @@
 import {JsonArrayNode, JsonObjectNode, JsonParser} from '@croct/json5-parser/index.js';
+import {Logger} from '@croct/logging';
 import {
     UpdateOptions as BaseContentOptions,
     Installation,
@@ -125,9 +126,22 @@ export abstract class JavaScriptSdk implements Sdk {
             task: async notifier => {
                 notifier.update('Installing dependencies');
 
+                const logger: Logger = {
+                    log: log => notifier?.update(
+                        'Installing dependencies',
+                        log.message.split(/\n+/)[0],
+                    ),
+                };
+
                 try {
-                    await this.packageManager.addDependencies(['croct'], true);
-                    await this.packageManager.addDependencies([...plan.dependencies, JavaScriptSdk.CONTENT_PACKAGE]);
+                    await this.packageManager.addDependencies(['croct'], {
+                        dev: true,
+                        logger: logger,
+                    });
+
+                    await this.packageManager.addDependencies([...plan.dependencies, JavaScriptSdk.CONTENT_PACKAGE], {
+                        logger: logger,
+                    });
 
                     notifier.confirm('Dependencies installed');
                 } catch (error) {

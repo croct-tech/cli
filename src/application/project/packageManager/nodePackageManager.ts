@@ -1,6 +1,14 @@
 import semver from 'semver';
 import {JsonObjectNode, JsonParser} from '@croct/json5-parser';
-import {Dependency, PackageManager, PackageManagerError} from '@/application/project/packageManager/packageManager';
+import {
+    AddDependencyOptions,
+    Dependency,
+    InstallDependenciesOptions,
+    PackageManager,
+    PackageManagerError,
+    UpdateCommandOptions,
+    UpdatePackageOptions,
+} from '@/application/project/packageManager/packageManager';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {Validator} from '@/application/validation';
 import {ErrorReason} from '@/application/error';
@@ -54,16 +62,16 @@ export class NodePackageManager implements PackageManager {
         return this.fileSystem.exists(this.getProjectManifestPath());
     }
 
-    public addDependencies(dependencies: string[], dev?: boolean): Promise<void> {
-        return this.agent.addDependencies(dependencies, dev);
+    public addDependencies(dependencies: string[], options?: AddDependencyOptions): Promise<void> {
+        return this.agent.addDependencies(dependencies, options);
     }
 
-    public installDependencies(): Promise<void> {
-        return this.agent.installDependencies();
+    public installDependencies(options?: InstallDependenciesOptions): Promise<void> {
+        return this.agent.installDependencies(options);
     }
 
-    public updatePackage(packageName: string, global?: boolean): Promise<void> {
-        return this.agent.updatePackage(packageName, global);
+    public updatePackage(packageName: string, options?: UpdatePackageOptions): Promise<void> {
+        return this.agent.updatePackage(packageName, options);
     }
 
     public getPackageCommand(packageName: string, args: string[] = []): Promise<Command> {
@@ -74,8 +82,8 @@ export class NodePackageManager implements PackageManager {
         return this.agent.getScriptCommand(script, args);
     }
 
-    public getPackageUpdateCommand(packageName: string, global?: boolean): Promise<Command> {
-        return this.agent.getPackageUpdateCommand(packageName, global);
+    public getPackageUpdateCommand(packageName: string, options?: UpdateCommandOptions): Promise<Command> {
+        return this.agent.getPackageUpdateCommand(packageName, options);
     }
 
     public async hasDirectDependency(name: string, version?: string): Promise<boolean> {

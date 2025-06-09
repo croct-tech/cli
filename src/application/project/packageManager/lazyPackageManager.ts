@@ -1,4 +1,12 @@
-import {Dependency, PackageManager, PackageManagerError} from '@/application/project/packageManager/packageManager';
+import {
+    AddDependencyOptions,
+    Dependency,
+    InstallDependenciesOptions,
+    PackageManager,
+    PackageManagerError,
+    UpdateCommandOptions,
+    UpdatePackageOptions,
+} from '@/application/project/packageManager/packageManager';
 import {Command} from '@/application/system/process/command';
 import {Provider, ProviderError} from '@/application/provider/provider';
 
@@ -43,16 +51,16 @@ export class LazyPackageManager implements PackageManager {
         return (await this.manager).getDependency(name);
     }
 
-    public async addDependencies(dependencies: string[], dev?: boolean): Promise<void> {
-        return (await this.manager).addDependencies(dependencies, dev);
+    public async addDependencies(dependencies: string[], options?: AddDependencyOptions): Promise<void> {
+        return (await this.manager).addDependencies(dependencies, options);
     }
 
-    public async updatePackage(packageName: string, global?: boolean): Promise<void> {
-        return (await this.manager).updatePackage(packageName, global);
+    public async updatePackage(packageName: string, options?: UpdatePackageOptions): Promise<void> {
+        return (await this.manager).updatePackage(packageName, options);
     }
 
-    public async installDependencies(): Promise<void> {
-        return (await this.manager).installDependencies();
+    public async installDependencies(options?: InstallDependenciesOptions): Promise<void> {
+        return (await this.manager).installDependencies(options);
     }
 
     public async getScripts(): Promise<Record<string, string>> {
@@ -71,7 +79,7 @@ export class LazyPackageManager implements PackageManager {
         return (await this.manager).getPackageCommand(packageName, args);
     }
 
-    public async getPackageUpdateCommand(packageName: string, global?: boolean): Promise<Command> {
-        return (await this.manager).getPackageUpdateCommand(packageName, global);
+    public async getPackageUpdateCommand(packageName: string, options?: UpdateCommandOptions): Promise<Command> {
+        return (await this.manager).getPackageUpdateCommand(packageName, options);
     }
 }

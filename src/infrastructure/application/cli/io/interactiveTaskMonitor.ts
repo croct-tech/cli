@@ -248,13 +248,9 @@ class TaskWatcher {
 
         if (task.subtitle !== undefined) {
             message += `\n${format(task.subtitle, {
-                text: semantics,
+                text: 'secondary',
                 icon: {
-                    semantics: semantics,
-                    symbol: {
-                        unicode: '↳',
-                        ascii: '›',
-                    },
+                    semantics: 'secondary',
                 },
             })}`;
         }
