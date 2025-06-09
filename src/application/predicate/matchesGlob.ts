@@ -9,7 +9,12 @@ export class MatchesGlob implements Predicate<[string, string]> {
     }
 
     public static fromPattern(pattern: string): MatchesGlob {
-        return new MatchesGlob(new Minimatch(pattern.replace(/^\.\//, '')));
+        return new MatchesGlob(
+            new Minimatch(
+                pattern.replace(/^\.\//, '')
+                    .replace(/\\/g, '/'),
+            ),
+        );
     }
 
     public test(path: string): Promise<boolean> {

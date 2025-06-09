@@ -44,7 +44,9 @@ export class ReplaceFileContentAction implements Action<ReplaceFileContentOption
         let matched = false;
 
         for (const {path, replacements} of options.files) {
-            if (!await this.fileSystem.exists(path)) {
+            const normalizedPath = this.fileSystem.normalizeSeparators(path);
+
+            if (!await this.fileSystem.exists(normalizedPath)) {
                 continue;
             }
 
@@ -52,8 +54,8 @@ export class ReplaceFileContentAction implements Action<ReplaceFileContentOption
 
             try {
                 await this.fileSystem.writeTextFile(
-                    path,
-                    this.replaceContent(await this.fileSystem.readTextFile(path), replacements),
+                    normalizedPath,
+                    this.replaceContent(await this.fileSystem.readTextFile(normalizedPath), replacements),
                     {overwrite: true},
                 );
             } catch (error) {

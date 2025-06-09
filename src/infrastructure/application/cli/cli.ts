@@ -1,4 +1,4 @@
-import {AdaptedCache, AutoSaveCache, CacheProvider, InMemoryCache} from '@croct/cache';
+import {AutoSaveCache, CacheProvider, InMemoryCache} from '@croct/cache';
 import {ApiKey} from '@croct/sdk/apiKey';
 import {Clock, Instant, LocalTime} from '@croct/time';
 import {SystemClock} from '@croct/time/clock/systemClock';
@@ -2310,26 +2310,7 @@ export class Cli {
     private getHierarchyResolver(): HierarchyResolver {
         return this.share(
             this.getHierarchyResolver,
-            () => {
-                const fileSystem = this.getFileSystem();
-
-                return new HierarchyResolver(
-                    this.getGraphqlClient(),
-                    AdaptedCache.transformValues(
-                        this.selectCacheProvider(
-                            () => new FileSystemCache({
-                                fileSystem: fileSystem,
-                                directory: fileSystem.joinPaths(
-                                    this.configuration.directories.cache,
-                                    'hierarchy',
-                                ),
-                            }),
-                        ),
-                        AdaptedCache.jsonSerializer(),
-                        AdaptedCache.jsonDeserializer(),
-                    ),
-                );
-            },
+            () => new HierarchyResolver(this.getGraphqlClient(), new InMemoryCache()),
         );
     }
 

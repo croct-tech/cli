@@ -19,21 +19,27 @@ export class DeletePathAction implements Action<DeletePathOptions> {
     }
 
     public async execute({path, recursive = false}: DeletePathOptions): Promise<void> {
-        if (!await this.fileSystem.exists(path)) {
+        const normalizedPath = this.fileSystem.normalizeSeparators(path);
+
+        if (!await this.fileSystem.exists(normalizedPath)) {
             return;
         }
 
-        if (!recursive && await this.fileSystem.isDirectory(path) && !await this.fileSystem.isEmptyDirectory(path)) {
+        if (
+            !recursive
+            && await this.fileSystem.isDirectory(normalizedPath)
+            && !await this.fileSystem.isEmptyDirectory(normalizedPath)
+        ) {
             throw new ActionError('Cannot delete non-empty directory when `recursive` is false.', {
                 reason: ErrorReason.PRECONDITION,
                 details: [
-                    `Path: ${path}`,
+                    `Path: ${normalizedPath}`,
                 ],
             });
         }
 
         try {
-            await this.fileSystem.delete(path, {
+            await this.fileSystem.delete(normalizedPath, {
                 recursive: recursive,
             });
         } catch (error) {
