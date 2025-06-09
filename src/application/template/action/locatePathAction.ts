@@ -73,7 +73,7 @@ export class LocatePathAction implements Action<LocatePathOptions> {
         };
 
         const matches: string[] = [];
-        const matcher = MatchesGlob.fromPattern(this.fileSystem.normalizeSeparators(pattern));
+        const matcher = MatchesGlob.fromPattern(pattern);
 
         for await (const file of this.fileSystem.list(this.projectDirectory.get(), filter)) {
             if (!await matcher.test(file.name)) {
