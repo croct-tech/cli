@@ -25,12 +25,14 @@ export class ReadFileAction implements Action<ReadFileOptions> {
     }
 
     private async readFile({path, optional = false}: ReadFileOptions): Promise<string|null> {
-        if (!await this.fileSystem.exists(path)) {
+        const normalizedPath = this.fileSystem.normalizeSeparators(path);
+
+        if (!await this.fileSystem.exists(normalizedPath)) {
             if (!optional) {
                 throw new ActionError('Cannot read file because it does not exist.', {
                     reason: ErrorReason.PRECONDITION,
                     details: [
-                        `Path: ${path}`,
+                        `Path: ${normalizedPath}`,
                     ],
                 });
             }
@@ -38,12 +40,12 @@ export class ReadFileAction implements Action<ReadFileOptions> {
             return null;
         }
 
-        if (await this.fileSystem.isDirectory(path)) {
+        if (await this.fileSystem.isDirectory(normalizedPath)) {
             if (!optional) {
                 throw new ActionError('Cannot read file because the specified path is a directory.', {
                     reason: ErrorReason.PRECONDITION,
                     details: [
-                        `Path: ${path}`,
+                        `Path: ${normalizedPath}`,
                     ],
                 });
             }
@@ -52,7 +54,7 @@ export class ReadFileAction implements Action<ReadFileOptions> {
         }
 
         try {
-            return this.fileSystem.readTextFile(path);
+            return this.fileSystem.readTextFile(normalizedPath);
         } catch (error) {
             throw ActionError.fromCause(error);
         }

@@ -20,36 +20,40 @@ export class MovePathAction implements Action<MovePathOptions> {
     }
 
     public async execute({path, destination, overwrite = false}: MovePathOptions): Promise<void> {
-        if (!await this.fileSystem.exists(path)) {
+        const normalizedPath = this.fileSystem.normalizeSeparators(path);
+
+        if (!await this.fileSystem.exists(normalizedPath)) {
             throw new ActionError('Cannot move path because source does not exist.', {
                 reason: ErrorReason.INVALID_INPUT,
                 details: [
-                    `Source: ${path}`,
+                    `Source: ${normalizedPath}`,
                 ],
             });
         }
 
-        if (await this.fileSystem.exists(destination) && !overwrite) {
+        const normalizedDestination = this.fileSystem.normalizeSeparators(destination);
+
+        if (await this.fileSystem.exists(normalizedDestination) && !overwrite) {
             throw new ActionError('Cannot move path because destination already exists.', {
                 reason: ErrorReason.PRECONDITION,
                 details: [
-                    `Destination: ${destination}`,
+                    `Destination: ${normalizedDestination}`,
                 ],
             });
         }
 
-        if (this.fileSystem.isSubPath(path, destination)) {
+        if (this.fileSystem.isSubPath(normalizedPath, normalizedDestination)) {
             throw new ActionError('Cannot move path to a subdirectory of itself.', {
                 reason: ErrorReason.INVALID_INPUT,
                 details: [
-                    `Source: ${path}`,
-                    `Destination: ${destination}`,
+                    `Source: ${normalizedPath}`,
+                    `Destination: ${normalizedDestination}`,
                 ],
             });
         }
 
         try {
-            await this.fileSystem.move(path, destination, {
+            await this.fileSystem.move(normalizedPath, normalizedDestination, {
                 overwrite: overwrite,
             });
         } catch (error) {

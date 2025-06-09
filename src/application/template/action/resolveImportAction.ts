@@ -47,7 +47,7 @@ export class ResolveImportAction implements Action<ResolveImportOptions> {
 
     private async resolveImports(pattern: string): Promise<void> {
         let matched = false;
-        const matcher = MatchesGlob.fromPattern(pattern);
+        const matcher = MatchesGlob.fromPattern(this.fileSystem.normalizeSeparators(pattern));
 
         for await (const entry of this.fileSystem.list(this.projectDirectory.get(), this.scanFilter)) {
             if (!await matcher.test(entry.name)) {

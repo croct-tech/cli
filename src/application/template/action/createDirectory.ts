@@ -18,17 +18,19 @@ export class CreateDirectoryAction implements Action<CreateDirectoryOptions> {
     }
 
     public async execute({path}: CreateDirectoryOptions): Promise<void> {
-        if (await this.fileSystem.exists(path) && !await this.fileSystem.isDirectory(path)) {
+        const normalizedPath = this.fileSystem.normalizeSeparators(path);
+
+        if (await this.fileSystem.exists(normalizedPath) && !await this.fileSystem.isDirectory(normalizedPath)) {
             throw new ActionError('Cannot create directory because a file with the same name exists.', {
                 reason: ErrorReason.PRECONDITION,
                 details: [
-                    `Path: ${path}`,
+                    `Path: ${normalizedPath}`,
                 ],
             });
         }
 
         try {
-            await this.fileSystem.createDirectory(path, {
+            await this.fileSystem.createDirectory(normalizedPath, {
                 recursive: true,
             });
         } catch (error) {

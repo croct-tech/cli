@@ -26,12 +26,13 @@ export class WriteFileAction implements Action<WriteFileOptions> {
 
     public async execute({path, content, ...options}: WriteFileOptions): Promise<void> {
         let overwrite = options.overwrite === true;
+        const normalizedPath = this.fileSystem.normalizeSeparators(path);
 
-        if (!overwrite && await this.fileSystem.exists(path)) {
+        if (!overwrite && await this.fileSystem.exists(normalizedPath)) {
             overwrite = this.input === undefined
                 ? false
                 : await this.input.confirm({
-                    message: `Path \`${path}\` already exists. Do you want to overwrite it?`,
+                    message: `Path \`${normalizedPath}\` already exists. Do you want to overwrite it?`,
                     default: false,
                 });
 
@@ -39,20 +40,20 @@ export class WriteFileAction implements Action<WriteFileOptions> {
                 throw new ActionError('Failed to write file because the specified path already exists.', {
                     reason: ErrorReason.PRECONDITION,
                     details: [
-                        `File: ${path}`,
+                        `File: ${normalizedPath}`,
                     ],
                 });
             }
         }
 
-        if (overwrite && await this.fileSystem.isDirectory(path)) {
-            await this.fileSystem.delete(path, {
+        if (overwrite && await this.fileSystem.isDirectory(normalizedPath)) {
+            await this.fileSystem.delete(normalizedPath, {
                 recursive: true,
             });
         }
 
         try {
-            await this.fileSystem.writeTextFile(path, content, {
+            await this.fileSystem.writeTextFile(normalizedPath, content, {
                 overwrite: overwrite,
             });
         } catch (error) {
