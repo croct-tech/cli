@@ -378,16 +378,16 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
                     },
                 ),
             ),
-            api.organization
-                .getWorkspace({
+            (async (): Promise<void> => {
+                const workspace = await api.organization.getWorkspace({
                     organizationSlug: projectInfo.configuration.organization,
                     workspaceSlug: projectInfo.configuration.workspace,
-                })
-                .then(workspace => {
-                    for (const locale of workspace?.locales ?? []) {
-                        missingLocales.delete(locale);
-                    }
-                }),
+                });
+
+                for (const locale of workspace?.locales ?? []) {
+                    missingLocales.delete(locale);
+                }
+            })(),
         ]);
 
         return {
