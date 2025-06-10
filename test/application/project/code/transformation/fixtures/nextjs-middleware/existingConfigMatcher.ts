@@ -1,5 +1,3 @@
-import { matcher } from "@croct/plug-next/middleware";
-
 export const config = {
-    matcher: matcher,
+    matcher: '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
 }
