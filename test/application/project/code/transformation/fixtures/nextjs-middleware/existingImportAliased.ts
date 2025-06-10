@@ -1,4 +1,4 @@
-import { withCroct as croctMiddleware, matcher as croctMatcher } from "@croct/plug-next/middleware";
+import { withCroct as croctMiddleware } from "@croct/plug-next/middleware";
 
 export function middleware() {
     console.log('middleware');

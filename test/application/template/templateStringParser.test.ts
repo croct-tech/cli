@@ -63,7 +63,7 @@ describe('A template string parser', () => {
                 value: 'Hello, world!',
                 token: new JsonTokenNode({
                     type: JsonTokenType.STRING,
-                    value: '"Hello, world!"',
+                    value: 'Hello, world!',
                     location: {
                         start: {
                             index: 10,
