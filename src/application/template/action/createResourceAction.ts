@@ -92,6 +92,8 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
         const projectInfo = await this.getProjectInfo(configuration);
 
         await this.checkMissingResources(
+            // Omit locales from the analysis since content in unsupported locales
+            // are mapped to the default locale, otherwise it would throw an error.
             {...analysis, locales: new Set()},
             options.resources,
             projectInfo,
@@ -379,6 +381,10 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
                 ),
             ),
             (async (): Promise<void> => {
+                if (missingLocales.size === 0) {
+                    return;
+                }
+
                 const workspace = await api.organization.getWorkspace({
                     organizationSlug: projectInfo.configuration.organization,
                     workspaceSlug: projectInfo.configuration.workspace,
