@@ -27,15 +27,16 @@ export class ChangeDirectoryAction implements Action<ChangeDirectoryOptions> {
     }
 
     public async execute(options: ChangeDirectoryOptions): Promise<void> {
-        const target = this.fileSystem.isAbsolutePath(options.path)
-            ? options.path
-            : this.fileSystem.joinPaths(this.currentDirectory.get(), options.path);
+        const normalizedPath = this.fileSystem.normalizeSeparators(options.path);
+        const target = this.fileSystem.isAbsolutePath(normalizedPath)
+            ? normalizedPath
+            : this.fileSystem.joinPaths(this.currentDirectory.get(), normalizedPath);
 
         if (!await this.fileSystem.isDirectory(target)) {
-            throw new ActionError(`Target path \`${options.path}\` is not a directory.`, {
+            throw new ActionError(`Target path \`${normalizedPath}\` is not a directory.`, {
                 reason: ErrorReason.INVALID_INPUT,
                 details: [
-                    `Target path: ${options.path}`,
+                    `Target path: ${normalizedPath}`,
                 ],
             });
         }
