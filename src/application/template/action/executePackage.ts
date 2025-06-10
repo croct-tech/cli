@@ -20,7 +20,8 @@ export type Interactions = {
 
 export type ExecutePackageOptions = {
     runner?: string,
-    package: string,
+    command: string,
+    script?: boolean,
     arguments?: string[],
     interactions?: Interactions[] | boolean,
     output?: string,
@@ -65,23 +66,10 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
             });
         }
 
-        const packageManager = await this.getPackageManager(options.runner);
-        const command = await packageManager.getPackageCommand(options.package, options.arguments);
+        const command = await this.resolveCommand(options);
+        const formattedCommand = ExecutePackage.formatCommand(command);
 
-        const fullCommand = [
-            command.name
-                .split(/[\\/]/)
-                .pop(),
-            ...(command.arguments ?? []).map(
-                argument => (
-                    !argument.startsWith('-') && argument.includes(' ')
-                        ? JSON.stringify(argument)
-                        : argument
-                ),
-            ),
-        ].join(' ');
-
-        if (!await sourceChecker.test(context.baseUrl)) {
+        if (options.script !== true && !await sourceChecker.test(context.baseUrl)) {
             if (input === undefined) {
                 throw new ActionError('Action requires explicit user confirmation.', {
                     reason: ErrorReason.PRECONDITION,
@@ -91,32 +79,21 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
                 });
             }
 
-            output.warn(`This template will run the command \`${fullCommand}\``);
+            output.warn(`This template will run the command \`${formattedCommand}\``);
 
             if (!await input.confirm({message: 'Continue?', default: true})) {
                 throw new ActionError('Permission to run command denied.', {
                     reason: ErrorReason.PRECONDITION,
-                    details: [
-                        `Command: ${fullCommand}`,
-                    ],
                 });
             }
         }
 
-        let notifier: Notifier|null = null;
-
-        const log = `Running \`${fullCommand}\``;
-
-        if (options.interactions !== true) {
-            notifier = output.notify(log);
-        } else {
-            output.log(log);
-        }
+        const notifier = output.notify(`Running \`${formattedCommand}\``);
 
         let commandOutput: string;
 
         try {
-            commandOutput = await this.executeCommand(command, options.interactions ?? false);
+            commandOutput = await this.executeCommand(command, notifier, options.interactions ?? false);
         } catch (error) {
             throw ActionError.fromCause(error);
         } finally {
@@ -126,6 +103,14 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
         if (options.output !== undefined) {
             context.set(options.output, commandOutput);
         }
+    }
+
+    private async resolveCommand(options: ExecutePackageOptions): Promise<Command> {
+        const packageManager = await this.getPackageManager(options.runner);
+
+        return options.script === true
+            ? packageManager.getScriptCommand(options.command, options.arguments)
+            : packageManager.getPackageCommand(options.command, options.arguments);
     }
 
     private getPackageManager(name?: string): Promise<PackageManager> | PackageManager {
@@ -138,14 +123,23 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
             .get(name);
     }
 
-    private async executeCommand(command: Command, interactions: Interactions[]|boolean): Promise<string> {
+    private async executeCommand(
+        command: Command,
+        notifier: Notifier,
+        interactions: Interactions[]|boolean,
+    ): Promise<string> {
         const {workingDirectory, commandExecutor, commandTimeout} = this.configuration;
-
         const execution = await commandExecutor.run(command, {
             workingDirectory: workingDirectory.get(),
             timeout: commandTimeout,
             inheritIo: interactions === true,
         });
+
+        const formattedCommand = ExecutePackage.formatCommand(command);
+
+        if (interactions === true) {
+            notifier.stop(true);
+        }
 
         const buffer = new ScreenBuffer();
 
@@ -158,6 +152,13 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
 
             for await (const line of execution.output) {
                 buffer.write(line);
+
+                const log = ScreenBuffer.getRawString(line);
+
+                notifier.update(
+                    `Running \`${formattedCommand}\``,
+                    log.split(/\n+/)[0],
+                );
 
                 const diff = buffer.getSnapshotDiff();
 
@@ -200,11 +201,11 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
             });
         }
 
-        const output = ScreenBuffer.getRawString(buffer.getSnapshot());
+        const output = ScreenBuffer.getRawString(buffer.getSnapshot()).trim();
 
         if (exitCode !== 0) {
             throw new ActionError(
-                `Command execution failed${output === '' ? '.' : `with output:\n\n${output}`}`,
+                `Command execution failed${output === '' ? '.' : `:\n\n${output}`}`,
                 {
                     reason: ErrorReason.UNEXPECTED_RESULT,
                 },
@@ -212,5 +213,20 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
         }
 
         return output;
+    }
+
+    private static formatCommand(command: Command): string {
+        return [
+            command.name
+                .split(/[\\/]/)
+                .pop(),
+            ...(command.arguments ?? []).map(
+                argument => (
+                    !argument.startsWith('-') && argument.includes(' ')
+                        ? JSON.stringify(argument)
+                        : argument
+                ),
+            ),
+        ].join(' ');
     }
 }

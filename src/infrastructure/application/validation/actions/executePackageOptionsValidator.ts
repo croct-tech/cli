@@ -48,7 +48,8 @@ const interactionsSchemaList: ZodType<ExecutePackageOptions['interactions']> = z
     });
 
 const schema: ZodType<ExecutePackageOptions> = z.strictObject({
-    package: z.string(),
+    command: z.string(),
+    script: z.boolean().optional(),
     arguments: z.array(z.string()).optional(),
     runner: z.string().optional(),
     interactions: z.union([
