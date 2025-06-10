@@ -335,50 +335,44 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
         const {api} = this.config;
 
         await Promise.all([
-            Promise.all(
-                [...missingComponents].map(
-                    async id => {
-                        const component = api.workspace.getComponent({
-                            organizationSlug: projectInfo.configuration.organization,
-                            workspaceSlug: projectInfo.configuration.workspace,
-                            componentSlug: id,
-                        });
+            ...[...missingComponents].map(
+                async id => {
+                    const component = api.workspace.getComponent({
+                        organizationSlug: projectInfo.configuration.organization,
+                        workspaceSlug: projectInfo.configuration.workspace,
+                        componentSlug: id,
+                    });
 
-                        if ((await component) !== null) {
-                            missingComponents.delete(id);
-                        }
-                    },
-                ),
+                    if ((await component) !== null) {
+                        missingComponents.delete(id);
+                    }
+                },
             ),
-            Promise.all(
-                [...missingSlots].map(
-                    async id => {
-                        const slot = api.workspace.getSlot({
-                            organizationSlug: projectInfo.configuration.organization,
-                            workspaceSlug: projectInfo.configuration.workspace,
-                            slotSlug: id,
-                        });
+            ...[...missingSlots].map(
+                async id => {
+                    const slot = api.workspace.getSlot({
+                        organizationSlug: projectInfo.configuration.organization,
+                        workspaceSlug: projectInfo.configuration.workspace,
+                        slotSlug: id,
+                    });
 
-                        if ((await slot) !== null) {
-                            missingSlots.delete(id);
-                        }
-                    },
-                ),
+                    if ((await slot) !== null) {
+                        missingSlots.delete(id);
+                    }
+                },
             ),
-            Promise.all(
-                [...missingAudiences].map(
-                    async id => {
-                        const audience = api.workspace.getAudience({
-                            organizationSlug: projectInfo.configuration.organization,
-                            workspaceSlug: projectInfo.configuration.workspace,
-                            audienceSlug: id,
-                        });
+            ...[...missingAudiences].map(
+                async id => {
+                    const audience = api.workspace.getAudience({
+                        organizationSlug: projectInfo.configuration.organization,
+                        workspaceSlug: projectInfo.configuration.workspace,
+                        audienceSlug: id,
+                    });
 
-                        if ((await audience) !== null) {
-                            missingAudiences.delete(id);
-                        }
-                    },
-                ),
+                    if ((await audience) !== null) {
+                        missingAudiences.delete(id);
+                    }
+                },
             ),
             (async (): Promise<void> => {
                 if (missingLocales.size === 0) {
