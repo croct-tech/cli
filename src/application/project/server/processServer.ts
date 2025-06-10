@@ -75,11 +75,11 @@ export class ProcessServer implements Server {
         const {output} = this.execution;
         const buffer = new ScreenBuffer();
 
-        let waiting = true;
+        const logController = new AbortController();
 
-        (async (): Promise<void> => {
+        void (async (): Promise<void> => {
             for await (const line of output) {
-                if (!waiting) {
+                if (logController.signal.aborted) {
                     return;
                 }
 
@@ -94,7 +94,7 @@ export class ProcessServer implements Server {
 
         const url = await this.waitStart();
 
-        waiting = false;
+        logController.abort();
 
         if (url === null) {
             logger?.log({
