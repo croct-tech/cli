@@ -7,6 +7,7 @@ import {ServerFactory} from '@/application/project/server/factory/serverFactory'
 import {Provider} from '@/application/provider/provider';
 import {Server} from '@/application/project/server/server';
 import {PackageManager} from '@/application/project/packageManager/packageManager';
+import {TaskProgressLogger} from '@/infrastructure/application/cli/io/taskProgressLogger';
 
 type ServerInfo = {
     script: string,
@@ -93,9 +94,10 @@ export class StartServer implements Action<StartServerOptions> {
         return {
             id: id,
             url: await server.start({
-                logger: {
-                    log: log => notifier.update('Starting server', log.message.split('\n')[0]),
-                },
+                logger: new TaskProgressLogger({
+                    status: 'Starting server',
+                    notifier: notifier,
+                }),
             }),
             owned: true,
         };

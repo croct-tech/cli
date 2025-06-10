@@ -1,6 +1,7 @@
 import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {PackageManager} from '@/application/project/packageManager/packageManager';
+import {TaskProgressLogger} from '@/infrastructure/application/cli/io/taskProgressLogger';
 
 export type AddDependencyOptions = {
     dependencies: string[],
@@ -26,12 +27,10 @@ export class AddDependencyAction implements Action<AddDependencyOptions> {
         try {
             await this.packageManager.addDependencies(options.dependencies, {
                 dev: options.development ?? false,
-                logger: {
-                    log: log => notifier?.update(
-                        'Installing dependencies',
-                        log.message.split(/\n+/)[0],
-                    ),
-                },
+                logger: new TaskProgressLogger({
+                    status: 'Installing dependencies',
+                    notifier: notifier,
+                }),
             });
         } catch (error) {
             throw ActionError.fromCause(error);
