@@ -1,4 +1,5 @@
 import {JsonValue} from '@croct/json';
+import * as crypto from 'node:crypto';
 import {EvaluationError, GenericFunction} from '@/application/template/evaluation';
 import {HelpfulError} from '@/application/error';
 
@@ -47,3 +48,5 @@ export const dirname: GenericFunction = (path: JsonValue): JsonValue => {
 
     return path.replace(/[\\/][^\\/]*$/, '');
 };
+
+export const uuid: GenericFunction = (): JsonValue => crypto.randomUUID();
