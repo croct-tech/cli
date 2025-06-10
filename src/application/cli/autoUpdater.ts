@@ -4,6 +4,7 @@ import {PackageManager} from '@/application/project/packageManager/packageManage
 import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
 import {CliConfiguration, CliConfigurationProvider} from '@/application/cli/configuration/provider';
+import {TaskProgressLogger} from '@/infrastructure/application/cli/io/taskProgressLogger';
 
 export type Configuration = {
     currentVersion: string,
@@ -82,12 +83,10 @@ export class AutoUpdater {
         try {
             await this.packageManager.updatePackage('croct', {
                 global: isInstalledGlobally,
-                logger: {
-                    log: log => notifier?.update(
-                        'Updating the CLI',
-                        log.message.split(/\n+/)[0],
-                    ),
-                },
+                logger: new TaskProgressLogger({
+                    status: 'Updating the CLI',
+                    notifier: notifier,
+                }),
             });
         } catch (error) {
             const updateCommand = await this.packageManager.getPackageUpdateCommand('croct', {

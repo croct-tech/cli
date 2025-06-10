@@ -1,5 +1,4 @@
 import {JsonArrayNode, JsonObjectNode, JsonParser} from '@croct/json5-parser/index.js';
-import {Logger} from '@croct/logging';
 import {
     UpdateOptions as BaseContentOptions,
     Installation,
@@ -22,6 +21,7 @@ import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirecto
 import {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
 import {multiline} from '@/utils/multiline';
 import {formatName} from '@/application/project/utils/formatName';
+import {TaskProgressLogger} from '@/infrastructure/application/cli/io/taskProgressLogger';
 
 export type InstallationPlan = {
     tasks: Task[],
@@ -126,12 +126,10 @@ export abstract class JavaScriptSdk implements Sdk {
             task: async notifier => {
                 notifier.update('Installing dependencies');
 
-                const logger: Logger = {
-                    log: log => notifier?.update(
-                        'Installing dependencies',
-                        log.message.split(/\n+/)[0],
-                    ),
-                };
+                const logger = new TaskProgressLogger({
+                    status: 'Installing dependencies',
+                    notifier: notifier,
+                });
 
                 try {
                     await this.packageManager.addDependencies(['croct'], {

@@ -1,3 +1,4 @@
+import {LogLevel} from '@croct/logging';
 import {Action, ActionError} from '@/application/template/action/action';
 import {ErrorReason} from '@/application/error';
 import {ActionContext} from '@/application/template/action/context';
@@ -9,6 +10,7 @@ import {CommandExecutor} from '@/application/system/process/executor';
 import {Predicate} from '@/application/predicate/predicate';
 import {Notifier} from '@/application/cli/io/output';
 import {ScreenBuffer} from '@/application/cli/io/screenBuffer';
+import {TaskProgressLogger} from '@/infrastructure/application/cli/io/taskProgressLogger';
 
 export type Interactions = {
     when: string,
@@ -142,6 +144,10 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
         }
 
         const buffer = new ScreenBuffer();
+        const logger = new TaskProgressLogger({
+            status: `Running \`${formattedCommand}\``,
+            notifier: notifier,
+        });
 
         if (interactions !== true) {
             const nextInteractions = Array.isArray(interactions) ? [...interactions] : [];
@@ -153,12 +159,10 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
             for await (const line of execution.output) {
                 buffer.write(line);
 
-                const log = ScreenBuffer.getRawString(line);
-
-                notifier.update(
-                    `Running \`${formattedCommand}\``,
-                    log.split(/\n+/)[0],
-                );
+                logger.log({
+                    level: LogLevel.DEBUG,
+                    message: ScreenBuffer.getRawString(line),
+                });
 
                 const diff = buffer.getSnapshotDiff();
 

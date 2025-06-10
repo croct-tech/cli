@@ -1,6 +1,7 @@
 import {Action, ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {PackageManager} from '@/application/project/packageManager/packageManager';
+import {TaskProgressLogger} from '@/infrastructure/application/cli/io/taskProgressLogger';
 
 export type InstallOptions = Record<string, never>;
 
@@ -22,12 +23,10 @@ export class InstallAction implements Action<InstallOptions> {
 
         try {
             await this.packageManager.installDependencies({
-                logger: {
-                    log: log => notifier?.update(
-                        'Installing dependencies',
-                        log.message.split(/\n+/)[0],
-                    ),
-                },
+                logger: new TaskProgressLogger({
+                    status: 'Installing dependencies',
+                    notifier: notifier,
+                }),
             });
         } catch (error) {
             throw ActionError.fromCause(error);
