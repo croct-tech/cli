@@ -86,15 +86,16 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
         const {output} = context;
 
         const notifier = output?.notify('Analyzing resources');
-
         const analysis = WorkspaceResources.analyze(options.resources);
-
-        this.checkMissingResources({...analysis, locales: new Set()}, options.resources);
-
         const {configurationManager, api: {workspace: api}} = this.config;
-
         const configuration = await configurationManager.load();
         const projectInfo = await this.getProjectInfo(configuration);
+
+        await this.checkMissingResources(
+            {...analysis, locales: new Set()},
+            options.resources,
+            projectInfo,
+        );
 
         const plan = await this.createPlan(options.resources, analysis, projectInfo);
 
@@ -284,8 +285,12 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
         }
     }
 
-    private checkMissingResources(analysis: ResourcesAnalysis, resources: WorkspaceResources): void {
-        const missingResources = this.findMissingResources(analysis, resources);
+    private async checkMissingResources(
+        analysis: ResourcesAnalysis,
+        resources: WorkspaceResources,
+        projectInfo: ProjectInfo,
+    ): Promise<void> {
+        const missingResources = await this.findMissingResources(analysis, resources, projectInfo);
 
         for (const [resource, missing] of Object.entries(missingResources)) {
             if (missing.size > 0) {
@@ -303,29 +308,93 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
         }
     }
 
-    private findMissingResources(analysis: ResourcesAnalysis, resources: WorkspaceResources): MissingResources {
-        const components = new Set(analysis.components);
-        const slots = new Set(analysis.slots);
-        const audiences = new Set(analysis.audiences);
-        const locales = new Set(analysis.locales);
+    private async findMissingResources(
+        analysis: ResourcesAnalysis,
+        resources: WorkspaceResources,
+        projectInfo: ProjectInfo,
+    ): Promise<MissingResources> {
+        const missingComponents = new Set(analysis.components);
+        const missingSlots = new Set(analysis.slots);
+        const missingAudiences = new Set(analysis.audiences);
+        const missingLocales = new Set(analysis.locales);
 
         for (const slug of Object.keys(resources.components ?? {})) {
-            components.delete(slug);
+            missingComponents.delete(slug);
         }
 
         for (const slug of Object.keys(resources.slots ?? {})) {
-            slots.delete(slug);
+            missingSlots.delete(slug);
         }
 
         for (const slug of Object.keys(resources.audiences ?? {})) {
-            audiences.delete(slug);
+            missingAudiences.delete(slug);
         }
 
+        const {api} = this.config;
+
+        await Promise.all([
+            Promise.all(
+                [...missingComponents].map(
+                    async id => {
+                        const component = api.workspace.getComponent({
+                            organizationSlug: projectInfo.configuration.organization,
+                            workspaceSlug: projectInfo.configuration.workspace,
+                            componentSlug: id,
+                        });
+
+                        if ((await component) !== null) {
+                            missingComponents.delete(id);
+                        }
+                    },
+                ),
+            ),
+            Promise.all(
+                [...missingSlots].map(
+                    async id => {
+                        const slot = api.workspace.getSlot({
+                            organizationSlug: projectInfo.configuration.organization,
+                            workspaceSlug: projectInfo.configuration.workspace,
+                            slotSlug: id,
+                        });
+
+                        if ((await slot) !== null) {
+                            missingSlots.delete(id);
+                        }
+                    },
+                ),
+            ),
+            Promise.all(
+                [...missingAudiences].map(
+                    async id => {
+                        const audience = api.workspace.getAudience({
+                            organizationSlug: projectInfo.configuration.organization,
+                            workspaceSlug: projectInfo.configuration.workspace,
+                            audienceSlug: id,
+                        });
+
+                        if ((await audience) !== null) {
+                            missingAudiences.delete(id);
+                        }
+                    },
+                ),
+            ),
+            api.organization
+                .getWorkspace({
+                    organizationSlug: projectInfo.configuration.organization,
+                    workspaceSlug: projectInfo.configuration.workspace,
+                })
+                .then(workspace => {
+                    for (const locale of workspace?.locales ?? []) {
+                        missingLocales.delete(locale);
+                    }
+                }),
+        ]);
+
         return {
-            components: components,
-            slots: slots,
-            audiences: audiences,
-            locales: locales,
+            components: missingComponents,
+            slots: missingSlots,
+            audiences: missingAudiences,
+            locales: missingLocales,
         };
     }
 
