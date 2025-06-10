@@ -1,3 +1,4 @@
+import {Logger} from '@croct/logging';
 import {Help, HelpfulError} from '@/application/error';
 
 type RunningStatus = {
@@ -20,10 +21,14 @@ export class ServerError extends HelpfulError {
 
 export type ServerStatus = RunningStatus | StoppedStatus;
 
+export type StartServerOptions = {
+    logger?: Logger,
+};
+
 export interface Server {
     getStatus(): Promise<ServerStatus>;
 
-    start(): Promise<URL>;
+    start(options?: StartServerOptions): Promise<URL>;
 
-    stop(): Promise<void>;
+    stop(options?: StartServerOptions): Promise<void>;
 }

@@ -92,7 +92,11 @@ export class StartServer implements Action<StartServerOptions> {
 
         return {
             id: id,
-            url: await server.start(),
+            url: await server.start({
+                logger: {
+                    log: log => notifier.update('Starting server', log.message.split('\n')[0]),
+                },
+            }),
             owned: true,
         };
     }

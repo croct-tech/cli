@@ -14,6 +14,7 @@ export const colors: Record<Semantics, ForegroundColorName> = {
     error: 'red',
     warning: 'yellow',
     success: 'green',
+    secondary: 'grey',
 };
 
 const icons: Record<Semantics, string> = {
@@ -22,6 +23,7 @@ const icons: Record<Semantics, string> = {
     error: unicodeSupport ? '✘' : '×',
     warning: unicodeSupport ? '⚠' : '‼',
     success: unicodeSupport ? '✔' : '√',
+    secondary: unicodeSupport ? '↳' : '›',
 };
 
 export type FormatingOptions = {

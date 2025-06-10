@@ -21,7 +21,14 @@ export class InstallAction implements Action<InstallOptions> {
         const notifier = output?.notify('Installing dependencies');
 
         try {
-            await this.packageManager.installDependencies();
+            await this.packageManager.installDependencies({
+                logger: {
+                    log: log => notifier?.update(
+                        'Installing dependencies',
+                        log.message.split(/\n+/)[0],
+                    ),
+                },
+            });
         } catch (error) {
             throw ActionError.fromCause(error);
         } finally {

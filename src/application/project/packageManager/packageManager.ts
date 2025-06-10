@@ -1,3 +1,4 @@
+import {Logger} from '@croct/logging';
 import {Help, HelpfulError} from '@/application/error';
 import {Command} from '@/application/system/process/command';
 import {ExecutionOptions} from '@/application/system/process/executor';
@@ -35,6 +36,26 @@ export type Dependency = {
 };
 
 export type CommandOptions = Omit<ExecutionOptions, 'workingDirectory'>;
+
+export type ActionOptions = {
+    logger?: Logger,
+};
+
+export type InstallDependenciesOptions = ActionOptions & {
+    logger?: Logger,
+};
+
+export type AddDependencyOptions = ActionOptions & {
+    dev?: boolean,
+};
+
+export type UpdatePackageOptions = ActionOptions & {
+    global?: boolean,
+};
+
+export type UpdateCommandOptions = {
+    global?: boolean,
+};
 
 export interface PackageManager {
     /**
@@ -99,31 +120,33 @@ export interface PackageManager {
      * This method adds the specified package to the project's dependencies and installs it.
      *
      * @param dependencies The name of the packages to install.
-     * @param dev If true, the package should be installed as a development dependency.
+     * @param options Additional options for adding the dependencies.
      * @returns A promise that resolves once the package installation is complete.
      *
      * @throws PackageManagerError If an error occurs while installing the package.
      */
-    addDependencies(dependencies: string[], dev?: boolean): Promise<void>;
+    addDependencies(dependencies: string[], options?: AddDependencyOptions): Promise<void>;
 
     /**
      * Installs the project dependencies.
      *
      * This method installs all the dependencies listed in the project's manifest file.
      *
+     * @param options Additional options for installing the dependencies.
+
      * @returns A promise that resolves once the dependencies are installed.
      *
      * @throws PackageManagerError If an error occurs while installing the dependencies.
      */
-    installDependencies(): Promise<void>;
+    installDependencies(options?: InstallDependenciesOptions): Promise<void>;
 
     /**
      * Updates a specific local or global package.
      *
      * @param packageName The name of the package to update.
-     * @param global If true, the package should be updated globally.
+     * @param options Additional options for updating the package.
      */
-    updatePackage(packageName: string, global?: boolean): Promise<void>;
+    updatePackage(packageName: string, options?: UpdatePackageOptions): Promise<void>;
 
     /**
      * Retrieves the scripts defined in the project.
@@ -168,7 +191,7 @@ export interface PackageManager {
      * Returns the command to update a package.
      *
      * @param packageName The name of the package to update.
-     * @param global If true, the package should be updated globally.
+     * @param options Additional options for updating the package.
      */
-    getPackageUpdateCommand(packageName: string, global?: boolean): Promise<Command>;
+    getPackageUpdateCommand(packageName: string, options?: UpdateCommandOptions): Promise<Command>;
 }

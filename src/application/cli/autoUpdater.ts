@@ -80,9 +80,19 @@ export class AutoUpdater {
         const notifier = this.output.notify('Updating the CLI');
 
         try {
-            await this.packageManager.updatePackage('croct', isInstalledGlobally);
+            await this.packageManager.updatePackage('croct', {
+                global: isInstalledGlobally,
+                logger: {
+                    log: log => notifier?.update(
+                        'Updating the CLI',
+                        log.message.split(/\n+/)[0],
+                    ),
+                },
+            });
         } catch (error) {
-            const updateCommand = await this.packageManager.getPackageUpdateCommand('croct', isInstalledGlobally);
+            const updateCommand = await this.packageManager.getPackageUpdateCommand('croct', {
+                global: isInstalledGlobally,
+            });
             const fullCommand = `${updateCommand.name} ${updateCommand.arguments?.join(' ')}`;
 
             notifier.alert('Failed to update the CLI automatically');

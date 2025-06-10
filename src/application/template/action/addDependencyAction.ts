@@ -24,7 +24,15 @@ export class AddDependencyAction implements Action<AddDependencyOptions> {
         const notifier = output?.notify('Installing dependencies');
 
         try {
-            await this.packageManager.addDependencies(options.dependencies, options.development === true);
+            await this.packageManager.addDependencies(options.dependencies, {
+                dev: options.development ?? false,
+                logger: {
+                    log: log => notifier?.update(
+                        'Installing dependencies',
+                        log.message.split(/\n+/)[0],
+                    ),
+                },
+            });
         } catch (error) {
             throw ActionError.fromCause(error);
         } finally {

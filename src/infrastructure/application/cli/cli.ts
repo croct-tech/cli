@@ -2058,10 +2058,10 @@ export class Cli {
             () => new ProcessServerFactory({
                 commandExecutor: this.getAsynchronousCommandExecutor(),
                 workingDirectory: this.workingDirectory,
-                startupTimeout: 20_000,
-                startupCheckDelay: 1500,
+                startupTimeout: 60 * 1_000,
+                startupCheckDelay: 1.5 * 1_000,
                 lookupMaxPorts: 30,
-                lookupTimeout: 2_000,
+                lookupTimeout: 2 * 1_000,
                 processObserver: this.configuration.process,
             }),
         );
