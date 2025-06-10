@@ -8,12 +8,12 @@ import {JavaScriptCodemod} from '@/application/project/code/transformation/javas
 
 describe('NextJsMiddlewareCodemod', () => {
     const defaultOptions: MiddlewareConfiguration = {
+        matcherPattern: '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
         import: {
             module: '@croct/plug-next/middleware',
             middlewareFactoryName: 'withCroct',
             middlewareName: 'middleware',
             matcherName: 'matcher',
-            matcherLocalName: 'matcher',
             configName: 'config',
         },
     };
@@ -25,7 +25,6 @@ describe('NextJsMiddlewareCodemod', () => {
             'matcherAlias.ts': {
                 import: {
                     ...defaultOptions.import,
-                    matcherLocalName: 'croctMatcher',
                 },
             },
         },

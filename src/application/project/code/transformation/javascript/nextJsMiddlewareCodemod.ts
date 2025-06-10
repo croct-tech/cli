@@ -20,13 +20,13 @@ type VariableMatch = {
 };
 
 export type MiddlewareConfiguration = {
+    matcherPattern: string,
     import: {
         module: string,
         middlewareFactoryName: string,
         middlewareName: string,
         configName: string,
         matcherName: string,
-        matcherLocalName: string,
     },
 };
 
@@ -111,13 +111,6 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
             });
         }
 
-        const matcherName = localConfig === null
-            ? null
-            : getImportLocalName(input, {
-                moduleName: this.configuration.import.module,
-                importName: this.configuration.import.matcherName,
-            });
-
         let middlewareNode = NextJsMiddlewareCodemod.refactorMiddleware(
             input,
             middlewareFactoryName ?? this.configuration.import.middlewareFactoryName,
@@ -156,7 +149,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                                 t.identifier('matcher'),
                                 t.memberExpression(
                                     t.identifier(localConfig.name),
-                                    t.identifier(matcherName ?? this.configuration.import.matcherName),
+                                    t.identifier(this.configuration.import.matcherName),
                                 ),
                             ),
                         ]),
@@ -169,7 +162,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
 
         if (localConfig !== null) {
             // Refactor the configuration object to include the matcher property
-            this.configureMatcher(localConfig.object, matcherName ?? this.configuration.import.matcherLocalName);
+            this.configureMatcher(localConfig.object, this.configuration.matcherPattern);
 
             const configPosition = body.indexOf(localConfig.root as t.Statement);
             const middlewarePosition = body.indexOf(middlewareNode as t.Statement);
@@ -206,16 +199,6 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
             });
         }
 
-        if (localConfig?.matcher === true && matcherName === null) {
-            // If no import for the matcher was found and a matcher is used in the config, add it
-            addImport(input, {
-                type: 'value',
-                moduleName: this.configuration.import.module,
-                importName: this.configuration.import.matcherName,
-                localName: this.configuration.import.matcherLocalName,
-            });
-        }
-
         return Promise.resolve({
             modified: true,
             result: input,
@@ -226,10 +209,10 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
      * Adds the middleware matcher to the config object.
      *
      * @param configObject The object expression representing the configuration.
-     * @param matcherName The name of the matcher identifier.
+     * @param pattern The pattern to add to the matcher.
      * @return true if the config object was modified, false otherwise.
      */
-    private configureMatcher(configObject: t.ObjectExpression, matcherName: string): boolean {
+    private configureMatcher(configObject: t.ObjectExpression, pattern: string): boolean {
         let modified = false;
 
         // Loop through the config properties to locate the 'matcher' property
@@ -240,10 +223,15 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                 && property.key.name === 'matcher'
             ) {
                 if (t.isStringLiteral(property.value)) {
+                    if (property.value.value === pattern) {
+                        // The matcher already exists, no need to modify
+                        break;
+                    }
+
                     // Wrap single matcher string in an array and add 'matcher' identifier
                     property.value = t.arrayExpression([
                         property.value,
-                        t.identifier(matcherName),
+                        t.stringLiteral(pattern),
                     ]);
 
                     modified = true;
@@ -254,8 +242,8 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                 if (t.isArrayExpression(property.value)) {
                     const {elements} = property.value;
 
-                    if (!elements.some(element => t.isIdentifier(element) && element.name === matcherName)) {
-                        elements.push(t.identifier(matcherName));
+                    if (!elements.some(element => t.isStringLiteral(element) && element.value === pattern)) {
+                        elements.push(t.stringLiteral(pattern));
 
                         modified = true;
                     }
@@ -264,10 +252,6 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                 }
 
                 if (t.isIdentifier(property.value)) {
-                    if (property.value.name === matcherName) {
-                        break;
-                    }
-
                     // Convert matcher identifier into an array, if necessary, and append 'matcher'
                     property.value = t.arrayExpression([
                         t.spreadElement(
@@ -283,7 +267,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                                 t.arrayExpression([property.value]),
                             ),
                         ),
-                        t.identifier(matcherName),
+                        t.stringLiteral(pattern),
                     ]);
 
                     modified = true;

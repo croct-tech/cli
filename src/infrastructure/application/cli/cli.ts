@@ -1733,13 +1733,14 @@ export class Cli {
                                         codemod: new JavaScriptCodemod({
                                             languages: ['typescript', 'jsx'],
                                             codemod: new NextJsMiddlewareCodemod({
+                                                // eslint-disable-next-line max-len -- Ignore for readability
+                                                matcherPattern: '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
                                                 import: {
                                                     module: '@croct/plug-next/middleware',
                                                     middlewareName: 'middleware',
                                                     middlewareFactoryName: 'withCroct',
                                                     configName: 'config',
                                                     matcherName: 'matcher',
-                                                    matcherLocalName: 'croctMatcher',
                                                 },
                                             }),
                                         }),
