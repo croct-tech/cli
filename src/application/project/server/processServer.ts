@@ -75,11 +75,11 @@ export class ProcessServer implements Server {
         const {output} = this.execution;
         const buffer = new ScreenBuffer();
 
-        const logController = new AbortController();
+        const loggingLoopBreaker = new AbortController();
 
-        void (async (): Promise<void> => {
+        const loggingLoop = (async (): Promise<void> => {
             for await (const line of output) {
-                if (logController.signal.aborted) {
+                if (loggingLoopBreaker.signal.aborted) {
                     return;
                 }
 
@@ -94,7 +94,9 @@ export class ProcessServer implements Server {
 
         const url = await this.waitStart();
 
-        logController.abort();
+        loggingLoopBreaker.abort();
+
+        await loggingLoop;
 
         if (url === null) {
             logger?.log({
