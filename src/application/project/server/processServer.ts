@@ -59,27 +59,31 @@ export class ProcessServer implements Server {
             });
         }
 
-        const callback = (): Promise<void> => this.stop();
+        const abortController = new AbortController();
+
+        const onExit = (): Promise<void> => {
+            abortController.abort();
+
+            return this.stop();
+        };
 
         this.execution.onExit(() => {
             this.execution = undefined;
-            processObserver.off('exit', callback);
+            processObserver.off('exit', onExit);
         });
 
         if (!this.execution.running) {
             throw new ServerError('Failed to start server.');
         }
 
-        processObserver.on('exit', callback);
+        processObserver.on('exit', onExit);
 
         const {output} = this.execution;
         const buffer = new ScreenBuffer();
 
-        const loggingLoopBreaker = new AbortController();
-
         const loggingLoop = (async (): Promise<void> => {
             for await (const line of output) {
-                if (loggingLoopBreaker.signal.aborted) {
+                if (abortController.signal.aborted) {
                     return;
                 }
 
@@ -92,9 +96,9 @@ export class ProcessServer implements Server {
             }
         })();
 
-        const url = await this.waitStart();
+        const url = await this.waitStart(abortController);
 
-        loggingLoopBreaker.abort();
+        abortController.abort();
 
         await loggingLoop;
 
@@ -113,21 +117,31 @@ export class ProcessServer implements Server {
     }
 
     public async stop(): Promise<void> {
-        await this?.execution?.kill('SIGINT');
+        await this.execution?.kill('SIGINT');
 
         this.execution = undefined;
     }
 
-    private async waitStart(): Promise<URL | null> {
+    private async waitStart(controller: AbortController): Promise<URL | null> {
         const {startupCheckDelay, startupTimeout} = this.configuration;
-        const controller = new AbortController();
 
         const timer = setTimeout(() => controller.abort(), startupTimeout);
 
         timer.unref();
 
+        controller.signal.addEventListener('abort', () => {
+            clearTimeout(timer);
+        });
+
         const delay = (): Promise<void> => new Promise(resolve => {
+            const callback = (): void => {
+                resolve();
+                controller.signal.removeEventListener('abort', callback);
+            };
+
             setTimeout(resolve, startupCheckDelay);
+
+            controller.signal.addEventListener('abort', callback);
         });
 
         do {

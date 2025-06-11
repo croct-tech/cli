@@ -156,6 +156,7 @@ export class ConsoleInput implements Input {
     private async interact<T extends string, R>(definition: PromptDefinition<T>, options?: Options): Promise<R> {
         this.configuration.onInteractionStart?.();
         const {output, onAbort} = this.configuration;
+        let abortPromise: Promise<never> | undefined;
 
         const questions = {
             name: 'value',
@@ -170,13 +171,13 @@ export class ConsoleInput implements Input {
                     // the program, the cursor will remain hidden
                     output.write('\x1B[?25h');
                     output.write('\n');
-                    onAbort();
+                    abortPromise = onAbort();
                 }
             },
         };
 
         try {
-            return await prompts(questions, options).then(response => response.value);
+            return await prompts(questions, options).then(response => response.value ?? abortPromise);
         } finally {
             this.configuration.onInteractionEnd?.();
         }
