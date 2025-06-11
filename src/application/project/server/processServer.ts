@@ -129,8 +129,19 @@ export class ProcessServer implements Server {
 
         timer.unref();
 
+        controller.signal.addEventListener('abort', () => {
+            clearTimeout(timer);
+        });
+
         const delay = (): Promise<void> => new Promise(resolve => {
+            const callback = (): void => {
+                resolve();
+                controller.signal.removeEventListener('abort', callback);
+            };
+
             setTimeout(resolve, startupCheckDelay);
+
+            controller.signal.addEventListener('abort', callback);
         });
 
         do {
