@@ -870,6 +870,8 @@ export class Cli {
             linkOpener: new LazyLinkOpener((): LinkOpener => new ConsoleLinkOpener(output)),
         });
 
+        configuration.process.on('exit', () => output.stop());
+
         return output;
     }
 
@@ -915,6 +917,8 @@ export class Cli {
                         },
                     ),
                 });
+
+                configuration.process.on('exit', () => output.stop());
 
                 return output;
             },
@@ -1225,6 +1229,7 @@ export class Cli {
                 }),
                 'execute-package': new ValidatedAction({
                     action: new ExecutePackage({
+                        processObserver: this.configuration.process,
                         packageManager: this.getPackageManager(),
                         packageManagerProvider: this.getPackageManagerRegistry(),
                         workingDirectory: this.workingDirectory,

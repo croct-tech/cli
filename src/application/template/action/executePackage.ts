@@ -11,6 +11,7 @@ import {Predicate} from '@/application/predicate/predicate';
 import {Notifier} from '@/application/cli/io/output';
 import {ScreenBuffer} from '@/application/cli/io/screenBuffer';
 import {TaskProgressLogger} from '@/infrastructure/application/cli/io/taskProgressLogger';
+import {ProcessObserver} from '@/application/system/process/process';
 
 export type Interactions = {
     when: string,
@@ -30,6 +31,7 @@ export type ExecutePackageOptions = {
 };
 
 export type Configuration = {
+    processObserver: ProcessObserver,
     sourceChecker: Predicate<[URL]>,
     packageManager: PackageManager,
     packageManagerProvider: Provider<PackageManager, [string]>,
@@ -130,12 +132,20 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
         notifier: Notifier,
         interactions: Interactions[]|boolean,
     ): Promise<string> {
-        const {workingDirectory, commandExecutor, commandTimeout} = this.configuration;
+        const {processObserver, workingDirectory, commandExecutor, commandTimeout} = this.configuration;
         const execution = await commandExecutor.run(command, {
             workingDirectory: workingDirectory.get(),
             timeout: commandTimeout,
             inheritIo: interactions === true,
         });
+
+        const kill = (): void => {
+            execution.kill();
+        };
+
+        processObserver.on('exit', kill);
+
+        execution.onExit(() => processObserver.off('exit', kill));
 
         const formattedCommand = ExecutePackage.formatCommand(command);
 
