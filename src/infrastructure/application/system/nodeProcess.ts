@@ -10,6 +10,7 @@ export class NodeProcess implements Process {
     public constructor() {
         process.on('SIGTERM', () => this.exit());
         process.on('SIGINT', () => this.exit());
+        process.on('SIGHUP', () => this.exit());
     }
 
     public getCurrentDirectory(): string {
