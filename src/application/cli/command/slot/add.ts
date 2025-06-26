@@ -67,11 +67,27 @@ export class AddSlotCommand implements Command<AddSlotInput> {
 
         await sdk.update(installation, {clean: true});
 
-        if (input.example === true) {
+        const addedSlots = slots.filter(
+            ([slot]) => (
+                configuration.slots[slot.slug] === undefined
+                || !Version.parse(configuration.slots[slot.slug]).contains(Version.of(slot.version.major))
+            ),
+        );
+
+        const generateExample = addedSlots.length > 0 && (
+            input.example
+            ?? (await io.input?.confirm({
+                message: 'Generate an example implementation?',
+                default: true,
+            }))
+            ?? false
+        );
+
+        if (generateExample) {
             const notifier = output.notify('Generating example');
 
             try {
-                await Promise.all(slots.map(([slot]) => sdk.generateSlotExample(slot, installation)));
+                await Promise.all(addedSlots.map(([slot]) => sdk.generateSlotExample(slot, installation)));
             } catch (error) {
                 notifier.stop();
 
