@@ -311,6 +311,10 @@ import {ResolveImportAction} from '@/application/template/action/resolveImportAc
 import {
     ResolveImportOptionsValidator,
 } from '@/infrastructure/application/validation/actions/resolveImportOptionsValidator';
+import {CreateApiKeyAction} from '@/application/template/action/createApiKeyAction';
+import {
+    CreateApiKeyOptionsValidator,
+} from '@/infrastructure/application/validation/actions/createApiKeyOptionsValidator';
 
 export type Configuration = {
     program: Program,
@@ -1352,6 +1356,13 @@ export class Cli {
                         },
                     }),
                     validator: new AddComponentOptionsValidator(),
+                }),
+                'create-api-key': new ValidatedAction({
+                    action: new CreateApiKeyAction({
+                        applicationApi: this.getApplicationApi(),
+                        configurationManager: this.getConfigurationManager(),
+                    }),
+                    validator: new CreateApiKeyOptionsValidator(),
                 }),
                 'create-resource': new ValidatedAction({
                     action: new CreateResourceAction({
