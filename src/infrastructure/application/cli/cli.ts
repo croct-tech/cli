@@ -175,7 +175,7 @@ import {OpenLinkAction} from '@/application/template/action/openLinkAction';
 import {OpenLinkOptionsValidator} from '@/infrastructure/application/validation/actions/openLinkOptionsValidator';
 import {DefineOptionsValidator} from '@/infrastructure/application/validation/actions/defineOptionsValidator';
 import {DefineAction} from '@/application/template/action/defineAction';
-import {VariableMap} from '@/application/template/evaluation';
+import {EvaluationError, VariableMap} from '@/application/template/evaluation';
 import {StopServerOptionsValidator} from '@/infrastructure/application/validation/actions/stopServerOptionsValidator';
 import {ProcessServerFactory} from '@/application/project/server/factory/processServerFactory';
 import {CurrentWorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
@@ -1460,15 +1460,53 @@ export class Cli {
                     async () => {
                         const {organization, workspace, applications} = await this.getConfigurationManager().load();
                         const path = `organizations/${organization}/workspaces/${workspace}/applications/`;
+                        const prodApplication = applications.production;
 
                         return {
                             development: {
                                 slug: applications.development,
                                 url: getUrl(path + applications.development),
+                                publicId: LazyPromise.transient(async () => {
+                                    const workspaceApi = this.getWorkspaceApi();
+
+                                    const application = await workspaceApi.getApplication({
+                                        organizationSlug: organization,
+                                        workspaceSlug: workspace,
+                                        applicationSlug: applications.development,
+                                    });
+
+                                    if (application === null) {
+                                        throw new EvaluationError('Development application not found.', {
+                                            reason: ErrorReason.NOT_FOUND,
+                                        });
+                                    }
+
+                                    return application.publicId;
+                                }),
                             },
                             production: {
                                 slug: applications.production,
                                 url: getUrl(path + applications.production),
+                                publicId:
+                                prodApplication === undefined
+                                    ? prodApplication
+                                    : LazyPromise.transient(async () => {
+                                        const workspaceApi = this.getWorkspaceApi();
+
+                                        const application = await workspaceApi.getApplication({
+                                            organizationSlug: organization,
+                                            workspaceSlug: workspace,
+                                            applicationSlug: prodApplication,
+                                        });
+
+                                        if (application === null) {
+                                            throw new EvaluationError('Production application not found.', {
+                                                reason: ErrorReason.NOT_FOUND,
+                                            });
+                                        }
+
+                                        return application.publicId;
+                                    }),
                             },
                         };
                     },
