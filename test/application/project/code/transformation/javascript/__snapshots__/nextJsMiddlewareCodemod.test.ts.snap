@@ -272,7 +272,11 @@ exports[`NextJsMiddlewareCodemod should correctly transform defaultExportClass.t
     // invalid
 }
 
-export { middleware, config } from "@croct/plug-next/middleware";
+export { middleware } from "@croct/plug-next/middleware";
+
+export const config = {
+    matcher: "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)"
+};
 "
 `;
 
@@ -319,7 +323,13 @@ export default something;
 "
 `;
 
-exports[`NextJsMiddlewareCodemod should correctly transform empty.ts: empty.ts 1`] = `"export { middleware, config } from "@croct/plug-next/middleware";"`;
+exports[`NextJsMiddlewareCodemod should correctly transform empty.ts: empty.ts 1`] = `
+"export { middleware } from "@croct/plug-next/middleware";
+
+export const config = {
+  matcher: "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)"
+};"
+`;
 
 exports[`NextJsMiddlewareCodemod should correctly transform existingAliasedHofCall.ts: existingAliasedHofCall.ts 1`] = `
 "import { withCroct as croctMiddleware } from "@croct/plug-next/middleware";
@@ -381,11 +391,6 @@ export default withCroct({
 "
 `;
 
-exports[`NextJsMiddlewareCodemod should correctly transform existingConfigReexport.ts: existingConfigReexport.ts 1`] = `
-"export { config, middleware } from "@croct/plug-next/middleware";
-"
-`;
-
 exports[`NextJsMiddlewareCodemod should correctly transform existingHofCall.ts: existingHofCall.ts 1`] = `
 "import { withCroct } from "@croct/plug-next/middleware";
 
@@ -435,20 +440,6 @@ export const middleware = croctMiddleware({
 "
 `;
 
-exports[`NextJsMiddlewareCodemod should correctly transform existingLocalConfigAndMiddlewareReexport.ts: existingLocalConfigAndMiddlewareReexport.ts 1`] = `
-"export { middleware } from "@croct/plug-next/middleware";
-
-export const config = {
-    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
-}
-"
-`;
-
-exports[`NextJsMiddlewareCodemod should correctly transform existingMiddlewareAndConfigReexport.ts: existingMiddlewareAndConfigReexport.ts 1`] = `
-"export { middleware, config } from "@croct/plug-next/middleware";
-"
-`;
-
 exports[`NextJsMiddlewareCodemod should correctly transform existingMiddlewareCall.ts: existingMiddlewareCall.ts 1`] = `
 "import { middleware as croctMiddleware } from "@croct/plug-next/middleware";
 
@@ -459,7 +450,11 @@ export default croctMiddleware(function () {
 `;
 
 exports[`NextJsMiddlewareCodemod should correctly transform existingMiddlewareReexport.ts: existingMiddlewareReexport.ts 1`] = `
-"export { middleware, config } from "@croct/plug-next/middleware";
+"export { middleware } from "@croct/plug-next/middleware";
+
+export const config = {
+  matcher: "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)"
+};
 "
 `;
 
