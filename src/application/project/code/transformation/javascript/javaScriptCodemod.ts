@@ -1,6 +1,7 @@
 import {File} from '@babel/types';
 import {parse, print} from 'recast';
-import {parse as babelParser} from 'recast/parsers/babel-ts.js';
+import {parse as babelParse} from '@babel/parser';
+import getBabelOptions, {Overrides} from 'recast/parsers/_babel_options.js';
 import {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
 import {Language} from '@/application/project/code/transformation/javascript/utils/parse';
 
@@ -19,7 +20,13 @@ export class JavaScriptCodemod<O extends CodemodOptions> implements Codemod<stri
     public async apply(input: string, options?: O): Promise<ResultCode<string>> {
         const ast = parse(input, {
             parser: {
-                parse: babelParser,
+                parse: (source: string, parseOptions?: Overrides) => {
+                    const babelOptions = getBabelOptions(parseOptions);
+
+                    babelOptions.plugins.push('jsx', 'typescript');
+
+                    return babelParse(source, babelOptions);
+                },
             },
         });
 
