@@ -1,4 +1,4 @@
-import {z, ZodTypeDef} from 'zod';
+import {z, ZodOptional, ZodTypeDef} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {Version} from '@/application/model/version';
 import {
@@ -39,7 +39,32 @@ const versionSchema = z.string()
 type LenientProjectConfiguration = Omit<JsonProjectConfiguration, 'slots' | 'components'>
     & Partial<Pick<JsonProjectConfiguration, 'slots' | 'components'>>;
 
-const propertySchemas = {
+function optional<T>(schema: z.ZodType<T>): ZodOptional<z.ZodType<T>> {
+    return schema.optional().catch(undefined) as unknown as ZodOptional<z.ZodType<T>>;
+}
+
+const partialConfigurationSchema: z.ZodType<JsonPartialProjectConfiguration> = z.object({
+    $schema: optional(z.string()),
+    organization: optional(identifierSchema),
+    workspace: optional(identifierSchema),
+    applications: optional(z.object({
+        development: optional(identifierSchema),
+        production: optional(identifierSchema),
+    })),
+    locales: optional(z.array(localeSchema).min(1)),
+    defaultLocale: optional(localeSchema),
+    slots: optional(z.record(versionSchema)),
+    components: optional(z.record(versionSchema)),
+    paths: optional(z.object({
+        source: optional(z.string()),
+        utilities: optional(z.string()),
+        components: optional(z.string()),
+        examples: optional(z.string()),
+        content: optional(z.string()),
+    })),
+});
+
+const configurationSchema: z.ZodType<ProjectConfiguration, ZodTypeDef, LenientProjectConfiguration> = z.strictObject({
     $schema: z.string().optional(),
     organization: identifierSchema,
     workspace: identifierSchema,
@@ -60,18 +85,7 @@ const propertySchemas = {
         examples: z.string().optional(),
         content: z.string().optional(),
     }).optional(),
-};
-
-const partialConfigurationSchema: z.ZodType<JsonPartialProjectConfiguration> = z.strictObject({
-    ...propertySchemas,
-    applications: propertySchemas.applications
-        .partial()
-        .optional(),
-}).partial();
-
-const configurationSchema: z.ZodType<ProjectConfiguration, ZodTypeDef, LenientProjectConfiguration> = z.strictObject(
-    propertySchemas,
-).refine(data => data.locales.includes(data.defaultLocale), {
+}).refine(data => data.locales.includes(data.defaultLocale), {
     message: 'The default locale is not included in the list of locales.',
     path: ['defaultLocale'],
 });
