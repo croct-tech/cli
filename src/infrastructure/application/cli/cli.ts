@@ -61,7 +61,10 @@ import {AddComponentCommand, AddComponentInput} from '@/application/cli/command/
 import {ComponentForm} from '@/application/cli/form/workspace/componentForm';
 import {RemoveSlotCommand, RemoveSlotInput} from '@/application/cli/command/slot/remove';
 import {RemoveComponentCommand, RemoveComponentInput} from '@/application/cli/command/component/remove';
-import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import {
+    ConfigurationManager,
+    InitializationState,
+} from '@/application/project/configuration/manager/configurationManager';
 import {NewConfigurationManager} from '@/application/project/configuration/manager/newConfigurationManager';
 import {InstallCommand, InstallInput} from '@/application/cli/command/install';
 import {PageForm} from '@/application/cli/form/page';
@@ -115,7 +118,10 @@ import {HttpFileProvider} from '@/application/provider/resource/httpFileProvider
 import {ResourceProvider, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {PartialNpmPackageValidator} from '@/infrastructure/application/validation/partialNpmPackageValidator';
-import {CroctConfigurationValidator} from '@/infrastructure/application/validation/croctConfigurationValidator';
+import {
+    FullCroctConfigurationValidator,
+    PartialCroctConfigurationValidator,
+} from '@/infrastructure/application/validation/croctConfigurationValidator';
 import {ValidatedProvider} from '@/application/provider/resource/validatedProvider';
 import {FileContentProvider} from '@/application/provider/resource/fileContentProvider';
 import {Json5Provider} from '@/application/provider/resource/json5Provider';
@@ -586,6 +592,11 @@ export class Cli {
     }
 
     public install(input: InstallInput): Promise<void> {
+        // Force partial configuration when running non-interactively or in DND mode.
+        // This skips prompts for missing project values and uses getters that throw errors
+        // if those values are accessed — useful for CI where missing info will fail fast if needed.
+        const partialConfiguration = !this.configuration.interactive || this.configuration.dnd;
+
         return this.execute(
             new InstallCommand({
                 sdk: this.getSdk(),
@@ -595,7 +606,10 @@ export class Cli {
                     output: this.getOutput(),
                 },
             }),
-            input,
+            {
+                clean: input.clean ?? false,
+                partialConfiguration: input.partialConfiguration ?? partialConfiguration,
+            },
         );
     }
 
@@ -1296,7 +1310,7 @@ export class Cli {
                         callback: async (): Promise<void> => {
                             const manager = this.getConfigurationManager();
 
-                            if (!await manager.isInitialized()) {
+                            if (!await manager.isInitialized(InitializationState.FULL)) {
                                 return this.init({});
                             }
                         },
@@ -2253,10 +2267,10 @@ export class Cli {
 
     private getConfigurationManager(): ConfigurationManager {
         return this.share(this.getConfigurationManager, () => {
-            const output = this.getOutput();
             const manager = new JsonConfigurationFileManager({
                 fileSystem: this.getFileSystem(),
-                validator: new CroctConfigurationValidator(),
+                fullValidator: new FullCroctConfigurationValidator(),
+                partialValidator: new PartialCroctConfigurationValidator(),
                 projectDirectory: this.workingDirectory,
             });
 
@@ -2268,10 +2282,7 @@ export class Cli {
                         ? new NewConfigurationManager({
                             manager: manager,
                             initializer: {
-                                initialize: async (): Promise<void> => {
-                                    await this.init({});
-                                    output.break();
-                                },
+                                initialize: () => this.init({}),
                             },
                         })
                         : manager,

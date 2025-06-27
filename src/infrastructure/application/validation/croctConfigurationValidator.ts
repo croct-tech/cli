@@ -1,7 +1,14 @@
-import {z, ZodTypeDef} from 'zod';
+import {z, ZodOptional, ZodTypeDef} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {Version} from '@/application/model/version';
-import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
+import {
+    PartialProjectConfiguration,
+    ProjectConfiguration,
+} from '@/application/project/configuration/projectConfiguration';
+import {
+    JsonPartialProjectConfiguration,
+    JsonProjectConfiguration,
+} from '@/application/project/configuration/manager/jsonConfigurationFileManager';
 
 const identifierSchema = z.string().regex(
     /^[a-z]+(-?[a-z0-9]+)*$/i,
@@ -29,10 +36,35 @@ const versionSchema = z.string()
         'Version range must not exceed 5 major versions.',
     );
 
-type PartialProjectConfiguration = Omit<ProjectConfiguration, 'slots' | 'components'>
-    & Partial<Pick<ProjectConfiguration, 'slots' | 'components'>>;
+type LenientProjectConfiguration = Omit<JsonProjectConfiguration, 'slots' | 'components'>
+    & Partial<Pick<JsonProjectConfiguration, 'slots' | 'components'>>;
 
-const configurationSchema: z.ZodType<ProjectConfiguration, ZodTypeDef, PartialProjectConfiguration> = z.strictObject({
+function optional<T>(schema: z.ZodType<T>): ZodOptional<z.ZodType<T>> {
+    return schema.optional().catch(undefined) as unknown as ZodOptional<z.ZodType<T>>;
+}
+
+const partialConfigurationSchema: z.ZodType<JsonPartialProjectConfiguration> = z.object({
+    $schema: optional(z.string()),
+    organization: optional(identifierSchema),
+    workspace: optional(identifierSchema),
+    applications: optional(z.object({
+        development: optional(identifierSchema),
+        production: optional(identifierSchema),
+    })),
+    locales: optional(z.array(localeSchema).min(1)),
+    defaultLocale: optional(localeSchema),
+    slots: optional(z.record(versionSchema)),
+    components: optional(z.record(versionSchema)),
+    paths: optional(z.object({
+        source: optional(z.string()),
+        utilities: optional(z.string()),
+        components: optional(z.string()),
+        examples: optional(z.string()),
+        content: optional(z.string()),
+    })),
+});
+
+const configurationSchema: z.ZodType<ProjectConfiguration, ZodTypeDef, LenientProjectConfiguration> = z.strictObject({
     $schema: z.string().optional(),
     organization: identifierSchema,
     workspace: identifierSchema,
@@ -58,8 +90,14 @@ const configurationSchema: z.ZodType<ProjectConfiguration, ZodTypeDef, PartialPr
     path: ['defaultLocale'],
 });
 
-export class CroctConfigurationValidator extends ZodValidator<ProjectConfiguration, PartialProjectConfiguration> {
+export class FullCroctConfigurationValidator extends ZodValidator<ProjectConfiguration, LenientProjectConfiguration> {
     public constructor() {
         super(configurationSchema);
+    }
+}
+
+export class PartialCroctConfigurationValidator extends ZodValidator<PartialProjectConfiguration> {
+    public constructor() {
+        super(partialConfigurationSchema);
     }
 }
