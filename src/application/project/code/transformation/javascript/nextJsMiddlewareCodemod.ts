@@ -25,8 +25,6 @@ export type MiddlewareConfiguration = {
         module: string,
         middlewareFactoryName: string,
         middlewareName: string,
-        configName: string,
-        matcherName: string,
     },
 };
 
@@ -48,21 +46,33 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
     public apply(input: t.File): Promise<ResultCode<t.File>> {
         const {body} = input.program;
 
-        const isConfigReexported = hasReexport(input, {
-            moduleName: this.configuration.import.module,
-            importName: this.configuration.import.configName,
-        });
-
         const isMiddlewareReexported = hasReexport(input, {
             moduleName: this.configuration.import.module,
             importName: this.configuration.import.middlewareName,
         });
 
-        const localConfig = isConfigReexported ? null : NextJsMiddlewareCodemod.findConfig(input);
+        const localConfig = NextJsMiddlewareCodemod.findConfig(input);
+
+        const addConfigExport = (): void => {
+            // Add a configuration object with the matcher pattern
+            body.push(t.exportNamedDeclaration(
+                t.variableDeclaration('const', [
+                    t.variableDeclarator(
+                        t.identifier('config'),
+                        t.objectExpression([
+                            t.objectProperty(
+                                t.identifier('matcher'),
+                                t.stringLiteral(this.configuration.matcherPattern),
+                            ),
+                        ]),
+                    ),
+                ]),
+            ));
+        };
 
         if (isMiddlewareReexported) {
-            if (isConfigReexported || localConfig !== null) {
-                // Middleware is re-exported and config is re-exported or found in the source code,
+            if (localConfig !== null) {
+                // Middleware is re-exported and config found in the source code,
                 // consider the middleware configured
                 return Promise.resolve({
                     modified: false,
@@ -70,15 +80,11 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                 });
             }
 
-            // No config found in the source code, add a re-export
-            const modified = addReexport(input, {
-                type: 'value',
-                moduleName: this.configuration.import.module,
-                importName: this.configuration.import.configName,
-            });
+            // Add a configuration object with the matcher pattern
+            addConfigExport();
 
             return Promise.resolve({
-                modified: modified,
+                modified: true,
                 result: input,
             });
         }
@@ -120,21 +126,17 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
         if (middlewareNode === null) {
             if (localConfig === null) {
                 // No middleware found or configuration object,
-                // just add re-exports
-                const middlewareReexport = addReexport(input, {
+                // just add middleware re-export
+                addReexport(input, {
                     type: 'value',
                     moduleName: this.configuration.import.module,
                     importName: this.configuration.import.middlewareName,
                 });
 
-                const configReexport = addReexport(input, {
-                    type: 'value',
-                    moduleName: this.configuration.import.module,
-                    importName: this.configuration.import.configName,
-                });
+                addConfigExport();
 
                 return Promise.resolve({
-                    modified: middlewareReexport || configReexport,
+                    modified: true,
                     result: input,
                 });
             }
@@ -149,7 +151,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                                 t.identifier('matcher'),
                                 t.memberExpression(
                                     t.identifier(localConfig.name),
-                                    t.identifier(this.configuration.import.matcherName),
+                                    t.identifier('matcher'),
                                 ),
                             ),
                         ]),

@@ -13,8 +13,6 @@ describe('NextJsMiddlewareCodemod', () => {
             module: '@croct/plug-next/middleware',
             middlewareFactoryName: 'withCroct',
             middlewareName: 'middleware',
-            matcherName: 'matcher',
-            configName: 'config',
         },
     };
 

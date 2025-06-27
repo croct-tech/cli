@@ -1807,8 +1807,6 @@ export class Cli {
                                                     module: '@croct/plug-next/middleware',
                                                     middlewareName: 'middleware',
                                                     middlewareFactoryName: 'withCroct',
-                                                    configName: 'config',
-                                                    matcherName: 'matcher',
                                                 },
                                             }),
                                         }),
