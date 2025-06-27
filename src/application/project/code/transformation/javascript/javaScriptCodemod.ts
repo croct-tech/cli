@@ -1,6 +1,6 @@
 import {File} from '@babel/types';
-import * as recast from 'recast';
-import {parse} from 'recast/parsers/babel-ts.js';
+import {parse, print} from 'recast';
+import {parse as babelParser} from 'recast/parsers/babel-ts.js';
 import {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
 import {Language} from '@/application/project/code/transformation/javascript/utils/parse';
 
@@ -17,9 +17,9 @@ export class JavaScriptCodemod<O extends CodemodOptions> implements Codemod<stri
     }
 
     public async apply(input: string, options?: O): Promise<ResultCode<string>> {
-        const ast = recast.parse(input, {
+        const ast = parse(input, {
             parser: {
-                parse: parse,
+                parse: babelParser,
             },
         });
 
@@ -34,7 +34,7 @@ export class JavaScriptCodemod<O extends CodemodOptions> implements Codemod<stri
 
         return {
             modified: true,
-            result: recast.print(result.result, {
+            result: print(result.result, {
                 reuseWhitespace: false,
             }).code,
         };
