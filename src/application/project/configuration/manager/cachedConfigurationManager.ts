@@ -1,5 +1,11 @@
-import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
-import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import {
+    PartialProjectConfiguration,
+    ProjectConfiguration,
+} from '@/application/project/configuration/projectConfiguration';
+import {
+    ConfigurationManager,
+    InitializationState,
+} from '@/application/project/configuration/manager/configurationManager';
 
 export class CachedConfigurationManager implements ConfigurationManager {
     private readonly manager: ConfigurationManager;
@@ -10,8 +16,8 @@ export class CachedConfigurationManager implements ConfigurationManager {
         this.manager = manager;
     }
 
-    public isInitialized(): Promise<boolean> {
-        return this.manager.isInitialized();
+    public isInitialized(state?: InitializationState): Promise<boolean> {
+        return this.manager.isInitialized(state);
     }
 
     public load(): Promise<ProjectConfiguration> {
@@ -20,6 +26,10 @@ export class CachedConfigurationManager implements ConfigurationManager {
         }
 
         return this.configuration;
+    }
+
+    public loadPartial(): Promise<PartialProjectConfiguration> {
+        return this.manager.loadPartial();
     }
 
     public update(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {

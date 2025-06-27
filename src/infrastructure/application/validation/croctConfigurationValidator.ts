@@ -1,7 +1,14 @@
 import {z, ZodTypeDef} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {Version} from '@/application/model/version';
-import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
+import {
+    PartialProjectConfiguration,
+    ProjectConfiguration,
+} from '@/application/project/configuration/projectConfiguration';
+import {
+    JsonPartialProjectConfiguration,
+    JsonProjectConfiguration,
+} from '@/application/project/configuration/manager/jsonConfigurationFileManager';
 
 const identifierSchema = z.string().regex(
     /^[a-z]+(-?[a-z0-9]+)*$/i,
@@ -29,10 +36,10 @@ const versionSchema = z.string()
         'Version range must not exceed 5 major versions.',
     );
 
-type PartialProjectConfiguration = Omit<ProjectConfiguration, 'slots' | 'components'>
-    & Partial<Pick<ProjectConfiguration, 'slots' | 'components'>>;
+type LenientProjectConfiguration = Omit<JsonProjectConfiguration, 'slots' | 'components'>
+    & Partial<Pick<JsonProjectConfiguration, 'slots' | 'components'>>;
 
-const configurationSchema: z.ZodType<ProjectConfiguration, ZodTypeDef, PartialProjectConfiguration> = z.strictObject({
+const propertySchemas = {
     $schema: z.string().optional(),
     organization: identifierSchema,
     workspace: identifierSchema,
@@ -53,13 +60,30 @@ const configurationSchema: z.ZodType<ProjectConfiguration, ZodTypeDef, PartialPr
         examples: z.string().optional(),
         content: z.string().optional(),
     }).optional(),
-}).refine(data => data.locales.includes(data.defaultLocale), {
+};
+
+const partialConfigurationSchema: z.ZodType<JsonPartialProjectConfiguration> = z.strictObject({
+    ...propertySchemas,
+    applications: propertySchemas.applications
+        .partial()
+        .optional(),
+}).partial();
+
+const configurationSchema: z.ZodType<ProjectConfiguration, ZodTypeDef, LenientProjectConfiguration> = z.strictObject(
+    propertySchemas,
+).refine(data => data.locales.includes(data.defaultLocale), {
     message: 'The default locale is not included in the list of locales.',
     path: ['defaultLocale'],
 });
 
-export class CroctConfigurationValidator extends ZodValidator<ProjectConfiguration, PartialProjectConfiguration> {
+export class FullCroctConfigurationValidator extends ZodValidator<ProjectConfiguration, LenientProjectConfiguration> {
     public constructor() {
         super(configurationSchema);
+    }
+}
+
+export class PartialCroctConfigurationValidator extends ZodValidator<PartialProjectConfiguration> {
+    public constructor() {
+        super(partialConfigurationSchema);
     }
 }

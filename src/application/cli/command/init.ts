@@ -66,11 +66,9 @@ export class InitCommand implements Command<InitInput> {
     public async execute(input: InitInput): Promise<void> {
         const {configurationManager, platformProvider, sdkProvider, io: {output}} = this.config;
 
-        if (input.override !== true && await configurationManager.isInitialized()) {
-            throw new HelpfulError('Configuration file already exists, specify `override` to reconfigure.', {
-                reason: ErrorReason.PRECONDITION,
-            });
-        }
+        const currentConfiguration = input.override !== true && await configurationManager.isInitialized()
+            ? await configurationManager.loadPartial()
+            : null;
 
         const platform = await platformProvider.get();
         const projectName = platform !== null
@@ -90,7 +88,7 @@ export class InitCommand implements Command<InitInput> {
 
         const organization = await this.getOrganization(
             {new: input.new === 'organization'},
-            input.organization,
+            input.organization ?? currentConfiguration?.organization,
         );
 
         if (organization === null) {
@@ -104,7 +102,7 @@ export class InitCommand implements Command<InitInput> {
                 organization: organization,
                 new: input.new === 'workspace',
             },
-            input.workspace,
+            input.workspace ?? currentConfiguration?.workspace,
         );
 
         const applicationOptions: Omit<ApplicationOptions, 'environment'> = {
@@ -119,7 +117,7 @@ export class InitCommand implements Command<InitInput> {
                 ...applicationOptions,
                 environment: ApplicationEnvironment.DEVELOPMENT,
             },
-            input.devApplication,
+            input.devApplication ?? currentConfiguration?.applications?.development,
         );
 
         const updatedConfiguration: ProjectConfiguration = {
@@ -129,9 +127,10 @@ export class InitCommand implements Command<InitInput> {
                 development: devApplication.slug,
             },
             defaultLocale: workspace.defaultLocale,
-            locales: workspace.locales,
-            slots: {},
-            components: {},
+            locales: [...new Set([...(currentConfiguration?.locales ?? []), ...workspace.locales])],
+            slots: currentConfiguration?.slots ?? {},
+            components: currentConfiguration?.components ?? {},
+            paths: currentConfiguration?.paths ?? {},
         };
 
         const defaultWebsite = workspace.website ?? organization.website ?? undefined;
@@ -142,10 +141,18 @@ export class InitCommand implements Command<InitInput> {
                     ...applicationOptions,
                     environment: ApplicationEnvironment.PRODUCTION,
                 },
-                input.prodApplication,
+                input.prodApplication ?? currentConfiguration?.applications?.production,
             );
 
             updatedConfiguration.applications.production = prodApplication.slug;
+        }
+
+        if (currentConfiguration !== null) {
+            await configurationManager.update(updatedConfiguration);
+
+            output.confirm('Project configuration updated');
+
+            return;
         }
 
         const sdk = await sdkProvider.get();

@@ -1,5 +1,11 @@
-import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
-import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import {
+    PartialProjectConfiguration,
+    ProjectConfiguration,
+} from '@/application/project/configuration/projectConfiguration';
+import {
+    ConfigurationManager,
+    InitializationState,
+} from '@/application/project/configuration/manager/configurationManager';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {CliConfigurationProvider} from '@/application/cli/configuration/provider';
 
@@ -22,12 +28,20 @@ export class IndexedConfigurationManager implements ConfigurationManager {
         this.configurationProvider = configurationProvider;
     }
 
-    public isInitialized(): Promise<boolean> {
-        return this.manager.isInitialized();
+    public isInitialized(state?: InitializationState): Promise<boolean> {
+        return this.manager.isInitialized(state);
     }
 
     public async load(): Promise<ProjectConfiguration> {
         const configuration = await this.manager.load();
+
+        await this.updateIndex();
+
+        return configuration;
+    }
+
+    public async loadPartial(): Promise<PartialProjectConfiguration> {
+        const configuration = this.manager.loadPartial();
 
         await this.updateIndex();
 

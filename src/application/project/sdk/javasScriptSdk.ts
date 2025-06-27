@@ -198,7 +198,7 @@ export abstract class JavaScriptSdk implements Sdk {
                 notifier.update('Registering script');
 
                 try {
-                    await this.packageManager.addScript('postinstall', 'croct install');
+                    await this.packageManager.addScript('postinstall', 'croct --no-interaction install');
 
                     notifier.confirm('Script registered');
                 } catch (error) {

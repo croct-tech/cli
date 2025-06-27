@@ -22,6 +22,10 @@ export type ProjectConfiguration = {
     paths?: Partial<ProjectPaths>,
 };
 
+export type PartialProjectConfiguration = Partial<Omit<ProjectConfiguration, 'applications'>> & {
+    applications?: Partial<ProjectConfiguration['applications']>,
+};
+
 export class ProjectConfigurationError extends HelpfulError {
     public constructor(message: string, help: Help = {}) {
         super(message, {
