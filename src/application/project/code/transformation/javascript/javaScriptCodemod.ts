@@ -1,7 +1,7 @@
 import {File} from '@babel/types';
 import {parse, print} from 'recast';
 import {parse as babelParse} from '@babel/parser';
-import getBabelOptions, {Overrides} from 'recast/parsers/_babel_options.js';
+import getBabelOptions, {type Overrides} from 'recast/parsers/_babel_options.js';
 import {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
 import {Language} from '@/application/project/code/transformation/javascript/utils/parse';
 
