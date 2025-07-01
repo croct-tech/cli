@@ -1,7 +1,7 @@
 import {AutoSaveCache, CacheProvider, InMemoryCache} from '@croct/cache';
 import {ApiKey} from '@croct/sdk/apiKey';
 import {Clock, Instant, LocalTime} from '@croct/time';
-import {SystemClock} from '@croct/time/clock/systemClock';
+import {SystemClock} from '@croct/time/clock/systemClock.js';
 import {homedir} from 'os';
 import XDGAppPaths from 'xdg-app-paths';
 import ci from 'ci-info';
