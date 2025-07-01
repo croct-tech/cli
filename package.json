@@ -73,10 +73,11 @@
     "strip-ansi": "^7.1.0",
     "terminal-link": "^3.0.0",
     "xdg-app-paths": "^8.3.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "@croct/time": "^0.10.2",
+    "@commander-js/extra-typings": "^12.1.0"
   },
   "devDependencies": {
-    "@commander-js/extra-typings": "^12.1.0",
     "@croct/eslint-plugin": "^0.7.1",
     "@graphql-codegen/cli": "^5.0.2",
     "@swc/jest": "^0.2.36",
