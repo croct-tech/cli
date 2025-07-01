@@ -755,7 +755,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                         : undefined,
                     content: GraphqlWorkspaceApi.createContentVariantGroup(experience.content),
                     validate: true,
-                    publish: experience.draft === false,
+                    publish: experience.draft !== true,
                 };
             }),
         };
