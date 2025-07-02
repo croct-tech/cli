@@ -19,6 +19,10 @@ export type WorkspaceOptions = {
     default?: string,
 };
 
+export type SelectedWorkspace = Workspace & {
+    new?: boolean,
+};
+
 export class WorkspaceForm implements Form<Workspace, WorkspaceOptions> {
     private readonly config: Configuration;
 
@@ -26,7 +30,7 @@ export class WorkspaceForm implements Form<Workspace, WorkspaceOptions> {
         this.config = config;
     }
 
-    public async handle(options: WorkspaceOptions): Promise<Workspace> {
+    public async handle(options: WorkspaceOptions): Promise<SelectedWorkspace> {
         const {organizationApi: api, output, input} = this.config;
         const {organization} = options;
 
@@ -63,7 +67,7 @@ export class WorkspaceForm implements Form<Workspace, WorkspaceOptions> {
         return this.setupWorkspace(organization, options.new === true);
     }
 
-    private async setupWorkspace(organization: Organization, customized: boolean): Promise<Workspace> {
+    private async setupWorkspace(organization: Organization, customized: boolean): Promise<SelectedWorkspace> {
         const {organizationApi: api, input, output} = this.config;
 
         const name = customized
@@ -90,7 +94,10 @@ export class WorkspaceForm implements Form<Workspace, WorkspaceOptions> {
 
             notifier.confirm(`Workspace: ${workspace.name}`);
 
-            return workspace;
+            return {
+                ...workspace,
+                new: customized,
+            };
         } finally {
             notifier.stop();
         }

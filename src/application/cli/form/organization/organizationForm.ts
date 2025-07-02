@@ -17,6 +17,10 @@ export type OrganizationOptions = {
     default?: string,
 };
 
+export type SelectedOrganization = Organization & {
+    new?: boolean,
+};
+
 export class OrganizationForm implements Form<Organization, OrganizationOptions> {
     private readonly config: Configuration;
 
@@ -24,7 +28,7 @@ export class OrganizationForm implements Form<Organization, OrganizationOptions>
         this.config = config;
     }
 
-    public async handle(options: OrganizationOptions = {}): Promise<Organization> {
+    public async handle(options: OrganizationOptions = {}): Promise<SelectedOrganization> {
         const {userApi: api, output, input} = this.config;
 
         if (options.new !== true) {
@@ -81,15 +85,18 @@ export class OrganizationForm implements Form<Organization, OrganizationOptions>
         const notifier = this.notify('Setting up organization');
 
         try {
-            const resources = await api.setupOrganization({
+            const organization = await api.setupOrganization({
                 website: website,
                 locale: locale,
                 timeZone: timeZone,
             });
 
-            notifier.confirm(`Organization: ${resources.name}`);
+            notifier.confirm(`Organization: ${organization.name}`);
 
-            return resources;
+            return {
+                ...organization,
+                new: true,
+            };
         } finally {
             notifier.stop();
         }
