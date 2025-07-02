@@ -10,6 +10,7 @@ import {ErrorReason, HelpfulError} from '@/application/error';
 import {UserApi} from '@/application/api/user';
 import {FileSystem} from '@/application/fs/fileSystem';
 import {WorkspaceApi} from '@/application/api/workspace';
+import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 
 export type CreateApiKeyInput = {
     name?: ApiKey['name'],
@@ -43,31 +44,9 @@ export class CreateApiKeyCommand implements Command<CreateApiKeyInput> {
         const {configurationManager, api, fileSystem, io} = this.config;
         const configuration = await configurationManager.load();
 
-        const environment = input.environment ?? await io.input.select({
-            message: 'Which environment?',
-            options: ApplicationEnvironment.all()
-                .map(
-                    value => ({
-                        label: ApplicationEnvironment.getLabel(value),
-                        value: value,
-                    }),
-                ),
-        });
-
-        const applicationSlug = environment === ApplicationEnvironment.PRODUCTION
-            ? configuration.applications.production
-            : configuration.applications.development;
-
-        if (applicationSlug === undefined) {
-            throw new HelpfulError(
-                `No ${ApplicationEnvironment.getLabel(environment).toLowerCase()} application `
-                + 'found in the project configuration.',
-                {reason: ErrorReason.INVALID_INPUT},
-            );
-        }
-
         const notifier = io.output.notify('Loading information');
-
+        const environment = await this.getEnvironment(configuration, input.environment);
+        const applicationSlug = this.getApplicationSlug(configuration, environment);
         const defaultName = input.name ?? `${(await api.user.getUser()).username} (CLI)`;
         const features = await api.workspace.getFeatures({
             organizationSlug: configuration.organization,
@@ -130,5 +109,47 @@ export class CreateApiKeyCommand implements Command<CreateApiKeyInput> {
         await fileSystem.writeTextFile(fileName, apiKey.secret);
 
         io.output.confirm(`API key saved to \`${fileName}\``);
+    }
+
+    private getApplicationSlug(configuration: ProjectConfiguration, environment: ApplicationEnvironment): string {
+        const application = environment === ApplicationEnvironment.PRODUCTION
+            ? configuration.applications.production
+            : configuration.applications.development;
+
+        if (application === undefined) {
+            throw new HelpfulError(
+                `No ${ApplicationEnvironment.getLabel(environment).toLowerCase()} application `
+                + 'found in the project configuration.',
+                {reason: ErrorReason.INVALID_INPUT},
+            );
+        }
+
+        return application;
+    }
+
+    private getEnvironment(
+        configuration: ProjectConfiguration,
+        environment?: ApplicationEnvironment,
+    ): Promise<ApplicationEnvironment> {
+        if (environment !== undefined) {
+            return Promise.resolve(environment);
+        }
+
+        if (configuration.applications.production === undefined) {
+            return Promise.resolve(ApplicationEnvironment.DEVELOPMENT);
+        }
+
+        const {io: {input}} = this.config;
+
+        return input.select({
+            message: 'Select environment',
+            options: ApplicationEnvironment.all()
+                .map(
+                    value => ({
+                        label: ApplicationEnvironment.getLabel(value),
+                        value: value,
+                    }),
+                ),
+        });
     }
 }
