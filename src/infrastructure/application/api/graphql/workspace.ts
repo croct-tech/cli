@@ -831,7 +831,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
     ): Promise<string> {
         return generateAvailableSlug({
             query: applicationSlugAvailabilityQuery,
-            baseName: `${baseName} ${environment.slice(0, 3).toLowerCase()}`,
+            baseName: `${baseName} ${environment === ApplicationEnvironment.DEVELOPMENT ? 'dev' : 'prod'}`,
             client: this.client,
             variables: {
                 workspaceId: workspaceId,

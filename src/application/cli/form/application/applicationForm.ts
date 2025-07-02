@@ -24,14 +24,18 @@ export type ApplicationOptions = {
     default?: string,
 };
 
-export class ApplicationForm implements Form<Application, ApplicationOptions> {
+export type SelectedApplication = Application & {
+    new?: boolean,
+};
+
+export class ApplicationForm implements Form<SelectedApplication, ApplicationOptions> {
     private readonly config: Configuration;
 
     public constructor(config: Configuration) {
         this.config = config;
     }
 
-    public async handle(options: ApplicationOptions): Promise<Application> {
+    public async handle(options: ApplicationOptions): Promise<SelectedApplication> {
         const {workspaceApi: api, output, input} = this.config;
         const {organization, workspace, environment} = options;
 
@@ -73,7 +77,10 @@ export class ApplicationForm implements Form<Application, ApplicationOptions> {
         });
     }
 
-    private async setupApplication(options: ApplicationOptions, applications: Application[]): Promise<Application> {
+    private async setupApplication(
+        options: ApplicationOptions,
+        applications: Application[],
+    ): Promise<SelectedApplication> {
         const {workspaceApi: api, output, input} = this.config;
         const {organization, workspace, platform, environment} = options;
         const customized = options.new === true;
@@ -81,7 +88,9 @@ export class ApplicationForm implements Form<Application, ApplicationOptions> {
         const name = customized
             ? await NameInput.prompt({
                 input: input,
-                label: 'Application name',
+                label: environment === ApplicationEnvironment.DEVELOPMENT
+                    ? 'Development application name'
+                    : 'Production application name',
                 default: 'Website',
                 validator: value => applications.every(
                     app => app.name.toLowerCase() !== value.toLowerCase() || app.environment !== environment,
@@ -94,7 +103,9 @@ export class ApplicationForm implements Form<Application, ApplicationOptions> {
         const website = customized || !ApplicationForm.isValidUrl(defaultWebsite, environment)
             ? await UrlInput.prompt({
                 input: input,
-                label: 'Application website',
+                label: environment === ApplicationEnvironment.DEVELOPMENT
+                    ? 'Development application URL'
+                    : 'Production application URL',
                 default: defaultWebsite,
                 validate: url => {
                     if (!URL.canParse(url)) {
@@ -125,7 +136,10 @@ export class ApplicationForm implements Form<Application, ApplicationOptions> {
 
             notifier.confirm(ApplicationForm.formatSelection(application));
 
-            return application;
+            return {
+                ...application,
+                new: true,
+            };
         } finally {
             notifier.stop();
         }

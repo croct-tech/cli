@@ -4,9 +4,9 @@ import {Output} from '@/application/cli/io/output';
 import {Input} from '@/application/cli/io/input';
 import {Sdk} from '@/application/project/sdk/sdk';
 import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
-import {OrganizationOptions} from '@/application/cli/form/organization/organizationForm';
+import {OrganizationOptions, SelectedOrganization} from '@/application/cli/form/organization/organizationForm';
 import {ApplicationOptions} from '@/application/cli/form/application/applicationForm';
-import {WorkspaceOptions} from '@/application/cli/form/workspace/workspaceForm';
+import {SelectedWorkspace, WorkspaceOptions} from '@/application/cli/form/workspace/workspaceForm';
 import {Form} from '@/application/cli/form/form';
 import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {UserApi} from '@/application/api/user';
@@ -67,7 +67,7 @@ export class InitCommand implements Command<InitInput> {
         const {configurationManager, platformProvider, sdkProvider, io: {output}} = this.config;
 
         const currentConfiguration = input.override !== true && await configurationManager.isInitialized()
-            ? await configurationManager.loadPartial()
+            ? {...await configurationManager.loadPartial()}
             : null;
 
         const platform = await platformProvider.get();
@@ -88,28 +88,26 @@ export class InitCommand implements Command<InitInput> {
 
         const organization = await this.getOrganization(
             {new: input.new === 'organization'},
-            input.organization ?? currentConfiguration?.organization,
+            input.new === 'organization'
+                ? undefined
+                : (input.organization ?? currentConfiguration?.organization),
         );
-
-        if (organization === null) {
-            throw new HelpfulError(`Organization not found: ${input.organization}`, {
-                reason: ErrorReason.INVALID_INPUT,
-            });
-        }
 
         const workspace = await this.getWorkspace(
             {
                 organization: organization,
-                new: input.new === 'workspace',
+                new: organization.new !== true && input.new === 'workspace',
             },
-            input.workspace ?? currentConfiguration?.workspace,
+            (input.new === 'workspace' || organization.new === true)
+                ? undefined
+                : (input.workspace ?? currentConfiguration?.workspace),
         );
 
         const applicationOptions: Omit<ApplicationOptions, 'environment'> = {
             organization: organization,
             workspace: workspace,
             platform: platform ?? Platform.JAVASCRIPT,
-            new: input.new === 'application',
+            new: workspace.new !== true && input.new === 'application',
         };
 
         const devApplication = await this.getApplication(
@@ -117,7 +115,9 @@ export class InitCommand implements Command<InitInput> {
                 ...applicationOptions,
                 environment: ApplicationEnvironment.DEVELOPMENT,
             },
-            input.devApplication ?? currentConfiguration?.applications?.development,
+            (input.new !== undefined || workspace.new === true)
+                ? undefined
+                : (input.devApplication ?? currentConfiguration?.applications?.development),
         );
 
         const updatedConfiguration: ProjectConfiguration = {
@@ -133,17 +133,17 @@ export class InitCommand implements Command<InitInput> {
             paths: currentConfiguration?.paths ?? {},
         };
 
-        const defaultWebsite = workspace.website ?? organization.website ?? undefined;
+        const prodApplication = await this.resolveApplication(
+            {
+                ...applicationOptions,
+                environment: ApplicationEnvironment.PRODUCTION,
+            },
+            input.new !== undefined
+                ? undefined
+                : (input.prodApplication ?? currentConfiguration?.applications?.production),
+        );
 
-        if (defaultWebsite !== undefined && new URL(defaultWebsite).hostname !== 'localhost') {
-            const prodApplication = await this.getApplication(
-                {
-                    ...applicationOptions,
-                    environment: ApplicationEnvironment.PRODUCTION,
-                },
-                input.prodApplication ?? currentConfiguration?.applications?.production,
-            );
-
+        if (prodApplication !== null) {
             updatedConfiguration.applications.production = prodApplication.slug;
         }
 
@@ -170,7 +170,10 @@ export class InitCommand implements Command<InitInput> {
         );
     }
 
-    private async getOrganization(options: OrganizationOptions, organizationSlug?: string): Promise<Organization> {
+    private async getOrganization(
+        options: OrganizationOptions,
+        organizationSlug?: string,
+    ): Promise<SelectedOrganization> {
         const {form, api} = this.config;
 
         const organization = organizationSlug === undefined
@@ -194,7 +197,7 @@ export class InitCommand implements Command<InitInput> {
         return organization;
     }
 
-    private async getWorkspace(options: WorkspaceOptions, workspaceSlug?: string): Promise<Workspace> {
+    private async getWorkspace(options: WorkspaceOptions, workspaceSlug?: string): Promise<SelectedWorkspace> {
         const {form, api} = this.config;
 
         const workspace = workspaceSlug === undefined
@@ -219,6 +222,40 @@ export class InitCommand implements Command<InitInput> {
         }
 
         return workspace;
+    }
+
+    private async resolveApplication(options: ApplicationOptions, applicationSlug?: string): Promise<Application|null> {
+        const {api} = this.config;
+
+        const defaultWebsite = options.workspace.website ?? options.organization.website ?? undefined;
+        // Prod application can only be created if the default website is not localhost
+        const isPublicUrl = defaultWebsite !== undefined && new URL(defaultWebsite).hostname !== 'localhost';
+
+        if (
+            (options.environment === ApplicationEnvironment.DEVELOPMENT || isPublicUrl)
+            || applicationSlug !== undefined
+            || options.new === true
+        ) {
+            // Continue to the regular flow if either creating a new application
+            // is possible (dev environment or public URL), a specific application slug is provided,
+            // or the user wants to create a new application.
+            return this.getApplication(options, applicationSlug);
+        }
+
+        const applications = api.workspace.getApplications({
+            organizationSlug: options.organization.slug,
+            workspaceSlug: options.workspace.slug,
+        });
+
+        for (const application of await applications) {
+            if (application.environment === options.environment) {
+                // There is an existing application for the specified environment,
+                // auto-select it or prompt the user to select it.
+                return this.getApplication(options, applicationSlug);
+            }
+        }
+
+        return null;
     }
 
     private async getApplication(options: ApplicationOptions, applicationSlug?: string): Promise<Application> {
