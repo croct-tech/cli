@@ -2278,14 +2278,14 @@ export class Cli {
                 workingDirectory: this.workingDirectory,
                 configurationProvider: this.getCliConfigurationProvider(),
                 manager: new CachedConfigurationManager(
-                    this.configuration.interactive && !this.isReadOnlyMode()
-                        ? new NewConfigurationManager({
+                    this.isReadOnlyMode()
+                        ? manager
+                        : new NewConfigurationManager({
                             manager: manager,
                             initializer: {
                                 initialize: () => this.init({}),
                             },
-                        })
-                        : manager,
+                        }),
                 ),
             });
         });
