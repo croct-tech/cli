@@ -106,10 +106,11 @@ jobs:
       - name: Generate types
         run: npm run graphql-codegen
 
-      - uses: paambaati/codeclimate-action@v5
-        env:
-          CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+      - name: Run tests
+        run: npm run test
+
+      - uses: qltysh/qlty-action/coverage@v1
         with:
-          coverageCommand: npm test
-          coverageLocations:
-            ./coverage/lcov.info:lcov
+          token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
+          files: ${{ github.workspace }}/coverage/lcov.info
+          skip-errors: false
