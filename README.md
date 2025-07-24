@@ -18,7 +18,8 @@
 <br/>
 <p align="center">
     <a href="https://www.npmjs.com/package/croct"><img alt="Version" src="https://img.shields.io/npm/v/croct"/></a>
-    <a href="https://codeclimate.com/repos/67e16a086bc3e963370499cb/test_coverage"><img alt="Coverage" src="https://api.codeclimate.com/v1/badges/8b341de649404ce56976/test_coverage"/></a>
+    <a href="https://qlty.sh/gh/croct-tech/projects/cli"><img src="https://qlty.sh/badges/ba93fde1-4c10-4e23-b2cb-0ecc35ea4b50/coverage.svg" alt="Code Coverage" /></a>
+<a href="https://qlty.sh/gh/croct-tech/projects/cli"><img src="https://qlty.sh/badges/ba93fde1-4c10-4e23-b2cb-0ecc35ea4b50/maintainability.svg" alt="Maintainability" /></a>
 </p>
 
 ## Introduction
