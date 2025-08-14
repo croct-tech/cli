@@ -191,8 +191,6 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                 remainingSlots: quotas.remainingSlots,
                 experiences: quotas.experience,
                 remainingExperiences: quotas.remainingExperiences,
-                experiments: quotas.experiment,
-                remainingExperiments: quotas.remainingExperiments,
                 dynamicAttributesPerContent: quotas.dynamicAttributesPerContent,
                 audiencesPerExperience: quotas.audiencesPerExperience,
             },

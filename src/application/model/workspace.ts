@@ -19,8 +19,6 @@ export type WorkspaceFeatures = {
         remainingSlots: number,
         experiences: number,
         remainingExperiences: number,
-        experiments: number,
-        remainingExperiments: number,
         dynamicAttributesPerContent: number,
         audiencesPerExperience: number,
     },

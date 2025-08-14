@@ -99,14 +99,11 @@ export const workspaceFeaturesQuery = graphql(`
                     remainingSlots,
                     experience
                     remainingExperiences
-                    experiment
-                    remainingExperiments
                     dynamicAttributesPerContent
                     audiencesPerExperience
                 }
                 capabilities {
                     features(requiredFeatures: [
-                        EXPERIMENT,
                         CROSS_DEVICE_EXPERIMENT,
                         API_DATA_EXPORT
                     ])
