@@ -66,7 +66,6 @@ type RequiredQuota = {
     slots: number,
     audiences: number,
     experiences: number,
-    experiments: number,
 };
 
 export type ResourceCreationPlan = {
@@ -155,16 +154,11 @@ export class CreateResourceAction implements Action<CreateResourceOptions> {
             (experience): experience is ExperienceDefinition => !('id' in experience),
         );
 
-        const newExperiments = newExperiences.flatMap(
-            experience => (experience.experiment === undefined ? [] : [experience.experiment]),
-        );
-
         await this.checkRequiredQuota(projectInfo, {
             components: newComponents.length,
             slots: newSlots.length,
             audiences: newAudiences.length,
             experiences: newExperiences.length,
-            experiments: newExperiments.length,
         });
 
         const mapping = await mappingForm.handle({
