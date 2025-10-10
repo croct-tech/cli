@@ -41,7 +41,7 @@
     "@babel/types": "^7.25.9",
     "@croct/cache": "^0.4.2",
     "@croct/content": "^1.0.0",
-    "@croct/content-model": "^0.19.4",
+    "@croct/content-model": "^0.21.1",
     "@croct/json": "^2.1.0",
     "@croct/json5-parser": "^0.1.1",
     "@croct/logging": "^0.2.3",
