@@ -18,8 +18,6 @@
 <br/>
 <p align="center">
     <a href="https://www.npmjs.com/package/croct"><img alt="Version" src="https://img.shields.io/npm/v/croct"/></a>
-    <a href="https://qlty.sh/gh/croct-tech/projects/cli"><img src="https://qlty.sh/badges/ba93fde1-4c10-4e23-b2cb-0ecc35ea4b50/maintainability.svg" alt="Maintainability" /></a>
-    <a href="https://qlty.sh/gh/croct-tech/projects/cli"><img src="https://qlty.sh/badges/ba93fde1-4c10-4e23-b2cb-0ecc35ea4b50/coverage.svg" alt="Code Coverage" /></a>
 </p>
 
 ## Introduction
