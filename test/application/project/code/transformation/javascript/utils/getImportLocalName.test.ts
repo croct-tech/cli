@@ -93,6 +93,42 @@ describe('getImportLocalName', () => {
             },
             expected: 'alias',
         },
+        {
+            description: 'return the local name of the namespace import',
+            code: 'import * as sdk from \'croct\';',
+            matcher: {
+                moduleName: 'croct',
+                importName: '*',
+            },
+            expected: 'sdk',
+        },
+        {
+            description: 'return null if namespace import does not match the module name',
+            code: 'import * as sdk from \'croct\';',
+            matcher: {
+                moduleName: 'something',
+                importName: '*',
+            },
+            expected: null,
+        },
+        {
+            description: 'return null if looking for namespace but import is named',
+            code: 'import {sdk} from \'croct\';',
+            matcher: {
+                moduleName: 'croct',
+                importName: '*',
+            },
+            expected: null,
+        },
+        {
+            description: 'return the local name of the namespace import when module matches regex',
+            code: 'import * as croct from \'@croct/sdk\';',
+            matcher: {
+                moduleName: /@croct/,
+                importName: '*',
+            },
+            expected: 'croct',
+        },
     ])('should $description', ({code, matcher, expected}) => {
         expect(getImportLocalName(code, matcher)).toBe(expected);
     });
