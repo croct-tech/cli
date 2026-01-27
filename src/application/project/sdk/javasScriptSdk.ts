@@ -36,6 +36,7 @@ export type Configuration = {
     formatter: CodeFormatter,
     fileSystem: FileSystem,
     tsConfigLoader: TsConfigLoader,
+    plugins?: JavaScriptSdkPlugin[],
 };
 
 type VersionedContent = {
@@ -47,6 +48,19 @@ type VersionedContentMap = Record<string, VersionedContent[]>;
 
 type ContentOptions = BaseContentOptions & {
     notifier?: TaskNotifier,
+};
+
+export type JavaScriptPluginContext = {
+    packageManager: PackageManager,
+    projectDirectory: WorkingDirectory,
+    fileSystem: FileSystem,
+};
+
+export type JavaScriptSdkPlugin = {
+    getInstallationPlan(
+        installation: Installation,
+        context: JavaScriptPluginContext
+    ): Promise<Partial<InstallationPlan>>,
 };
 
 export abstract class JavaScriptSdk implements Sdk {
@@ -64,6 +78,8 @@ export abstract class JavaScriptSdk implements Sdk {
 
     private readonly importConfigLoader: TsConfigLoader;
 
+    private readonly plugins: JavaScriptSdkPlugin[];
+
     protected constructor(configuration: Configuration) {
         this.projectDirectory = configuration.projectDirectory;
         this.packageManager = configuration.packageManager;
@@ -71,6 +87,7 @@ export abstract class JavaScriptSdk implements Sdk {
         this.formatter = configuration.formatter;
         this.fileSystem = configuration.fileSystem;
         this.importConfigLoader = configuration.tsConfigLoader;
+        this.plugins = configuration.plugins ?? [];
     }
 
     public async generateSlotExample(slot: Slot, installation: Installation): Promise<void> {
@@ -99,7 +116,7 @@ export abstract class JavaScriptSdk implements Sdk {
     public async setup(installation: Installation): Promise<ProjectConfiguration> {
         const {input, output} = installation;
 
-        const plan = await this.getInstallationPlan(installation);
+        const plan = await this.resolveInstallationPlan(installation);
 
         const configuration: ProjectConfiguration = {
             ...plan.configuration,
@@ -277,6 +294,32 @@ export abstract class JavaScriptSdk implements Sdk {
         }
 
         return defaultPath;
+    }
+
+    private resolveInstallationPlan(installation: Installation): Promise<InstallationPlan> {
+        let promise = this.getInstallationPlan(installation);
+        const context: JavaScriptPluginContext = {
+            packageManager: this.packageManager,
+            projectDirectory: this.projectDirectory,
+            fileSystem: this.fileSystem,
+        };
+
+        for (const plugin of this.plugins) {
+            promise = promise.then(async plan => {
+                const hookPlan = await plugin.getInstallationPlan(installation, context);
+
+                return {
+                    tasks: [...plan.tasks, ...(hookPlan.tasks ?? [])],
+                    dependencies: [...plan.dependencies, ...(hookPlan.dependencies ?? [])],
+                    configuration: {
+                        ...plan.configuration,
+                        ...hookPlan.configuration,
+                    },
+                };
+            });
+        }
+
+        return promise;
     }
 
     protected abstract getInstallationPlan(installation: Installation): Promise<InstallationPlan>;

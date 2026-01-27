@@ -33,6 +33,14 @@ export function getImportLocalName(source: string | t.File, matcher: ImportMatch
                     continue;
                 }
 
+                if (t.isImportNamespaceSpecifier(specifier)) {
+                    if (matches('*', matcher.importName)) {
+                        localName = specifier.local.name;
+                    }
+
+                    continue;
+                }
+
                 if (t.isImportSpecifier(specifier) && matches(specifier.imported, matcher.importName)) {
                     localName = specifier.local.name;
 

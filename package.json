@@ -30,7 +30,8 @@
     "test": "jest -c jest.config.js --coverage",
     "validate": "tsc --noEmit",
     "build": "tsup",
-    "graphql-codegen": "graphql-codegen --config codegen.ts"
+    "graphql-codegen": "graphql-codegen --config codegen.ts",
+    "postinstall": "graphql-codegen"
   },
   "dependencies": {
     "@babel/core": "^7.28.5",
