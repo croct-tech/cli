@@ -4,6 +4,6 @@ export const config = {
     matcher: regex,
 }
 
-export function middleware(request) {
+export function proxy(request) {
     console.log(request.url);
 }

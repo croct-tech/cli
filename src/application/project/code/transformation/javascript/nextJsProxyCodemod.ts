@@ -19,39 +19,40 @@ type VariableMatch = {
     declaration: t.VariableDeclarator,
 };
 
-export type MiddlewareConfiguration = {
+export type ProxyConfiguration = {
     matcherPattern: string,
+    exportName: string,
     import: {
         module: string,
-        middlewareFactoryName: string,
-        middlewareName: string,
+        proxyFactoryName: string,
+        proxyName: string,
     },
 };
 
 /**
- * Refactors the middleware wrapping it with necessary configuration.
+ * Refactors the proxy wrapping it with necessary configuration.
  *
- * This transformer wraps the existing middleware function with a higher-order
- * function that provides the necessary configuration for the middleware to
- * work correctly. It can also detect if the middleware is already configured
+ * This transformer wraps the existing proxy function with a higher-order
+ * function that provides the necessary configuration for the proxy to
+ * work correctly. It can also detect if the proxy is already configured
  * or missing configuration and apply the necessary changes.
  */
-export class NextJsMiddlewareCodemod implements Codemod<t.File> {
-    private readonly configuration: MiddlewareConfiguration;
+export class NextJsProxyCodemod implements Codemod<t.File> {
+    private readonly configuration: ProxyConfiguration;
 
-    public constructor(options: MiddlewareConfiguration) {
+    public constructor(options: ProxyConfiguration) {
         this.configuration = options;
     }
 
     public apply(input: t.File): Promise<ResultCode<t.File>> {
         const {body} = input.program;
 
-        const isMiddlewareReexported = hasReexport(input, {
+        const isProxyReexported = hasReexport(input, {
             moduleName: this.configuration.import.module,
-            importName: this.configuration.import.middlewareName,
+            importName: this.configuration.import.proxyName,
         });
 
-        const localConfig = NextJsMiddlewareCodemod.findConfig(input);
+        const localConfig = NextJsProxyCodemod.findConfig(input);
 
         const addConfigExport = (): void => {
             // Add a configuration object with the matcher pattern
@@ -70,10 +71,10 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
             ));
         };
 
-        if (isMiddlewareReexported) {
+        if (isProxyReexported) {
             if (localConfig !== null) {
-                // Middleware is re-exported and config found in the source code,
-                // consider the middleware configured
+                // Proxy is re-exported and config found in the source code,
+                // consider the proxy configured
                 return Promise.resolve({
                     modified: false,
                     result: input,
@@ -89,48 +90,49 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
             });
         }
 
-        const middlewareFactoryName = getImportLocalName(input, {
+        const proxyFactoryName = getImportLocalName(input, {
             moduleName: this.configuration.import.module,
-            importName: this.configuration.import.middlewareFactoryName,
+            importName: this.configuration.import.proxyFactoryName,
         });
 
-        const middlewareName = getImportLocalName(input, {
+        const proxyName = getImportLocalName(input, {
             moduleName: this.configuration.import.module,
-            importName: this.configuration.import.middlewareName,
+            importName: this.configuration.import.proxyName,
         });
 
         const existingImports: string[] = [];
 
-        if (middlewareFactoryName !== null) {
-            existingImports.push(middlewareFactoryName);
+        if (proxyFactoryName !== null) {
+            existingImports.push(proxyFactoryName);
         }
 
-        if (middlewareName !== null) {
-            existingImports.push(middlewareName);
+        if (proxyName !== null) {
+            existingImports.push(proxyName);
         }
 
-        if (existingImports.length > 0 && NextJsMiddlewareCodemod.isCalled(input, existingImports)) {
-            // The middleware is already called in the source code, consider it refactored
+        if (existingImports.length > 0 && NextJsProxyCodemod.isCalled(input, existingImports)) {
+            // The proxy is already called in the source code, consider it refactored
             return Promise.resolve({
                 modified: false,
                 result: input,
             });
         }
 
-        let middlewareNode = NextJsMiddlewareCodemod.refactorMiddleware(
+        let proxyNode = NextJsProxyCodemod.refactorProxy(
             input,
-            middlewareFactoryName ?? this.configuration.import.middlewareFactoryName,
+            this.configuration.exportName,
+            proxyFactoryName ?? this.configuration.import.proxyFactoryName,
             localConfig !== null && localConfig.matcher ? localConfig.name : undefined,
         );
 
-        if (middlewareNode === null) {
+        if (proxyNode === null) {
             if (localConfig === null) {
-                // No middleware found or configuration object,
-                // just add middleware re-export
+                // No proxy found or configuration object,
+                // just add proxy re-export
                 addReexport(input, {
                     type: 'value',
                     moduleName: this.configuration.import.module,
-                    importName: this.configuration.import.middlewareName,
+                    importName: this.configuration.import.proxyName,
                 });
 
                 addConfigExport();
@@ -141,10 +143,10 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                 });
             }
 
-            // Configurations found but no middleware, add the middleware
-            middlewareNode = t.exportDefaultDeclaration(
+            // Configurations found but no proxy, add the proxy
+            proxyNode = t.exportDefaultDeclaration(
                 t.callExpression(
-                    t.identifier(middlewareFactoryName ?? this.configuration.import.middlewareFactoryName),
+                    t.identifier(proxyFactoryName ?? this.configuration.import.proxyFactoryName),
                     [
                         t.objectExpression([
                             t.objectProperty(
@@ -159,7 +161,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                 ),
             );
 
-            body.push(middlewareNode);
+            body.push(proxyNode);
         }
 
         if (localConfig !== null) {
@@ -167,11 +169,11 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
             this.configureMatcher(localConfig.object, this.configuration.matcherPattern);
 
             const configPosition = body.indexOf(localConfig.root as t.Statement);
-            const middlewarePosition = body.indexOf(middlewareNode as t.Statement);
+            const proxyPosition = body.indexOf(proxyNode as t.Statement);
 
-            if (configPosition > middlewarePosition) {
+            if (configPosition > proxyPosition) {
                 /*
-                   The middleware references the config object, so the config should be moved before it.
+                   The proxy references the config object, so the config should be moved before it.
                    Any variable or function used by the config object should be moved alongside it.
 
                    The current logic handles most cases, including edge cases with multiple references.
@@ -179,25 +181,25 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                    and unlikely to occur as Next.js requires the config to be static for analysis at build time.
                  */
 
-                body.splice(middlewarePosition, 0, ...body.splice(configPosition, 1));
+                body.splice(proxyPosition, 0, ...body.splice(configPosition, 1));
 
                 // Move any references of the config object alongside it
-                for (const reference of NextJsMiddlewareCodemod.findReferencesFrom(localConfig.root, input.program)) {
+                for (const reference of NextJsProxyCodemod.findReferencesFrom(localConfig.root, input.program)) {
                     const referencePosition = body.indexOf(reference as t.Statement);
 
-                    if (referencePosition > middlewarePosition) {
-                        body.splice(middlewarePosition, 0, ...body.splice(referencePosition, 1));
+                    if (referencePosition > proxyPosition) {
+                        body.splice(proxyPosition, 0, ...body.splice(referencePosition, 1));
                     }
                 }
             }
         }
 
-        if (middlewareFactoryName === null) {
-            // If no import for the middleware factory was found, add it
+        if (proxyFactoryName === null) {
+            // If no import for the proxy factory was found, add it
             addImport(input, {
                 type: 'value',
                 moduleName: this.configuration.import.module,
-                importName: this.configuration.import.middlewareFactoryName,
+                importName: this.configuration.import.proxyFactoryName,
             });
         }
 
@@ -208,7 +210,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
     }
 
     /**
-     * Adds the middleware matcher to the config object.
+     * Adds the proxy matcher to the config object.
      *
      * @param configObject The object expression representing the configuration.
      * @param pattern The pattern to add to the matcher.
@@ -281,14 +283,20 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
     }
 
     /**
-     * Refactors the middleware wrapping it with necessary configuration.
+     * Refactors the proxy wrapping it with necessary configuration.
      *
      * @param ast The AST representing the source code.
-     * @param functionName The name of the middleware function.
+     * @param exportName The name of the proxy identifier.
+     * @param functionName The name of the proxy function.
      * @param configName Optional name of the configuration object variable.
-     * @return The root node of the refactored middleware or null if not found.
+     * @return The root node of the refactored proxy or null if not found.
      */
-    private static refactorMiddleware(ast: t.File, functionName: string, configName?: string): t.Node | null {
+    private static refactorProxy(
+        ast: t.File,
+        exportName: string,
+        functionName: string,
+        configName?: string,
+    ): t.Node | null {
         let rootNode: t.Node | null = null;
 
         traverse(ast, {
@@ -296,21 +304,21 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                 const {node} = path;
                 const {declaration, specifiers = []} = node;
 
-                // export function middleware() {}
+                // export function proxy() {}
                 if (t.isFunctionDeclaration(declaration)) {
                     if (
                         t.isFunctionDeclaration(node.declaration)
                         && t.isIdentifier(node.declaration.id)
-                        && node.declaration.id.name === 'middleware'
+                        && node.declaration.id.name === exportName
                     ) {
                         path.replaceWith(
                             t.exportNamedDeclaration(
                                 t.variableDeclaration('const', [
                                     t.variableDeclarator(
-                                        t.identifier('middleware'),
-                                        NextJsMiddlewareCodemod.wrapMiddleware(
+                                        t.identifier(exportName),
+                                        NextJsProxyCodemod.wrapProxy(
                                             t.isFunctionDeclaration(node.declaration)
-                                                ? NextJsMiddlewareCodemod.createFunctionExpression(node.declaration)
+                                                ? NextJsProxyCodemod.createFunctionExpression(node.declaration)
                                                 : node.declaration,
                                             functionName,
                                             configName,
@@ -321,7 +329,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                             ),
                         );
 
-                        rootNode = NextJsMiddlewareCodemod.getRootNode(path);
+                        rootNode = NextJsProxyCodemod.getRootNode(path);
 
                         return path.stop();
                     }
@@ -329,23 +337,23 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                     return path.skip();
                 }
 
-                // export const middleware = function() {}
+                // export const proxy = function() {}
                 if (t.isVariableDeclaration(declaration)) {
                     for (const declarator of declaration.declarations) {
                         if (
                             t.isVariableDeclarator(declarator)
                             && t.isIdentifier(declarator.id)
-                            && declarator.id.name === 'middleware'
+                            && declarator.id.name === exportName
                         ) {
                             const initializer = declarator.init ?? null;
 
                             if (initializer !== null) {
-                                declarator.init = NextJsMiddlewareCodemod.wrapMiddleware(
+                                declarator.init = NextJsProxyCodemod.wrapProxy(
                                     initializer,
                                     functionName,
                                     configName,
                                 );
-                                rootNode = NextJsMiddlewareCodemod.getRootNode(path);
+                                rootNode = NextJsProxyCodemod.getRootNode(path);
 
                                 return path.stop();
                             }
@@ -353,15 +361,15 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                     }
                 }
 
-                // export {middleware}
+                // export {proxy}
                 for (const specifier of specifiers) {
                     if (
                         t.isExportSpecifier(specifier)
                         && t.isIdentifier(specifier.exported)
                         && t.isIdentifier(specifier.local)
-                        && (['middleware', 'default']).includes(specifier.exported.name)
+                        && ([exportName, 'default']).includes(specifier.exported.name)
                     ) {
-                        rootNode = NextJsMiddlewareCodemod.replaceMiddlewareDeclaration(
+                        rootNode = NextJsProxyCodemod.replaceProxyDeclaration(
                             ast,
                             specifier.local.name,
                             functionName,
@@ -382,7 +390,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                 if (t.isArrowFunctionExpression(declaration)) {
                     path.replaceWith(
                         t.exportDefaultDeclaration(
-                            NextJsMiddlewareCodemod.wrapMiddleware(
+                            NextJsProxyCodemod.wrapProxy(
                                 declaration,
                                 functionName,
                                 configName,
@@ -390,7 +398,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                         ),
                     );
 
-                    rootNode = NextJsMiddlewareCodemod.getRootNode(path);
+                    rootNode = NextJsProxyCodemod.getRootNode(path);
 
                     return path.stop();
                 }
@@ -399,22 +407,22 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                 if (t.isFunctionDeclaration(declaration)) {
                     path.replaceWith(
                         t.exportDefaultDeclaration(
-                            NextJsMiddlewareCodemod.wrapMiddleware(
-                                NextJsMiddlewareCodemod.createFunctionExpression(declaration, true),
+                            NextJsProxyCodemod.wrapProxy(
+                                NextJsProxyCodemod.createFunctionExpression(declaration, true),
                                 functionName,
                                 configName,
                             ),
                         ),
                     );
 
-                    rootNode = NextJsMiddlewareCodemod.getRootNode(path);
+                    rootNode = NextJsProxyCodemod.getRootNode(path);
 
                     return path.stop();
                 }
 
-                // export default middleware
+                // export default proxy
                 if (t.isIdentifier(declaration)) {
-                    rootNode = NextJsMiddlewareCodemod.replaceMiddlewareDeclaration(
+                    rootNode = NextJsProxyCodemod.replaceProxyDeclaration(
                         ast,
                         declaration.name,
                         functionName,
@@ -431,7 +439,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
         return rootNode;
     }
 
-    private static replaceMiddlewareDeclaration(
+    private static replaceProxyDeclaration(
         file: t.File,
         name: string,
         functionName: string,
@@ -447,8 +455,8 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                     const initializer = node.init ?? null;
 
                     if (initializer !== null) {
-                        node.init = NextJsMiddlewareCodemod.wrapMiddleware(initializer, functionName, configName);
-                        rootNode = NextJsMiddlewareCodemod.getRootNode(path);
+                        node.init = NextJsProxyCodemod.wrapProxy(initializer, functionName, configName);
+                        rootNode = NextJsProxyCodemod.getRootNode(path);
                     }
 
                     return path.stop();
@@ -461,7 +469,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
 
                 if (t.isIdentifier(node.id) && node.id.name === name) {
                     path.replaceWith(
-                        NextJsMiddlewareCodemod.wrapFunctionDeclaration(
+                        NextJsProxyCodemod.wrapFunctionDeclaration(
                             node,
                             functionName,
                             configName,
@@ -471,7 +479,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                         ),
                     );
 
-                    rootNode = NextJsMiddlewareCodemod.getRootNode(path);
+                    rootNode = NextJsProxyCodemod.getRootNode(path);
 
                     return path.stop();
                 }
@@ -488,7 +496,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
      *
      * @param file The AST representing the source code.
      * @param functionNames The names of the functions to search for.
-     * @return true if the middleware is called, false otherwise.
+     * @return true if the proxy is called, false otherwise.
      */
     private static isCalled(file: t.File, functionNames: string[]): boolean {
         let wrapped = false;
@@ -514,7 +522,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
     }
 
     /**
-     * Finds the middleware configuration object in the t.
+     * Finds the proxy configuration object in the t.
      *
      * @param ast The AST representing the source code.
      * @return The information about the config object or null if not found.
@@ -536,10 +544,10 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                         ) {
                             const match = t.isIdentifier(declarator.init)
                                 // export const config = variable
-                                ? NextJsMiddlewareCodemod.findVariableDeclarator(ast, declarator.init.name)
+                                ? NextJsProxyCodemod.findVariableDeclarator(ast, declarator.init.name)
                                 : {
                                     name: 'config',
-                                    root: NextJsMiddlewareCodemod.getRootNode(path),
+                                    root: NextJsProxyCodemod.getRootNode(path),
                                     declaration: declarator,
                                 };
 
@@ -552,7 +560,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                                     name: match.name,
                                     root: match.root,
                                     object: match.declaration.init,
-                                    matcher: NextJsMiddlewareCodemod.hasMatcherProperty(match.declaration.init),
+                                    matcher: NextJsProxyCodemod.hasMatcherProperty(match.declaration.init),
                                 };
 
                                 return path.stop();
@@ -569,14 +577,14 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                         && t.isIdentifier(specifier.local)
                         && specifier.exported.name === 'config'
                     ) {
-                        const match = NextJsMiddlewareCodemod.findVariableDeclarator(ast, specifier.local.name);
+                        const match = NextJsProxyCodemod.findVariableDeclarator(ast, specifier.local.name);
 
                         if (match !== null && t.isObjectExpression(match.declaration.init)) {
                             config = {
                                 name: match.name,
                                 root: match.root,
                                 object: match.declaration.init,
-                                matcher: NextJsMiddlewareCodemod.hasMatcherProperty(match.declaration.init),
+                                matcher: NextJsProxyCodemod.hasMatcherProperty(match.declaration.init),
                             };
                         }
 
@@ -639,11 +647,11 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                 ) {
                     if (t.isIdentifier(node.init)) {
                         // If the initializer is an identifier, recursively search for the declaration
-                        declarator = NextJsMiddlewareCodemod.findVariableDeclarator(ast, node.init.name);
+                        declarator = NextJsProxyCodemod.findVariableDeclarator(ast, node.init.name);
                     } else {
                         declarator = {
                             name: name,
-                            root: NextJsMiddlewareCodemod.getRootNode(path),
+                            root: NextJsProxyCodemod.getRootNode(path),
                             declaration: node,
                         };
                     }
@@ -659,14 +667,14 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
     }
 
     /**
-     * Wraps the given node with the HOC middleware.
+     * Wraps the given node with the HOC proxy.
      *
-     * @param node The node to wrap with the middleware.
-     * @param functionName The name of the middleware function.
+     * @param node The node to wrap with the proxy.
+     * @param functionName The name of the proxy function.
      * @param configName Optional name of the configuration object variable.
-     * @return The transformed middleware node.
+     * @return The transformed proxy node.
      */
-    private static wrapMiddleware(node: t.Expression, functionName: string, configName?: string): t.CallExpression {
+    private static wrapProxy(node: t.Expression, functionName: string, configName?: string): t.CallExpression {
         return t.callExpression(
             t.identifier(functionName),
             [
@@ -690,27 +698,27 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
     }
 
     /**
-     * Wraps a function declaration in a middleware expression as a variable declaration.
+     * Wraps a function declaration in a proxy expression as a variable declaration.
      *
      * @param functionDeclaration The function declaration to wrap.
-     * @param functionName The name of the middleware function.
+     * @param functionName The name of the proxy function.
      * @param configName Optional name of the configuration object variable.
-     * @param name The name of the constant variable to assign the middleware to.
-     * @return A variable declaration that assigns the wrapped middleware to a constant.
+     * @param name The name of the constant variable to assign the proxy to.
+     * @return A variable declaration that assigns the wrapped proxy to a constant.
      */
     private static wrapFunctionDeclaration(
         functionDeclaration: t.FunctionDeclaration,
         functionName: string,
         configName?: string,
-        name = 'middleware',
+        name = 'proxy',
     ): t.VariableDeclaration {
         return t.variableDeclaration(
             'const',
             [
                 t.variableDeclarator(
                     t.identifier(name),
-                    NextJsMiddlewareCodemod.wrapMiddleware(
-                        NextJsMiddlewareCodemod.createFunctionExpression(functionDeclaration),
+                    NextJsProxyCodemod.wrapProxy(
+                        NextJsProxyCodemod.createFunctionExpression(functionDeclaration),
                         functionName,
                         configName,
                     ),
@@ -743,7 +751,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                     Identifier: function acceptNested(nestedPath) {
                         const identifier = nestedPath.node;
 
-                        if (NextJsMiddlewareCodemod.isVariableReference(nestedPath.parent, identifier)) {
+                        if (NextJsProxyCodemod.isVariableReference(nestedPath.parent, identifier)) {
                             names.add(identifier.name);
                         }
 
@@ -767,7 +775,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                 const {node} = path;
 
                 if (t.isIdentifier(node.id) && names.has(node.id.name)) {
-                    references.push(NextJsMiddlewareCodemod.getRootNode(path));
+                    references.push(NextJsProxyCodemod.getRootNode(path));
                 }
 
                 return path.skip();
@@ -780,7 +788,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                 const {node} = path;
 
                 if (t.isIdentifier(node.id) && names.has(node.id.name)) {
-                    references.push(NextJsMiddlewareCodemod.getRootNode(path));
+                    references.push(NextJsProxyCodemod.getRootNode(path));
                 }
 
                 return path.skip();
@@ -793,7 +801,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
                 const {node} = path;
 
                 if (t.isIdentifier(node.id) && names.has(node.id.name)) {
-                    references.push(NextJsMiddlewareCodemod.getRootNode(path));
+                    references.push(NextJsProxyCodemod.getRootNode(path));
                 }
 
                 return path.skip();
@@ -803,7 +811,7 @@ export class NextJsMiddlewareCodemod implements Codemod<t.File> {
         return [
             ...new Set(references.flatMap(
                 // Recursively find references from the found references
-                reference => [reference, ...NextJsMiddlewareCodemod.findReferencesFrom(reference, root)],
+                reference => [reference, ...NextJsProxyCodemod.findReferencesFrom(reference, root)],
             )),
         ];
     }

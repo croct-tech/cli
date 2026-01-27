@@ -1,8 +1,8 @@
 function unrelated() {
 }
 
-const _middlewareFn = function() {
-    console.log('middleware');
+const _proxyFn = function() {
+    console.log('proxy');
 }
 
 const _config = {
@@ -10,6 +10,6 @@ const _config = {
 };
 
 export {
-    _middlewareFn as default,
+    _proxyFn as default,
     _config as config
 };

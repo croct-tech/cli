@@ -5,5 +5,5 @@ export default () => {
 
 }
 
-export function middleware() {
+export function proxy() {
 }

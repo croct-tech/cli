@@ -48,7 +48,7 @@ import {Command, CommandInput} from '@/application/cli/command/command';
 import {AdminCommand, AdminInput} from '@/application/cli/command/admin';
 import {JsxWrapperCodemod} from '@/application/project/code/transformation/javascript/jsxWrapperCodemod';
 import {JavaScriptCodemod} from '@/application/project/code/transformation/javascript/javaScriptCodemod';
-import {NextJsMiddlewareCodemod} from '@/application/project/code/transformation/javascript/nextJsMiddlewareCodemod';
+import {NextJsProxyCodemod} from '@/application/project/code/transformation/javascript/nextJsProxyCodemod';
 import {CodeFormatter} from '@/application/project/code/formatting/formatter';
 import {FormatCodemod} from '@/application/project/code/transformation/formatCodemod';
 import {FileCodemod} from '@/application/project/code/transformation/fileCodemod';
@@ -1796,6 +1796,26 @@ export class Cli {
                             },
                         };
 
+                        const createProxyCodemod = (proxyName: string): Codemod<string> => new FormatCodemod(
+                            formatter,
+                            new FileCodemod({
+                                fileSystem: this.getFileSystem(),
+                                codemod: new JavaScriptCodemod({
+                                    languages: ['typescript', 'jsx'],
+                                    codemod: new NextJsProxyCodemod({
+                                        // eslint-disable-next-line max-len -- Ignore for readability
+                                        matcherPattern: '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
+                                        exportName: proxyName,
+                                        import: {
+                                            module: `@croct/plug-next/${proxyName}`,
+                                            proxyName: proxyName,
+                                            proxyFactoryName: 'withCroct',
+                                        },
+                                    }),
+                                }),
+                            }),
+                        );
+
                         return new PlugNextSdk({
                             ...config,
                             plugins: [this.createStoryblokPlugin(Platform.NEXTJS)],
@@ -1803,24 +1823,8 @@ export class Cli {
                             applicationApi: this.getApplicationApi(),
                             importResolver: importResolver,
                             codemod: {
-                                middleware: new FormatCodemod(
-                                    formatter,
-                                    new FileCodemod({
-                                        fileSystem: this.getFileSystem(),
-                                        codemod: new JavaScriptCodemod({
-                                            languages: ['typescript', 'jsx'],
-                                            codemod: new NextJsMiddlewareCodemod({
-                                                // eslint-disable-next-line max-len -- Ignore for readability
-                                                matcherPattern: '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
-                                                import: {
-                                                    module: '@croct/plug-next/middleware',
-                                                    middlewareName: 'middleware',
-                                                    middlewareFactoryName: 'withCroct',
-                                                },
-                                            }),
-                                        }),
-                                    }),
-                                ),
+                                proxy: createProxyCodemod('proxy'),
+                                middleware: createProxyCodemod('middleware'),
                                 appRouterProvider: new FormatCodemod(
                                     formatter,
                                     new FileCodemod({
@@ -2177,7 +2181,7 @@ export class Cli {
         return this.share(
             this.getJavaScriptFormatter,
             () => new JavaScriptFormatter({
-                commandExecutor: this.getAsynchronousCommandExecutor(),
+                commandExecutor: this.getSynchronousCommandExecutor(),
                 workingDirectory: this.workingDirectory,
                 packageManager: this.getNodePackageManager(),
                 fileSystem: this.getFileSystem(),

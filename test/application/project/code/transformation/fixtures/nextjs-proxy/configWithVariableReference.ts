@@ -4,10 +4,8 @@ const configValue = {
     matcher: regex,
 }
 
-const indirectReference = configValue;
+export const config = configValue;
 
-export const config = indirectReference;
-
-export function middleware(request) {
+export function proxy(request) {
     console.log(request.url);
 }

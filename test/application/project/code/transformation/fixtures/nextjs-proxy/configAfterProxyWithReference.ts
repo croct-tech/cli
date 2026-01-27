@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server'
 
-// middleware
-export function middleware(request: NextRequest): void {
+// proxy
+export function proxy(request: NextRequest): void {
     console.log(request.url);
 }
 
