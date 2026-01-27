@@ -28,6 +28,7 @@ import {ApiKeyPermission} from '@/application/model/application';
 import {PlugReactExampleGenerator} from '@/application/project/code/generation/slot/plugReactExampleGenerator';
 
 type CodemodConfiguration = {
+    proxy: Codemod<string>,
     middleware: Codemod<string>,
     fallbackProvider: Codemod<string, AppComponentOptions>,
     appRouterProvider: Codemod<string, LayoutComponentOptions>,
@@ -50,7 +51,8 @@ type NextProjectInfo = {
     router: NextRouter,
     sourceDirectory: string,
     pageDirectory: string,
-    middleware: {
+    proxy: {
+        name: 'proxy' | 'middleware',
         file: string,
     },
     provider: {
@@ -181,10 +183,11 @@ export class PlugNextSdk extends JavaScriptSdk {
     }
 
     private async getProjectInfo(): Promise<NextProjectInfo> {
-        const [isTypescript, directory, fallbackMode] = await Promise.all([
+        const [isTypescript, directory, fallbackMode, legacyMiddleware] = await Promise.all([
             this.isTypeScriptProject(),
             this.getPageDirectory(),
             this.isFallbackMode(),
+            this.packageManager.hasDirectDependency('next', '<16'),
         ]);
 
         const project: Pick<NextProjectInfo, 'typescript' | 'router' | 'sourceDirectory' | 'pageDirectory'> = {
@@ -194,9 +197,11 @@ export class PlugNextSdk extends JavaScriptSdk {
             pageDirectory: directory,
         };
 
-        const [middlewareFile, providerComponentFile] = await Promise.all([
+        const proxyName = legacyMiddleware ? 'middleware' : 'proxy';
+
+        const [proxyFile, providerComponentFile] = await Promise.all([
             this.locateFile(
-                ...['middleware.js', 'middleware.ts']
+                ...[`${proxyName}.js`, `${proxyName}.ts`]
                     .map(file => this.fileSystem.joinPaths(project.sourceDirectory, file)),
             ),
             this.locateFile(
@@ -233,8 +238,9 @@ export class PlugNextSdk extends JavaScriptSdk {
                     this.fileSystem.joinPaths(projectDirectory, '.env.production'),
                 ),
             },
-            middleware: {
-                file: middlewareFile ?? this.fileSystem.joinPaths(project.sourceDirectory, `middleware.${extension}`),
+            proxy: {
+                name: proxyName,
+                file: proxyFile ?? this.fileSystem.joinPaths(project.sourceDirectory, `${proxyName}.${extension}`),
             },
             provider: {
                 file: providerComponentFile
@@ -251,17 +257,19 @@ export class PlugNextSdk extends JavaScriptSdk {
         const tasks: Task[] = [];
 
         if (!installation.project.fallbackMode) {
+            const proxyName = installation.project.proxy.name;
+
             tasks.push({
-                title: 'Configure middleware',
+                title: `Configure ${proxyName}`,
                 task: async notifier => {
-                    notifier.update('Configuring middleware');
+                    notifier.update(`Configuring ${proxyName}`);
 
                     try {
-                        await this.updateCode(this.codemod.middleware, installation.project.middleware.file);
+                        await this.updateCode(this.codemod[proxyName], installation.project.proxy.file);
 
-                        notifier.confirm('Middleware configured');
+                        notifier.confirm(`${PlugNextSdk.capitalize(proxyName)} configured`);
                     } catch (error) {
-                        notifier.alert('Failed to install middleware', HelpfulError.formatMessage(error));
+                        notifier.alert(`Failed to install ${proxyName}`, HelpfulError.formatMessage(error));
                     }
                 },
             });
@@ -439,5 +447,9 @@ export class PlugNextSdk extends JavaScriptSdk {
 
     private isFallbackMode(): Promise<boolean> {
         return this.packageManager.hasDirectDependency('next', '<=13');
+    }
+
+    private static capitalize(name: string): string {
+        return name.charAt(0).toUpperCase() + name.slice(1);
     }
 }

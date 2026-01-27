@@ -2,7 +2,7 @@ import {CodeFormatter, CodeFormatterError} from '@/application/project/code/form
 import {FileSystem} from '@/application/fs/fileSystem';
 import {Dependency, PackageManager} from '@/application/project/packageManager/packageManager';
 import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
-import {CommandExecutor} from '@/application/system/process/executor';
+import {SynchronousCommandExecutor} from '@/application/system/process/executor';
 import {Command} from '@/application/system/process/command';
 
 type FormatterTool = {
@@ -15,7 +15,7 @@ export type Configuration = {
     workingDirectory: WorkingDirectory,
     fileSystem: FileSystem,
     packageManager: PackageManager,
-    commandExecutor: CommandExecutor,
+    commandExecutor: SynchronousCommandExecutor,
     timeout?: number,
     tools: FormatterTool[],
 };
@@ -41,17 +41,19 @@ export class JavaScriptFormatter implements CodeFormatter {
         }
     }
 
-    private async run(command: Command): Promise<void> {
+    private run(command: Command): Promise<void> {
         const {commandExecutor, workingDirectory, timeout} = this.configuration;
 
-        const execution = await commandExecutor.run(command, {
+        const execution = commandExecutor.runSync(command, {
             workingDirectory: workingDirectory.get(),
             timeout: timeout,
         });
 
-        if (await execution.wait() !== 0) {
+        if (execution.exitCode !== 0) {
             throw new CodeFormatterError('Failed to format code.');
         }
+
+        return Promise.resolve();
     }
 
     private async getCommand(files: string[]): Promise<Command|null> {
