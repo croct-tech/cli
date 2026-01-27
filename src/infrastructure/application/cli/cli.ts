@@ -7,6 +7,7 @@ import XDGAppPaths from 'xdg-app-paths';
 import ci from 'ci-info';
 import {FilteredLogger, Logger, LogLevel} from '@croct/logging';
 import {Token} from '@croct/sdk/token';
+import {File} from '@babel/types';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput, LinkOpener} from '@/infrastructure/application/cli/io/consoleOutput';
 import {Sdk} from '@/application/project/sdk/sdk';
@@ -312,7 +313,7 @@ import {WriteFileOptionsValidator} from '@/infrastructure/application/validation
 import {AutoUpdater} from '@/application/cli/autoUpdater';
 import {DeletePathAction} from '@/application/template/action/deletePathAction';
 import {DeletePathOptionsValidator} from '@/infrastructure/application/validation/actions/deletePathOptionsValidator';
-import {Codemod} from '@/application/project/code/transformation/codemod';
+import {Codemod, ResultCode} from '@/application/project/code/transformation/codemod';
 import {ResolveImportAction} from '@/application/template/action/resolveImportAction';
 import {
     ResolveImportOptionsValidator,
@@ -321,6 +322,8 @@ import {CreateApiKeyAction} from '@/application/template/action/createApiKeyActi
 import {
     CreateApiKeyOptionsValidator,
 } from '@/infrastructure/application/validation/actions/createApiKeyOptionsValidator';
+import {StoryblokInitCodemod} from '@/application/project/code/transformation/javascript/storyblokInitCodemod';
+import {StoryblookPlugin} from '@/application/project/sdk/storyblookPlugin';
 
 export type Configuration = {
     program: Program,
@@ -1727,10 +1730,12 @@ export class Cli {
                 mapping: {
                     [Platform.JAVASCRIPT]: (): Sdk => new PlugJsSdk({
                         ...config,
+                        plugins: [new StoryblookPlugin(this.createStoryblokCodemod(Platform.JAVASCRIPT))],
                         bundlers: ['vite', 'parcel', 'tsup', 'rollup'],
                     }),
                     [Platform.REACT]: (): Sdk => new PlugReactSdk({
                         ...config,
+                        plugins: [new StoryblookPlugin(this.createStoryblokCodemod(Platform.REACT))],
                         importResolver: importResolver,
                         codemod: {
                             provider: new FormatCodemod(
@@ -1790,6 +1795,7 @@ export class Cli {
 
                         return new PlugNextSdk({
                             ...config,
+                            plugins: [new StoryblookPlugin(this.createStoryblokCodemod(Platform.NEXTJS))],
                             userApi: this.getUserApi(),
                             applicationApi: this.getApplicationApi(),
                             importResolver: importResolver,
@@ -1921,6 +1927,31 @@ export class Cli {
                 }),
             );
         });
+    }
+
+    private createStoryblokCodemod(platform: Platform.JAVASCRIPT | Platform.REACT | Platform.NEXTJS): Codemod<string> {
+        const codemod = new StoryblokInitCodemod();
+        const modules = {
+            [Platform.JAVASCRIPT]: 'js',
+            [Platform.REACT]: 'react',
+            [Platform.NEXTJS]: 'next',
+        };
+
+        return new FormatCodemod(
+            this.getJavaScriptFormatter(),
+            new FileCodemod({
+                fileSystem: this.getFileSystem(),
+                codemod: new JavaScriptCodemod({
+                    languages: ['typescript', 'jsx'],
+                    codemod: {
+                        apply: (input: File): Promise<ResultCode<File>> => codemod.apply(input, {
+                            name: 'withCroct',
+                            module: `@croct/plug-storyblok/${modules[platform]}`,
+                        }),
+                    },
+                }),
+            }),
+        );
     }
 
     private share<M extends(() => any)>(method: M, factory: () => ReturnType<M>): ReturnType<M> {
