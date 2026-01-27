@@ -11,7 +11,10 @@ import {File} from '@babel/types';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
 import {ConsoleOutput, LinkOpener} from '@/infrastructure/application/cli/io/consoleOutput';
 import {Sdk} from '@/application/project/sdk/sdk';
-import {Configuration as JavaScriptSdkConfiguration} from '@/application/project/sdk/javasScriptSdk';
+import {
+    Configuration as JavaScriptSdkConfiguration,
+    JavaScriptSdkPlugin,
+} from '@/application/project/sdk/javasScriptSdk';
 import {PlugJsSdk} from '@/application/project/sdk/plugJsSdk';
 import {PlugReactSdk} from '@/application/project/sdk/plugReactSdk';
 import {PlugNextSdk} from '@/application/project/sdk/plugNextSdk';
@@ -1730,12 +1733,12 @@ export class Cli {
                 mapping: {
                     [Platform.JAVASCRIPT]: (): Sdk => new PlugJsSdk({
                         ...config,
-                        plugins: [new StoryblookPlugin(this.createStoryblokCodemod(Platform.JAVASCRIPT))],
+                        plugins: [this.createStoryblokPlugin(Platform.JAVASCRIPT)],
                         bundlers: ['vite', 'parcel', 'tsup', 'rollup'],
                     }),
                     [Platform.REACT]: (): Sdk => new PlugReactSdk({
                         ...config,
-                        plugins: [new StoryblookPlugin(this.createStoryblokCodemod(Platform.REACT))],
+                        plugins: [this.createStoryblokPlugin(Platform.REACT)],
                         importResolver: importResolver,
                         codemod: {
                             provider: new FormatCodemod(
@@ -1795,7 +1798,7 @@ export class Cli {
 
                         return new PlugNextSdk({
                             ...config,
-                            plugins: [new StoryblookPlugin(this.createStoryblokCodemod(Platform.NEXTJS))],
+                            plugins: [this.createStoryblokPlugin(Platform.NEXTJS)],
                             userApi: this.getUserApi(),
                             applicationApi: this.getApplicationApi(),
                             importResolver: importResolver,
@@ -1929,7 +1932,9 @@ export class Cli {
         });
     }
 
-    private createStoryblokCodemod(platform: Platform.JAVASCRIPT | Platform.REACT | Platform.NEXTJS): Codemod<string> {
+    private createStoryblokPlugin(
+        platform: Platform.JAVASCRIPT | Platform.REACT | Platform.NEXTJS,
+    ): JavaScriptSdkPlugin {
         const codemod = new StoryblokInitCodemod();
         const modules = {
             [Platform.JAVASCRIPT]: 'js',
@@ -1937,21 +1942,24 @@ export class Cli {
             [Platform.NEXTJS]: 'next',
         };
 
-        return new FormatCodemod(
-            this.getJavaScriptFormatter(),
-            new FileCodemod({
-                fileSystem: this.getFileSystem(),
-                codemod: new JavaScriptCodemod({
-                    languages: ['typescript', 'jsx'],
-                    codemod: {
-                        apply: (input: File): Promise<ResultCode<File>> => codemod.apply(input, {
-                            name: 'withCroct',
-                            module: `@croct/plug-storyblok/${modules[platform]}`,
-                        }),
-                    },
+        return new StoryblookPlugin({
+            scanFilter: this.getScanFilter(),
+            codemod: new FormatCodemod(
+                this.getJavaScriptFormatter(),
+                new FileCodemod({
+                    fileSystem: this.getFileSystem(),
+                    codemod: new JavaScriptCodemod({
+                        languages: ['typescript', 'jsx'],
+                        codemod: {
+                            apply: (input: File): Promise<ResultCode<File>> => codemod.apply(input, {
+                                name: 'withCroct',
+                                module: `@croct/plug-storyblok/${modules[platform]}`,
+                            }),
+                        },
+                    }),
                 }),
-            }),
-        );
+            ),
+        });
     }
 
     private share<M extends(() => any)>(method: M, factory: () => ReturnType<M>): ReturnType<M> {

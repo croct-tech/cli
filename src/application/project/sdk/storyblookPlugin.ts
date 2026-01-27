@@ -4,12 +4,21 @@ import {Task} from '@/application/cli/io/output';
 import {HelpfulError} from '@/application/error';
 import {Codemod} from '@/application/project/code/transformation/codemod';
 import {Installation} from '@/application/project/sdk/sdk';
+import {ScanFilter} from '@/application/fs/fileSystem';
+
+export type Configuration = {
+    scanFilter: ScanFilter,
+    codemod: Codemod<string>,
+};
 
 export class StoryblookPlugin implements JavaScriptSdkPlugin {
     private readonly codemod: Codemod<string>;
 
-    public constructor(codemod: Codemod<string>) {
-        this.codemod = codemod;
+    private readonly scanFilter: ScanFilter;
+
+    public constructor(configuration: Configuration) {
+        this.codemod = configuration.codemod;
+        this.scanFilter = configuration.scanFilter;
     }
 
     public async getInstallationPlan(
@@ -23,9 +32,9 @@ export class StoryblookPlugin implements JavaScriptSdkPlugin {
         const tasks: Task[] = [];
 
         tasks.push({
-            title: 'Configuring Storyblok integration',
+            title: 'Configure Storyblok integration',
             task: async notifier => {
-                notifier.update('Configuring middleware');
+                notifier.update('Configuring Storyblok integration');
 
                 try {
                     await this.configureStoryblok(context);
@@ -44,32 +53,43 @@ export class StoryblookPlugin implements JavaScriptSdkPlugin {
     }
 
     private async configureStoryblok(scope: JavaScriptPluginContext): Promise<void> {
-        const initializationFile = await this.findStoryblokInitializationFile(scope);
+        const initializationFiles = await this.findStoryblokInitializationFiles(scope);
 
-        if (initializationFile === null) {
+        if (initializationFiles.length === 0) {
             throw new HelpfulError('Could not find any file containing Storyblok initialization.');
         }
 
-        const result = await this.codemod.apply(initializationFile);
+        const results = initializationFiles.map(
+            file => this.codemod
+                .apply(file)
+                .then(result => result.modified),
+        );
 
-        if (!result.modified) {
-            throw new HelpfulError('Unable to automatically configure Storyblok integration.');
+        if (!(await Promise.all(results)).some(modified => modified)) {
+            throw new HelpfulError('Could not find any Storyblok initialization to configure.');
         }
     }
 
-    private async findStoryblokInitializationFile(scope: JavaScriptPluginContext): Promise<string | null> {
+    private async findStoryblokInitializationFiles(scope: JavaScriptPluginContext): Promise<string[]> {
         const {fileSystem, projectDirectory} = scope;
 
         const directory = projectDirectory.get();
-        const iterator = fileSystem.list(directory, (path, depth) => {
-            if (depth > 20) {
+        const iterator = fileSystem.list(directory, async (path, depth) => {
+            if (!await this.scanFilter(path, depth) || depth > 20) {
                 return false;
             }
 
             const extension = extname(path).toLowerCase();
 
-            return extension === '.js' || extension === '.ts' || extension === '.jsx' || extension === '.tsx';
+            // Allow directories (no extension) and JS/TS files
+            return extension === ''
+                || extension === '.js'
+                || extension === '.ts'
+                || extension === '.jsx'
+                || extension === '.tsx';
         });
+
+        const files: string[] = [];
 
         for await (const entry of iterator) {
             if (entry.type !== 'file') {
@@ -80,10 +100,10 @@ export class StoryblookPlugin implements JavaScriptSdkPlugin {
             const content = await fileSystem.readTextFile(path);
 
             if (content.includes('storyblokInit')) {
-                return path;
+                files.push(path);
             }
         }
 
-        return null;
+        return files;
     }
 }
