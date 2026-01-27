@@ -326,7 +326,7 @@ import {
     CreateApiKeyOptionsValidator,
 } from '@/infrastructure/application/validation/actions/createApiKeyOptionsValidator';
 import {StoryblokInitCodemod} from '@/application/project/code/transformation/javascript/storyblokInitCodemod';
-import {StoryblookPlugin} from '@/application/project/sdk/storyblookPlugin';
+import {StoryblokPlugin} from '@/application/project/sdk/storyblokPlugin';
 
 export type Configuration = {
     program: Program,
@@ -1942,7 +1942,7 @@ export class Cli {
             [Platform.NEXTJS]: 'next',
         };
 
-        return new StoryblookPlugin({
+        return new StoryblokPlugin({
             scanFilter: this.getScanFilter(),
             codemod: new FormatCodemod(
                 this.getJavaScriptFormatter(),

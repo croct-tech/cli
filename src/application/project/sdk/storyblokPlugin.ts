@@ -11,7 +11,7 @@ export type Configuration = {
     codemod: Codemod<string>,
 };
 
-export class StoryblookPlugin implements JavaScriptSdkPlugin {
+export class StoryblokPlugin implements JavaScriptSdkPlugin {
     private readonly codemod: Codemod<string>;
 
     private readonly scanFilter: ScanFilter;
