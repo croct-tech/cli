@@ -1,4 +1,4 @@
-import {Authenticator} from '@/application/cli/authentication/authenticator/authenticator';
+import type {Authenticator} from '@/application/cli/authentication/authenticator/authenticator';
 
 type AuthenticationInputs = Record<string, Record<string, any>>;
 
@@ -19,7 +19,7 @@ export class MultiAuthenticator<T extends AuthenticationInputs> implements Authe
         this.authenticators = authenticators;
     }
 
-    public async getToken(): Promise<string|null> {
+    public async getToken(): Promise<string | null> {
         for (const authenticator of Object.values(this.authenticators)) {
             const token = await authenticator.getToken();
 

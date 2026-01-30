@@ -1,4 +1,5 @@
-import {z, ZodType} from 'zod';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 type IntegrateCroctOptions = Record<never, never>;

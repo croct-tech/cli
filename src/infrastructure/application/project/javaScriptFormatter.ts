@@ -1,9 +1,10 @@
-import {CodeFormatter, CodeFormatterError} from '@/application/project/code/formatting/formatter';
-import {FileSystem} from '@/application/fs/fileSystem';
-import {Dependency, PackageManager} from '@/application/project/packageManager/packageManager';
-import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
-import {SynchronousCommandExecutor} from '@/application/system/process/executor';
-import {Command} from '@/application/system/process/command';
+import type {CodeFormatter} from '@/application/project/code/formatting/formatter';
+import {CodeFormatterError} from '@/application/project/code/formatting/formatter';
+import type {FileSystem} from '@/application/fs/fileSystem';
+import type {Dependency, PackageManager} from '@/application/project/packageManager/packageManager';
+import type {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {SynchronousCommandExecutor} from '@/application/system/process/executor';
+import type {Command} from '@/application/system/process/command';
 
 type FormatterTool = {
     package: string,
@@ -56,7 +57,7 @@ export class JavaScriptFormatter implements CodeFormatter {
         return Promise.resolve();
     }
 
-    private async getCommand(files: string[]): Promise<Command|null> {
+    private async getCommand(files: string[]): Promise<Command | null> {
         const {tools, packageManager, fileSystem} = this.configuration;
 
         for (const tool of tools) {
@@ -86,7 +87,7 @@ export class JavaScriptFormatter implements CodeFormatter {
         return null;
     }
 
-    private static getBinPath({metadata}: Dependency, bin?: string): string|null {
+    private static getBinPath({metadata}: Dependency, bin?: string): string | null {
         if (!('bin' in metadata)) {
             return null;
         }

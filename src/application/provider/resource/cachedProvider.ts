@@ -1,5 +1,5 @@
-import {CacheProvider} from '@croct/cache';
-import {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import type {CacheProvider} from '@croct/cache';
+import type {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
 
 export type Configuration<T> = {
     provider: ResourceProvider<T>,
@@ -31,7 +31,7 @@ export class CachedProvider<T> implements ResourceProvider<T> {
             try {
                 return await this.provider.get(url);
             } catch (error) {
-                this.errorCache?.set(url.toString(), error);
+                void this.errorCache?.set(url.toString(), error);
 
                 throw error;
             }

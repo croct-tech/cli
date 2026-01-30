@@ -1,4 +1,4 @@
-import {Provider} from '@/application/provider/provider';
+import type {Provider} from '@/application/provider/provider';
 
 export class ConstantProvider<T> implements Provider<T> {
     private readonly data: T;

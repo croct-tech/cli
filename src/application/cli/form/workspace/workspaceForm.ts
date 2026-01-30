@@ -1,11 +1,11 @@
 import {System} from '@/infrastructure/system';
-import {Input} from '@/application/cli/io/input';
-import {Output} from '@/application/cli/io/output';
-import {Form} from '@/application/cli/form/form';
-import {OrganizationApi} from '@/application/api/organization';
+import type {Input} from '@/application/cli/io/input';
+import type {Output} from '@/application/cli/io/output';
+import type {Form} from '@/application/cli/form/form';
+import type {OrganizationApi} from '@/application/api/organization';
 import {NameInput} from '@/application/cli/form/input/nameInput';
-import {Organization} from '@/application/model/organization';
-import {Workspace} from '@/application/model/workspace';
+import type {Organization} from '@/application/model/organization';
+import type {Workspace} from '@/application/model/workspace';
 
 export type Configuration = {
     input: Input,

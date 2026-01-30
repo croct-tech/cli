@@ -1,6 +1,6 @@
 import {LogLevel} from '@croct/logging';
-import {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
-import {HierarchicalLogger} from '@/application/logging/hierarchicalLogger';
+import type {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import type {HierarchicalLogger} from '@/application/logging/hierarchicalLogger';
 import {HelpfulError} from '@/application/error';
 
 export type Configuration<T> = {

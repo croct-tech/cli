@@ -1,9 +1,9 @@
 import semver from 'semver';
 import isInstalledGlobally from 'is-installed-globally';
-import {PackageManager} from '@/application/project/packageManager/packageManager';
-import {Output} from '@/application/cli/io/output';
-import {Input} from '@/application/cli/io/input';
-import {CliConfiguration, CliConfigurationProvider} from '@/application/cli/configuration/provider';
+import type {PackageManager} from '@/application/project/packageManager/packageManager';
+import type {Output} from '@/application/cli/io/output';
+import type {Input} from '@/application/cli/io/input';
+import type {CliConfiguration, CliConfigurationProvider} from '@/application/cli/configuration/provider';
 import {TaskProgressLogger} from '@/infrastructure/application/cli/io/taskProgressLogger';
 
 export type Configuration = {
@@ -88,7 +88,7 @@ export class AutoUpdater {
                     notifier: notifier,
                 }),
             });
-        } catch (error) {
+        } catch {
             const updateCommand = await this.packageManager.getPackageUpdateCommand('croct', {
                 global: isInstalledGlobally,
             });

@@ -1,17 +1,17 @@
 import {Argument, Command, InvalidOptionArgumentError, Option} from '@commander-js/extra-typings';
-import {JsonPrimitive, JsonValue} from '@croct/json';
+import type {JsonPrimitive, JsonValue} from '@croct/json';
 import {realpathSync} from 'fs';
 import {ApiKey} from '@croct/sdk/apiKey';
 import {Token} from '@croct/sdk/token';
 import {Cli} from '@/infrastructure/application/cli/cli';
-import {Resource} from '@/application/cli/command/init';
-import {OptionMap} from '@/application/template/template';
+import type {Resource} from '@/application/cli/command/init';
+import type {OptionMap} from '@/application/template/template';
 import {ApiKeyPermission, ApplicationEnvironment} from '@/application/model/application';
 import packageJson from '@/../package.json';
 
 type Configuration = {
     interactive: boolean,
-    template?: OptionMap|null,
+    template?: OptionMap | null,
     cli?: Cli,
 };
 

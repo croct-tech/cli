@@ -1,12 +1,13 @@
-import {Action, ActionError} from '@/application/template/action/action';
-import {FileSystem} from '@/application/fs/fileSystem';
-import {ActionContext} from '@/application/template/action/context';
+import type {Action} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
+import type {FileSystem} from '@/application/fs/fileSystem';
+import type {ActionContext} from '@/application/template/action/context';
 import {ErrorReason} from '@/application/error';
 
 type Replacement = {
     pattern: string,
     caseSensitive?: boolean,
-    value: string|number,
+    value: string | number,
 };
 
 type FileMatcher = {

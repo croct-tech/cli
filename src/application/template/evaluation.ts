@@ -1,6 +1,7 @@
-import {JsonObject, JsonValue} from '@croct/json';
-import {Help, HelpfulError} from '@/application/error';
-import {Deferred, Deferrable} from '@/application/template/deferral';
+import type {JsonObject, JsonValue} from '@croct/json';
+import type {Help} from '@/application/error';
+import {HelpfulError} from '@/application/error';
+import type {Deferred, Deferrable} from '@/application/template/deferral';
 
 export type VariableMap = Exclude<Deferrable<JsonObject>, Deferred<JsonObject>>;
 

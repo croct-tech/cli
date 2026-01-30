@@ -1,6 +1,7 @@
-import {z, ZodType} from 'zod';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
-import {DeletePathOptions} from '@/application/template/action/deletePathAction';
+import type {DeletePathOptions} from '@/application/template/action/deletePathAction';
 
 const schema: ZodType<DeletePathOptions> = z.strictObject({
     path: z.string().min(1),

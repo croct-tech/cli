@@ -1,6 +1,6 @@
-import {Command} from '@/application/cli/command/command';
-import {CliConfigurationProvider} from '@/application/cli/configuration/provider';
-import {AutoUpdater} from '@/application/cli/autoUpdater';
+import type {Command} from '@/application/cli/command/command';
+import type {CliConfigurationProvider} from '@/application/cli/configuration/provider';
+import type {AutoUpdater} from '@/application/cli/autoUpdater';
 
 export type WelcomeInput = {
     skipDeepLinkCheck?: boolean,

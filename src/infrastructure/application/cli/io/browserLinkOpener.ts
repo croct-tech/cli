@@ -1,5 +1,5 @@
 import open from 'open';
-import {LinkOpener} from '@/infrastructure/application/cli/io/consoleOutput';
+import type {LinkOpener} from '@/infrastructure/application/cli/io/consoleOutput';
 
 export class BrowserLinkOpener implements LinkOpener {
     private readonly fallbackOpener: LinkOpener;

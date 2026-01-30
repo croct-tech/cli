@@ -1,5 +1,5 @@
-import {Action, ActionRunner} from '@/application/template/action/action';
-import {ActionContext} from '@/application/template/action/context';
+import type {Action, ActionRunner} from '@/application/template/action/action';
+import type {ActionContext} from '@/application/template/action/context';
 
 export type TestOptions = {
     condition: boolean,

@@ -10,7 +10,7 @@ export interface EmailLinkTemplate {
 }
 
 export interface EmailProviderDetector {
-    detect(email: string): Promise<string|null>;
+    detect(email: string): Promise<string | null>;
 }
 
 export type Configuration = {
@@ -28,7 +28,7 @@ export class EmailLinkGenerator {
         this.templates = configuration.templates;
     }
 
-    public async generate(info: EmailInfo): Promise<URL|null> {
+    public async generate(info: EmailInfo): Promise<URL | null> {
         const provider = await this.detector.detect(info.recipient);
 
         if (provider === null || this.templates[provider] === undefined) {

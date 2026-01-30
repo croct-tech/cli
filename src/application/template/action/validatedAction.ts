@@ -1,6 +1,7 @@
-import {Action, ActionError, ActionOptions} from '@/application/template/action/action';
-import {ActionContext} from '@/application/template/action/context';
-import {Validator} from '@/application/validation';
+import type {Action, ActionOptions} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
+import type {ActionContext} from '@/application/template/action/context';
+import type {Validator} from '@/application/validation';
 import {ErrorReason} from '@/application/error';
 
 export type Configuration<T extends ActionOptions> = {

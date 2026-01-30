@@ -1,15 +1,15 @@
-import {NewWorkspace, OrganizationApi, OrganizationPath, WorkspacePath} from '@/application/api/organization';
-import {GraphqlClient} from '@/infrastructure/graphql/client';
+import type {NewWorkspace, OrganizationApi, OrganizationPath, WorkspacePath} from '@/application/api/organization';
+import type {GraphqlClient} from '@/infrastructure/graphql/client';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
-import {WorkspaceQuery} from '@/infrastructure/graphql/schema/graphql';
+import type {WorkspaceQuery} from '@/infrastructure/graphql/schema/graphql';
 import {
     createWorkspaceMutation,
     workspaceQuery,
     workspaceSlugAvailabilityQuery,
     workspacesQuery,
 } from '@/infrastructure/application/api/graphql/queries/workspace';
-import {Workspace} from '@/application/model/workspace';
-import {HierarchyResolver} from '@/infrastructure/application/api/graphql/hierarchyResolver';
+import type {Workspace} from '@/application/model/workspace';
+import type {HierarchyResolver} from '@/infrastructure/application/api/graphql/hierarchyResolver';
 
 type WorkspaceData = NonNullable<NonNullable<WorkspaceQuery['organization']>['workspace']>;
 

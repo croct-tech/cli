@@ -1,7 +1,8 @@
-import {ProtocolHandler, ProtocolRegistry, ProtocolRegistryError} from '@/application/system/protocol/protocolRegistry';
-import {CommandExecutor} from '@/application/system/process/executor';
+import type {ProtocolHandler, ProtocolRegistry} from '@/application/system/protocol/protocolRegistry';
+import {ProtocolRegistryError} from '@/application/system/protocol/protocolRegistry';
+import type {CommandExecutor} from '@/application/system/process/executor';
 import {ErrorReason, HelpfulError} from '@/application/error';
-import {Command} from '@/application/system/process/command';
+import type {Command} from '@/application/system/process/command';
 
 export type Configuration = {
     commandExecutor: CommandExecutor,

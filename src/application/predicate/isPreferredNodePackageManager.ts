@@ -1,6 +1,6 @@
-import {Predicate} from '@/application/predicate/predicate';
-import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
-import {FileSystem} from '@/application/fs/fileSystem';
+import type {Predicate} from '@/application/predicate/predicate';
+import type {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {FileSystem} from '@/application/fs/fileSystem';
 
 export type Configuration = {
     projectDirectory: WorkingDirectory,
@@ -25,7 +25,7 @@ export class IsPreferredNodePackageManager implements Predicate {
         return (await this.getPreferredPackageManager())?.includes(this.packageManager) === true;
     }
 
-    private async getPreferredPackageManager(): Promise<string|null> {
+    private async getPreferredPackageManager(): Promise<string | null> {
         const packagePath = this.fileSystem.joinPaths(this.projectDirectory.get(), 'package.json');
 
         if (!await this.fileSystem.exists(packagePath)) {

@@ -1,6 +1,6 @@
-import {File} from '@babel/types';
-import {Codemod, ResultCode} from '@/application/project/code/transformation/codemod';
-import {ImportTransformer} from '@/application/project/code/transformation/globImportCodemod';
+import type {File} from '@babel/types';
+import type {Codemod, ResultCode} from '@/application/project/code/transformation/codemod';
+import type {ImportTransformer} from '@/application/project/code/transformation/globImportCodemod';
 import {transformImports} from '@/application/project/code/transformation/javascript/utils/transformImports';
 
 export type JavaScriptImportOptions = {

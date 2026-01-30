@@ -1,4 +1,4 @@
-import {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import type {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
 
 export type Configuration<R> = {
     url: URL,

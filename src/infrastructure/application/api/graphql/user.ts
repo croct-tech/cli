@@ -1,5 +1,5 @@
-import {GraphqlClient} from '@/infrastructure/graphql';
-import {
+import type {GraphqlClient} from '@/infrastructure/graphql';
+import type {
     ActivationRetry,
     TokenRequest,
     NewUser,
@@ -12,14 +12,12 @@ import {
     SessionState,
 } from '@/application/api/user';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
-import {
-    ApplicationEnvironment,
+import type {
     OrganizationMetadataQuery,
     OrganizationQuery,
-    OrganizationType,
-    Platform,
     SetupOrganizationMutationVariables,
 } from '@/infrastructure/graphql/schema/graphql';
+import {ApplicationEnvironment, OrganizationType, Platform} from '@/infrastructure/graphql/schema/graphql';
 import {generateSlug} from '@/infrastructure/application/api/utils/generateSlug';
 import {
     organizationQuery,
@@ -45,8 +43,8 @@ import {
     signInMutation,
     signUpMutation,
 } from '@/infrastructure/application/api/graphql/queries/auth';
-import {User} from '@/application/model/user';
-import {Organization} from '@/application/model/organization';
+import type {User} from '@/application/model/user';
+import type {Organization} from '@/application/model/organization';
 
 type OrganizationSetupPayload = SetupOrganizationMutationVariables['payload'];
 

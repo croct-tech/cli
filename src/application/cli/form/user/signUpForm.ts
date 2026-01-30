@@ -1,14 +1,14 @@
-import {Input} from '@/application/cli/io/input';
-import {Output} from '@/application/cli/io/output';
-import {Form} from '@/application/cli/form/form';
+import type {Input} from '@/application/cli/io/input';
+import type {Output} from '@/application/cli/io/output';
+import type {Form} from '@/application/cli/form/form';
 import {EmailInput} from '@/application/cli/form/input/emailInput';
-import {UserApi} from '@/application/api/user';
+import type {UserApi} from '@/application/api/user';
 import {PasswordInput} from '@/application/cli/form/input/passwordInput';
 import {NameInput} from '@/application/cli/form/input/nameInput';
-import {AuthenticationListener} from '@/application/cli/authentication/authentication';
+import type {AuthenticationListener} from '@/application/cli/authentication/authentication';
 import {Expertise} from '@/application/model/user';
 
-type LinkGenerator = (email: string) => Promise<URL|null>;
+type LinkGenerator = (email: string) => Promise<URL | null>;
 
 export type Configuration = {
     input: Input,

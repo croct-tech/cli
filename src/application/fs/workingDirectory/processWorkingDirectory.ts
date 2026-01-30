@@ -1,5 +1,5 @@
-import {CurrentWorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
-import {Process} from '@/application/system/process/process';
+import type {CurrentWorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {Process} from '@/application/system/process/process';
 
 export class ProcessWorkingDirectory implements CurrentWorkingDirectory {
     private readonly process: Process;

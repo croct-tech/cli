@@ -1,6 +1,7 @@
-import {JsonValue} from '@croct/json';
+import type {JsonValue} from '@croct/json';
 import {JsonParser} from '@croct/json5-parser';
-import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
+import type {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import {ResourceProviderError} from '@/application/provider/resource/resourceProvider';
 import {ErrorReason} from '@/application/error';
 
 export class Json5Provider implements ResourceProvider<JsonValue> {

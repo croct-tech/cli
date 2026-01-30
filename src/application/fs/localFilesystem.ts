@@ -15,21 +15,21 @@ import {
 import {tmpdir} from 'node:os';
 import {basename, dirname, isAbsolute, join, relative, sep} from 'path';
 import {createReadStream} from 'fs';
-import {Stats} from 'node:fs';
-import {Readable} from 'stream';
-import {
+import type {Stats} from 'node:fs';
+import type {Readable} from 'stream';
+import type {
     CopyOptions,
     DeletionOptions,
     DirectoryCreationOptions,
     FileSystem,
     FileSystemEntry,
-    FileSystemError,
     FileSystemIterator,
     FileWritingOptions,
     MoveOptions,
     ScanFilter,
 } from '@/application/fs/fileSystem';
-import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import {FileSystemError} from '@/application/fs/fileSystem';
+import type {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {ErrorReason} from '@/application/error';
 
 export type Configuration = {

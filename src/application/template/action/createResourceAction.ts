@@ -1,6 +1,6 @@
-import {Action} from '@/application/template/action/action';
-import {ActionContext} from '@/application/template/action/context';
-import {
+import type {Action} from '@/application/template/action/action';
+import type {ActionContext} from '@/application/template/action/context';
+import type {
     AudienceDefinition,
     ComponentDefinition,
     ExperienceDefinition,
@@ -8,15 +8,16 @@ import {
     SlotDefinition,
     WorkspaceApi,
 } from '@/application/api/workspace';
-import {WorkspaceResources, ResourcesAnalysis} from '@/application/template/resources';
-import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
-import {OrganizationApi} from '@/application/api/organization';
-import {Workspace, WorkspaceFeatures} from '@/application/model/workspace';
-import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
-import {Form} from '@/application/cli/form/form';
-import {SlugMappingOptions, SlugMapping} from '@/application/cli/form/workspace/slugMappingForm';
-import {ResourceMatches, ResourceMatcher} from '@/application/template/resourceMatcher';
-import {UserApi} from '@/application/api/user';
+import type {ResourcesAnalysis} from '@/application/template/resources';
+import {WorkspaceResources} from '@/application/template/resources';
+import type {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import type {OrganizationApi} from '@/application/api/organization';
+import type {Workspace, WorkspaceFeatures} from '@/application/model/workspace';
+import type {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
+import type {Form} from '@/application/cli/form/form';
+import type {SlugMappingOptions, SlugMapping} from '@/application/cli/form/workspace/slugMappingForm';
+import type {ResourceMatches, ResourceMatcher} from '@/application/template/resourceMatcher';
+import type {UserApi} from '@/application/api/user';
 import {ResourceRefactor} from '@/application/template/resourceRefactor';
 import {HelpfulError, ErrorReason} from '@/application/error';
 

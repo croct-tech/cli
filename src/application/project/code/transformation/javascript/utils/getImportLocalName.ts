@@ -55,7 +55,7 @@ export function getImportLocalName(source: string | t.File, matcher: ImportMatch
     return localName;
 }
 
-function matches(value: t.Identifier|t.StringLiteral|string, matcher: string | RegExp): boolean {
+function matches(value: t.Identifier | t.StringLiteral | string, matcher: string | RegExp): boolean {
     if (typeof value !== 'string') {
         return matches(t.isIdentifier(value) ? value.name : value.value, matcher);
     }

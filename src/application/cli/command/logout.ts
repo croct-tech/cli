@@ -1,6 +1,6 @@
-import {Command} from '@/application/cli/command/command';
-import {Authenticator} from '@/application/cli/authentication/authenticator/authenticator';
-import {Output} from '@/application/cli/io/output';
+import type {Command} from '@/application/cli/command/command';
+import type {Authenticator} from '@/application/cli/authentication/authenticator/authenticator';
+import type {Output} from '@/application/cli/io/output';
 
 export type LogoutInput = Record<string, never>;
 export type LogoutConfig = {

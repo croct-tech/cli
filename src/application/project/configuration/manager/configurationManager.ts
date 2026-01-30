@@ -1,4 +1,4 @@
-import {
+import type {
     PartialProjectConfiguration,
     ProjectConfiguration,
 } from '@/application/project/configuration/projectConfiguration';

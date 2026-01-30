@@ -1,4 +1,4 @@
-import {ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import type {ResourceProvider} from '@/application/provider/resource/resourceProvider';
 
 export type SuccessResponse = Omit<Response, 'ok' | 'body'> & {
     ok: true,

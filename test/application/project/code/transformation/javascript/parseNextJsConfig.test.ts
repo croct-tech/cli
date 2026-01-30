@@ -1,6 +1,7 @@
 import {basename, join, resolve} from 'path';
 import {readdirSync, readFileSync} from 'fs';
-import {NextConfig, parseNextJsConfig} from '@/application/project/code/transformation/javascript/parseNextJsConfig';
+import type {NextConfig} from '@/application/project/code/transformation/javascript/parseNextJsConfig';
+import {parseNextJsConfig} from '@/application/project/code/transformation/javascript/parseNextJsConfig';
 
 describe('parseNextJsConfig', () => {
     const fixturePath = resolve(__dirname, '../fixtures/nextjs-config');

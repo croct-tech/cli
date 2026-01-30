@@ -1,4 +1,4 @@
-export type Executor<T> = () => Promise<T>|T;
+export type Executor<T> = () => Promise<T> | T;
 
 export class LazyPromise<T> extends Promise<T> {
     readonly #executor: Executor<T>;
@@ -39,17 +39,17 @@ export class LazyPromise<T> extends Promise<T> {
     }
 
     public then<F = T, R = never>(
-        onFulfilled?: ((value: T) => F | PromiseLike<F>) | undefined | null,
-        onRejected?: ((reason: any) => R | PromiseLike<R>) | undefined | null,
+        onFulfilled?: ((value: T) => F | PromiseLike<F>) | null,
+        onRejected?: ((reason: any) => R | PromiseLike<R>) | null,
     ): Promise<F | R> {
         return this.promise.then(onFulfilled, onRejected);
     }
 
-    public catch<R = never>(onRejected?: ((reason: any) => R | PromiseLike<R>) | undefined | null): Promise<T | R> {
+    public catch<R = never>(onRejected?: ((reason: any) => R | PromiseLike<R>) | null): Promise<T | R> {
         return this.promise.catch(onRejected);
     }
 
-    public finally(onFinally?: (() => void) | undefined | null): Promise<T> {
+    public finally(onFinally?: (() => void) | null): Promise<T> {
         return this.promise.finally(onFinally);
     }
 }

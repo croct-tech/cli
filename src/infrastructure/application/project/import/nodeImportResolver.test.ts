@@ -1,7 +1,7 @@
 import {NodeImportResolver} from '@/application/project/import/nodeImportResolver';
 import {LocalFilesystem} from '@/application/fs/localFilesystem';
 import {VirtualizedWorkingDirectory} from '@/application/fs/workingDirectory/virtualizedWorkingDirectory';
-import {NodeImportConfig} from '@/application/project/import/tsConfigLoader';
+import type {NodeImportConfig} from '@/application/project/import/tsConfigLoader';
 
 describe('NodeImportResolver', () => {
     type Scenario = {
@@ -10,7 +10,7 @@ describe('NodeImportResolver', () => {
         sourcePath: string,
         expected: string,
         projectPath?: string,
-        tsConfig: NodeImportConfig|null,
+        tsConfig: NodeImportConfig | null,
     };
 
     it.each<Scenario>([
@@ -151,7 +151,7 @@ describe('NodeImportResolver', () => {
             }),
             projectDirectory: new VirtualizedWorkingDirectory(scenario.projectPath ?? '/'),
             tsConfigLoader: {
-                load: (): Promise<NodeImportConfig|null> => Promise.resolve(scenario.tsConfig),
+                load: (): Promise<NodeImportConfig | null> => Promise.resolve(scenario.tsConfig),
             },
         });
 

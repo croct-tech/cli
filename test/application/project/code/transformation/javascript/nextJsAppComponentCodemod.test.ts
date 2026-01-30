@@ -1,8 +1,10 @@
 import {resolve} from 'path';
 import {loadFixtures} from '../fixtures';
 import {JavaScriptCodemod} from '@/application/project/code/transformation/javascript/javaScriptCodemod';
-import {
+import type {
     AppComponentOptions,
+} from '@/application/project/code/transformation/javascript/nextJsAppComponentCodemod';
+import {
     NextJsAppComponentCodemod,
 } from '@/application/project/code/transformation/javascript/nextJsAppComponentCodemod';
 

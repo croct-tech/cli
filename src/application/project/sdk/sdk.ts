@@ -1,8 +1,9 @@
-import {Input} from '@/application/cli/io/input';
-import {Output} from '@/application/cli/io/output';
-import {ProjectConfiguration, ProjectPaths} from '@/application/project/configuration/projectConfiguration';
-import {Slot} from '@/application/model/slot';
-import {Help, HelpfulError} from '@/application/error';
+import type {Input} from '@/application/cli/io/input';
+import type {Output} from '@/application/cli/io/output';
+import type {ProjectConfiguration, ProjectPaths} from '@/application/project/configuration/projectConfiguration';
+import type {Slot} from '@/application/model/slot';
+import type {Help} from '@/application/error';
+import {HelpfulError} from '@/application/error';
 
 export type Installation = {
     input?: Input,

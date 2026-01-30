@@ -1,6 +1,7 @@
-import {z, ZodType} from 'zod';
-import {JsonValue} from '@croct/json';
-import {ImportOptions} from '@/application/template/action/importAction';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
+import type {JsonValue} from '@croct/json';
+import type {ImportOptions} from '@/application/template/action/importAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const jsonPrimitiveSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);

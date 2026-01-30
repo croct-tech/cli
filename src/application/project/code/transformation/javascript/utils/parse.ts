@@ -1,5 +1,6 @@
-import {parse as babelParse, ParserOptions} from '@babel/parser';
-import {File} from '@babel/types';
+import type {ParserOptions} from '@babel/parser';
+import {parse as babelParse} from '@babel/parser';
+import type {File} from '@babel/types';
 import {MalformedCodeError} from '@/application/project/code/transformation/codemod';
 
 export type Language = 'jsx' | 'typescript';

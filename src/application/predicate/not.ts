@@ -1,5 +1,5 @@
-import {Predicate} from '@/application/predicate/predicate';
-import {FileSystem} from '@/application/fs/fileSystem';
+import type {Predicate} from '@/application/predicate/predicate';
+import type {FileSystem} from '@/application/fs/fileSystem';
 
 export type Configuration = {
     fileSystem: FileSystem,

@@ -1,5 +1,6 @@
-import {z, ZodType} from 'zod';
-import {ReplaceFileContentOptions} from '@/application/template/action/replaceFileContentAction';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
+import type {ReplaceFileContentOptions} from '@/application/template/action/replaceFileContentAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const schema: ZodType<ReplaceFileContentOptions> = z.strictObject({

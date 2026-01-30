@@ -1,9 +1,10 @@
-import {File, Comment, noop} from '@babel/types';
+import type {File, Comment} from '@babel/types';
+import {noop} from '@babel/types';
 import type {VisitNodeObject, Node} from '@babel/traverse';
 import {transformFromAstAsync, createConfigItem} from '@babel/core';
 import bts from '@babel/plugin-transform-typescript';
 import bsd from '@babel/plugin-syntax-decorators';
-import {Codemod, ResultCode} from '@/application/project/code/transformation/codemod';
+import type {Codemod, ResultCode} from '@/application/project/code/transformation/codemod';
 import {isTypescript} from '@/application/project/code/transformation/javascript/utils/isTypescript';
 
 export type TypeErasureCodemodOptions = Record<string, never>;

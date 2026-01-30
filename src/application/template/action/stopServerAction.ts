@@ -1,6 +1,6 @@
-import {Action} from '@/application/template/action/action';
-import {Server} from '@/application/project/server/server';
-import {ActionContext} from '@/application/template/action/context';
+import type {Action} from '@/application/template/action/action';
+import type {Server} from '@/application/project/server/server';
+import type {ActionContext} from '@/application/template/action/context';
 import {HelpfulError} from '@/application/error';
 
 export type StopServerOptions = {

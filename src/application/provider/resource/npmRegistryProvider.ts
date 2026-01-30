@@ -1,6 +1,7 @@
-import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
+import type {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import {ResourceProviderError} from '@/application/provider/resource/resourceProvider';
 import {ErrorReason} from '@/application/error';
-import {Mapping} from '@/application/provider/resource/mappedProvider';
+import type {Mapping} from '@/application/provider/resource/mappedProvider';
 
 export type PackageMetadata = {
     name: string,
@@ -51,7 +52,7 @@ export class NpmRegistryProvider implements ResourceProvider<Mapping[]> {
         };
     }
 
-    private static getRepositoryUrl(metadata: PackageMetadata['repository']): URL|null {
+    private static getRepositoryUrl(metadata: PackageMetadata['repository']): URL | null {
         for (const pattern of NpmRegistryProvider.REPOSITORY_PATTERNS) {
             const match = pattern.exec(metadata.url);
 
@@ -63,7 +64,7 @@ export class NpmRegistryProvider implements ResourceProvider<Mapping[]> {
         return null;
     }
 
-    private getMetadataUrl(url: URL): URL|null {
+    private getMetadataUrl(url: URL): URL | null {
         if (url.protocol !== 'npm:') {
             return null;
         }

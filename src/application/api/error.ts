@@ -1,4 +1,5 @@
-import {Help, HelpfulError} from '@/application/error';
+import type {Help} from '@/application/error';
+import {HelpfulError} from '@/application/error';
 
 export enum AccessDeniedReason {
     INTERNAL_ERROR = 'INTERNAL_ERROR',

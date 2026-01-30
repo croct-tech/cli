@@ -1,4 +1,4 @@
-import {Semantics} from '@/application/cli/io/output';
+import type {Semantics} from '@/application/cli/io/output';
 
 export type Callout = {
     semantics: Semantics,

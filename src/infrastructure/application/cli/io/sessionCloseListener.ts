@@ -1,5 +1,5 @@
-import {AuthenticationListener} from '@/application/cli/authentication';
-import {UserApi} from '@/application/api/user';
+import type {AuthenticationListener} from '@/application/cli/authentication';
+import type {UserApi} from '@/application/api/user';
 
 export type Configuration = {
     api: UserApi,

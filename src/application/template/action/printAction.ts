@@ -1,6 +1,6 @@
-import {Action} from '@/application/template/action/action';
-import {Semantics} from '@/application/cli/io/output';
-import {ActionContext} from '@/application/template/action/context';
+import type {Action} from '@/application/template/action/action';
+import type {Semantics} from '@/application/cli/io/output';
+import type {ActionContext} from '@/application/template/action/context';
 
 export type PrintOptions = {
     semantics?: Semantics,

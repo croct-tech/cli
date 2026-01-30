@@ -1,17 +1,18 @@
 import {LogLevel} from '@croct/logging';
-import {Action, ActionError} from '@/application/template/action/action';
+import type {Action} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
 import {ErrorReason} from '@/application/error';
-import {ActionContext} from '@/application/template/action/context';
-import {Command} from '@/application/system/process/command';
-import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
-import {PackageManager} from '@/application/project/packageManager/packageManager';
-import {Provider} from '@/application/provider/provider';
-import {CommandExecutor} from '@/application/system/process/executor';
-import {Predicate} from '@/application/predicate/predicate';
-import {Notifier} from '@/application/cli/io/output';
+import type {ActionContext} from '@/application/template/action/context';
+import type {Command} from '@/application/system/process/command';
+import type {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {PackageManager} from '@/application/project/packageManager/packageManager';
+import type {Provider} from '@/application/provider/provider';
+import type {CommandExecutor} from '@/application/system/process/executor';
+import type {Predicate} from '@/application/predicate/predicate';
+import type {Notifier} from '@/application/cli/io/output';
 import {ScreenBuffer} from '@/application/cli/io/screenBuffer';
 import {TaskProgressLogger} from '@/infrastructure/application/cli/io/taskProgressLogger';
-import {ProcessObserver} from '@/application/system/process/process';
+import type {ProcessObserver} from '@/application/system/process/process';
 
 export type Interactions = {
     when: string,
@@ -130,7 +131,7 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
     private async executeCommand(
         command: Command,
         notifier: Notifier,
-        interactions: Interactions[]|boolean,
+        interactions: Interactions[] | boolean,
     ): Promise<string> {
         const {processObserver, workingDirectory, commandExecutor, commandTimeout} = this.configuration;
         const execution = await commandExecutor.run(command, {
@@ -140,7 +141,7 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
         });
 
         const kill = (): void => {
-            execution.kill();
+            void execution.kill();
         };
 
         processObserver.on('exit', kill);

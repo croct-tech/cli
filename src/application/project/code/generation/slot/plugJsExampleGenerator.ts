@@ -1,10 +1,11 @@
-import {AttributeDefinition, ContentDefinition} from '@croct/content-model/definition/definition';
-import {JsonValue} from '@croct/json';
-import {SlotDefinition, SlotExampleGenerator} from './slotExampleGenerator';
-import {CodeExample, CodeLanguage, ExampleFile} from '@/application/project/code/generation/example';
+import type {AttributeDefinition, ContentDefinition} from '@croct/content-model/definition/definition';
+import type {JsonValue} from '@croct/json';
+import type {SlotDefinition, SlotExampleGenerator} from './slotExampleGenerator';
+import type {CodeExample, ExampleFile} from '@/application/project/code/generation/example';
+import {CodeLanguage} from '@/application/project/code/generation/example';
 import {CodeWriter} from '@/application/project/code/generation/codeWritter';
 import {formatLabel, sortAttributes} from '@/application/project/code/generation/utils';
-import {FileSystem} from '@/application/fs/fileSystem';
+import type {FileSystem} from '@/application/fs/fileSystem';
 import {formatName} from '@/application/project/utils/formatName';
 
 export type Configuration = {

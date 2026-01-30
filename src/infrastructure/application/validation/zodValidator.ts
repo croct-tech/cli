@@ -1,5 +1,5 @@
-import {ZodType, ZodTypeDef} from 'zod';
-import {Validator, ValidationResult, Violation} from '@/application/validation';
+import type {ZodType, ZodTypeDef} from 'zod';
+import type {Validator, ValidationResult, Violation} from '@/application/validation';
 
 export class ZodValidator<O, I = O, D extends ZodTypeDef = ZodTypeDef> implements Validator<O> {
     protected readonly schema: ZodType<O, D, I>;

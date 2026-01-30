@@ -1,6 +1,7 @@
-import {z, ZodType, ZodTypeDef} from 'zod';
+import type {ZodType, ZodTypeDef} from 'zod';
+import {z} from 'zod';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
-import {CreateApiKeyOptions} from '@/application/template/action/createApiKeyAction';
+import type {CreateApiKeyOptions} from '@/application/template/action/createApiKeyAction';
 import {ApiKeyPermission} from '@/application/model/application';
 
 const schema: ZodType<CreateApiKeyOptions, ZodTypeDef, any> = z.strictObject({

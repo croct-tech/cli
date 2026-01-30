@@ -1,5 +1,6 @@
-import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
-import {Validator} from '@/application/validation';
+import type {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import {ResourceProviderError} from '@/application/provider/resource/resourceProvider';
+import type {Validator} from '@/application/validation';
 import {ErrorReason} from '@/application/error';
 
 export type Configuration<I, R> = {

@@ -1,6 +1,6 @@
 export type EventMap<T extends Record<keyof T, any[]>> = Record<keyof T, any[]>;
 
-export type EventListener<A extends any[]> = (...args: A) => void|Promise<void>;
+export type EventListener<A extends any[]> = (...args: A) => void | Promise<void>;
 
 export interface EventObserver<T extends EventMap<T>> {
     on<E extends keyof T>(event: E, listener: EventListener<T[E]>): void;
@@ -10,7 +10,7 @@ export interface EventObserver<T extends EventMap<T>> {
 export class EventDispatcher<T extends EventMap<T>> implements EventObserver<T> {
     private listeners: Partial<Record<keyof T, Set<EventListener<any[]>>>> = {};
 
-    public on<E extends keyof T>(event: E, listener: (...args: T[E]) => void|Promise<void>): void {
+    public on<E extends keyof T>(event: E, listener: (...args: T[E]) => void | Promise<void>): void {
         if (this.listeners[event] === undefined) {
             this.listeners[event] = new Set();
         }
@@ -18,7 +18,7 @@ export class EventDispatcher<T extends EventMap<T>> implements EventObserver<T> 
         this.listeners[event].add(listener);
     }
 
-    public off<E extends keyof T>(event: E, listener: (...args: T[E]) => void|Promise<void>): void {
+    public off<E extends keyof T>(event: E, listener: (...args: T[E]) => void | Promise<void>): void {
         if (this.listeners[event] === undefined) {
             return;
         }

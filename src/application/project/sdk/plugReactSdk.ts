@@ -1,19 +1,21 @@
-import {Installation, SdkError} from '@/application/project/sdk/sdk';
-import {
+import type {Installation} from '@/application/project/sdk/sdk';
+import {SdkError} from '@/application/project/sdk/sdk';
+import type {
     InstallationPlan,
-    JavaScriptSdk,
     Configuration as JavaScriptSdkConfiguration,
 } from '@/application/project/sdk/javasScriptSdk';
-import {Codemod} from '@/application/project/code/transformation/codemod';
-import {Task, TaskNotifier} from '@/application/cli/io/output';
-import {WrapperOptions} from '@/application/project/code/transformation/javascript/jsxWrapperCodemod';
+import {JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
+import type {Codemod} from '@/application/project/code/transformation/codemod';
+import type {Task, TaskNotifier} from '@/application/cli/io/output';
+import type {WrapperOptions} from '@/application/project/code/transformation/javascript/jsxWrapperCodemod';
 import {EnvFile} from '@/application/project/code/envFile';
-import {CodeLanguage, ExampleFile} from '@/application/project/code/generation/example';
+import type {ExampleFile} from '@/application/project/code/generation/example';
+import {CodeLanguage} from '@/application/project/code/generation/example';
 import {PlugReactExampleGenerator} from '@/application/project/code/generation/slot/plugReactExampleGenerator';
-import {Slot} from '@/application/model/slot';
+import type {Slot} from '@/application/model/slot';
 import {ErrorReason, HelpfulError} from '@/application/error';
-import {ImportResolver} from '@/application/project/import/importResolver';
-import {AttributeType} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
+import type {ImportResolver} from '@/application/project/import/importResolver';
+import type {AttributeType} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
 
 type CodemodConfiguration = {
     provider: Codemod<string, WrapperOptions>,
@@ -34,7 +36,7 @@ type ReactProjectInfo = {
     typescript: boolean,
     sourceDirectory: string,
     provider: {
-        file: string|null,
+        file: string | null,
     },
     env?: {
         property: string,
@@ -150,7 +152,7 @@ export class PlugReactSdk extends JavaScriptSdk {
         const projectEnv = installation.project.env;
         const {configuration} = installation;
 
-        let publicIdsPromise: Promise<PublicAppIds>|null = null;
+        let publicIdsPromise: Promise<PublicAppIds> | null = null;
 
         const getPublicIds = (): Promise<PublicAppIds> => {
             if (publicIdsPromise === null) {
@@ -251,7 +253,7 @@ export class PlugReactSdk extends JavaScriptSdk {
         await codemod.apply(this.fileSystem.joinPaths(this.projectDirectory.get(), file), options);
     }
 
-    private async getEnvVarProperty(): Promise<string|null> {
+    private async getEnvVarProperty(): Promise<string | null> {
         for (const bundler of this.bundlers) {
             if (await this.packageManager.hasDirectDependency(bundler.package)) {
                 return `${bundler.prefix}CROCT_APP_ID`;

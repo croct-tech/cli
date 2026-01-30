@@ -1,9 +1,10 @@
-import {ProtocolHandler, ProtocolRegistry, ProtocolRegistryError} from '@/application/system/protocol/protocolRegistry';
-import {FileSystem} from '@/application/fs/fileSystem';
+import type {ProtocolHandler, ProtocolRegistry} from '@/application/system/protocol/protocolRegistry';
+import {ProtocolRegistryError} from '@/application/system/protocol/protocolRegistry';
+import type {FileSystem} from '@/application/fs/fileSystem';
 import {multiline} from '@/utils/multiline';
-import {CommandExecutor} from '@/application/system/process/executor';
+import type {CommandExecutor} from '@/application/system/process/executor';
 import {ErrorReason, HelpfulError} from '@/application/error';
-import {Command} from '@/application/system/process/command';
+import type {Command} from '@/application/system/process/command';
 
 export type Configuration = {
     fileSystem: FileSystem,
@@ -116,7 +117,7 @@ export class MacOsRegistry implements ProtocolRegistry {
         });
     }
 
-    private async findLauncher(protocol: string): Promise<string|null> {
+    private async findLauncher(protocol: string): Promise<string | null> {
         const result = await this.execute({
             name: 'osascript',
             arguments: [

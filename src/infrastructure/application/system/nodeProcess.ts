@@ -1,8 +1,9 @@
 import process from 'node:process';
 import {delimiter} from 'path';
-import {Readable, Writable} from 'stream';
-import {Process, ProcessEvents} from '@/application/system/process/process';
-import {EventDispatcher, EventListener} from '@/application/event';
+import type {Readable, Writable} from 'stream';
+import type {Process, ProcessEvents} from '@/application/system/process/process';
+import type {EventListener} from '@/application/event';
+import {EventDispatcher} from '@/application/event';
 
 export class NodeProcess implements Process {
     private readonly eventDispatcher = new EventDispatcher<ProcessEvents>();

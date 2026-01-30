@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign -- False positives */
 import * as t from '@babel/types';
 import {traverse} from '@babel/core';
-import {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
+import type {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
 import {addImport} from '@/application/project/code/transformation/javascript/utils/addImport';
 import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
 

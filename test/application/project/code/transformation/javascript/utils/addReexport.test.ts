@@ -1,8 +1,10 @@
 import generate from '@babel/generator';
-import {cloneNode, File, isNodesEquivalent} from '@babel/types';
+import type {File} from '@babel/types';
+import {cloneNode, isNodesEquivalent} from '@babel/types';
 import traverse from '@babel/traverse';
 import {parse} from '@/application/project/code/transformation/javascript/utils/parse';
-import {addReexport, ExportDeclaration} from '@/application/project/code/transformation/javascript/utils/addReexport';
+import type {ExportDeclaration} from '@/application/project/code/transformation/javascript/utils/addReexport';
+import {addReexport} from '@/application/project/code/transformation/javascript/utils/addReexport';
 
 describe('addReexport', () => {
     type Scenario = {

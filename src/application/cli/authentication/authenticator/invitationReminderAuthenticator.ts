@@ -1,6 +1,6 @@
-import {AuthenticationInput, Authenticator} from '@/application/cli/authentication/authenticator/index';
-import {Form} from '@/application/cli/form/form';
-import {InvitationOptions} from '@/application/cli/form/user/invitationForm';
+import type {AuthenticationInput, Authenticator} from '@/application/cli/authentication/authenticator/index';
+import type {Form} from '@/application/cli/form/form';
+import type {InvitationOptions} from '@/application/cli/form/user/invitationForm';
 
 export type Configuration<T extends AuthenticationInput> = {
     authenticator: Authenticator<T>,

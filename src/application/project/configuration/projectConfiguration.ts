@@ -1,4 +1,5 @@
-import {ErrorReason, Help, HelpfulError} from '@/application/error';
+import type {Help} from '@/application/error';
+import {ErrorReason, HelpfulError} from '@/application/error';
 
 export type ProjectPaths = {
     source: string,

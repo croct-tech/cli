@@ -1,4 +1,4 @@
-import {Confirmation, Input, MultipleSelection, Prompt, Selection, Wait} from '@/application/cli/io/input';
+import type {Confirmation, Input, MultipleSelection, Prompt, Selection, Wait} from '@/application/cli/io/input';
 
 export class DefaultChoiceInput implements Input {
     private readonly input: Input;

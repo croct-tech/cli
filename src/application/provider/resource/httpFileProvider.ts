@@ -1,7 +1,8 @@
 import {Readable} from 'stream';
-import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
-import {FileSystemIterator} from '@/application/fs/fileSystem';
-import {HttpProvider, SuccessResponse} from '@/application/provider/resource/httpProvider';
+import type {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import {ResourceProviderError} from '@/application/provider/resource/resourceProvider';
+import type {FileSystemIterator} from '@/application/fs/fileSystem';
+import type {HttpProvider, SuccessResponse} from '@/application/provider/resource/httpProvider';
 import {ErrorReason} from '@/application/error';
 
 export class HttpFileProvider implements ResourceProvider<FileSystemIterator> {
@@ -31,6 +32,7 @@ export class HttpFileProvider implements ResourceProvider<FileSystemIterator> {
         return url.pathname !== '/';
     }
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Type expects a promise
     private async* yield(response: SuccessResponse, url: URL): FileSystemIterator {
         yield {
             type: 'file',

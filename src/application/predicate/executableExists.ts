@@ -1,5 +1,5 @@
-import {Predicate} from '@/application/predicate/predicate';
-import {ExecutableLocator} from '@/application/system/executableLocator';
+import type {Predicate} from '@/application/predicate/predicate';
+import type {ExecutableLocator} from '@/application/system/executableLocator';
 
 export type Configuration = {
     executableLocator: ExecutableLocator,

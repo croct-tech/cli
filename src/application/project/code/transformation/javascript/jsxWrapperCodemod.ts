@@ -2,13 +2,11 @@
 import * as t from '@babel/types';
 import {traverse} from '@babel/core';
 import {traverseFast} from '@babel/types';
-import {ResultCode, Codemod, CodemodOptions} from '@/application/project/code/transformation/codemod';
+import type {ResultCode, Codemod, CodemodOptions} from '@/application/project/code/transformation/codemod';
 import {addImport} from '@/application/project/code/transformation/javascript/utils/addImport';
 import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
-import {
-    AttributeType,
-    createJsxAttributes,
-} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
+import type {AttributeType} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
+import {createJsxAttributes} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
 
 type ComponentDeclaration = t.VariableDeclarator | t.FunctionDeclaration;
 type DeclarationKind = t.ExportDefaultDeclaration['declaration'];
@@ -288,7 +286,7 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
             const {parent, index} = target;
 
             const children = [...parent.children ?? []];
-            const child = children.splice(index, 1)[0] as JsxKind;
+            const child = children.splice(index, 1)[0];
 
             target.parent.children = children.length === 0
                 // If there is only one child, replace it with the wrapper
@@ -338,7 +336,7 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
      * @param options The wrapper options.
      * @return The wrapped JSX element.
      */
-    private wrapElement(node: JsxKind, name: string|undefined, options?: O): t.JSXElement {
+    private wrapElement(node: JsxKind, name: string | undefined, options?: O): t.JSXElement {
         if (node.extra?.parenthesized === true) {
             node.extra.parenthesized = false;
         }

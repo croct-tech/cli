@@ -1,4 +1,4 @@
-import {EmailProviderDetector} from '@/application/cli/email/email';
+import type {EmailProviderDetector} from '@/application/cli/email/email';
 
 export class FallbackProviderDetector implements EmailProviderDetector {
     private readonly detectors: EmailProviderDetector[];
@@ -7,7 +7,7 @@ export class FallbackProviderDetector implements EmailProviderDetector {
         this.detectors = detectors;
     }
 
-    public async detect(email: string): Promise<string|null> {
+    public async detect(email: string): Promise<string | null> {
         for (const detector of this.detectors) {
             const provider = await detector.detect(email);
 

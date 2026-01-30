@@ -1,6 +1,6 @@
-import {JsonValue} from '@croct/json';
-import {Action} from '@/application/template/action/action';
-import {ActionContext} from '@/application/template/action/context';
+import type {JsonValue} from '@croct/json';
+import type {Action} from '@/application/template/action/action';
+import type {ActionContext} from '@/application/template/action/context';
 
 export type DefineOptions = {
     variables: Record<string, JsonValue>,

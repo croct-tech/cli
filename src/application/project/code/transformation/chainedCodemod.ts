@@ -1,4 +1,4 @@
-import {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
+import type {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
 
 export class ChainedCodemod<I, O extends CodemodOptions> implements Codemod<I, O> {
     private readonly codemods: Array<Codemod<I, O>>;

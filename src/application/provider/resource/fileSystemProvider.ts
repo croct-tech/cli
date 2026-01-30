@@ -1,5 +1,6 @@
-import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
-import {FileSystem, FileSystemIterator, ScanFilter} from '@/application/fs/fileSystem';
+import type {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import {ResourceProviderError} from '@/application/provider/resource/resourceProvider';
+import type {FileSystem, FileSystemIterator, ScanFilter} from '@/application/fs/fileSystem';
 import {ErrorReason} from '@/application/error';
 
 export class FileSystemProvider implements ResourceProvider<FileSystemIterator> {

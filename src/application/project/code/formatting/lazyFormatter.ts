@@ -1,5 +1,6 @@
-import {Provider, ProviderError} from '@/application/provider/provider';
-import {CodeFormatter} from '@/application/project/code/formatting/formatter';
+import type {Provider} from '@/application/provider/provider';
+import {ProviderError} from '@/application/provider/provider';
+import type {CodeFormatter} from '@/application/project/code/formatting/formatter';
 import {PackageManagerError} from '@/application/project/packageManager/packageManager';
 
 export class LazyFormatter implements CodeFormatter {

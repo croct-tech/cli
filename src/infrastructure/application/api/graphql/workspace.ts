@@ -1,7 +1,7 @@
-import {Content} from '@croct/content-model/content/content';
+import type {Content} from '@croct/content-model/content/content';
 import {randomUUID} from 'crypto';
-import {GraphqlClient} from '@/infrastructure/graphql';
-import {
+import type {GraphqlClient} from '@/infrastructure/graphql';
+import type {
     ApplicationPath,
     AudiencePath,
     ComponentCriteria,
@@ -13,24 +13,26 @@ import {
     PersonalizedContentDefinition,
     SlotCriteria,
     SlotPath,
-    TargetSdk,
     TargetTyping,
     WorkspaceApi,
 } from '@/application/api/workspace';
+import {TargetSdk} from '@/application/api/workspace';
 import {generateAvailableSlug} from '@/infrastructure/application/api/utils/generateAvailableSlug';
-import {WorkspacePath} from '@/application/api/organization';
-import {
+import type {WorkspacePath} from '@/application/api/organization';
+import type {
     ApplicationQuery,
     AudienceQuery,
     ComponentQuery,
     CreateWorkspaceResourcePayload,
     ExperienceQuery,
     ExperiencesQuery,
-    Feature,
-    Platform as GraphqlPlatform,
     SlotQuery,
     WorkspaceResourceContentInput,
     WorkspaceResourcesExperienceContentInput,
+} from '@/infrastructure/graphql/schema/graphql';
+import {
+    Feature,
+    Platform as GraphqlPlatform,
     ApplicationEnvironment as GraphqlApplicationEnvironment,
     ApplicationTrafficStatus as GraphqlApplicationTrafficStatus,
     TargetSdk as GraphqlTargetSdk,
@@ -48,26 +50,26 @@ import {
 import {componentQuery, componentsQuery} from '@/infrastructure/application/api/graphql/queries/component';
 import {experienceQuery, experiencesQuery} from '@/infrastructure/application/api/graphql/queries/experience';
 import {generateTypingMutation} from '@/infrastructure/application/api/graphql/queries/typing';
-import {Application, ApplicationEnvironment, ApplicationTrafficStatus} from '@/application/model/application';
-import {Audience} from '@/application/model/audience';
-import {Slot} from '@/application/model/slot';
-import {Component} from '@/application/model/component';
-import {
+import type {Application} from '@/application/model/application';
+import {ApplicationEnvironment, ApplicationTrafficStatus} from '@/application/model/application';
+import type {Audience} from '@/application/model/audience';
+import type {Slot} from '@/application/model/slot';
+import type {Component} from '@/application/model/component';
+import type {
     ExperienceDetails,
     Experience,
     LocalizedContent,
     SlotContentMap,
     Variant,
-    ExperienceStatus,
-    ExperimentStatus,
 } from '@/application/model/experience';
-import {WorkspaceFeatures} from '@/application/model/workspace';
+import {ExperienceStatus, ExperimentStatus} from '@/application/model/experience';
+import type {WorkspaceFeatures} from '@/application/model/workspace';
 import {
     createResourcesMutation,
     workspaceFeaturesQuery,
 } from '@/infrastructure/application/api/graphql/queries/workspace';
 import {Platform} from '@/application/model/platform';
-import {HierarchyResolver} from '@/infrastructure/application/api/graphql/hierarchyResolver';
+import type {HierarchyResolver} from '@/infrastructure/application/api/graphql/hierarchyResolver';
 
 type ApplicationData = NonNullable<
     NonNullable<NonNullable<ApplicationQuery['organization']>['workspace']>['application']
@@ -92,8 +94,8 @@ type ExperienceSummaryData = NonNullable<
         NonNullable<
             NonNullable<
                 NonNullable<ExperiencesQuery['organization']
-            >['workspace']
-        >['experiences']['edges']>[0]
+                >['workspace']
+            >['experiences']['edges']>[0]
     >['node']
 >;
 
@@ -167,7 +169,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         this.hierarchyResolver = hierarchyResolver;
     }
 
-    public async getFeatures(path: WorkspacePath): Promise<WorkspaceFeatures|null> {
+    public async getFeatures(path: WorkspacePath): Promise<WorkspaceFeatures | null> {
         const {data} = await this.client.execute(workspaceFeaturesQuery, {
             organizationSlug: path.organizationSlug,
             workspaceSlug: path.workspaceSlug,
@@ -220,7 +222,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         });
     }
 
-    public async getApplication(path: ApplicationPath): Promise<Application|null> {
+    public async getApplication(path: ApplicationPath): Promise<Application | null> {
         const {data} = await this.client.execute(applicationQuery, {
             organizationSlug: path.organizationSlug,
             workspaceSlug: path.workspaceSlug,
@@ -312,7 +314,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         });
     }
 
-    public async getAudience(path: AudiencePath): Promise<Audience|null> {
+    public async getAudience(path: AudiencePath): Promise<Audience | null> {
         const {data} = await this.client.execute(audienceQuery, {
             organizationSlug: path.organizationSlug,
             workspaceSlug: path.workspaceSlug,
@@ -356,7 +358,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         });
     }
 
-    public async getComponent(criteria: ComponentCriteria): Promise<Component|null> {
+    public async getComponent(criteria: ComponentCriteria): Promise<Component | null> {
         const {data} = await this.client.execute(componentQuery, {
             organizationSlug: criteria.organizationSlug,
             workspaceSlug: criteria.workspaceSlug,
@@ -425,7 +427,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         });
     }
 
-    public async getSlot(criteria: SlotCriteria): Promise<Slot|null> {
+    public async getSlot(criteria: SlotCriteria): Promise<Slot | null> {
         const {data} = await this.client.execute(slotQuery, {
             organizationSlug: criteria.organizationSlug,
             workspaceSlug: criteria.workspaceSlug,
@@ -548,7 +550,7 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
         });
     }
 
-    public async getExperience(path: ExperiencePath): Promise<ExperienceDetails|null> {
+    public async getExperience(path: ExperiencePath): Promise<ExperienceDetails | null> {
         const {data} = await this.client.execute(experienceQuery, {
             organizationSlug: path.organizationSlug,
             workspaceSlug: path.workspaceSlug,

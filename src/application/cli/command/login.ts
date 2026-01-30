@@ -1,5 +1,5 @@
-import {Command} from '@/application/cli/command/command';
-import {AuthenticationInput, Authenticator} from '@/application/cli/authentication/authenticator';
+import type {Command} from '@/application/cli/command/command';
+import type {AuthenticationInput, Authenticator} from '@/application/cli/authentication/authenticator';
 
 export type LoginInput<T extends AuthenticationInput> = T;
 

@@ -1,6 +1,7 @@
-import {z, ZodType} from 'zod';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
-import {WriteFileOptions} from '@/application/template/action/writeFile';
+import type {WriteFileOptions} from '@/application/template/action/writeFile';
 
 const schema: ZodType<WriteFileOptions> = z.strictObject({
     path: z.string().min(1),

@@ -1,4 +1,4 @@
-import {EmailInfo, EmailLinkTemplate} from '@/application/cli/email/email';
+import type {EmailInfo, EmailLinkTemplate} from '@/application/cli/email/email';
 
 export class ICloudTemplate implements EmailLinkTemplate {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Keep the same signature as the interface

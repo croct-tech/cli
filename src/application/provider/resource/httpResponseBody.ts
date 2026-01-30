@@ -1,6 +1,7 @@
-import {JsonValue} from '@croct/json';
-import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
-import {HttpProvider} from '@/application/provider/resource/httpProvider';
+import type {JsonValue} from '@croct/json';
+import type {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import {ResourceProviderError} from '@/application/provider/resource/resourceProvider';
+import type {HttpProvider} from '@/application/provider/resource/httpProvider';
 import {ErrorReason} from '@/application/error';
 
 export type BodyReader<T> = (response: Response) => Promise<T>;

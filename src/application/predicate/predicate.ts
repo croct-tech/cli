@@ -1,3 +1,3 @@
 export interface Predicate<A extends any[] = []> {
-    test(...args: A): Promise<boolean>|boolean;
+    test(...args: A): Promise<boolean> | boolean;
 }

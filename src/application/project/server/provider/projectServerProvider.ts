@@ -1,10 +1,11 @@
-import {Server} from '@/application/project/server/server';
-import {Provider, ProviderError} from '@/application/provider/provider';
-import {PackageManager} from '@/application/project/packageManager/packageManager';
-import {ServerFactory, ServerInfo} from '@/application/project/server/factory/serverFactory';
+import type {Server} from '@/application/project/server/server';
+import type {Provider} from '@/application/provider/provider';
+import {ProviderError} from '@/application/provider/provider';
+import type {PackageManager} from '@/application/project/packageManager/packageManager';
+import type {ServerFactory, ServerInfo} from '@/application/project/server/factory/serverFactory';
 
 export interface ServerCommandParser {
-    parse(command: string): ServerInfo|null;
+    parse(command: string): ServerInfo | null;
 }
 
 export type Configuration = {

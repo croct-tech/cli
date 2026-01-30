@@ -1,6 +1,7 @@
-import {z, ZodType} from 'zod';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
-import {CreateDirectoryOptions} from '@/application/template/action/createDirectory';
+import type {CreateDirectoryOptions} from '@/application/template/action/createDirectory';
 
 const schema: ZodType<CreateDirectoryOptions> = z.strictObject({
     path: z.string().min(1),

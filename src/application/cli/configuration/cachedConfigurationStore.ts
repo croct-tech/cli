@@ -1,6 +1,6 @@
-import {CacheProvider} from '@croct/cache';
-import {Validator} from '@/application/validation';
-import {CliConfiguration, CliConfigurationProvider} from '@/application/cli/configuration/provider';
+import type {CacheProvider} from '@croct/cache';
+import type {Validator} from '@/application/validation';
+import type {CliConfiguration, CliConfigurationProvider} from '@/application/cli/configuration/provider';
 
 export type Configuration = {
     cache: CacheProvider<string, string>,
@@ -34,7 +34,7 @@ export class CachedConfigurationStore implements CliConfigurationProvider {
 
         try {
             json = JSON.parse(content);
-        } catch (error) {
+        } catch {
             return CachedConfigurationStore.EMPTY_SETTINGS;
         }
 

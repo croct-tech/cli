@@ -1,12 +1,13 @@
 import {Minimatch} from 'minimatch';
-import {Action, ActionError} from '@/application/template/action/action';
-import {ActionContext} from '@/application/template/action/context';
-import {FileSystem, FileSystemEntry, FileSystemIterator} from '@/application/fs/fileSystem';
-import {ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import type {Action} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
+import type {ActionContext} from '@/application/template/action/context';
+import type {FileSystem, FileSystemEntry, FileSystemIterator} from '@/application/fs/fileSystem';
+import type {ResourceProvider} from '@/application/provider/resource/resourceProvider';
 import {ErrorReason} from '@/application/error';
-import {Input} from '@/application/cli/io/input';
+import type {Input} from '@/application/cli/io/input';
 import {resolveUrl} from '@/utils/resolveUrl';
-import {Codemod} from '@/application/project/code/transformation/codemod';
+import type {Codemod} from '@/application/project/code/transformation/codemod';
 
 export type DownloadOptions = {
     source: string,

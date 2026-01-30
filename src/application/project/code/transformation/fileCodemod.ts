@@ -1,5 +1,6 @@
-import {Codemod, CodemodError, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
-import {FileSystem} from '@/application/fs/fileSystem';
+import type {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
+import {CodemodError} from '@/application/project/code/transformation/codemod';
+import type {FileSystem} from '@/application/fs/fileSystem';
 
 export type Configuration<O extends CodemodOptions> = {
     fileSystem: FileSystem,

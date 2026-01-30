@@ -1,11 +1,14 @@
 /* eslint-disable no-template-curly-in-string -- False positive */
-import {JsonPrimitiveNode, JsonTokenNode, JsonTokenType, SourcePosition} from '@croct/json5-parser';
-import {Fragment, JsonExpressionNode, TemplateStringParser} from '@/application/template/templateStringParser';
-import {Help, HelpfulError} from '@/application/error';
+import type {SourcePosition} from '@croct/json5-parser';
+import {JsonPrimitiveNode, JsonTokenNode, JsonTokenType} from '@croct/json5-parser';
+import type {Fragment, JsonExpressionNode} from '@/application/template/templateStringParser';
+import {TemplateStringParser} from '@/application/template/templateStringParser';
+import type {Help} from '@/application/error';
+import {HelpfulError} from '@/application/error';
 
 describe('A template string parser', () => {
     type ValidScenario = {
-        input: string|JsonExpressionNode,
+        input: string | JsonExpressionNode,
         position?: SourcePosition,
         fragments: Fragment[],
     };

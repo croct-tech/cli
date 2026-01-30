@@ -1,4 +1,4 @@
-import {Notifier, TaskList} from '@/application/cli/io/output';
+import type {Notifier, TaskList} from '@/application/cli/io/output';
 
 export type TaskExecution = {
     wait: () => Promise<void>,

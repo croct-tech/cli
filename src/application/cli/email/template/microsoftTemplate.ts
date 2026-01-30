@@ -1,4 +1,4 @@
-import {EmailInfo, EmailLinkTemplate} from '@/application/cli/email/email';
+import type {EmailInfo, EmailLinkTemplate} from '@/application/cli/email/email';
 
 export class MicrosoftTemplate implements EmailLinkTemplate {
     public generate(info: EmailInfo): URL {

@@ -64,7 +64,7 @@ export function addReexport(ast: t.File, target: ExportDeclaration): boolean {
             const {node} = path;
             const source = node.source ?? null;
 
-            if (source === null || source.value !== target.moduleName) {
+            if (source?.value !== target.moduleName) {
                 return path.skip();
             }
 

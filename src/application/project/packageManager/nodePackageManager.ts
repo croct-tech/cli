@@ -1,20 +1,20 @@
 import semver from 'semver';
 import {JsonObjectNode, JsonParser} from '@croct/json5-parser';
-import {
+import type {
     AddDependencyOptions,
     Dependency,
     InstallDependenciesOptions,
     PackageManager,
-    PackageManagerError,
     UpdateCommandOptions,
     UpdatePackageOptions,
 } from '@/application/project/packageManager/packageManager';
-import {FileSystem} from '@/application/fs/fileSystem';
-import {Validator} from '@/application/validation';
+import {PackageManagerError} from '@/application/project/packageManager/packageManager';
+import type {FileSystem} from '@/application/fs/fileSystem';
+import type {Validator} from '@/application/validation';
 import {ErrorReason} from '@/application/error';
-import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
-import {PackageManagerAgent} from '@/application/project/packageManager/agent/packageManagerAgent';
-import {Command} from '@/application/system/process/command';
+import type {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {PackageManagerAgent} from '@/application/project/packageManager/agent/packageManagerAgent';
+import type {Command} from '@/application/system/process/command';
 
 export type Configuration = {
     projectDirectory: WorkingDirectory,
@@ -41,7 +41,7 @@ export class NodePackageManager implements PackageManager {
 
     private readonly packageValidator: Validator<PartialNpmManifest>;
 
-    private readonly manifestPath: Map<string, string|null> = new Map();
+    private readonly manifestPath: Map<string, string | null> = new Map();
 
     public constructor(configuration: Configuration) {
         this.projectDirectory = configuration.projectDirectory;
@@ -186,7 +186,7 @@ export class NodePackageManager implements PackageManager {
         await this.fileSystem.writeTextFile(packageFile, packageJson.toString(), {overwrite: true});
     }
 
-    private async findPackageManifestPath(name: string, directory?: string): Promise<string|null> {
+    private async findPackageManifestPath(name: string, directory?: string): Promise<string | null> {
         const currentDirectory = directory ?? this.projectDirectory.get();
         const packagePath = this.fileSystem.joinPaths(currentDirectory, 'node_modules', name, 'package.json');
         const cachedPath = this.manifestPath.get(packagePath);
@@ -195,7 +195,7 @@ export class NodePackageManager implements PackageManager {
             return cachedPath;
         }
 
-        let resolvedPath: string|null = packagePath;
+        let resolvedPath: string | null = packagePath;
 
         if (!await this.fileSystem.exists(packagePath)) {
             const parentDirectory = this.fileSystem.getDirectoryName(currentDirectory);

@@ -1,25 +1,26 @@
-import {Command} from '@/application/cli/command/command';
-import {WorkspaceApi} from '@/application/api/workspace';
-import {Output} from '@/application/cli/io/output';
-import {Input} from '@/application/cli/io/input';
-import {Sdk} from '@/application/project/sdk/sdk';
-import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
-import {OrganizationOptions, SelectedOrganization} from '@/application/cli/form/organization/organizationForm';
-import {ApplicationOptions} from '@/application/cli/form/application/applicationForm';
-import {SelectedWorkspace, WorkspaceOptions} from '@/application/cli/form/workspace/workspaceForm';
-import {Form} from '@/application/cli/form/form';
-import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
-import {UserApi} from '@/application/api/user';
-import {OrganizationApi} from '@/application/api/organization';
+import type {Command} from '@/application/cli/command/command';
+import type {WorkspaceApi} from '@/application/api/workspace';
+import type {Output} from '@/application/cli/io/output';
+import type {Input} from '@/application/cli/io/input';
+import type {Sdk} from '@/application/project/sdk/sdk';
+import type {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
+import type {OrganizationOptions, SelectedOrganization} from '@/application/cli/form/organization/organizationForm';
+import type {ApplicationOptions} from '@/application/cli/form/application/applicationForm';
+import type {SelectedWorkspace, WorkspaceOptions} from '@/application/cli/form/workspace/workspaceForm';
+import type {Form} from '@/application/cli/form/form';
+import type {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import type {UserApi} from '@/application/api/user';
+import type {OrganizationApi} from '@/application/api/organization';
 import {ApiError} from '@/application/api/error';
-import {Organization} from '@/application/model/organization';
-import {Workspace} from '@/application/model/workspace';
-import {Application, ApplicationEnvironment} from '@/application/model/application';
+import type {Organization} from '@/application/model/organization';
+import type {Workspace} from '@/application/model/workspace';
+import type {Application} from '@/application/model/application';
+import {ApplicationEnvironment} from '@/application/model/application';
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {Platform} from '@/application/model/platform';
-import {Provider} from '@/application/provider/provider';
-import {Slot} from '@/application/model/slot';
-import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
+import type {Provider} from '@/application/provider/provider';
+import type {Slot} from '@/application/model/slot';
+import type {SlotOptions} from '@/application/cli/form/workspace/slotForm';
 
 export type Resource = 'organization' | 'workspace' | 'application';
 
@@ -35,8 +36,8 @@ export type InitInput = {
 };
 
 export type InitConfig = {
-    sdkProvider: Provider<Sdk|null>,
-    platformProvider: Provider<Platform|null>,
+    sdkProvider: Provider<Sdk | null>,
+    platformProvider: Provider<Platform | null>,
     configurationManager: ConfigurationManager,
     skipConfirmation: Provider<boolean>,
     form: {
@@ -224,7 +225,10 @@ export class InitCommand implements Command<InitInput> {
         return workspace;
     }
 
-    private async resolveApplication(options: ApplicationOptions, applicationSlug?: string): Promise<Application|null> {
+    private async resolveApplication(
+        options: ApplicationOptions,
+        applicationSlug?: string,
+    ): Promise<Application | null> {
         const {api} = this.config;
 
         const defaultWebsite = options.workspace.website ?? options.organization.website ?? undefined;

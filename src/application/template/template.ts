@@ -1,6 +1,6 @@
-import {JsonArray, JsonObject, JsonValue} from '@croct/json';
-import {VariableMap} from '@/application/template/evaluation';
-import {Deferrable} from '@/application/template/deferral';
+import type {JsonArray, JsonObject, JsonValue} from '@croct/json';
+import type {VariableMap} from '@/application/template/evaluation';
+import type {Deferrable} from '@/application/template/deferral';
 
 type LazyOptionValue<T extends JsonValue> = () => Promise<T> | T;
 
@@ -34,11 +34,11 @@ export type OptionValueType<T extends OptionType> = OptionTypes[T]['type'];
 
 export type OptionDefinition<T extends OptionType = OptionType> = {
     [K in T]: Omit<OptionTypes[K], 'type'> & {
-    type: K,
-    default?: OptionValueType<K>,
-    description: string,
-    required?: boolean,
-}
+        type: K,
+        default?: OptionValueType<K>,
+        description: string,
+        required?: boolean,
+    }
 }[T];
 
 export type SourcePosition = {
@@ -56,7 +56,7 @@ export type SourceLocation = {
 export namespace SourceLocation {
     const key = Symbol('source');
 
-    export function get(value: Record<PropertyKey, any>): SourceLocation|null {
+    export function get(value: Record<PropertyKey, any>): SourceLocation | null {
         return value[key] ?? null;
     }
 

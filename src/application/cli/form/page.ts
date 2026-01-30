@@ -1,7 +1,6 @@
-/* eslint-disable max-len -- Avoid wrapping URLs */
 import {stringSimilarity} from 'string-similarity-js';
-import {Input} from '@/application/cli/io/input';
-import {Form} from '@/application/cli/form/form';
+import type {Input} from '@/application/cli/io/input';
+import type {Form} from '@/application/cli/form/form';
 
 export type Configuration = {
     input: Input,
@@ -28,8 +27,11 @@ export class PageForm implements Form<string, PageOptions> {
         'Workspace settings': '/organizations/:organization/workspaces/:workspace/settings',
         'Workspace members': '/organizations/:organization/workspaces/:workspace/members',
         'Dev application': '/organizations/:organization/workspaces/:workspace/applications/:dev-application/dashboard',
+        // eslint-disable-next-line @stylistic/max-len -- Needs to be inline
         'Prod application': '/organizations/:organization/workspaces/:workspace/applications/:prod-application/dashboard',
+        // eslint-disable-next-line @stylistic/max-len -- Needs to be inline
         'Dev application settings': '/organizations/:organization/workspaces/:workspace/applications/:dev-application/settings',
+        // eslint-disable-next-line @stylistic/max-len -- Needs to be inline
         'Prod application settings': '/organizations/:organization/workspaces/:workspace/applications/:prod-application/settings',
         Slots: '/organizations/:organization/workspaces/:workspace/slots',
         Components: '/organizations/:organization/workspaces/:workspace/components',
@@ -46,7 +48,7 @@ export class PageForm implements Form<string, PageOptions> {
         return PageForm.resolvePath(await this.getPage(options.page, options), options);
     }
 
-    private getPage(page: string|undefined, options: PageOptions): Promise<string> {
+    private getPage(page: string | undefined, options: PageOptions): Promise<string> {
         if (page !== undefined) {
             const match = PageForm.findMatch(page, options);
 
@@ -68,7 +70,7 @@ export class PageForm implements Form<string, PageOptions> {
         });
     }
 
-    private static findMatch(page: string, options: PageOptions): string|null {
+    private static findMatch(page: string, options: PageOptions): string | null {
         if (page.startsWith('/')) {
             return page;
         }

@@ -1,16 +1,17 @@
-/* eslint-disable import/no-default-export -- It's external code */
 declare module '@babel/plugin-transform-typescript' {
-    import {PluginObj} from '@babel/core';
+    import type {PluginObj} from '@babel/core';
 
     const plugin: () => PluginObj;
 
+    // eslint-disable-next-line import-x/no-default-export -- It's external code
     export default plugin;
 }
 
 declare module '@babel/plugin-syntax-decorators' {
-    import {PluginObj} from '@babel/core';
+    import type {PluginObj} from '@babel/core';
 
     const plugin: () => PluginObj;
 
+    // eslint-disable-next-line import-x/no-default-export -- It's external code
     export default plugin;
 }

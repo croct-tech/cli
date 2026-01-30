@@ -1,5 +1,5 @@
 import {ExecutableAgent} from '@/application/project/packageManager/agent/executableAgent';
-import {Command} from '@/application/system/process/command';
+import type {Command} from '@/application/system/process/command';
 
 export class NpmAgent extends ExecutableAgent {
     protected getCommandName(): string {

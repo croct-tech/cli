@@ -1,6 +1,8 @@
-import {Action, ActionError, ActionRunner} from '@/application/template/action/action';
-import {ActionContext} from '@/application/template/action/context';
-import {ErrorReason, Help} from '@/application/error';
+import type {Action, ActionRunner} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
+import type {ActionContext} from '@/application/template/action/context';
+import type {Help} from '@/application/error';
+import {ErrorReason} from '@/application/error';
 
 export type TryOptions = {
     action: Promise<unknown>,

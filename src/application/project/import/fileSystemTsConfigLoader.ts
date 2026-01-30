@@ -1,8 +1,8 @@
 import {Minimatch} from 'minimatch';
 import {JsonParser} from '@croct/json5-parser';
-import {FileSystem} from '@/application/fs/fileSystem';
-import {Validator} from '@/application/validation';
-import {NodeImportConfig, Options, TsConfigLoader} from '@/application/project/import/tsConfigLoader';
+import type {FileSystem} from '@/application/fs/fileSystem';
+import type {Validator} from '@/application/validation';
+import type {NodeImportConfig, Options, TsConfigLoader} from '@/application/project/import/tsConfigLoader';
 
 type PartialTsconfig = {
     extends?: string,

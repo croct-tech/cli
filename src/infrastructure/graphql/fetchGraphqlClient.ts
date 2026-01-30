@@ -1,7 +1,8 @@
-import {TypedDocumentString} from '@/infrastructure/graphql/schema/graphql';
-import {GraphqlClient, GraphqlResponse} from '@/infrastructure/graphql/client';
-import {TokenProvider} from '@/application/cli/authentication/authenticator';
-import {ApiError, Problem} from '@/application/api/error';
+import type {TypedDocumentString} from '@/infrastructure/graphql/schema/graphql';
+import type {GraphqlClient, GraphqlResponse} from '@/infrastructure/graphql/client';
+import type {TokenProvider} from '@/application/cli/authentication/authenticator';
+import type {Problem} from '@/application/api/error';
+import {ApiError} from '@/application/api/error';
 
 export type Configuration = {
     endpoint: URL,

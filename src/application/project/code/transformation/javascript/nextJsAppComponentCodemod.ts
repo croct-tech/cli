@@ -1,10 +1,8 @@
 import * as t from '@babel/types';
-import {Codemod, ResultCode} from '@/application/project/code/transformation/codemod';
+import type {Codemod, ResultCode} from '@/application/project/code/transformation/codemod';
 import {addImport} from '@/application/project/code/transformation/javascript/utils/addImport';
-import {
-    AttributeType,
-    createJsxAttributes,
-} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
+import type {AttributeType} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
+import {createJsxAttributes} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
 
 export type AppComponentOptions = {
     typescript?: boolean,

@@ -1,6 +1,6 @@
-import {Provider} from '@/application/provider/provider';
+import type {Provider} from '@/application/provider/provider';
 
-export type Callback<T, A extends any[]> = (...args: A) => T|Promise<T>;
+export type Callback<T, A extends any[]> = (...args: A) => T | Promise<T>;
 
 export class CallbackProvider<T, A extends any[]> implements Provider<T, A> {
     private readonly callback: Callback<T, A>;
@@ -9,7 +9,7 @@ export class CallbackProvider<T, A extends any[]> implements Provider<T, A> {
         this.callback = callback;
     }
 
-    public get(...args: A): T|Promise<T> {
+    public get(...args: A): T | Promise<T> {
         return this.callback(...args);
     }
 }

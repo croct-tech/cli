@@ -1,5 +1,5 @@
-import {FileSystem} from '@/application/fs/fileSystem';
-import {CliConfiguration, CliConfigurationProvider} from '@/application/cli/configuration/provider';
+import type {FileSystem} from '@/application/fs/fileSystem';
+import type {CliConfiguration, CliConfigurationProvider} from '@/application/cli/configuration/provider';
 
 export type Configuration = {
     fileSystem: FileSystem,

@@ -1,5 +1,6 @@
-import {ProtocolHandler, ProtocolRegistry, ProtocolRegistryError} from '@/application/system/protocol/protocolRegistry';
-import {Output} from '@/application/cli/io/output';
+import type {ProtocolHandler, ProtocolRegistry} from '@/application/system/protocol/protocolRegistry';
+import {ProtocolRegistryError} from '@/application/system/protocol/protocolRegistry';
+import type {Output} from '@/application/cli/io/output';
 import {ErrorReason} from '@/application/error';
 
 export type Configuration = {

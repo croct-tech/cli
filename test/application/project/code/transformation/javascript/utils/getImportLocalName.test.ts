@@ -1,14 +1,12 @@
-import {
-    getImportLocalName,
-    ImportMatcher,
-} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
+import type {ImportMatcher} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
+import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
 
 describe('getImportLocalName', () => {
     type Scenario = {
         description: string,
         code: string,
         matcher: ImportMatcher,
-        expected: string|null,
+        expected: string | null,
     };
 
     it.each<Scenario>([

@@ -1,13 +1,13 @@
-import {Command} from '@/application/cli/command/command';
-import {Output} from '@/application/cli/io/output';
-import {Input} from '@/application/cli/io/input';
-import {Installation, Sdk} from '@/application/project/sdk/sdk';
-import {Form} from '@/application/cli/form/form';
-import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
-import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
-import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
+import type {Command} from '@/application/cli/command/command';
+import type {Output} from '@/application/cli/io/output';
+import type {Input} from '@/application/cli/io/input';
+import type {Installation, Sdk} from '@/application/project/sdk/sdk';
+import type {Form} from '@/application/cli/form/form';
+import type {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
+import type {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import type {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 import {Version} from '@/application/model/version';
-import {Component} from '@/application/model/component';
+import type {Component} from '@/application/model/component';
 import {HelpfulError, ErrorReason} from '@/application/error';
 
 export type AddComponentInput = {
@@ -137,9 +137,9 @@ export class AddComponentCommand implements Command<AddComponentInput> {
     private static getVersionMap(
         specifiers: string[],
         components: ProjectConfiguration['components'],
-    ): Record<string, Version|undefined> {
+    ): Record<string, Version | undefined> {
         return Object.fromEntries(
-            specifiers.map<[string, Version|undefined]>(versionedId => {
+            specifiers.map<[string, Version | undefined]>(versionedId => {
                 const [slug, specifier] = versionedId.split('@', 2);
 
                 if (specifier === undefined) {

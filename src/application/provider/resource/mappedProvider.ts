@@ -1,9 +1,9 @@
-import {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
-import {Provider} from '@/application/provider/provider';
+import type {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import type {Provider} from '@/application/provider/provider';
 
 export type Mapping = {
-    pattern: RegExp|string,
-    destination: string|URL,
+    pattern: RegExp | string,
+    destination: string | URL,
 };
 
 export type Configuration<T> = {

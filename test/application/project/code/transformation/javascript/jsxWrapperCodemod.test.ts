@@ -1,12 +1,11 @@
 import {resolve} from 'path';
-import {File, returnStatement} from '@babel/types';
-import {
-    JsxWrapperCodemod,
-    WrapperConfiguration,
-} from '@/application/project/code/transformation/javascript/jsxWrapperCodemod';
+import type {File} from '@babel/types';
+import {returnStatement} from '@babel/types';
+import type {WrapperConfiguration} from '@/application/project/code/transformation/javascript/jsxWrapperCodemod';
+import {JsxWrapperCodemod} from '@/application/project/code/transformation/javascript/jsxWrapperCodemod';
 import {loadFixtures} from '../fixtures';
 import {JavaScriptCodemod} from '@/application/project/code/transformation/javascript/javaScriptCodemod';
-import {Codemod} from '@/application/project/code/transformation/codemod';
+import type {Codemod} from '@/application/project/code/transformation/codemod';
 
 describe('JsxWrapperCodemod', () => {
     const defaultOptions: WrapperConfiguration = {

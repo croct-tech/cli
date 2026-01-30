@@ -1,8 +1,8 @@
-import {Input} from '@/application/cli/io/input';
-import {Output} from '@/application/cli/io/output';
-import {Form} from '@/application/cli/form/form';
-import {WorkspaceApi} from '@/application/api/workspace';
-import {ExperienceDetails} from '@/application/model/experience';
+import type {Input} from '@/application/cli/io/input';
+import type {Output} from '@/application/cli/io/output';
+import type {Form} from '@/application/cli/form/form';
+import type {WorkspaceApi} from '@/application/api/workspace';
+import type {ExperienceDetails} from '@/application/model/experience';
 
 export type Configuration = {
     input: Input,

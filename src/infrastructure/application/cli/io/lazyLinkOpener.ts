@@ -1,4 +1,4 @@
-import {LinkOpener} from '@/infrastructure/application/cli/io/consoleOutput';
+import type {LinkOpener} from '@/infrastructure/application/cli/io/consoleOutput';
 
 export type LinkOpenerFactory = () => LinkOpener;
 

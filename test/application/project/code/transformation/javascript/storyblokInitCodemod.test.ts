@@ -1,7 +1,7 @@
-import {
-    StoryblokInitCodemod,
+import type {
     StoryblokInitCodemodOptions,
 } from '@/application/project/code/transformation/javascript/storyblokInitCodemod';
+import {StoryblokInitCodemod} from '@/application/project/code/transformation/javascript/storyblokInitCodemod';
 import {JavaScriptCodemod} from '@/application/project/code/transformation/javascript/javaScriptCodemod';
 
 describe('StoryblokInitCodemod', () => {

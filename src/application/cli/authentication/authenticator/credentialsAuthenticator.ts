@@ -1,10 +1,10 @@
-import {Input} from '@/application/cli/io/input';
-import {Output} from '@/application/cli/io/output';
-import {UserApi} from '@/application/api/user';
-import {Authenticator} from '@/application/cli/authentication/authenticator/index';
-import {Form} from '@/application/cli/form/form';
-import {SignInOptions} from '@/application/cli/form/user/signInForm';
-import {SignUpOptions} from '@/application/cli/form/user/signUpForm';
+import type {Input} from '@/application/cli/io/input';
+import type {Output} from '@/application/cli/io/output';
+import type {UserApi} from '@/application/api/user';
+import type {Authenticator} from '@/application/cli/authentication/authenticator/index';
+import type {Form} from '@/application/cli/form/form';
+import type {SignInOptions} from '@/application/cli/form/user/signInForm';
+import type {SignUpOptions} from '@/application/cli/form/user/signUpForm';
 import {EmailInput} from '@/application/cli/form/input/emailInput';
 
 export type Configuration = {

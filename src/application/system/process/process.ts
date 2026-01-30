@@ -1,5 +1,5 @@
-import {Readable, Writable} from 'stream';
-import {EventObserver} from '@/application/event';
+import type {Readable, Writable} from 'stream';
+import type {EventObserver} from '@/application/event';
 
 export type ProcessEvents = {
     exit: [],

@@ -1,15 +1,11 @@
-import {Command} from '@/application/cli/command/command';
-import {Output} from '@/application/cli/io/output';
-import {Input} from '@/application/cli/io/input';
-import {
-    ConfigurationManager,
-    InitializationState,
-} from '@/application/project/configuration/manager/configurationManager';
-import {Installation, Sdk} from '@/application/project/sdk/sdk';
-import {
-    ProjectConfiguration,
-    ProjectConfigurationError,
-} from '@/application/project/configuration/projectConfiguration';
+import type {Command} from '@/application/cli/command/command';
+import type {Output} from '@/application/cli/io/output';
+import type {Input} from '@/application/cli/io/input';
+import type {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import {InitializationState} from '@/application/project/configuration/manager/configurationManager';
+import type {Installation, Sdk} from '@/application/project/sdk/sdk';
+import type {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
+import {ProjectConfigurationError} from '@/application/project/configuration/projectConfiguration';
 import {ErrorReason} from '@/application/error';
 
 export type InstallInput = {

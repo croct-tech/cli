@@ -1,5 +1,5 @@
-import {RootDefinition} from '@croct/content-model/definition/definition';
-import {LocalizedContentMap} from '@/application/model/experience';
+import type {RootDefinition} from '@croct/content-model/definition/definition';
+import type {LocalizedContentMap} from '@/application/model/experience';
 
 export type Slot = {
     id: string,

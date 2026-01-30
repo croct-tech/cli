@@ -1,8 +1,9 @@
-import {Action, ActionError} from '@/application/template/action/action';
-import {ActionContext} from '@/application/template/action/context';
-import {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
-import {ApiKeyPermission} from '@/application/model/application';
-import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import type {Action} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
+import type {ActionContext} from '@/application/template/action/context';
+import type {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
+import type {ApiKeyPermission} from '@/application/model/application';
+import type {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {ErrorReason} from '@/application/error';
 
 export type CreateApiKeyOptions = {

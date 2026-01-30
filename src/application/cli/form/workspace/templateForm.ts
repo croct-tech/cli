@@ -1,13 +1,13 @@
-import {Input} from '@/application/cli/io/input';
-import {Form} from '@/application/cli/form/form';
-import {AudienceOptions} from '@/application/cli/form/workspace/audienceForm';
-import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
-import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
-import {ExperienceOptions} from '@/application/cli/form/workspace/experienceForm';
-import {Audience} from '@/application/model/audience';
-import {Slot} from '@/application/model/slot';
-import {Component} from '@/application/model/component';
-import {ExperienceDetails} from '@/application/model/experience';
+import type {Input} from '@/application/cli/io/input';
+import type {Form} from '@/application/cli/form/form';
+import type {AudienceOptions} from '@/application/cli/form/workspace/audienceForm';
+import type {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
+import type {SlotOptions} from '@/application/cli/form/workspace/slotForm';
+import type {ExperienceOptions} from '@/application/cli/form/workspace/experienceForm';
+import type {Audience} from '@/application/model/audience';
+import type {Slot} from '@/application/model/slot';
+import type {Component} from '@/application/model/component';
+import type {ExperienceDetails} from '@/application/model/experience';
 
 export type Configuration = {
     input: Input,

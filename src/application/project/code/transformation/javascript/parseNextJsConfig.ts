@@ -73,7 +73,7 @@ export function parseNextJsConfig(source: string): NextConfig {
     };
 }
 
-function getIdentifier(node: t.Node): string|null {
+function getIdentifier(node: t.Node): string | null {
     if (t.isIdentifier(node)) {
         return node.name;
     }

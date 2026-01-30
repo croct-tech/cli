@@ -1,6 +1,6 @@
-import {CacheLoader, CacheProvider} from '@croct/cache';
+import type {CacheLoader, CacheProvider} from '@croct/cache';
 import {createHash} from 'crypto';
-import {FileSystem} from '@/application/fs/fileSystem';
+import type {FileSystem} from '@/application/fs/fileSystem';
 
 export type Configuration = {
     fileSystem: FileSystem,

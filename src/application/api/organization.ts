@@ -1,4 +1,4 @@
-import {Workspace} from '@/application/model/workspace';
+import type {Workspace} from '@/application/model/workspace';
 
 export type OrganizationPath = {
     organizationSlug: string,
@@ -13,7 +13,7 @@ export type NewWorkspace = OrganizationPath & Omit<Workspace, 'id' | 'slug' | 'l
 export interface OrganizationApi {
     getWorkspaces(path: OrganizationPath): Promise<Workspace[]>;
 
-    getWorkspace(path: WorkspacePath): Promise<Workspace|null>;
+    getWorkspace(path: WorkspacePath): Promise<Workspace | null>;
 
     createWorkspace(workspace: NewWorkspace): Promise<Workspace>;
 }

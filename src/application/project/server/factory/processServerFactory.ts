@@ -1,6 +1,7 @@
-import {Server} from '@/application/project/server/server';
-import {Configuration as ProcessServerConfiguration, ProcessServer} from '@/application/project/server/processServer';
-import {ServerConfiguration, ServerFactory} from '@/application/project/server/factory/serverFactory';
+import type {Server} from '@/application/project/server/server';
+import type {Configuration as ProcessServerConfiguration} from '@/application/project/server/processServer';
+import {ProcessServer} from '@/application/project/server/processServer';
+import type {ServerConfiguration, ServerFactory} from '@/application/project/server/factory/serverFactory';
 
 export type Configuration = Omit<ProcessServerConfiguration, 'command' | 'server'>;
 

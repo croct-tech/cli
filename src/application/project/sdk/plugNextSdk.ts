@@ -1,29 +1,32 @@
-import {Installation, SdkError} from '@/application/project/sdk/sdk';
-import {
+import type {Installation} from '@/application/project/sdk/sdk';
+import {SdkError} from '@/application/project/sdk/sdk';
+import type {
     Configuration as JavaScriptSdkConfiguration,
     InstallationPlan,
-    JavaScriptSdk,
 } from '@/application/project/sdk/javasScriptSdk';
-import {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
-import {WorkspaceApi} from '@/application/api/workspace';
+import {JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
+import type {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
+import type {WorkspaceApi} from '@/application/api/workspace';
 import {EnvFile} from '@/application/project/code/envFile';
-import {UserApi} from '@/application/api/user';
-import {NextConfig, parseNextJsConfig} from '@/application/project/code/transformation/javascript/parseNextJsConfig';
-import {Codemod, CodemodOptions} from '@/application/project/code/transformation/codemod';
-import {Task, TaskNotifier} from '@/application/cli/io/output';
+import type {UserApi} from '@/application/api/user';
+import type {NextConfig} from '@/application/project/code/transformation/javascript/parseNextJsConfig';
+import {parseNextJsConfig} from '@/application/project/code/transformation/javascript/parseNextJsConfig';
+import type {Codemod, CodemodOptions} from '@/application/project/code/transformation/codemod';
+import type {Task, TaskNotifier} from '@/application/cli/io/output';
 import type {
     LayoutComponentOptions,
 } from '@/application/project/code/transformation/javascript/nextJsLayoutComponentCodemod';
 import type {AppComponentOptions} from '@/application/project/code/transformation/javascript/nextJsAppComponentCodemod';
-import {CodeLanguage, ExampleFile} from '@/application/project/code/generation/example';
+import type {ExampleFile} from '@/application/project/code/generation/example';
+import {CodeLanguage} from '@/application/project/code/generation/example';
 import {
     NextExampleRouter,
     PlugNextExampleGenerator,
 } from '@/application/project/code/generation/slot/plugNextExampleGenerator';
 import {ApiError} from '@/application/api/error';
-import {Slot} from '@/application/model/slot';
+import type {Slot} from '@/application/model/slot';
 import {ErrorReason, HelpfulError} from '@/application/error';
-import {ImportResolver} from '@/application/project/import/importResolver';
+import type {ImportResolver} from '@/application/project/import/importResolver';
 import {ApiKeyPermission} from '@/application/model/application';
 import {PlugReactExampleGenerator} from '@/application/project/code/generation/slot/plugReactExampleGenerator';
 
@@ -324,7 +327,7 @@ export class PlugNextSdk extends JavaScriptSdk {
 
     private getProviderCodemod(
         installation: NextInstallation,
-    ): Codemod<string, AppComponentOptions|LayoutComponentOptions> {
+    ): Codemod<string, AppComponentOptions | LayoutComponentOptions> {
         if (installation.project.fallbackMode) {
             return this.codemod.fallbackProvider;
         }

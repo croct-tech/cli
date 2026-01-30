@@ -1,6 +1,6 @@
-import {Log, Logger} from '@croct/logging';
-import {LogDetails} from '@croct/logging/logger';
-import {TaskNotifier} from '@/application/cli/io/output';
+import type {Log, Logger} from '@croct/logging';
+import type {LogDetails} from '@croct/logging/logger';
+import type {TaskNotifier} from '@/application/cli/io/output';
 
 export type Configuration = {
     notifier: TaskNotifier,

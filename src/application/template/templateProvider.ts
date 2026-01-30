@@ -1,27 +1,25 @@
-import {JsonValue} from '@croct/json';
+import type {JsonValue} from '@croct/json';
+import type {JsonNode, JsonValueNode} from '@croct/json5-parser';
 import {
     JsonArrayNode,
     JsonIdentifierNode,
-    JsonNode,
     JsonObjectNode,
     JsonParser,
     JsonPrimitiveNode,
     JsonTokenNode,
     JsonTokenType,
-    JsonValueNode,
 } from '@croct/json5-parser';
-import {EvaluationError, ExpressionEvaluator, VariableMap} from '@/application/template/evaluation';
+import type {ExpressionEvaluator} from '@/application/template/evaluation';
+import {EvaluationError, VariableMap} from '@/application/template/evaluation';
 import {ErrorReason, HelpfulError} from '@/application/error';
-import {Validator, Violation} from '@/application/validation';
-import {DeferredTemplate, SourceLocation, Template} from '@/application/template/template';
-import {
-    ResourceProvider,
-    ResourceProviderError,
-    ResourceHelp,
-    Resource,
-} from '@/application/provider/resource/resourceProvider';
-import {Fragment, JsonExpressionNode, TemplateStringParser} from '@/application/template/templateStringParser';
-import {Deferred, Deferrable} from '@/application/template/deferral';
+import type {Validator, Violation} from '@/application/validation';
+import type {DeferredTemplate, Template} from '@/application/template/template';
+import {SourceLocation} from '@/application/template/template';
+import type {ResourceProvider, ResourceHelp, Resource} from '@/application/provider/resource/resourceProvider';
+import {ResourceProviderError} from '@/application/provider/resource/resourceProvider';
+import type {Fragment, JsonExpressionNode} from '@/application/template/templateStringParser';
+import {TemplateStringParser} from '@/application/template/templateStringParser';
+import type {Deferred, Deferrable} from '@/application/template/deferral';
 import {LazyPromise} from '@/infrastructure/promise';
 import {resolveUrl} from '@/utils/resolveUrl';
 

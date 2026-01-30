@@ -1,4 +1,4 @@
-import {EmailProviderDetector} from '@/application/cli/email/email';
+import type {EmailProviderDetector} from '@/application/cli/email/email';
 
 type LookupResponse = {
     Answer?: Array<{
@@ -25,7 +25,7 @@ export class DnsProviderDetector implements EmailProviderDetector {
         this.domains = domains;
     }
 
-    public async detect(email: string): Promise<string|null> {
+    public async detect(email: string): Promise<string | null> {
         const domain = email.toLowerCase().split('@')[1];
         const lookup = await this.lookup(domain);
 

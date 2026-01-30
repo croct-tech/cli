@@ -1,8 +1,8 @@
-import {Content} from '@croct/content-model/content/content';
-import {ContentDefinition, RootDefinition} from '@croct/content-model/definition/definition';
-import {WorkspaceResources} from '@/application/template/resources';
-import {LocalizedContentMap, SlotContentMap} from '@/application/model/experience';
-import {
+import type {Content} from '@croct/content-model/content/content';
+import type {ContentDefinition, RootDefinition} from '@croct/content-model/definition/definition';
+import type {WorkspaceResources} from '@/application/template/resources';
+import type {LocalizedContentMap, SlotContentMap} from '@/application/model/experience';
+import type {
     AudienceDefinition,
     ComponentDefinition,
     ExperienceDefinition,
@@ -14,7 +14,7 @@ export type Refactoring = {
     componentMapping: Record<string, string>,
     slotMapping: Record<string, string>,
     audienceMapping: Record<string, string>,
-    localeMapping: Record<string, string|null>,
+    localeMapping: Record<string, string | null>,
     maximumAudiencePerExperience: number,
     dynamicAttributesPerContent: number,
     isCrossDeviceFeatureEnabled: boolean,
@@ -100,7 +100,7 @@ export class ResourceRefactor {
                         Object.entries(schema.types).map(
                             ([typeName, type]) => [
                                 typeName,
-                                this.refactorSchema(type) as ContentDefinition<'structure'|'reference'>,
+                                this.refactorSchema(type) as ContentDefinition<'structure' | 'reference'>,
                             ],
                         ),
                     ),

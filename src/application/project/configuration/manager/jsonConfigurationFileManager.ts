@@ -1,23 +1,21 @@
-import {JsonValue} from '@croct/json';
+import type {JsonValue} from '@croct/json';
 import {JsonObjectNode, JsonParser} from '@croct/json5-parser';
-import {
+import type {
     PartialProjectConfiguration,
     ProjectConfiguration,
-    ProjectConfigurationError,
 } from '@/application/project/configuration/projectConfiguration';
-import {FileSystem} from '@/application/fs/fileSystem';
-import {Validator} from '@/application/validation';
-import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
-import {
-    ConfigurationManager,
-    InitializationState,
-} from '@/application/project/configuration/manager/configurationManager';
+import {ProjectConfigurationError} from '@/application/project/configuration/projectConfiguration';
+import type {FileSystem} from '@/application/fs/fileSystem';
+import type {Validator} from '@/application/validation';
+import type {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import {InitializationState} from '@/application/project/configuration/manager/configurationManager';
 import {ErrorReason} from '@/application/error';
 
 type LoadedFile<T extends JsonPartialProjectConfiguration = JsonPartialProjectConfiguration> = {
     path: string,
-    source: string|null,
-    configuration: T|null,
+    source: string | null,
+    configuration: T | null,
 };
 
 export type JsonProjectConfiguration = ProjectConfiguration & {

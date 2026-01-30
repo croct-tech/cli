@@ -1,6 +1,7 @@
-import {TypedDocumentString} from '@/infrastructure/graphql/schema/graphql';
-import {GraphqlClient} from '@/infrastructure/graphql';
-import {generateSlug, NameProps} from '@/infrastructure/application/api/utils/generateSlug';
+import type {TypedDocumentString} from '@/infrastructure/graphql/schema/graphql';
+import type {GraphqlClient} from '@/infrastructure/graphql';
+import type {NameProps} from '@/infrastructure/application/api/utils/generateSlug';
+import {generateSlug} from '@/infrastructure/application/api/utils/generateSlug';
 
 type AvailabilityResult = {
     checkAvailability: {
@@ -57,7 +58,7 @@ export function generateAvailableSlug<T extends Document>(check: AvailabilityChe
     );
 }
 
-type AvailabilityChecker = (generator: Generator<string>) => Promise<string|null>;
+type AvailabilityChecker = (generator: Generator<string>) => Promise<string | null>;
 
 async function findAvailableName(input: NameProps, checker: AvailabilityChecker): Promise<string> {
     const generator = generateSlug(input);

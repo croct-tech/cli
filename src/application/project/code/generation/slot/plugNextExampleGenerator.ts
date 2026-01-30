@@ -1,5 +1,6 @@
-import {ReactExampleGenerator, Configuration as ReactConfiguration, SlotFile} from './reactExampleGenerator';
-import {SlotDefinition} from './slotExampleGenerator';
+import type {Configuration as ReactConfiguration, SlotFile} from './reactExampleGenerator';
+import {ReactExampleGenerator} from './reactExampleGenerator';
+import type {SlotDefinition} from './slotExampleGenerator';
 import {CodeWriter} from '@/application/project/code/generation/codeWritter';
 import {CodeLanguage} from '@/application/project/code/generation/example';
 

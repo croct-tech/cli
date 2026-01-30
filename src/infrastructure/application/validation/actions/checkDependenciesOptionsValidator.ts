@@ -1,5 +1,6 @@
-import {z, ZodType} from 'zod';
-import {CheckDependencyOptions} from '@/application/template/action/checkDependencyAction';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
+import type {CheckDependencyOptions} from '@/application/template/action/checkDependencyAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const requirementSchema = z.strictObject({

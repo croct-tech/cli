@@ -1,5 +1,6 @@
-import {z, ZodType} from 'zod';
-import {TestOptions} from '@/application/template/action/testAction';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
+import type {TestOptions} from '@/application/template/action/testAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const schema: ZodType<TestOptions> = z.strictObject({

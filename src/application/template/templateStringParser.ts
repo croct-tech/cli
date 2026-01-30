@@ -1,10 +1,5 @@
-import {
-    JsonIdentifierNode,
-    JsonPrimitiveNode,
-    JsonStringNode,
-    SourceLocation,
-    SourcePosition,
-} from '@croct/json5-parser';
+import type {JsonIdentifierNode, JsonStringNode, SourceLocation, SourcePosition} from '@croct/json5-parser';
+import {JsonPrimitiveNode} from '@croct/json5-parser';
 import {HelpfulError} from '@/application/error';
 
 type FragmentMap = {
@@ -22,7 +17,7 @@ export type Fragment<T extends keyof FragmentMap = keyof FragmentMap> = {
     }
 }[T];
 
-export type JsonExpressionNode = JsonStringNode|JsonIdentifierNode;
+export type JsonExpressionNode = JsonStringNode | JsonIdentifierNode;
 
 export class TemplateStringParser implements Iterator<Fragment>, Iterable<Fragment> {
     private readonly chars: string[];
@@ -42,11 +37,11 @@ export class TemplateStringParser implements Iterator<Fragment>, Iterable<Fragme
         this.column = position.column;
     }
 
-    public static parse(node: JsonExpressionNode|string, position?: SourcePosition): Fragment[] {
+    public static parse(node: JsonExpressionNode | string, position?: SourcePosition): Fragment[] {
         return [...TemplateStringParser.from(node, position)];
     }
 
-    public static from(value: JsonExpressionNode|string, position?: SourcePosition): TemplateStringParser {
+    public static from(value: JsonExpressionNode | string, position?: SourcePosition): TemplateStringParser {
         return new TemplateStringParser(
             TemplateStringParser.getExpression(value),
             position ?? (
@@ -57,7 +52,7 @@ export class TemplateStringParser implements Iterator<Fragment>, Iterable<Fragme
         );
     }
 
-    private static getExpression(node: JsonExpressionNode|string): string {
+    private static getExpression(node: JsonExpressionNode | string): string {
         if (typeof node === 'string') {
             return node;
         }

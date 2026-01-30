@@ -1,6 +1,6 @@
-import {AuthenticationListener} from '@/application/cli/authentication';
-import {SynchronousCommandExecutor} from '@/application/system/process/executor';
-import {Command} from '@/application/system/process/command';
+import type {AuthenticationListener} from '@/application/cli/authentication';
+import type {SynchronousCommandExecutor} from '@/application/system/process/executor';
+import type {Command} from '@/application/system/process/command';
 import {multiline} from '@/utils/multiline';
 
 type Callback = () => Promise<void>;
@@ -23,7 +23,7 @@ export class FocusListener implements AuthenticationListener {
         const {listener} = this.configuration;
 
         return new Promise((resolve, reject) => {
-            this.focus(() => listener.wait(sessionId).then(resolve, reject));
+            void this.focus(() => listener.wait(sessionId).then(resolve, reject));
         });
     }
 
@@ -117,7 +117,7 @@ export class FocusListener implements AuthenticationListener {
         }
     }
 
-    private runCommand(command: Command): string|null {
+    private runCommand(command: Command): string | null {
         const {commandExecutor, timeout} = this.configuration;
 
         try {

@@ -1,7 +1,7 @@
-import {Action} from '@/application/template/action/action';
-import {FileSystem, ScanFilter} from '@/application/fs/fileSystem';
-import {ActionContext} from '@/application/template/action/context';
-import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {Action} from '@/application/template/action/action';
+import type {FileSystem, ScanFilter} from '@/application/fs/fileSystem';
+import type {ActionContext} from '@/application/template/action/context';
+import type {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {MatchesGlob} from '@/application/predicate/matchesGlob';
 
 export type PatternMatcher = {

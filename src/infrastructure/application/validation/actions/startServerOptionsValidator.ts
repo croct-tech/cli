@@ -1,5 +1,6 @@
-import {z, ZodType} from 'zod';
-import {StartServerOptions} from '@/application/template/action/startServerAction';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
+import type {StartServerOptions} from '@/application/template/action/startServerAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const schema: ZodType<StartServerOptions> = z.strictObject({

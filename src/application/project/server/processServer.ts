@@ -1,10 +1,11 @@
 import {LogLevel} from '@croct/logging';
-import {Server, ServerError, ServerStatus, StartServerOptions} from '@/application/project/server/server';
-import {CommandExecutor, Execution} from '@/application/system/process/executor';
-import {Command} from '@/application/system/process/command';
-import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {Server, ServerStatus, StartServerOptions} from '@/application/project/server/server';
+import {ServerError} from '@/application/project/server/server';
+import type {CommandExecutor, Execution} from '@/application/system/process/executor';
+import type {Command} from '@/application/system/process/command';
+import type {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 
-import {ProcessObserver} from '@/application/system/process/process';
+import type {ProcessObserver} from '@/application/system/process/process';
 import {ScreenBuffer} from '@/application/cli/io/screenBuffer';
 
 export type Configuration = {

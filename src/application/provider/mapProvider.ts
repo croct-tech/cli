@@ -1,5 +1,5 @@
 import {ProviderError} from '@/application/provider/provider';
-import {EntryProvider} from '@/application/provider/entryProvider';
+import type {EntryProvider} from '@/application/provider/entryProvider';
 import {ErrorReason} from '@/application/error';
 
 export class MapProvider<K, V> implements EntryProvider<K, V> {

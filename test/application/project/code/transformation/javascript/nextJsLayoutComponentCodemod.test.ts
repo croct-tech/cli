@@ -1,9 +1,11 @@
 import {resolve} from 'path';
 import {loadFixtures} from '../fixtures';
 import {JavaScriptCodemod} from '@/application/project/code/transformation/javascript/javaScriptCodemod';
+import type {
+    LayoutComponentOptions,
+} from '@/application/project/code/transformation/javascript/nextJsLayoutComponentCodemod';
 import {
     NextJsLayoutComponentCodemod,
-    LayoutComponentOptions,
 } from '@/application/project/code/transformation/javascript/nextJsLayoutComponentCodemod';
 
 describe('NextJsLayoutComponentCodemod', () => {

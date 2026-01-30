@@ -1,4 +1,4 @@
-import {Content} from '@croct/content-model/content/content';
+import type {Content} from '@croct/content-model/content/content';
 
 export enum ExperienceStatus {
     ACTIVE = 'ACTIVE',
@@ -79,7 +79,7 @@ export enum ExperimentStatus {
     FINISHED = 'FINISHED',
     INDIRECTLY_PAUSED = 'INDIRECTLY_PAUSED',
     PAUSED = 'PAUSED',
-    SCHEDULED = 'SCHEDULED'
+    SCHEDULED = 'SCHEDULED',
 }
 
 export type Experiment = {

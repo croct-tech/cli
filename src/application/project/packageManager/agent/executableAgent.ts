@@ -1,18 +1,19 @@
-import {Logger, LogLevel} from '@croct/logging';
-import {Command} from '@/application/system/process/command';
-import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
-import {PackageManagerAgent} from '@/application/project/packageManager/agent/packageManagerAgent';
-import {
+import type {Logger} from '@croct/logging';
+import {LogLevel} from '@croct/logging';
+import type {Command} from '@/application/system/process/command';
+import type {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {PackageManagerAgent} from '@/application/project/packageManager/agent/packageManagerAgent';
+import type {
     AddDependencyOptions,
     CommandOptions as BaseCommandOptions,
     InstallDependenciesOptions,
-    PackageManagerError,
     UpdateCommandOptions,
     UpdatePackageOptions,
 } from '@/application/project/packageManager/packageManager';
-import {CommandExecutor} from '@/application/system/process/executor';
-import {FileSystem} from '@/application/fs/fileSystem';
-import {ExecutableLocator} from '@/application/system/executableLocator';
+import {PackageManagerError} from '@/application/project/packageManager/packageManager';
+import type {CommandExecutor} from '@/application/system/process/executor';
+import type {FileSystem} from '@/application/fs/fileSystem';
+import type {ExecutableLocator} from '@/application/system/executableLocator';
 import {ScreenBuffer} from '@/application/cli/io/screenBuffer';
 
 export type Configuration = {

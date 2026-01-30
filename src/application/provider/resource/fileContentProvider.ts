@@ -1,5 +1,6 @@
-import {Resource, ResourceNotFoundError, ResourceProvider} from '@/application/provider/resource/resourceProvider';
-import {FileSystemIterator} from '@/application/fs/fileSystem';
+import type {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import {ResourceNotFoundError} from '@/application/provider/resource/resourceProvider';
+import type {FileSystemIterator} from '@/application/fs/fileSystem';
 
 export class FileContentProvider implements ResourceProvider<string> {
     private readonly provider: ResourceProvider<FileSystemIterator>;

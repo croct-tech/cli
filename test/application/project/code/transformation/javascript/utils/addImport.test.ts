@@ -1,11 +1,12 @@
 import generate from '@babel/generator';
-import {cloneNode, File, isNodesEquivalent} from '@babel/types';
+import type {File} from '@babel/types';
+import {cloneNode, isNodesEquivalent} from '@babel/types';
 import traverse from '@babel/traverse';
-import {
-    addImport,
+import type {
     ImportDeclaration,
     ImportResult,
 } from '@/application/project/code/transformation/javascript/utils/addImport';
+import {addImport} from '@/application/project/code/transformation/javascript/utils/addImport';
 import {parse} from '@/application/project/code/transformation/javascript/utils/parse';
 
 describe('addImport', () => {

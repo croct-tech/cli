@@ -1,5 +1,5 @@
-import {LinkOpener} from '@/infrastructure/application/cli/io/consoleOutput';
-import {Output} from '@/application/cli/io/output';
+import type {LinkOpener} from '@/infrastructure/application/cli/io/consoleOutput';
+import type {Output} from '@/application/cli/io/output';
 
 export class ConsoleLinkOpener implements LinkOpener {
     private readonly output: Output;

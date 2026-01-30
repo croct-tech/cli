@@ -1,14 +1,15 @@
-import {
+import type {
     AddDependencyOptions,
     Dependency,
     InstallDependenciesOptions,
     PackageManager,
-    PackageManagerError,
     UpdateCommandOptions,
     UpdatePackageOptions,
 } from '@/application/project/packageManager/packageManager';
-import {Command} from '@/application/system/process/command';
-import {Provider, ProviderError} from '@/application/provider/provider';
+import {PackageManagerError} from '@/application/project/packageManager/packageManager';
+import type {Command} from '@/application/system/process/command';
+import type {Provider} from '@/application/provider/provider';
+import {ProviderError} from '@/application/provider/provider';
 
 export class LazyPackageManager implements PackageManager {
     private readonly provider: Provider<PackageManager>;
@@ -47,7 +48,7 @@ export class LazyPackageManager implements PackageManager {
         return (await this.manager).hasDirectDependency(packageName, version);
     }
 
-    public async getDependency(name: string): Promise<Dependency|null> {
+    public async getDependency(name: string): Promise<Dependency | null> {
         return (await this.manager).getDependency(name);
     }
 

@@ -1,5 +1,6 @@
-import {CacheLoader, CacheProvider} from '@croct/cache';
-import {Clock, Instant} from '@croct/time';
+import type {CacheLoader, CacheProvider} from '@croct/cache';
+import type {Clock} from '@croct/time';
+import {Instant} from '@croct/time';
 import {Token} from '@croct/sdk/token';
 
 export type TokenIssuer = (token: Token) => Promise<string>;
@@ -12,7 +13,7 @@ export type Configuration = {
     cacheProvider: CacheProvider<string, string>,
 };
 
-export class TokenCache implements CacheProvider<string, string|null> {
+export class TokenCache implements CacheProvider<string, string | null> {
     private readonly clock: Clock;
 
     private readonly clockSkewTolerance: number;
@@ -33,7 +34,7 @@ export class TokenCache implements CacheProvider<string, string|null> {
         this.tokenIssuer = config.tokenIssuer;
     }
 
-    public async get(key: string, loader: CacheLoader<string, string|null>): Promise<string|null> {
+    public async get(key: string, loader: CacheLoader<string, string | null>): Promise<string | null> {
         const cachedToken = await this.cacheProvider.get(key, async () => await loader(key) ?? '');
 
         if (cachedToken === '') {
@@ -95,7 +96,7 @@ export class TokenCache implements CacheProvider<string, string|null> {
         }
     }
 
-    private parseToken(token: string): Token|null {
+    private parseToken(token: string): Token | null {
         let parsedToken: Token;
 
         try {

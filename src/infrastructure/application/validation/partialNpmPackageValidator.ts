@@ -1,6 +1,7 @@
-import {z, ZodType} from 'zod';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
-import {PartialNpmManifest} from '@/application/project/packageManager/nodePackageManager';
+import type {PartialNpmManifest} from '@/application/project/packageManager/nodePackageManager';
 
 const packageSchema: ZodType<PartialNpmManifest> = z.object({
     name: z.string(),

@@ -1,5 +1,7 @@
-import {ErrorReason, Help} from '@/application/error';
-import {Provider, ProviderError} from '@/application/provider/provider';
+import type {Help} from '@/application/error';
+import {ErrorReason} from '@/application/error';
+import type {Provider} from '@/application/provider/provider';
+import {ProviderError} from '@/application/provider/provider';
 
 export type ResourceHelp = Help & {
     url: URL,

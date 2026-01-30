@@ -1,4 +1,4 @@
-import {Provider} from '@/application/provider/provider';
+import type {Provider} from '@/application/provider/provider';
 
 export class MemoizedProvider<T, A extends any[]> implements Provider<T, A> {
     private readonly valueProvider: Provider<T, A>;
