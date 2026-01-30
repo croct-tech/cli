@@ -107,7 +107,7 @@ export function addImport(ast: t.File, target: ImportDeclaration): ImportResult 
                 };
             }
 
-            if (match.specifier?.importKind === 'type' && target.type === 'value') {
+            if (match.specifier !== undefined && match.specifier.importKind === 'type' && target.type === 'value') {
                 // if the target specifier is a type import but the import is a value import,
                 // convert the target specifier to a value import and keep the others as type imports
                 match.specifier.importKind = 'value';

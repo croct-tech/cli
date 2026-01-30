@@ -461,7 +461,6 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
             }
 
             case matches(expression, 'ConditionalExpression'):
-                // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions -- Intentional type juggling
                 return await this.evaluateExpression(expression.test, context)
                     ? this.evaluateExpression(expression.consequent, context)
                     : this.evaluateExpression(expression.alternate, context);

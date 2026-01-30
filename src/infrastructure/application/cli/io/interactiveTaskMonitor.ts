@@ -285,7 +285,7 @@ export class InteractiveTaskMonitor implements TaskMonitor {
     }
 
     public resume(): void {
-        void this.watchers[this.watchers.length - 1]?.start();
+        this.watchers[this.watchers.length - 1]?.start();
     }
 
     public notify(initialStatus: string): Notifier {
@@ -302,7 +302,7 @@ export class InteractiveTaskMonitor implements TaskMonitor {
             },
         );
 
-        void watcher.start();
+        watcher.start();
 
         return {
             stop: (persist = false): void => {

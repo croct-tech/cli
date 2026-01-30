@@ -139,7 +139,7 @@ export class ConsoleInput implements Input {
 
                     if (keyValue === undefined || state.value === keyValue) {
                         submitted = true;
-                        void this.submit();
+                        this.submit();
                     } else {
                         this.bell();
                         this.reset();

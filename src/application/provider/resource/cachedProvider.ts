@@ -31,7 +31,7 @@ export class CachedProvider<T> implements ResourceProvider<T> {
             try {
                 return await this.provider.get(url);
             } catch (error) {
-                void this.errorCache?.set(url.toString(), error);
+                this.errorCache?.set(url.toString(), error);
 
                 throw error;
             }

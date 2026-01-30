@@ -141,7 +141,7 @@ export class ExecutePackage implements Action<ExecutePackageOptions> {
         });
 
         const kill = (): void => {
-            void execution.kill();
+            execution.kill();
         };
 
         processObserver.on('exit', kill);

@@ -23,7 +23,7 @@ export class FocusListener implements AuthenticationListener {
         const {listener} = this.configuration;
 
         return new Promise((resolve, reject) => {
-            void this.focus(() => listener.wait(sessionId).then(resolve, reject));
+            this.focus(() => listener.wait(sessionId).then(resolve, reject));
         });
     }
 
