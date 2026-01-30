@@ -23,8 +23,9 @@ export class PlugReactExampleGenerator extends ReactExampleGenerator {
 
     protected writeSlotFetch(writer: CodeWriter, definition: SlotDefinition): void {
         const variable = this.options.contentVariable;
+        const variableDeclaration = variable !== 'content' ? `content: ${variable}` : variable;
 
-        writer.write(`const ${variable} = useContent('${definition.id}@${definition.version}');`)
+        writer.write(`const ${variableDeclaration} = useContent('${definition.id}@${definition.version}');`)
             .newLine();
     }
 
