@@ -31,6 +31,7 @@ export type Configuration = {
     projectDirectory: WorkingDirectory,
     fullValidator: Validator<JsonProjectConfiguration>,
     partialValidator: Validator<JsonPartialProjectConfiguration>,
+    configurationFile: string,
 };
 
 export class JsonConfigurationFileManager implements ConfigurationManager {
@@ -38,22 +39,22 @@ export class JsonConfigurationFileManager implements ConfigurationManager {
 
     private readonly fileSystem: FileSystem;
 
-    private readonly projectDirectory: WorkingDirectory;
-
     private readonly fullValidator: Validator<ProjectConfiguration>;
 
     private readonly partialValidator: Validator<PartialProjectConfiguration>;
 
-    public constructor({fileSystem, projectDirectory, fullValidator, partialValidator}: Configuration) {
-        this.fileSystem = fileSystem;
-        this.projectDirectory = projectDirectory;
-        this.fullValidator = fullValidator;
-        this.partialValidator = partialValidator;
+    private readonly configurationFile: string;
+
+    public constructor(configuration: Configuration) {
+        this.fileSystem = configuration.fileSystem;
+        this.fullValidator = configuration.fullValidator;
+        this.partialValidator = configuration.partialValidator;
+        this.configurationFile = configuration.configurationFile;
     }
 
     public async isInitialized(state: InitializationState = InitializationState.ANY): Promise<boolean> {
         if (state === InitializationState.ANY) {
-            return this.fileSystem.exists(this.getConfigurationFilePath());
+            return this.fileSystem.exists(this.configurationFile);
         }
 
         const validator = state === InitializationState.FULL
@@ -158,7 +159,7 @@ export class JsonConfigurationFileManager implements ConfigurationManager {
         validator: Validator<T>,
     ): Promise<LoadedFile<Omit<T, '$schema'>>> {
         const file: LoadedFile<T> = {
-            path: this.getConfigurationFilePath(),
+            path: this.configurationFile,
             source: null,
             configuration: null,
         };
@@ -181,10 +182,6 @@ export class JsonConfigurationFileManager implements ConfigurationManager {
         }
 
         return file;
-    }
-
-    private getConfigurationFilePath(): string {
-        return this.fileSystem.joinPaths(this.projectDirectory.get(), 'croct.json');
     }
 
     private async validateConfiguration<T extends JsonPartialProjectConfiguration>(

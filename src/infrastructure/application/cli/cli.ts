@@ -372,6 +372,7 @@ export type Configuration = {
     cliTokenIssuer: string,
     apiKeyTokenDuration: number,
     adminTokenDuration: number,
+    configurationFile: string,
     directories: {
         current?: string,
         config: string,
@@ -474,6 +475,7 @@ export class Cli {
             adminTokenParameter: configuration.adminTokenParameter ?? 'accessToken',
             adminGraphqlEndpoint: configuration?.adminGraphqlEndpoint
                 ?? new URL('https://app.croct.com/graphql'),
+            configurationFile: configuration.configurationFile ?? 'croct.json',
             directories: {
                 current: configuration.directories?.current ?? process.getCurrentDirectory(),
                 config: configuration.directories?.config ?? appPaths.config(),
@@ -2333,11 +2335,19 @@ export class Cli {
 
     private getConfigurationManager(): ConfigurationManager {
         return this.share(this.getConfigurationManager, () => {
+            const fileSystem = this.getFileSystem();
+
             const manager = new JsonConfigurationFileManager({
-                fileSystem: this.getFileSystem(),
+                fileSystem: fileSystem,
                 fullValidator: new FullCroctConfigurationValidator(),
                 partialValidator: new PartialCroctConfigurationValidator(),
                 projectDirectory: this.workingDirectory,
+                configurationFile: fileSystem.isAbsolutePath(this.configuration.configurationFile)
+                    ? this.configuration.configurationFile
+                    : fileSystem.joinPaths(
+                        this.workingDirectory.get(),
+                        this.configuration.configurationFile,
+                    ),
             });
 
             return new IndexedConfigurationManager({

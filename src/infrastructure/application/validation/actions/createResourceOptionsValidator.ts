@@ -217,10 +217,14 @@ const structureContentSchema = z.strictObject({
 
 const listContentSchema = z.strictObject({
     type: z.literal('list'),
-    items: z.array(z.lazy((): ZodType<Content> => contentSchema)),
+    items: z.array(z.lazy(
+        (): ZodType<Content> => z.intersection(contentSchema, z.object({
+            label: z.string().optional(),
+        })),
+    )),
 }) satisfies ZodType<Content<'list'>>;
 
-const contentSchema: ZodType<Content> = z.discriminatedUnion('type', [
+const contentSchema = z.discriminatedUnion('type', [
     textContentSchema,
     numberContentSchema,
     booleanContentSchema,

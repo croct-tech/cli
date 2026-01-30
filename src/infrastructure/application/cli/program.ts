@@ -65,6 +65,7 @@ function createProgram(config: Configuration): typeof program {
             return url;
         })
         .option('--no-interaction', 'Run the CLI in non-interactive mode.')
+        .option('--config <path>', 'Path to the configuration file.')
         .addOption(
             new Option('--stateless', 'Run the CLI without saving any state locally.')
                 .env('CROCT_STATELESS')
@@ -455,6 +456,7 @@ export async function run(args: string[] = process.argv, welcome = true): Promis
         templateRegistryUrl: options.registry === undefined
             ? undefined
             : new URL(options.registry),
+        configurationFile: options.config,
     });
 
     const template = getTemplate(invocation.args);
