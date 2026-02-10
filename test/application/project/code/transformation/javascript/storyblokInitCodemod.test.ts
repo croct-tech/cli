@@ -199,6 +199,102 @@ describe('StoryblokInitCodemod', () => {
         ].join('\n'));
     });
 
+    it('should not wrap arguments that are already wrapped', async () => {
+        const transformer = createTransformer();
+
+        const input = [
+            "import { withCroct } from '@croct/storyblok';",
+            "import { storyblokInit } from '@storyblok/js';",
+            '',
+            'storyblokInit(withCroct({ accessToken: "token" }));',
+        ].join('\n');
+
+        const {result, modified} = await transformer.apply(input, {
+            name: 'withCroct',
+            module: '@croct/storyblok',
+        });
+
+        expect(modified).toBe(false);
+        expect(result).toBe(input);
+    });
+
+    it('should not wrap member expression arguments that are already wrapped', async () => {
+        const transformer = createTransformer();
+
+        const input = [
+            "import { withCroct } from '@croct/storyblok';",
+            "import * as sb from '@storyblok/js';",
+            '',
+            'sb.storyblokInit(withCroct({ accessToken: "token" }));',
+        ].join('\n');
+
+        const {result, modified} = await transformer.apply(input, {
+            name: 'withCroct',
+            module: '@croct/storyblok',
+        });
+
+        expect(modified).toBe(false);
+        expect(result).toBe(input);
+    });
+
+    it('should not wrap arguments that are already wrapped with an alias', async () => {
+        const transformer = createTransformer();
+
+        const input = [
+            "import { withCroct as croctWrapper } from '@croct/storyblok';",
+            "import { storyblokInit } from '@storyblok/js';",
+            '',
+            'storyblokInit(croctWrapper({ accessToken: "token" }));',
+        ].join('\n');
+
+        const {result, modified} = await transformer.apply(input, {
+            name: 'withCroct',
+            module: '@croct/storyblok',
+        });
+
+        expect(modified).toBe(false);
+        expect(result).toBe(input);
+    });
+
+    it('should not wrap arguments that are already wrapped with no arguments', async () => {
+        const transformer = createTransformer();
+
+        const input = [
+            "import { withCroct } from '@croct/storyblok';",
+            "import { storyblokInit } from '@storyblok/js';",
+            '',
+            'storyblokInit(withCroct());',
+        ].join('\n');
+
+        const {result, modified} = await transformer.apply(input, {
+            name: 'withCroct',
+            module: '@croct/storyblok',
+        });
+
+        expect(modified).toBe(false);
+        expect(result).toBe(input);
+    });
+
+    it('should wrap when the argument is a call to a different function', async () => {
+        const transformer = createTransformer();
+
+        const input = [
+            "import { storyblokInit } from '@storyblok/js';",
+            '',
+            'storyblokInit(otherWrapper({ accessToken: "token" }));',
+        ].join('\n');
+
+        const {result, modified} = await transformer.apply(input, {
+            name: 'withCroct',
+            module: '@croct/storyblok',
+        });
+
+        expect(modified).toBe(true);
+        expect(result).toContain(
+            'storyblokInit(withCroct(otherWrapper({ accessToken: "token" })));',
+        );
+    });
+
     it('should add empty statement before import when first statement is not an import', async () => {
         const transformer = createTransformer();
 
