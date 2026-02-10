@@ -45,33 +45,34 @@ export class StoryblokInitCodemod implements Codemod<t.File, StoryblokInitCodemo
             CallExpression: path => {
                 const {callee} = path.node;
 
-                // Match direct function calls: targetFunction(...)
-                if (t.isIdentifier(callee) && callee.name === 'storyblokInit') {
-                    path.node.arguments = [
-                        t.callExpression(
-                            t.identifier(wrapperName),
-                            path.node.arguments,
-                        ),
-                    ];
-
-                    modified = true;
-                }
-
-                // Match member expression calls: obj.targetFunction(...)
-                if (
-                    t.isMemberExpression(callee)
+                const isDirectCall = t.isIdentifier(callee) && callee.name === 'storyblokInit';
+                const isMemberCall = t.isMemberExpression(callee)
                     && t.isIdentifier(callee.property)
-                    && callee.property.name === 'storyblokInit'
-                ) {
-                    path.node.arguments = [
-                        t.callExpression(
-                            t.identifier(wrapperName),
-                            path.node.arguments,
-                        ),
-                    ];
+                    && callee.property.name === 'storyblokInit';
 
-                    modified = true;
+                if (!isDirectCall && !isMemberCall) {
+                    return;
                 }
+
+                const args = path.node.arguments;
+
+                if (
+                    args.length === 1
+                    && t.isCallExpression(args[0])
+                    && t.isIdentifier(args[0].callee)
+                    && args[0].callee.name === wrapperName
+                ) {
+                    return;
+                }
+
+                path.node.arguments = [
+                    t.callExpression(
+                        t.identifier(wrapperName),
+                        args,
+                    ),
+                ];
+
+                modified = true;
             },
         });
 
