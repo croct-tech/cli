@@ -1,4 +1,4 @@
-import {RootDefinition} from '@croct/content-model/definition/definition';
+import type {RootDefinition} from '@croct/content-model/definition/definition';
 
 export type Component = {
     id: string,

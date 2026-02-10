@@ -1,10 +1,10 @@
-import {RootDefinition} from '@croct/content-model/definition/definition';
-import {WorkspacePath} from '@/application/api/organization';
-import {Application} from '@/application/model/application';
-import {Audience} from '@/application/model/audience';
-import {Slot} from '@/application/model/slot';
-import {Component} from '@/application/model/component';
-import {
+import type {RootDefinition} from '@croct/content-model/definition/definition';
+import type {WorkspacePath} from '@/application/api/organization';
+import type {Application} from '@/application/model/application';
+import type {Audience} from '@/application/model/audience';
+import type {Slot} from '@/application/model/slot';
+import type {Component} from '@/application/model/component';
+import type {
     ExperienceDetails,
     ExperienceStatus,
     Experience,
@@ -13,7 +13,7 @@ import {
     SlotContentMap,
     SegmentedContent,
 } from '@/application/model/experience';
-import {WorkspaceFeatures} from '@/application/model/workspace';
+import type {WorkspaceFeatures} from '@/application/model/workspace';
 
 export type AudiencePath = WorkspacePath & {
     audienceSlug: string,
@@ -61,7 +61,7 @@ export type ExperiencePath = WorkspacePath & {
 };
 
 export type ExperienceCriteria = WorkspacePath & {
-    status?: ExperienceStatus|ExperienceStatus[],
+    status?: ExperienceStatus | ExperienceStatus[],
 };
 
 export type SegmentedContentDefinition = Omit<SegmentedContent, 'id'>;
@@ -125,19 +125,19 @@ export type NewResourceIds = {
 };
 
 export interface WorkspaceApi {
-    getFeatures(path: WorkspacePath): Promise<WorkspaceFeatures|null>;
+    getFeatures(path: WorkspacePath): Promise<WorkspaceFeatures | null>;
 
     getAudiences(path: WorkspacePath): Promise<Audience[]>;
 
-    getAudience(path: AudiencePath): Promise<Audience|null>;
+    getAudience(path: AudiencePath): Promise<Audience | null>;
 
     getSlots(path: WorkspacePath): Promise<Slot[]>;
 
-    getSlot(criteria: SlotCriteria): Promise<Slot|null>;
+    getSlot(criteria: SlotCriteria): Promise<Slot | null>;
 
     getComponents(path: WorkspacePath): Promise<Component[]>;
 
-    getComponent(criteria: ComponentCriteria): Promise<Component|null>;
+    getComponent(criteria: ComponentCriteria): Promise<Component | null>;
 
     getSlotStaticContent(path: SlotPath, majorVersion?: number): Promise<LocalizedContent[]>;
 
@@ -145,13 +145,13 @@ export interface WorkspaceApi {
 
     getApplications(path: WorkspacePath): Promise<Application[]>;
 
-    getApplication(path: ApplicationPath): Promise<Application|null>;
+    getApplication(path: ApplicationPath): Promise<Application | null>;
 
     createApplication(application: NewApplication): Promise<Application>;
 
     getExperiences(path: ExperienceCriteria): Promise<Experience[]>;
 
-    getExperience(path: ExperiencePath): Promise<ExperienceDetails|null>;
+    getExperience(path: ExperiencePath): Promise<ExperienceDetails | null>;
 
     createResources(resources: NewResources): Promise<NewResourceIds>;
 }

@@ -1,5 +1,5 @@
-import {Server} from '@/application/project/server/server';
-import {Command} from '@/application/system/process/command';
+import type {Server} from '@/application/project/server/server';
+import type {Command} from '@/application/system/process/command';
 
 export type ServerInfo = {
     protocol: string,

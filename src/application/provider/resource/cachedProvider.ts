@@ -1,5 +1,5 @@
-import {CacheProvider} from '@croct/cache';
-import {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import type {CacheProvider} from '@croct/cache';
+import type {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
 
 export type Configuration<T> = {
     provider: ResourceProvider<T>,

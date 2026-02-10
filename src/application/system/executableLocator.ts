@@ -1,11 +1,12 @@
-import {CacheProvider, NoopCache} from '@croct/cache';
-import {FileSystem} from '@/application/fs/fileSystem';
+import type {CacheProvider} from '@croct/cache';
+import {NoopCache} from '@croct/cache';
+import type {FileSystem} from '@/application/fs/fileSystem';
 
 export type Configuration = {
     fileSystem: FileSystem,
     executablePaths: string[],
     executableExtensions?: string[],
-    cache?: CacheProvider<string, string|null>,
+    cache?: CacheProvider<string, string | null>,
 };
 
 export class ExecutableLocator {
@@ -15,7 +16,7 @@ export class ExecutableLocator {
 
     private readonly executableExtensions: string[];
 
-    private readonly executableCache: CacheProvider<string, string|null>;
+    private readonly executableCache: CacheProvider<string, string | null>;
 
     public constructor(configuration: Configuration) {
         this.fileSystem = configuration.fileSystem;
@@ -24,11 +25,11 @@ export class ExecutableLocator {
         this.executableCache = configuration.cache ?? new NoopCache();
     }
 
-    public locate(command: string): Promise<string|null> {
+    public locate(command: string): Promise<string | null> {
         return this.executableCache.get(command, name => this.findPath(name));
     }
 
-    private async findPath(command: string): Promise<string|null> {
+    private async findPath(command: string): Promise<string | null> {
         for (const path of this.executablePaths) {
             for (const extension of [...this.executableExtensions, '']) {
                 const realPath = this.fileSystem.joinPaths(path, command + extension.toLowerCase());

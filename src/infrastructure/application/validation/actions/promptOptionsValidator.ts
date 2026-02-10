@@ -1,5 +1,6 @@
-import {z, ZodType, ZodTypeDef} from 'zod';
-import {
+import type {ZodType, ZodTypeDef} from 'zod';
+import {z} from 'zod';
+import type {
     ChoiceOptions,
     ConfirmationOptions,
     KeypressOptions,

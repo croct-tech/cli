@@ -1,15 +1,17 @@
-import {Content} from '@croct/content-model/content/content';
-import {JsonValue} from '@croct/json';
-import {ContentDefinition} from '@croct/content-model/definition/definition';
-import {Installation, SdkError} from '@/application/project/sdk/sdk';
-import {
+import type {Content} from '@croct/content-model/content/content';
+import type {JsonValue} from '@croct/json';
+import type {ContentDefinition} from '@croct/content-model/definition/definition';
+import type {Installation} from '@/application/project/sdk/sdk';
+import {SdkError} from '@/application/project/sdk/sdk';
+import type {
     Configuration as JavaScriptSdkConfiguration,
     InstallationPlan,
-    JavaScriptSdk,
 } from '@/application/project/sdk/javasScriptSdk';
+import {JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import {PlugJsExampleGenerator} from '@/application/project/code/generation/slot/plugJsExampleGenerator';
-import {CodeLanguage, ExampleFile} from '@/application/project/code/generation/example';
-import {Slot} from '@/application/model/slot';
+import type {ExampleFile} from '@/application/project/code/generation/example';
+import {CodeLanguage} from '@/application/project/code/generation/example';
+import type {Slot} from '@/application/model/slot';
 import {sortAttributes} from '@/application/project/code/generation/utils';
 import {ErrorReason} from '@/application/error';
 
@@ -116,7 +118,7 @@ export class PlugJsSdk extends JavaScriptSdk {
         }
     }
 
-    private async detectBundler(): Promise<string|null> {
+    private async detectBundler(): Promise<string | null> {
         for (const bundler of this.bundlers) {
             if (await this.packageManager.hasDirectDependency(bundler)) {
                 return Promise.resolve(bundler);

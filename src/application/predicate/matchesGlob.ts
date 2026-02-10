@@ -1,5 +1,5 @@
 import {Minimatch} from 'minimatch';
-import {Predicate} from '@/application/predicate/predicate';
+import type {Predicate} from '@/application/predicate/predicate';
 
 export class MatchesGlob implements Predicate<[string, string]> {
     private readonly matcher: Minimatch;

@@ -1,7 +1,9 @@
-import {Installation, Sdk, SdkError, UpdateOptions} from '@/application/project/sdk/sdk';
-import {Provider, ProviderError} from '@/application/provider/provider';
-import {ProjectConfiguration, ProjectPaths} from '@/application/project/configuration/projectConfiguration';
-import {Slot} from '@/application/model/slot';
+import type {Installation, Sdk, UpdateOptions} from '@/application/project/sdk/sdk';
+import {SdkError} from '@/application/project/sdk/sdk';
+import type {Provider} from '@/application/provider/provider';
+import {ProviderError} from '@/application/provider/provider';
+import type {ProjectConfiguration, ProjectPaths} from '@/application/project/configuration/projectConfiguration';
+import type {Slot} from '@/application/model/slot';
 
 export class LazySdk implements Sdk {
     private readonly provider: Provider<Sdk>;

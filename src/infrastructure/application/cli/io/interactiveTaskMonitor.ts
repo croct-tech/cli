@@ -1,13 +1,13 @@
 /* eslint-disable no-param-reassign -- Intentional */
 import cliCursor from 'cli-cursor';
 import chalk from 'chalk';
-import {Writable} from 'stream';
+import type {Writable} from 'stream';
 import readline from 'node:readline';
 import {WriteStream} from 'tty';
 import stripAnsi from 'strip-ansi';
-import {Task, TaskList, TaskOptions, Notifier, Semantics} from '@/application/cli/io/output';
+import type {Task, TaskList, TaskOptions, Notifier, Semantics} from '@/application/cli/io/output';
 import {format} from '@/infrastructure/application/cli/io/formatting';
-import {TaskExecution, TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
+import type {TaskExecution, TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
 
 type TaskStatus = 'loading' | 'pending' | 'error' | 'warning' | 'success';
 

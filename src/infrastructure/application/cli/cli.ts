@@ -1,55 +1,60 @@
-import {AutoSaveCache, CacheProvider, InMemoryCache} from '@croct/cache';
-import {ApiKey} from '@croct/sdk/apiKey';
-import {Clock, Instant, LocalTime} from '@croct/time';
+import type {CacheProvider} from '@croct/cache';
+import {AutoSaveCache, InMemoryCache} from '@croct/cache';
+import type {ApiKey} from '@croct/sdk/apiKey';
+import type {Clock} from '@croct/time';
+import {Instant, LocalTime} from '@croct/time';
 import {SystemClock} from '@croct/time/clock/systemClock.js';
 import {homedir} from 'os';
 import XDGAppPaths from 'xdg-app-paths';
 import ci from 'ci-info';
-import {FilteredLogger, Logger, LogLevel} from '@croct/logging';
-import {Token} from '@croct/sdk/token';
-import {File} from '@babel/types';
+import type {Logger} from '@croct/logging';
+import {FilteredLogger, LogLevel} from '@croct/logging';
+import type {Token} from '@croct/sdk/token';
+import type {File} from '@babel/types';
 import {ConsoleInput} from '@/infrastructure/application/cli/io/consoleInput';
-import {ConsoleOutput, LinkOpener} from '@/infrastructure/application/cli/io/consoleOutput';
-import {Sdk} from '@/application/project/sdk/sdk';
-import {
+import type {LinkOpener} from '@/infrastructure/application/cli/io/consoleOutput';
+import {ConsoleOutput} from '@/infrastructure/application/cli/io/consoleOutput';
+import type {Sdk} from '@/application/project/sdk/sdk';
+import type {
     Configuration as JavaScriptSdkConfiguration,
     JavaScriptSdkPlugin,
 } from '@/application/project/sdk/javasScriptSdk';
 import {PlugJsSdk} from '@/application/project/sdk/plugJsSdk';
 import {PlugReactSdk} from '@/application/project/sdk/plugReactSdk';
 import {PlugNextSdk} from '@/application/project/sdk/plugNextSdk';
-import {InitCommand, InitInput} from '@/application/cli/command/init';
-import {LoginCommand, LoginInput} from '@/application/cli/command/login';
+import type {InitInput} from '@/application/cli/command/init';
+import {InitCommand} from '@/application/cli/command/init';
+import type {LoginInput} from '@/application/cli/command/login';
+import {LoginCommand} from '@/application/cli/command/login';
 import {LogoutCommand} from '@/application/cli/command/logout';
-import {Input} from '@/application/cli/io/input';
+import type {Input} from '@/application/cli/io/input';
 import {JsonConfigurationFileManager} from '@/application/project/configuration/manager/jsonConfigurationFileManager';
-import {GraphqlClient} from '@/infrastructure/graphql';
+import type {GraphqlClient} from '@/infrastructure/graphql';
 import {FetchGraphqlClient} from '@/infrastructure/graphql/fetchGraphqlClient';
-import {UserApi} from '@/application/api/user';
-import {OrganizationApi} from '@/application/api/organization';
-import {WorkspaceApi} from '@/application/api/workspace';
+import type {UserApi} from '@/application/api/user';
+import type {OrganizationApi} from '@/application/api/organization';
+import type {WorkspaceApi} from '@/application/api/workspace';
 import {GraphqlUserApi} from '@/infrastructure/application/api/graphql/user';
 import {GraphqlOrganizationApi} from '@/infrastructure/application/api/graphql/organization';
 import {GraphqlWorkspaceApi} from '@/infrastructure/application/api/graphql/workspace';
 import {OrganizationForm} from '@/application/cli/form/organization/organizationForm';
 import {WorkspaceForm} from '@/application/cli/form/workspace/workspaceForm';
 import {ApplicationForm} from '@/application/cli/form/application/applicationForm';
-import {ApplicationApi} from '@/application/api/application';
+import type {ApplicationApi} from '@/application/api/application';
 import {GraphqlApplicationApi} from '@/infrastructure/application/api/graphql/application';
-import {Authenticator} from '@/application/cli/authentication/authenticator';
-import {
-    CredentialsAuthenticator,
-    CredentialsInput,
-} from '@/application/cli/authentication/authenticator/credentialsAuthenticator';
+import type {Authenticator} from '@/application/cli/authentication/authenticator';
+import type {CredentialsInput} from '@/application/cli/authentication/authenticator/credentialsAuthenticator';
+import {CredentialsAuthenticator} from '@/application/cli/authentication/authenticator/credentialsAuthenticator';
 import {SignInForm} from '@/application/cli/form/user/signInForm';
-import {AuthenticationListener} from '@/application/cli/authentication/authentication';
+import type {AuthenticationListener} from '@/application/cli/authentication/authentication';
 import {SignUpForm} from '@/application/cli/form/user/signUpForm';
-import {Command, CommandInput} from '@/application/cli/command/command';
-import {AdminCommand, AdminInput} from '@/application/cli/command/admin';
+import type {Command, CommandInput} from '@/application/cli/command/command';
+import type {AdminInput} from '@/application/cli/command/admin';
+import {AdminCommand} from '@/application/cli/command/admin';
 import {JsxWrapperCodemod} from '@/application/project/code/transformation/javascript/jsxWrapperCodemod';
 import {JavaScriptCodemod} from '@/application/project/code/transformation/javascript/javaScriptCodemod';
 import {NextJsProxyCodemod} from '@/application/project/code/transformation/javascript/nextJsProxyCodemod';
-import {CodeFormatter} from '@/application/project/code/formatting/formatter';
+import type {CodeFormatter} from '@/application/project/code/formatting/formatter';
 import {FormatCodemod} from '@/application/project/code/transformation/formatCodemod';
 import {FileCodemod} from '@/application/project/code/transformation/fileCodemod';
 import {
@@ -59,29 +64,33 @@ import {
     NextJsAppComponentCodemod,
 } from '@/application/project/code/transformation/javascript/nextJsAppComponentCodemod';
 import {JavaScriptFormatter} from '@/infrastructure/application/project/javaScriptFormatter';
-import {AddSlotCommand, AddSlotInput} from '@/application/cli/command/slot/add';
+import type {AddSlotInput} from '@/application/cli/command/slot/add';
+import {AddSlotCommand} from '@/application/cli/command/slot/add';
 import {SlotForm} from '@/application/cli/form/workspace/slotForm';
-import {AddComponentCommand, AddComponentInput} from '@/application/cli/command/component/add';
+import type {AddComponentInput} from '@/application/cli/command/component/add';
+import {AddComponentCommand} from '@/application/cli/command/component/add';
 import {ComponentForm} from '@/application/cli/form/workspace/componentForm';
-import {RemoveSlotCommand, RemoveSlotInput} from '@/application/cli/command/slot/remove';
-import {RemoveComponentCommand, RemoveComponentInput} from '@/application/cli/command/component/remove';
-import {
-    ConfigurationManager,
-    InitializationState,
-} from '@/application/project/configuration/manager/configurationManager';
+import type {RemoveSlotInput} from '@/application/cli/command/slot/remove';
+import {RemoveSlotCommand} from '@/application/cli/command/slot/remove';
+import type {RemoveComponentInput} from '@/application/cli/command/component/remove';
+import {RemoveComponentCommand} from '@/application/cli/command/component/remove';
+import type {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import {InitializationState} from '@/application/project/configuration/manager/configurationManager';
 import {NewConfigurationManager} from '@/application/project/configuration/manager/newConfigurationManager';
-import {InstallCommand, InstallInput} from '@/application/cli/command/install';
+import type {InstallInput} from '@/application/cli/command/install';
+import {InstallCommand} from '@/application/cli/command/install';
 import {PageForm} from '@/application/cli/form/page';
 import {NonInteractiveAuthenticator} from '@/application/cli/authentication/authenticator/nonInteractiveAuthenticator';
-import {Instruction, NonInteractiveInput} from '@/application/cli/io/nonInteractiveInput';
-import {
-    MultiAuthenticationInput,
-    MultiAuthenticator,
-} from '@/application/cli/authentication/authenticator/multiAuthenticator';
+import type {Instruction} from '@/application/cli/io/nonInteractiveInput';
+import {NonInteractiveInput} from '@/application/cli/io/nonInteractiveInput';
+import type {MultiAuthenticationInput} from '@/application/cli/authentication/authenticator/multiAuthenticator';
+import {MultiAuthenticator} from '@/application/cli/authentication/authenticator/multiAuthenticator';
 import {ApiError} from '@/application/api/error';
-import {UpgradeCommand, UpgradeInput} from '@/application/cli/command/upgrade';
-import {ProjectConfigurationError, ProjectPaths} from '@/application/project/configuration/projectConfiguration';
-import {FileSystem, FileSystemIterator, ScanFilter} from '@/application/fs/fileSystem';
+import type {UpgradeInput} from '@/application/cli/command/upgrade';
+import {UpgradeCommand} from '@/application/cli/command/upgrade';
+import type {ProjectPaths} from '@/application/project/configuration/projectConfiguration';
+import {ProjectConfigurationError} from '@/application/project/configuration/projectConfiguration';
+import type {FileSystem, FileSystemIterator, ScanFilter} from '@/application/fs/fileSystem';
 import {LocalFilesystem} from '@/application/fs/localFilesystem';
 import {FocusListener} from '@/infrastructure/application/cli/io/focusListener';
 import {EmailLinkGenerator} from '@/application/cli/email/email';
@@ -93,19 +102,22 @@ import {ICloudTemplate} from '@/application/cli/email/template/icloudTemplate';
 import {MicrosoftTemplate} from '@/application/cli/email/template/microsoftTemplate';
 import {ProtonTemplate} from '@/application/cli/email/template/protonTemplate';
 import {YahooTemplate} from '@/application/cli/email/template/yahooTemplate';
-import {CreateTemplateCommand, CreateTemplateInput} from '@/application/cli/command/template/create';
+import type {CreateTemplateInput} from '@/application/cli/command/template/create';
+import {CreateTemplateCommand} from '@/application/cli/command/template/create';
 import {TemplateForm} from '@/application/cli/form/workspace/templateForm';
 import {ExperienceForm} from '@/application/cli/form/workspace/experienceForm';
 import {AudienceForm} from '@/application/cli/form/workspace/audienceForm';
-import {UseTemplateCommand, UseTemplateInput} from '@/application/cli/command/template/use';
+import type {UseTemplateInput} from '@/application/cli/command/template/use';
+import {UseTemplateCommand} from '@/application/cli/command/template/use';
 import {DownloadAction} from '@/application/template/action/downloadAction';
 import {AddDependencyAction} from '@/application/template/action/addDependencyAction';
 import {LocatePathAction} from '@/application/template/action/locatePathAction';
 import {ReplaceFileContentAction} from '@/application/template/action/replaceFileContentAction';
-import {OptionMap, SourceLocation} from '@/application/template/template';
+import type {OptionMap, SourceLocation} from '@/application/template/template';
 import {AddSlotAction} from '@/application/template/action/addSlotAction';
 import {AddComponentAction} from '@/application/template/action/addComponentAction';
-import {TryAction, TryOptions} from '@/application/template/action/tryAction';
+import type {TryOptions} from '@/application/template/action/tryAction';
+import {TryAction} from '@/application/template/action/tryAction';
 import {LazyAction} from '@/application/template/action/lazyAction';
 import {CachedConfigurationManager} from '@/application/project/configuration/manager/cachedConfigurationManager';
 import {CreateResourceAction} from '@/application/template/action/createResourceAction';
@@ -113,13 +125,14 @@ import {SlugMappingForm} from '@/application/cli/form/workspace/slugMappingForm'
 import {ResourceMatcher} from '@/application/template/resourceMatcher';
 import {FetchProvider} from '@/application/provider/resource/fetchProvider';
 import {CheckDependencyAction} from '@/application/template/action/checkDependencyAction';
-import {HttpProvider} from '@/application/provider/resource/httpProvider';
+import type {HttpProvider} from '@/application/provider/resource/httpProvider';
 import {MappedProvider} from '@/application/provider/resource/mappedProvider';
 import {MultiProvider} from '@/application/provider/resource/multiProvider';
 import {FileSystemProvider} from '@/application/provider/resource/fileSystemProvider';
 import {GithubProvider} from '@/application/provider/resource/githubProvider';
 import {HttpFileProvider} from '@/application/provider/resource/httpFileProvider';
-import {ResourceProvider, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
+import type {ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import {ResourceProviderError} from '@/application/provider/resource/resourceProvider';
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {PartialNpmPackageValidator} from '@/infrastructure/application/validation/partialNpmPackageValidator';
 import {
@@ -134,8 +147,10 @@ import {FileSystemCache} from '@/infrastructure/cache/fileSystemCache';
 import {CachedProvider} from '@/application/provider/resource/cachedProvider';
 import {JsepExpressionEvaluator} from '@/infrastructure/application/evaluation/jsepExpressionEvaluator';
 import {TemplateValidator} from '@/infrastructure/application/validation/templateValidator';
-import {ImportAction, ImportOptions} from '@/application/template/action/importAction';
-import {Action, ActionError} from '@/application/template/action/action';
+import type {ImportOptions} from '@/application/template/action/importAction';
+import {ImportAction} from '@/application/template/action/importAction';
+import type {Action} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
 import {ValidatedAction} from '@/application/template/action/validatedAction';
 import {TryOptionsValidator} from '@/infrastructure/application/validation/actions/tryOptionsValidator';
 import {
@@ -161,7 +176,8 @@ import {TemplateProvider} from '@/application/template/templateProvider';
 import {FormatCodeAction} from '@/application/template/action/formatCodeAction';
 import {FormatCodeOptionsValidator} from '@/infrastructure/application/validation/actions/formatCodeOptionsValidator';
 import {EnumeratedProvider} from '@/application/provider/enumeratedProvider';
-import {TestAction, TestOptions} from '@/application/template/action/testAction';
+import type {TestOptions} from '@/application/template/action/testAction';
+import {TestAction} from '@/application/template/action/testAction';
 import {TestOptionsValidator} from '@/infrastructure/application/validation/actions/testOptionsValidator';
 import {PrintAction} from '@/application/template/action/printAction';
 import {PrintOptionsValidator} from '@/infrastructure/application/validation/actions/printOptionsValidator';
@@ -169,7 +185,7 @@ import {FailAction} from '@/application/template/action/failAction';
 import {FailOptionsValidator} from '@/infrastructure/application/validation/actions/failOptionsValidator';
 import {SpecificResourceProvider} from '@/application/provider/resource/specificResourceProvider';
 import {ConstantProvider} from '@/application/provider/constantProvider';
-import {Server} from '@/application/project/server/server';
+import type {Server} from '@/application/project/server/server';
 import {ProjectServerProvider} from '@/application/project/server/provider/projectServerProvider';
 import {NextCommandParser} from '@/application/project/server/provider/parser/nextCommandParser';
 import {ViteCommandParser} from '@/application/project/server/provider/parser/viteCommandParser';
@@ -179,16 +195,18 @@ import {PromptAction} from '@/application/template/action/promptAction';
 import {PromptOptionsValidator} from '@/infrastructure/application/validation/actions/promptOptionsValidator';
 import {StartServer} from '@/application/template/action/startServerAction';
 import {StartServerOptionsValidator} from '@/infrastructure/application/validation/actions/startServerOptionsValidator';
-import {RunAction, RunOptions} from '@/application/template/action/runAction';
+import type {RunOptions} from '@/application/template/action/runAction';
+import {RunAction} from '@/application/template/action/runAction';
 import {RunOptionsValidator} from '@/infrastructure/application/validation/actions/runOptionsValidator';
 import {OpenLinkAction} from '@/application/template/action/openLinkAction';
 import {OpenLinkOptionsValidator} from '@/infrastructure/application/validation/actions/openLinkOptionsValidator';
 import {DefineOptionsValidator} from '@/infrastructure/application/validation/actions/defineOptionsValidator';
 import {DefineAction} from '@/application/template/action/defineAction';
-import {EvaluationError, VariableMap} from '@/application/template/evaluation';
+import type {VariableMap} from '@/application/template/evaluation';
+import {EvaluationError} from '@/application/template/evaluation';
 import {StopServerOptionsValidator} from '@/infrastructure/application/validation/actions/stopServerOptionsValidator';
 import {ProcessServerFactory} from '@/application/project/server/factory/processServerFactory';
-import {CurrentWorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {CurrentWorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import {
     ChangeDirectoryOptionsValidator,
 } from '@/infrastructure/application/validation/actions/changeDirectoryOptionsValidator';
@@ -197,33 +215,34 @@ import {ExecutePackage} from '@/application/template/action/executePackage';
 import {
     ExecutePackageOptionsValidator,
 } from '@/infrastructure/application/validation/actions/executePackageOptionsValidator';
-import {
+import type {
     Configuration as NodePackageManagerConfiguration,
-    NodePackageManager,
 } from '@/application/project/packageManager/nodePackageManager';
+import {NodePackageManager} from '@/application/project/packageManager/nodePackageManager';
 import {NpmAgent} from '@/application/project/packageManager/agent/npmAgent';
 import {YarnAgent} from '@/application/project/packageManager/agent/yarnAgent';
 import {BunAgent} from '@/application/project/packageManager/agent/bunAgent';
 import {PnpmAgent} from '@/application/project/packageManager/agent/pnpmAgent';
-import {
+import type {
     Configuration as ExecutableAgentConfiguration,
 } from '@/application/project/packageManager/agent/executableAgent';
-import {PackageManager} from '@/application/project/packageManager/packageManager';
+import type {PackageManager} from '@/application/project/packageManager/packageManager';
 import {NodeImportResolver} from '@/application/project/import/nodeImportResolver';
 import {PartialTsconfigValidator} from '@/infrastructure/application/validation/partialTsconfigValidator';
 import {LazyPackageManager} from '@/application/project/packageManager/lazyPackageManager';
-import {EntryProvider} from '@/application/provider/entryProvider';
+import type {EntryProvider} from '@/application/provider/entryProvider';
 import {MapProvider} from '@/application/provider/mapProvider';
 import {NoopAgent} from '@/application/project/packageManager/agent/noopAgent';
-import {Provider, ProviderError} from '@/application/provider/provider';
+import type {Provider} from '@/application/provider/provider';
+import {ProviderError} from '@/application/provider/provider';
 import {FallbackProvider} from '@/application/provider/fallbackProvider';
 import {CallbackProvider} from '@/application/provider/callbackProvider';
 import {ConditionalProvider} from '@/application/provider/conditionalProvider';
 import {FileExists} from '@/application/predicate/fileExists';
 import {HasDependency} from '@/application/predicate/hasDependency';
 import {IsProject} from '@/application/predicate/isProject';
-import {ImportResolver} from '@/application/project/import/importResolver';
-import {CommandExecutor, SynchronousCommandExecutor} from '@/application/system/process/executor';
+import type {ImportResolver} from '@/application/project/import/importResolver';
+import type {CommandExecutor, SynchronousCommandExecutor} from '@/application/system/process/executor';
 import {SpawnExecutor} from '@/infrastructure/application/system/command/spawnExecutor';
 import {LazyFormatter} from '@/application/project/code/formatting/lazyFormatter';
 import {LazySdk} from '@/application/project/sdk/lazySdk';
@@ -238,34 +257,37 @@ import * as functions from '@/infrastructure/application/evaluation/functions';
 import {Platform} from '@/application/model/platform';
 import {RepeatAction} from '@/application/template/action/repeatAction';
 import {RepeatOptionsValidator} from '@/infrastructure/application/validation/actions/repeatOptionsValidator';
-import {ProtocolRegistry} from '@/application/system/protocol/protocolRegistry';
+import type {ProtocolRegistry} from '@/application/system/protocol/protocolRegistry';
 import {MacOsRegistry} from '@/application/system/protocol/macOsRegistry';
 import {WindowsRegistry} from '@/application/system/protocol/windowsRegistry';
 import {LinuxRegistry} from '@/application/system/protocol/linuxRegistry';
-import {OpenCommand, OpenInput, Program} from '@/application/cli/command/open';
+import type {OpenInput, Program} from '@/application/cli/command/open';
+import {OpenCommand} from '@/application/cli/command/open';
 import {CliSettingsValidator} from '@/infrastructure/application/validation/cliSettingsValidator';
 import {IndexedConfigurationManager} from '@/application/project/configuration/manager/indexedConfigurationManager';
-import {Process} from '@/application/system/process/process';
+import type {Process} from '@/application/system/process/process';
 import {ExecutableLocator} from '@/application/system/executableLocator';
 import {IsPreferredNodePackageManager} from '@/application/predicate/isPreferredNodePackageManager';
-import {WelcomeCommand, WelcomeInput} from '@/application/cli/command/welcome';
+import type {WelcomeInput} from '@/application/cli/command/welcome';
+import {WelcomeCommand} from '@/application/cli/command/welcome';
 import {HasEnvVar} from '@/application/predicate/hasEnvVar';
 import {SequentialProvider} from '@/application/provider/sequentialProvider';
 import {InvitationForm} from '@/application/cli/form/user/invitationForm';
 import {
     InvitationReminderAuthenticator,
 } from '@/application/cli/authentication/authenticator/invitationReminderAuthenticator';
-import {CliConfigurationProvider} from '@/application/cli/configuration/provider';
+import type {CliConfigurationProvider} from '@/application/cli/configuration/provider';
 import {CachedConfigurationStore} from '@/application/cli/configuration/cachedConfigurationStore';
 import {NormalizedConfigurationStore} from '@/application/cli/configuration/normalizedConfigurationStore';
-import {CreateApiKeyCommand, CreateApiKeyInput} from '@/application/cli/command/apiKey/create';
+import type {CreateApiKeyInput} from '@/application/cli/command/apiKey/create';
+import {CreateApiKeyCommand} from '@/application/cli/command/apiKey/create';
 import {ApiKeyAuthenticator} from '@/application/cli/authentication/authenticator/apiKeyAuthenticator';
 import {VirtualizedWorkingDirectory} from '@/application/fs/workingDirectory/virtualizedWorkingDirectory';
 import {ProcessWorkingDirectory} from '@/application/fs/workingDirectory/processWorkingDirectory';
 import {CachedAuthenticator} from '@/application/cli/authentication/authenticator/cachedAuthenticator';
 import {TokenCache} from '@/infrastructure/cache/tokenCache';
 import {SessionCloseListener} from '@/infrastructure/application/cli/io/sessionCloseListener';
-import {LogFormatter} from '@/application/cli/io/logFormatter';
+import type {LogFormatter} from '@/application/cli/io/logFormatter';
 import {BoxenFormatter} from '@/infrastructure/application/cli/io/boxenFormatter';
 import {NodeProcess} from '@/infrastructure/application/system/nodeProcess';
 import {CallbackAction} from '@/application/template/action/callbackAction';
@@ -280,22 +302,23 @@ import {
 import {TraceProvider} from '@/application/provider/resource/traceProvider';
 import {TreeLogger} from '@/application/logging/treeLogger';
 import {OutputLogger} from '@/infrastructure/application/cli/io/outputLogger';
-import {HierarchicalLogger} from '@/application/logging/hierarchicalLogger';
+import type {HierarchicalLogger} from '@/application/logging/hierarchicalLogger';
 import {GlobImportCodemod} from '@/application/project/code/transformation/globImportCodemod';
 import {PathBasedCodemod} from '@/application/project/code/transformation/pathBasedCodemod';
 import {getExportedNames} from '@/application/project/code/transformation/javascript/utils/getExportedNames';
 import {JavaScriptImportCodemod} from '@/application/project/code/transformation/javascript/javaScriptImportCodemod';
 import {ChainedCodemod} from '@/application/project/code/transformation/chainedCodemod';
-import {AttributeType} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
+import type {AttributeType} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
 import {HierarchyResolver} from '@/infrastructure/application/api/graphql/hierarchyResolver';
 import {MacOsFirefoxRegistry} from '@/application/system/protocol/macOsFirefoxRegistry';
 import {FirefoxRegistry} from '@/application/system/protocol/firefoxRegistry';
-import {DeepLinkCommand, DeepLinkInput} from '@/application/cli/command/deep-link';
+import type {DeepLinkInput} from '@/application/cli/command/deep-link';
+import {DeepLinkCommand} from '@/application/cli/command/deep-link';
 import {FileSystemTsConfigLoader} from '@/application/project/import/fileSystemTsConfigLoader';
 import {ResolvedCommandExecutor} from '@/infrastructure/application/system/command/resolvedCommandExecutor';
 import {TypeErasureCodemod} from '@/application/project/code/transformation/javascript/typeErasureCodemod';
 import {ExecutableExists} from '@/application/predicate/executableExists';
-import {ServerFactory} from '@/application/project/server/factory/serverFactory';
+import type {ServerFactory} from '@/application/project/server/factory/serverFactory';
 import {StopServer} from '@/application/template/action/stopServerAction';
 import {ProvidedTokenAuthenticator} from '@/application/cli/authentication/authenticator/providedTokenAuthenticator';
 import {LazyLinkOpener} from '@/infrastructure/application/cli/io/lazyLinkOpener';
@@ -316,7 +339,7 @@ import {WriteFileOptionsValidator} from '@/infrastructure/application/validation
 import {AutoUpdater} from '@/application/cli/autoUpdater';
 import {DeletePathAction} from '@/application/template/action/deletePathAction';
 import {DeletePathOptionsValidator} from '@/infrastructure/application/validation/actions/deletePathOptionsValidator';
-import {Codemod, ResultCode} from '@/application/project/code/transformation/codemod';
+import type {Codemod, ResultCode} from '@/application/project/code/transformation/codemod';
 import {ResolveImportAction} from '@/application/template/action/resolveImportAction';
 import {
     ResolveImportOptionsValidator,
@@ -370,10 +393,10 @@ export type Configuration = {
 export type Options =
     Partial<Omit<Configuration, | 'directories' | 'verificationLinkDestination' | 'emailSubject'>>
     & {
-    directories?: Partial<Configuration['directories']>,
-    verificationLinkDestination?: Partial<Configuration['verificationLinkDestination']>,
-    emailSubject?: Partial<Configuration['emailSubject']>,
-};
+        directories?: Partial<Configuration['directories']>,
+        verificationLinkDestination?: Partial<Configuration['verificationLinkDestination']>,
+        emailSubject?: Partial<Configuration['emailSubject']>,
+    };
 
 type AuthenticationMethods = {
     credentials: CredentialsInput,
@@ -395,7 +418,7 @@ type ProviderTracingOptions<T> = {
 };
 
 export class Cli {
-    // eslint-disable-next-line @typescript-eslint/ban-types -- Object.prototype.constructor is a Function
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type -- Object.prototype.constructor is a Function
     private static readonly READ_ONLY_COMMANDS: Set<Function> = new Set([
         WelcomeCommand,
         InstallCommand,
@@ -1096,12 +1119,12 @@ export class Cli {
                                 dataProvider: httpProvider,
                                 registryProvider: new ConstantProvider([
                                     {
-                                        // eslint-disable-next-line max-len -- Regex cannot be split
+                                        // eslint-disable-next-line @stylistic/max-len -- Regex cannot be split
                                         pattern: /^https:\/\/raw\.github\.com\/croct-tech\/templates\/(HEAD|master)\/templates\/(.+)$/i,
                                         destination: `https://cdn.croct.io/templates/$2?c=${time}`,
                                     },
                                     {
-                                        // eslint-disable-next-line max-len -- Regex cannot be split
+                                        // eslint-disable-next-line @stylistic/max-len -- Regex cannot be split
                                         pattern: /^https:\/\/api\.github\.com\/repos\/croct-tech\/templates\/git\/trees\/(HEAD|master)\?recursive=true/i,
                                         destination: `https://cdn.croct.io/templates/git-tree.json?c=${time}`,
                                     },
@@ -1805,7 +1828,7 @@ export class Cli {
                                 codemod: new JavaScriptCodemod({
                                     languages: ['typescript', 'jsx'],
                                     codemod: new NextJsProxyCodemod({
-                                        // eslint-disable-next-line max-len -- Ignore for readability
+                                        // eslint-disable-next-line @stylistic/max-len -- Regex cannot be split
                                         matcherPattern: '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
                                         exportName: proxyName,
                                         import: {
@@ -2132,7 +2155,7 @@ export class Cli {
         });
     }
 
-    private getServerProvider(): Provider<Server|null> {
+    private getServerProvider(): Provider<Server | null> {
         return this.share(this.getServerProvider, () => {
             const unknown = Symbol('unknown');
 

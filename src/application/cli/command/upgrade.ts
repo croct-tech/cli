@@ -1,16 +1,16 @@
-import {Command} from '@/application/cli/command/command';
-import {Output} from '@/application/cli/io/output';
-import {Input} from '@/application/cli/io/input';
-import {Form} from '@/application/cli/form/form';
-import {SlotOptions} from '@/application/cli/form/workspace/slotForm';
-import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
-import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
-import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
+import type {Command} from '@/application/cli/command/command';
+import type {Output} from '@/application/cli/io/output';
+import type {Input} from '@/application/cli/io/input';
+import type {Form} from '@/application/cli/form/form';
+import type {SlotOptions} from '@/application/cli/form/workspace/slotForm';
+import type {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import type {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
+import type {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
 import {Version} from '@/application/model/version';
-import {Slot} from '@/application/model/slot';
-import {Component} from '@/application/model/component';
+import type {Slot} from '@/application/model/slot';
+import type {Component} from '@/application/model/component';
 import {HelpfulError, ErrorReason} from '@/application/error';
-import {Installation, Sdk} from '@/application/project/sdk/sdk';
+import type {Installation, Sdk} from '@/application/project/sdk/sdk';
 
 export type UpgradeInput = {
     slots?: string[],

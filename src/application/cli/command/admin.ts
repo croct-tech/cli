@@ -1,9 +1,9 @@
-import {Command} from '@/application/cli/command/command';
-import {Output} from '@/application/cli/io/output';
-import {UserApi} from '@/application/api/user';
-import {PageOptions} from '@/application/cli/form/page';
-import {Form} from '@/application/cli/form/form';
-import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import type {Command} from '@/application/cli/command/command';
+import type {Output} from '@/application/cli/io/output';
+import type {UserApi} from '@/application/api/user';
+import type {PageOptions} from '@/application/cli/form/page';
+import type {Form} from '@/application/cli/form/form';
+import type {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 
 export type AdminInput = {
     page?: string,

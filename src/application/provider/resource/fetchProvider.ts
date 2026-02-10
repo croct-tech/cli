@@ -1,5 +1,6 @@
-import {HttpProvider, SuccessResponse} from '@/application/provider/resource/httpProvider';
-import {Resource, ResourceNotFoundError, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
+import type {HttpProvider, SuccessResponse} from '@/application/provider/resource/httpProvider';
+import type {Resource} from '@/application/provider/resource/resourceProvider';
+import {ResourceNotFoundError, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
 import {ErrorReason} from '@/application/error';
 
 export type Configuration = {

@@ -1,11 +1,11 @@
-import {Input} from '@/application/cli/io/input';
-import {Form} from '@/application/cli/form/form';
-import {Audience} from '@/application/model/audience';
-import {Slot} from '@/application/model/slot';
-import {Component} from '@/application/model/component';
+import type {Input} from '@/application/cli/io/input';
+import type {Form} from '@/application/cli/form/form';
+import type {Audience} from '@/application/model/audience';
+import type {Slot} from '@/application/model/slot';
+import type {Component} from '@/application/model/component';
 import {SlugInput} from '@/application/cli/form/input/slugInput';
-import {WorkspaceApi} from '@/application/api/workspace';
-import {WorkspacePath} from '@/application/api/organization';
+import type {WorkspaceApi} from '@/application/api/workspace';
+import type {WorkspacePath} from '@/application/api/organization';
 
 export type Configuration = {
     input: Input,

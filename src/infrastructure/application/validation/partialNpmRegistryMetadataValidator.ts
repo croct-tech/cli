@@ -1,6 +1,7 @@
-import {z, ZodType} from 'zod';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
-import {PackageMetadata} from '@/application/provider/resource/npmRegistryProvider';
+import type {PackageMetadata} from '@/application/provider/resource/npmRegistryProvider';
 
 const packageSchema: ZodType<PackageMetadata> = z.object({
     name: z.string(),

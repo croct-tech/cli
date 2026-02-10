@@ -1,6 +1,7 @@
 import * as t from '@babel/types';
-import {traverse, NodePath} from '@babel/core';
-import {ResultCode, Codemod} from '@/application/project/code/transformation/codemod';
+import type {NodePath} from '@babel/core';
+import {traverse} from '@babel/core';
+import type {ResultCode, Codemod} from '@/application/project/code/transformation/codemod';
 import {hasReexport} from '@/application/project/code/transformation/javascript/utils/hasReexport';
 import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
 import {addReexport} from '@/application/project/code/transformation/javascript/utils/addReexport';

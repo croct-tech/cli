@@ -1,12 +1,12 @@
 import {randomUUID} from 'node:crypto';
-import {Action} from '@/application/template/action/action';
-import {ActionContext} from '@/application/template/action/context';
-import {Notifier} from '@/application/cli/io/output';
+import type {Action} from '@/application/template/action/action';
+import type {ActionContext} from '@/application/template/action/context';
+import type {Notifier} from '@/application/cli/io/output';
 import {HelpfulError} from '@/application/error';
-import {ServerFactory} from '@/application/project/server/factory/serverFactory';
-import {Provider} from '@/application/provider/provider';
-import {Server} from '@/application/project/server/server';
-import {PackageManager} from '@/application/project/packageManager/packageManager';
+import type {ServerFactory} from '@/application/project/server/factory/serverFactory';
+import type {Provider} from '@/application/provider/provider';
+import type {Server} from '@/application/project/server/server';
+import type {PackageManager} from '@/application/project/packageManager/packageManager';
 import {TaskProgressLogger} from '@/infrastructure/application/cli/io/taskProgressLogger';
 
 type ServerInfo = {
@@ -26,7 +26,7 @@ export type StartServerOptions = {
 export type Configuration = {
     serverFactory: ServerFactory,
     packageManager: PackageManager,
-    serverProvider: Provider<Server|null>,
+    serverProvider: Provider<Server | null>,
     serverMap: Map<string, Server>,
 };
 
@@ -39,7 +39,7 @@ type ServerInstance = {
 export class StartServer implements Action<StartServerOptions> {
     private readonly factory: ServerFactory;
 
-    private readonly provider: Provider<Server|null>;
+    private readonly provider: Provider<Server | null>;
 
     private readonly packageManager: PackageManager;
 

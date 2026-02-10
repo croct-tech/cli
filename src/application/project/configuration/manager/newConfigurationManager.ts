@@ -1,11 +1,9 @@
-import {
+import type {
     PartialProjectConfiguration,
     ProjectConfiguration,
 } from '@/application/project/configuration/projectConfiguration';
-import {
-    ConfigurationManager,
-    InitializationState,
-} from '@/application/project/configuration/manager/configurationManager';
+import type {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import {InitializationState} from '@/application/project/configuration/manager/configurationManager';
 
 export interface ConfigurationInitializer {
     initialize(): Promise<void>;

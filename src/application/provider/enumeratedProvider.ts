@@ -1,9 +1,10 @@
-import {Provider, ProviderError} from '@/application/provider/provider';
+import type {Provider} from '@/application/provider/provider';
+import {ProviderError} from '@/application/provider/provider';
 import {ErrorReason} from '@/application/error';
 
 export type Discriminator<K extends PropertyKey> = () => Promise<K>;
 
-type Mapping<K extends PropertyKey, V> = Record<K, (() => Promise<V>|V)|Provider<V>>;
+type Mapping<K extends PropertyKey, V> = Record<K, (() => Promise<V> | V) | Provider<V>>;
 
 export type Configuration<K extends PropertyKey, V> = {
     discriminator: Discriminator<K>,

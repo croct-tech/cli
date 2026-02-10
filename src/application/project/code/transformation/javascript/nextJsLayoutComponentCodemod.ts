@@ -1,5 +1,5 @@
 import * as t from '@babel/types';
-import {Codemod, ResultCode} from '@/application/project/code/transformation/codemod';
+import type {Codemod, ResultCode} from '@/application/project/code/transformation/codemod';
 import {addImport} from '@/application/project/code/transformation/javascript/utils/addImport';
 
 export type LayoutComponentOptions = {

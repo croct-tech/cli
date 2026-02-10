@@ -1,5 +1,5 @@
-import {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
-import {CodeFormatter} from '@/application/project/code/formatting/formatter';
+import type {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
+import type {CodeFormatter} from '@/application/project/code/formatting/formatter';
 
 export class FormatCodemod<O extends CodemodOptions> implements Codemod<string, O> {
     private readonly formatter: CodeFormatter;

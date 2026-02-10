@@ -1,9 +1,9 @@
-import {GraphqlClient} from '@/infrastructure/graphql';
-import {ApplicationApi, GeneratedApiKey, NewApiKey} from '@/application/api/application';
-import {ApiKeyPermission as GraphqlApiKeyPermission} from '@/infrastructure/graphql/schema/graphql';
+import type {GraphqlClient} from '@/infrastructure/graphql';
+import type {ApplicationApi, GeneratedApiKey, NewApiKey} from '@/application/api/application';
+import type {ApiKeyPermission as GraphqlApiKeyPermission} from '@/infrastructure/graphql/schema/graphql';
 import {createApiKeyMutation} from '@/infrastructure/application/api/graphql/queries/application';
 import {ApiKeyPermission} from '@/application/model/application';
-import {HierarchyResolver} from '@/infrastructure/application/api/graphql/hierarchyResolver';
+import type {HierarchyResolver} from '@/infrastructure/application/api/graphql/hierarchyResolver';
 
 export class GraphqlApplicationApi implements ApplicationApi {
     private readonly client: GraphqlClient;

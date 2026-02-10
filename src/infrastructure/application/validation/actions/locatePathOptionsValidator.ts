@@ -1,5 +1,6 @@
-import {z, ZodType} from 'zod';
-import {LocatePathOptions, ContentMatcher, PatternMatcher} from '@/application/template/action/locatePathAction';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
+import type {LocatePathOptions, ContentMatcher, PatternMatcher} from '@/application/template/action/locatePathAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const patternMatcherSchema: ZodType<PatternMatcher> = z.strictObject({

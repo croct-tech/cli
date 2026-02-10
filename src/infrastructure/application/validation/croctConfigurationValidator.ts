@@ -1,11 +1,12 @@
-import {z, ZodOptional, ZodTypeDef} from 'zod';
+import type {ZodOptional, ZodTypeDef} from 'zod';
+import {z} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
 import {Version} from '@/application/model/version';
-import {
+import type {
     PartialProjectConfiguration,
     ProjectConfiguration,
 } from '@/application/project/configuration/projectConfiguration';
-import {
+import type {
     JsonPartialProjectConfiguration,
     JsonProjectConfiguration,
 } from '@/application/project/configuration/manager/jsonConfigurationFileManager';

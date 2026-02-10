@@ -1,6 +1,7 @@
-import {Action, ActionError} from '@/application/template/action/action';
-import {ActionContext} from '@/application/template/action/context';
-import {CodeFormatter} from '@/application/project/code/formatting/formatter';
+import type {Action} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
+import type {ActionContext} from '@/application/template/action/context';
+import type {CodeFormatter} from '@/application/project/code/formatting/formatter';
 
 export type FormatCodeOptions = {
     files: string[],

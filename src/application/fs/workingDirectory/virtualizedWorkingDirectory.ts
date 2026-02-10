@@ -1,4 +1,4 @@
-import {CurrentWorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {CurrentWorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 
 export class VirtualizedWorkingDirectory implements CurrentWorkingDirectory {
     private currentDirectory: string;

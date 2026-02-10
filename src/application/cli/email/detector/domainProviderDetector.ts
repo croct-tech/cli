@@ -1,7 +1,7 @@
-import {EmailProviderDetector} from '@/application/cli/email/email';
+import type {EmailProviderDetector} from '@/application/cli/email/email';
 
 export class DomainProviderDetector implements EmailProviderDetector {
-    public static readonly DEFAULT_DOMAINS: Readonly<Record<string, Array<string|RegExp>>> = {
+    public static readonly DEFAULT_DOMAINS: Readonly<Record<string, Array<string | RegExp>>> = {
         google: [
             'gmail.com',
             'googlemail.com',
@@ -32,13 +32,13 @@ export class DomainProviderDetector implements EmailProviderDetector {
         ],
     };
 
-    private readonly domains: Record<string, Array<string|RegExp>>;
+    private readonly domains: Record<string, Array<string | RegExp>>;
 
     public constructor(domains = DomainProviderDetector.DEFAULT_DOMAINS) {
         this.domains = domains;
     }
 
-    public detect(email: string): Promise<string|null> {
+    public detect(email: string): Promise<string | null> {
         const domain = email.toLowerCase().split('@')[1];
 
         for (const [provider, domains] of Object.entries(this.domains)) {

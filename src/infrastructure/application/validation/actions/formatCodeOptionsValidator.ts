@@ -1,5 +1,6 @@
-import {z, ZodType} from 'zod';
-import {FormatCodeOptions} from '@/application/template/action/formatCodeAction';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
+import type {FormatCodeOptions} from '@/application/template/action/formatCodeAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const schema: ZodType<FormatCodeOptions> = z.strictObject({

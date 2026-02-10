@@ -1,19 +1,19 @@
-import {Command} from '@/application/cli/command/command';
-import {Output} from '@/application/cli/io/output';
-import {Form} from '@/application/cli/form/form';
-import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
-import {TemplateOptions, TemplateResources} from '@/application/cli/form/workspace/templateForm';
-import {WorkspaceResources} from '@/application/template/resources';
-import {
+import type {Command} from '@/application/cli/command/command';
+import type {Output} from '@/application/cli/io/output';
+import type {Form} from '@/application/cli/form/form';
+import type {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import type {TemplateOptions, TemplateResources} from '@/application/cli/form/workspace/templateForm';
+import type {WorkspaceResources} from '@/application/template/resources';
+import type {
     AudienceDefinition,
     ComponentDefinition,
     ExperienceDefinition,
     SlotDefinition,
 } from '@/application/api/workspace';
 import {ExperienceStatus} from '@/application/model/experience';
-import {FileSystem} from '@/application/fs/fileSystem';
-import {Template} from '@/application/template/template';
-import {Input} from '@/application/cli/io/input';
+import type {FileSystem} from '@/application/fs/fileSystem';
+import type {Template} from '@/application/template/template';
+import type {Input} from '@/application/cli/io/input';
 import {HelpfulError, ErrorReason} from '@/application/error';
 
 export type CreateTemplateInput = {

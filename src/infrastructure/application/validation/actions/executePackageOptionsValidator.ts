@@ -1,6 +1,7 @@
-import {z, ZodType} from 'zod';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
-import {ExecutePackageOptions} from '@/application/template/action/executePackage';
+import type {ExecutePackageOptions} from '@/application/template/action/executePackage';
 
 const interactionsSchemaList: ZodType<ExecutePackageOptions['interactions']> = z.array(
     z.object({

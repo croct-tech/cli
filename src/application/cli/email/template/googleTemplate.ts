@@ -1,5 +1,5 @@
 import {Instant, LocalDateTime, TimeZone} from '@croct/time';
-import {EmailInfo, EmailLinkTemplate} from '@/application/cli/email/email';
+import type {EmailInfo, EmailLinkTemplate} from '@/application/cli/email/email';
 
 export class GoogleTemplate implements EmailLinkTemplate {
     public generate(info: EmailInfo): URL {

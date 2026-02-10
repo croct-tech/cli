@@ -1,9 +1,11 @@
-import boxen, {Options as BoxenOptions} from 'boxen';
+import type {Options as BoxenOptions} from 'boxen';
+import boxen from 'boxen';
 import chalk from 'chalk';
 import terminalLink from 'terminal-link';
-import {ErrorReason, Help, HelpfulError} from '@/application/error';
+import type {Help} from '@/application/error';
+import {ErrorReason, HelpfulError} from '@/application/error';
 import {colors, format} from '@/infrastructure/application/cli/io/formatting';
-import {Callout, LogFormatter} from '@/application/cli/io/logFormatter';
+import type {Callout, LogFormatter} from '@/application/cli/io/logFormatter';
 
 export class BoxenFormatter implements LogFormatter {
     private readonly boxenStyle: BoxenOptions;

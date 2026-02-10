@@ -1,5 +1,5 @@
-import {Predicate} from '@/application/predicate/predicate';
-import {PackageManager} from '@/application/project/packageManager/packageManager';
+import type {Predicate} from '@/application/predicate/predicate';
+import type {PackageManager} from '@/application/project/packageManager/packageManager';
 
 export type Configuration = {
     packageManager: PackageManager,

@@ -1,6 +1,6 @@
 import {AsyncLocalStorage} from 'node:async_hooks';
-import {Log, Logger} from '@croct/logging';
-import {Callback, HierarchicalLogger} from '@/application/logging/hierarchicalLogger';
+import type {Log, Logger} from '@croct/logging';
+import type {Callback, HierarchicalLogger} from '@/application/logging/hierarchicalLogger';
 
 type LogContext<L extends Log = Log> = {
     level: number,

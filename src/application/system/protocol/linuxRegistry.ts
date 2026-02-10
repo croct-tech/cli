@@ -1,9 +1,10 @@
-import {ProtocolHandler, ProtocolRegistry, ProtocolRegistryError} from '@/application/system/protocol/protocolRegistry';
-import {FileSystem} from '@/application/fs/fileSystem';
-import {CommandExecutor} from '@/application/system/process/executor';
+import type {ProtocolHandler, ProtocolRegistry} from '@/application/system/protocol/protocolRegistry';
+import {ProtocolRegistryError} from '@/application/system/protocol/protocolRegistry';
+import type {FileSystem} from '@/application/fs/fileSystem';
+import type {CommandExecutor} from '@/application/system/process/executor';
 import {multiline} from '@/utils/multiline';
 import {ErrorReason, HelpfulError} from '@/application/error';
-import {Command} from '@/application/system/process/command';
+import type {Command} from '@/application/system/process/command';
 
 export type Configuration = {
     fileSystem: FileSystem,

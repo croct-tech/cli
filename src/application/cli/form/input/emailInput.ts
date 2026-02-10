@@ -1,5 +1,5 @@
-import {Form} from '@/application/cli/form/form';
-import {Input} from '@/application/cli/io/input';
+import type {Form} from '@/application/cli/form/form';
+import type {Input} from '@/application/cli/io/input';
 
 export type Configuration = {
     input: Input,

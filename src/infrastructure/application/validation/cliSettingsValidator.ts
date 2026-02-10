@@ -1,6 +1,7 @@
-import {z, ZodType} from 'zod';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
-import {CliConfiguration} from '@/application/cli/configuration/provider';
+import type {CliConfiguration} from '@/application/cli/configuration/provider';
 
 const schema: ZodType<CliConfiguration> = z.strictObject({
     version: z.string().optional(),

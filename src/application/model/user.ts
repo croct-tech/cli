@@ -3,7 +3,7 @@ export enum Expertise {
     ENGINEERING = 'ENGINEERING',
     MARKETING = 'MARKETING',
     OTHER = 'OTHER',
-    PRODUCT = 'PRODUCT'
+    PRODUCT = 'PRODUCT',
 }
 
 export type User = {

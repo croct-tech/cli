@@ -1,4 +1,4 @@
-import {Log, Logger} from '@croct/logging';
+import type {Log, Logger} from '@croct/logging';
 
 export type Callback<R> = () => Promise<R>;
 

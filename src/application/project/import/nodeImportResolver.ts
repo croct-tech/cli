@@ -1,7 +1,7 @@
-import {ImportResolver} from '@/application/project/import/importResolver';
-import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
-import {FileSystem} from '@/application/fs/fileSystem';
-import {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
+import type {ImportResolver} from '@/application/project/import/importResolver';
+import type {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {FileSystem} from '@/application/fs/fileSystem';
+import type {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
 
 export type Configuration = {
     projectDirectory: WorkingDirectory,

@@ -1,7 +1,8 @@
-import {ApiKey} from '@croct/sdk/apiKey';
+import type {ApiKey} from '@croct/sdk/apiKey';
 import {Token} from '@croct/sdk/token';
-import {Clock, Instant} from '@croct/time';
-import {Authenticator} from '@/application/cli/authentication/authenticator/index';
+import type {Clock} from '@croct/time';
+import {Instant} from '@croct/time';
+import type {Authenticator} from '@/application/cli/authentication/authenticator/index';
 
 export type Configuration = {
     apiKey: ApiKey,
@@ -24,7 +25,7 @@ export class ApiKeyAuthenticator implements Authenticator<Record<never, never>> 
         this.tokenDuration = tokenDuration;
     }
 
-    public getToken(): Promise<string|null> {
+    public getToken(): Promise<string | null> {
         return Promise.resolve(this.token?.toString() ?? null);
     }
 

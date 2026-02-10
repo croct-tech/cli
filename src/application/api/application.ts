@@ -1,5 +1,5 @@
-import {ApiKey} from '@/application/model/application';
-import {ApplicationPath} from '@/application/api/workspace';
+import type {ApiKey} from '@/application/model/application';
+import type {ApplicationPath} from '@/application/api/workspace';
 
 export type NewApiKey = ApplicationPath & Omit<ApiKey, 'id'>;
 

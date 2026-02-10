@@ -1,18 +1,20 @@
-import {JsonValue} from '@croct/json';
-import {Action, ActionError, ActionRunner} from '@/application/template/action/action';
+import type {JsonValue} from '@croct/json';
+import type {Action, ActionRunner} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
 import {ActionContext} from '@/application/template/action/context';
 import {ErrorReason, HelpfulError} from '@/application/error';
-import {Resource, ResourceNotFoundError, ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import type {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import {ResourceNotFoundError} from '@/application/provider/resource/resourceProvider';
 import {VariableMap} from '@/application/template/evaluation';
-import {
+import type {
     DeferredOptionDefinition,
     DeferredTemplate,
     OptionType,
     OptionValueType,
 } from '@/application/template/template';
-import {Deferrable} from '@/application/template/deferral';
+import type {Deferrable} from '@/application/template/deferral';
 import {resolveUrl} from '@/utils/resolveUrl';
-import {Output} from '@/application/cli/io/output';
+import type {Output} from '@/application/cli/io/output';
 
 export type ImportOptions = {
     template: string,

@@ -1,6 +1,6 @@
-import {Provider} from '@/application/provider/provider';
+import type {Provider} from '@/application/provider/provider';
 
-export interface WorkingDirectory extends Provider<string>{
+export interface WorkingDirectory extends Provider<string> {
     get(): string;
     toString(): string;
 }

@@ -1,7 +1,8 @@
-import {z, ZodType} from 'zod';
-import {JsonValue} from '@croct/json';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
+import type {JsonValue} from '@croct/json';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
-import {OptionDefinition, Template} from '@/application/template/template';
+import type {OptionDefinition, Template} from '@/application/template/template';
 
 const baseOptionSchema = z.strictObject({
     description: z.string(),

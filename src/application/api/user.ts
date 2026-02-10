@@ -1,5 +1,5 @@
-import {User} from '@/application/model/user';
-import {Organization} from '@/application/model/organization';
+import type {User} from '@/application/model/user';
+import type {Organization} from '@/application/model/organization';
 
 export type OrganizationSetup = {
     website: string,

@@ -1,8 +1,9 @@
 import {parse} from 'ini';
-import {ProtocolHandler, ProtocolRegistry, ProtocolRegistryError} from '@/application/system/protocol/protocolRegistry';
-import {FileSystem} from '@/application/fs/fileSystem';
+import type {ProtocolHandler, ProtocolRegistry} from '@/application/system/protocol/protocolRegistry';
+import {ProtocolRegistryError} from '@/application/system/protocol/protocolRegistry';
+import type {FileSystem} from '@/application/fs/fileSystem';
 import {ErrorReason} from '@/application/error';
-import {Process} from '@/application/system/process/process';
+import type {Process} from '@/application/system/process/process';
 
 export type Configuration = {
     fileSystem: FileSystem,
@@ -26,10 +27,10 @@ export type LinuxConfiguration = PartialConfiguration & {
 
 type Handlers = {
     schemes: Record<string, {
-        action?: number|string,
+        action?: number | string,
         ask?: boolean,
         stubEntry?: boolean,
-        handlers: Array<null|{
+        handlers: Array<null | {
             name: string,
             uriTemplate?: string,
             path?: string,
@@ -268,7 +269,7 @@ export class FirefoxRegistry implements ProtocolRegistry {
         return this.fileSystem.joinPaths(profilePath, 'handlers.json');
     }
 
-    private async getProfilePath(): Promise<string|null> {
+    private async getProfilePath(): Promise<string | null> {
         const profilesIniPath = this.getPath('profiles.ini');
 
         if (!await this.fileSystem.exists(profilesIniPath)) {

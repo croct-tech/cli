@@ -1,6 +1,7 @@
-import prompts, {Options, PromptObject} from 'prompts';
-import {Readable, Writable} from 'stream';
-import {Confirmation, Input, MultipleSelection, Prompt, Selection, Wait} from '@/application/cli/io/input';
+import type {Options, PromptObject} from 'prompts';
+import prompts from 'prompts';
+import type {Readable, Writable} from 'stream';
+import type {Confirmation, Input, MultipleSelection, Prompt, Selection, Wait} from '@/application/cli/io/input';
 
 type PromptState = {
     value: string,

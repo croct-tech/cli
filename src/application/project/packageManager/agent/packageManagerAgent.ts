@@ -1,4 +1,4 @@
-import {PackageManager} from '@/application/project/packageManager/packageManager';
+import type {PackageManager} from '@/application/project/packageManager/packageManager';
 
 export interface PackageManagerAgent extends Pick<
     PackageManager,

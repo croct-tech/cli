@@ -6,7 +6,7 @@ export type ImportDeclaration = {
     source: string,
 };
 
-export type ImportTransformer = (declaration: ImportDeclaration) => Promise<string|void>|string|void;
+export type ImportTransformer = (declaration: ImportDeclaration) => Promise<string | void> | string | void;
 
 export async function transformImports(ast: t.File, transformer: ImportTransformer): Promise<boolean> {
     const promises: Array<Promise<boolean>> = [];

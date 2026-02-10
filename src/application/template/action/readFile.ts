@@ -1,7 +1,8 @@
-import {Action, ActionError} from '@/application/template/action/action';
-import {FileSystem} from '@/application/fs/fileSystem';
+import type {Action} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
+import type {FileSystem} from '@/application/fs/fileSystem';
 import {ErrorReason} from '@/application/error';
-import {ActionContext} from '@/application/template/action/context';
+import type {ActionContext} from '@/application/template/action/context';
 
 export type ReadFileOptions = {
     path: string,
@@ -24,7 +25,7 @@ export class ReadFileAction implements Action<ReadFileOptions> {
         context.set(options.result, await this.readFile(options));
     }
 
-    private async readFile({path, optional = false}: ReadFileOptions): Promise<string|null> {
+    private async readFile({path, optional = false}: ReadFileOptions): Promise<string | null> {
         const normalizedPath = this.fileSystem.normalizeSeparators(path);
 
         if (!await this.fileSystem.exists(normalizedPath)) {

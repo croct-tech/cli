@@ -1,4 +1,4 @@
-import {Callout} from '@/application/cli/io/logFormatter';
+import type {Callout} from '@/application/cli/io/logFormatter';
 
 export type Notifier = {
     stop(persist?: boolean): void,

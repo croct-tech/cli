@@ -1,4 +1,4 @@
-import {RootDefinition as ContentDefinition} from '@croct/content-model/definition/definition';
+import type {RootDefinition as ContentDefinition} from '@croct/content-model/definition/definition';
 
 declare global {
     namespace ContentModel {

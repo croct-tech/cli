@@ -1,7 +1,8 @@
-import {Help, HelpfulError} from '@/application/error';
+import type {Help} from '@/application/error';
+import {HelpfulError} from '@/application/error';
 
 export interface Provider<R, A extends any[] = []> {
-    get(...args: A): Promise<R>|R;
+    get(...args: A): Promise<R> | R;
 }
 
 export class ProviderError extends HelpfulError {

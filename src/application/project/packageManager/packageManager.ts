@@ -1,7 +1,8 @@
-import {Logger} from '@croct/logging';
-import {Help, HelpfulError} from '@/application/error';
-import {Command} from '@/application/system/process/command';
-import {ExecutionOptions} from '@/application/system/process/executor';
+import type {Logger} from '@croct/logging';
+import type {Help} from '@/application/error';
+import {HelpfulError} from '@/application/error';
+import type {Command} from '@/application/system/process/command';
+import type {ExecutionOptions} from '@/application/system/process/executor';
 
 export class PackageManagerError extends HelpfulError {
     public constructor(message: string, help?: Help) {

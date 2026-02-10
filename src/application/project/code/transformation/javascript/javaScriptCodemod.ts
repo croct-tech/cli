@@ -1,10 +1,10 @@
-import {File} from '@babel/types';
+import type {File} from '@babel/types';
 import {parse, print} from 'recast';
 import {parse as babelParse} from '@babel/parser';
 import getBabelOptionsModule from 'recast/parsers/_babel_options.js';
 import type {Overrides} from 'recast/parsers/_babel_options.js';
-import {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
-import {Language} from '@/application/project/code/transformation/javascript/utils/parse';
+import type {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
+import type {Language} from '@/application/project/code/transformation/javascript/utils/parse';
 
 export type Configuration<O extends CodemodOptions> = {
     codemod: Codemod<File, O>,

@@ -1,7 +1,7 @@
 import ignore from 'ignore';
-import {Predicate} from '@/application/predicate/predicate';
-import {FileSystem} from '@/application/fs/fileSystem';
-import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {Predicate} from '@/application/predicate/predicate';
+import type {FileSystem} from '@/application/fs/fileSystem';
+import type {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 
 export type Configuration = {
     fileSystem: FileSystem,

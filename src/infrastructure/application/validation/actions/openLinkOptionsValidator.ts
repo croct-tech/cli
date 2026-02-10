@@ -1,5 +1,6 @@
-import {z, ZodType} from 'zod';
-import {OpenLinkOptions} from '@/application/template/action/openLinkAction';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
+import type {OpenLinkOptions} from '@/application/template/action/openLinkAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const schema: ZodType<OpenLinkOptions> = z.strictObject({

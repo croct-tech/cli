@@ -1,12 +1,14 @@
 import {JsonParseError} from '@croct/json5-parser';
-import {Action, ActionError} from '@/application/template/action/action';
-import {ActionContext} from '@/application/template/action/context';
+import type {Action} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
+import type {ActionContext} from '@/application/template/action/context';
 import {ErrorReason} from '@/application/error';
-import {ActionDefinition, SourceLocation} from '@/application/template/template';
+import type {ActionDefinition} from '@/application/template/template';
+import {SourceLocation} from '@/application/template/template';
 import {TemplateError} from '@/application/template/templateProvider';
 
 export type RunOptions = {
-    actions: ActionDefinition|ActionDefinition[],
+    actions: ActionDefinition | ActionDefinition[],
 };
 
 export class RunAction implements Action<RunOptions> {

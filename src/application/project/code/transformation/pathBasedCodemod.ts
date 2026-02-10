@@ -1,5 +1,5 @@
 import {minimatch} from 'minimatch';
-import {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
+import type {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
 
 export type Configuration<O extends CodemodOptions> = {
     codemods: Record<string, Codemod<string, O>>,

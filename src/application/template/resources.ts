@@ -1,6 +1,5 @@
-/* eslint-disable no-inner-declarations -- False positive */
-import {Content} from '@croct/content-model/content/content';
-import {ExperienceDefinition, NewResources, PersonalizedContentDefinition} from '@/application/api/workspace';
+import type {Content} from '@croct/content-model/content/content';
+import type {ExperienceDefinition, NewResources, PersonalizedContentDefinition} from '@/application/api/workspace';
 
 export type WorkspaceResources = Omit<NewResources, 'organizationSlug' | 'workspaceSlug'>;
 

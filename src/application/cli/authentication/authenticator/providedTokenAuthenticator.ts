@@ -1,5 +1,5 @@
-import {Token} from '@croct/sdk/token';
-import {Authenticator} from '@/application/cli/authentication/authenticator/index';
+import type {Token} from '@croct/sdk/token';
+import type {Authenticator} from '@/application/cli/authentication/authenticator/index';
 import {ErrorReason, HelpfulError} from '@/application/error';
 
 export type Configuration = {
@@ -13,7 +13,7 @@ export class ProvidedTokenAuthenticator implements Authenticator<Record<never, n
         this.token = token;
     }
 
-    public getToken(): Promise<string|null> {
+    public getToken(): Promise<string | null> {
         return Promise.resolve(this.token.toString());
     }
 

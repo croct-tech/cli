@@ -1,6 +1,7 @@
-import {Action, ActionError} from '@/application/template/action/action';
-import {ActionContext} from '@/application/template/action/context';
-import {PackageManager} from '@/application/project/packageManager/packageManager';
+import type {Action} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
+import type {ActionContext} from '@/application/template/action/context';
+import type {PackageManager} from '@/application/project/packageManager/packageManager';
 import {TaskProgressLogger} from '@/infrastructure/application/cli/io/taskProgressLogger';
 
 export type InstallOptions = Record<string, never>;

@@ -1,12 +1,13 @@
-import {Command} from '@/application/cli/command/command';
-import {Output} from '@/application/cli/io/output';
-import {Input} from '@/application/cli/io/input';
-import {FileSystem} from '@/application/fs/fileSystem';
-import {OptionMap, Template} from '@/application/template/template';
-import {ResourceProvider} from '@/application/provider/resource/resourceProvider';
-import {VariableMap} from '@/application/template/evaluation';
-import {Action, ActionError} from '@/application/template/action/action';
-import {ImportOptions} from '@/application/template/action/importAction';
+import type {Command} from '@/application/cli/command/command';
+import type {Output} from '@/application/cli/io/output';
+import type {Input} from '@/application/cli/io/input';
+import type {FileSystem} from '@/application/fs/fileSystem';
+import type {OptionMap, Template} from '@/application/template/template';
+import type {ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import type {VariableMap} from '@/application/template/evaluation';
+import type {Action} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
+import type {ImportOptions} from '@/application/template/action/importAction';
 import {ActionContext} from '@/application/template/action/context';
 import {ErrorReason} from '@/application/error';
 

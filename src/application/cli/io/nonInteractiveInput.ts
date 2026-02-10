@@ -1,6 +1,7 @@
-import {Input} from '@/application/cli/io/input';
+import type {Input} from '@/application/cli/io/input';
 
-import {HelpfulError, Help} from '@/application/error';
+import type {Help} from '@/application/error';
+import {HelpfulError} from '@/application/error';
 
 export type Instruction = Help & {
     message: string,

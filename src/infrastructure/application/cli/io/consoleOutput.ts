@@ -1,10 +1,11 @@
-import {Writable, PassThrough} from 'stream';
-import {Output, Notifier, TaskList, TaskResolver, Semantics} from '@/application/cli/io/output';
+import type {Writable} from 'stream';
+import {PassThrough} from 'stream';
+import type {Output, Notifier, TaskList, TaskResolver, Semantics} from '@/application/cli/io/output';
 import {InteractiveTaskMonitor} from '@/infrastructure/application/cli/io/interactiveTaskMonitor';
 import {format} from '@/infrastructure/application/cli/io/formatting';
-import {TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
+import type {TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
 import {NonInteractiveTaskMonitor} from '@/infrastructure/application/cli/io/nonInteractiveTaskMonitor';
-import {Callout, LogFormatter} from '@/application/cli/io/logFormatter';
+import type {Callout, LogFormatter} from '@/application/cli/io/logFormatter';
 
 export type ExitCallback = () => Promise<never>;
 

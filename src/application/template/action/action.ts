@@ -1,6 +1,7 @@
-import {ActionContext} from '@/application/template/action/context';
-import {HelpfulError, Help} from '@/application/error';
-import {SourceLocation} from '@/application/template/template';
+import type {ActionContext} from '@/application/template/action/context';
+import type {Help} from '@/application/error';
+import {HelpfulError} from '@/application/error';
+import type {SourceLocation} from '@/application/template/template';
 
 export type ActionInfo = {
     name: string,

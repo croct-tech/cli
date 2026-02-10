@@ -1,8 +1,8 @@
-import {ServerCommandParser} from '@/application/project/server/provider/projectServerProvider';
-import {ServerInfo} from '@/application/project/server/factory/serverFactory';
+import type {ServerCommandParser} from '@/application/project/server/provider/projectServerProvider';
+import type {ServerInfo} from '@/application/project/server/factory/serverFactory';
 
 export class NextCommandParser implements ServerCommandParser {
-    public parse(command: string): ServerInfo|null {
+    public parse(command: string): ServerInfo | null {
         if (!command.includes('next dev')) {
             return null;
         }

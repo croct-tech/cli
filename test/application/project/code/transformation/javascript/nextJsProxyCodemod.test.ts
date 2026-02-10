@@ -1,8 +1,6 @@
 import {resolve} from 'path';
-import {
-    ProxyConfiguration,
-    NextJsProxyCodemod,
-} from '@/application/project/code/transformation/javascript/nextJsProxyCodemod';
+import type {ProxyConfiguration} from '@/application/project/code/transformation/javascript/nextJsProxyCodemod';
+import {NextJsProxyCodemod} from '@/application/project/code/transformation/javascript/nextJsProxyCodemod';
 import {loadFixtures} from '../fixtures';
 import {JavaScriptCodemod} from '@/application/project/code/transformation/javascript/javaScriptCodemod';
 

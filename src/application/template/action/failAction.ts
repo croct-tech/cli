@@ -1,5 +1,7 @@
-import {Action, ActionError} from '@/application/template/action/action';
-import {ErrorReason, Help} from '@/application/error';
+import type {Action} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
+import type {Help} from '@/application/error';
+import {ErrorReason} from '@/application/error';
 
 export type FailOptions = Pick<Help, 'title' | 'links' | 'suggestions' | 'details'> & {
     message: string,

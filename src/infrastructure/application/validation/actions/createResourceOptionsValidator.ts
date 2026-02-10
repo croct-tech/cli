@@ -1,14 +1,15 @@
-import {z, ZodType} from 'zod';
-import {
+import type {ZodType} from 'zod';
+import {z} from 'zod';
+import type {
     AttributeDefinition,
     ChoiceDefinition,
     ContentDefinition,
     RootDefinition,
 } from '@croct/content-model/definition/definition';
-import {Content, PrimitiveValue} from '@croct/content-model/content/content';
-import {JsonValue} from '@croct/json';
-import {CreateResourceOptions} from '@/application/template/action/createResourceAction';
-import {
+import type {Content, PrimitiveValue} from '@croct/content-model/content/content';
+import type {JsonValue} from '@croct/json';
+import type {CreateResourceOptions} from '@/application/template/action/createResourceAction';
+import type {
     AudienceDefinition,
     ComponentDefinition,
     ExperienceDefinition,
@@ -17,7 +18,7 @@ import {
     SlotDefinition,
     VariantDefinition,
 } from '@/application/api/workspace';
-import {LocalizedContentMap, SlotContentMap} from '@/application/model/experience';
+import type {LocalizedContentMap, SlotContentMap} from '@/application/model/experience';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const audienceDefinitionSchema: ZodType<AudienceDefinition> = z.strictObject({

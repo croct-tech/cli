@@ -1,11 +1,11 @@
-import {CacheProvider} from '@croct/cache';
+import type {CacheProvider} from '@croct/cache';
 import {deepEqual} from 'fast-equals';
-import {AuthenticationInput, Authenticator} from '@/application/cli/authentication/authenticator/index';
+import type {AuthenticationInput, Authenticator} from '@/application/cli/authentication/authenticator/index';
 
-export type Configuration<I extends AuthenticationInput>= {
+export type Configuration<I extends AuthenticationInput> = {
     authenticator: Authenticator<I>,
     cacheKey: string,
-    cacheProvider: CacheProvider<string, string|null>,
+    cacheProvider: CacheProvider<string, string | null>,
 };
 
 export class CachedAuthenticator<I extends AuthenticationInput> implements Authenticator<I> {
@@ -13,7 +13,7 @@ export class CachedAuthenticator<I extends AuthenticationInput> implements Authe
 
     private readonly cacheKey: string;
 
-    private readonly tokenCache: CacheProvider<string, string|null>;
+    private readonly tokenCache: CacheProvider<string, string | null>;
 
     private readonly inFlightCache: Map<I, Promise<string>> = new Map();
 
@@ -23,7 +23,7 @@ export class CachedAuthenticator<I extends AuthenticationInput> implements Authe
         this.tokenCache = cacheProvider;
     }
 
-    public getToken(): Promise<string|null> {
+    public getToken(): Promise<string | null> {
         return this.tokenCache.get(this.cacheKey, () => this.authenticator.getToken());
     }
 

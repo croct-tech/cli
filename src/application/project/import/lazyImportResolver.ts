@@ -1,5 +1,7 @@
-import {ImportResolverError, ImportResolver} from '@/application/project/import/importResolver';
-import {Provider, ProviderError} from '@/application/provider/provider';
+import type {ImportResolver} from '@/application/project/import/importResolver';
+import {ImportResolverError} from '@/application/project/import/importResolver';
+import type {Provider} from '@/application/provider/provider';
+import {ProviderError} from '@/application/provider/provider';
 
 export class LazyImportResolver implements ImportResolver {
     private readonly provider: Provider<ImportResolver>;

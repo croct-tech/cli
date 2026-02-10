@@ -1,15 +1,17 @@
 import {Readable} from 'stream';
-import {CacheProvider, NoopCache} from '@croct/cache';
-import {Resource, ResourceProvider, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
-import {HttpProvider, SuccessResponse} from '@/application/provider/resource/httpProvider';
-import {FileSystemIterator} from '@/application/fs/fileSystem';
+import type {CacheProvider} from '@croct/cache';
+import {NoopCache} from '@croct/cache';
+import type {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import {ResourceProviderError} from '@/application/provider/resource/resourceProvider';
+import type {HttpProvider, SuccessResponse} from '@/application/provider/resource/httpProvider';
+import type {FileSystemIterator} from '@/application/fs/fileSystem';
 import {ErrorReason} from '@/application/error';
 
 type ParsedUrl = {
     username: string,
     repository: string,
-    ref: string|null,
-    path: string|null,
+    ref: string | null,
+    path: string | null,
     canonicalUrl: URL,
 };
 
@@ -72,6 +74,7 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
         };
     }
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Type expects a promise
     private async* yieldFiles(downloads: DownloadedFile[], path: string): FileSystemIterator {
         const folders = new Set<string>();
 
@@ -160,21 +163,21 @@ export class GithubProvider implements ResourceProvider<FileSystemIterator> {
         return files;
     }
 
-    private parseUrl(url: URL): ParsedUrl|null {
+    private parseUrl(url: URL): ParsedUrl | null {
         if (!GithubProvider.isUrlSupported(url)) {
             return null;
         }
 
-        let username: string|null;
-        let repository: string|null;
-        let ref: string|null = null;
+        let username: string | null;
+        let repository: string | null;
+        let ref: string | null = null;
         let segments: string[];
 
         const pathname = ((url.protocol === GithubProvider.PROTOCOL ? url.hostname : '') + url.pathname)
             .replace(/^\/+/, '')
             .split('/');
 
-        let canonicalUrl: URL|null = null;
+        let canonicalUrl: URL | null = null;
 
         if (url.hostname === GithubProvider.MAIN_HOST) {
             canonicalUrl = url;

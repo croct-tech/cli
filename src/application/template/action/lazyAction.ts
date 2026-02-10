@@ -1,6 +1,8 @@
-import {Action, ActionError, ActionOptions} from '@/application/template/action/action';
-import {ActionContext} from '@/application/template/action/context';
-import {Provider, ProviderError} from '@/application/provider/provider';
+import type {Action, ActionOptions} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
+import type {ActionContext} from '@/application/template/action/context';
+import type {Provider} from '@/application/provider/provider';
+import {ProviderError} from '@/application/provider/provider';
 
 export class LazyAction<T extends ActionOptions> implements Action<T> {
     private readonly provider: Provider<Action<T>>;

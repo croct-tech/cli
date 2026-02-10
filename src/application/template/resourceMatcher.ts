@@ -1,8 +1,8 @@
 import {deepEqual} from 'fast-equals';
-import {Audience} from '@/application/model/audience';
-import {Slot} from '@/application/model/slot';
-import {Component} from '@/application/model/component';
-import {
+import type {Audience} from '@/application/model/audience';
+import type {Slot} from '@/application/model/slot';
+import type {Component} from '@/application/model/component';
+import type {
     AudienceDefinition,
     ComponentDefinition,
     ExperienceDefinition,
@@ -11,19 +11,20 @@ import {
     VariantDefinition,
     WorkspaceApi,
 } from '@/application/api/workspace';
-import {ExperienceDetails, ExperienceStatus, Experience, SlotContentMap} from '@/application/model/experience';
-import {WorkspacePath} from '@/application/api/organization';
-import {WorkspaceResources} from '@/application/template/resources';
+import type {ExperienceDetails, Experience, SlotContentMap} from '@/application/model/experience';
+import {ExperienceStatus} from '@/application/model/experience';
+import type {WorkspacePath} from '@/application/api/organization';
+import type {WorkspaceResources} from '@/application/template/resources';
 
 export type Configuration = {
     workspaceApi: WorkspaceApi,
 };
 
 export type ResourceMatches = {
-    slots: Record<string, SlotDefinition|Slot>,
-    components: Record<string, ComponentDefinition|Component>,
-    audiences: Record<string, AudienceDefinition|Audience>,
-    experiences: Array<ExperienceDefinition|Experience>,
+    slots: Record<string, SlotDefinition | Slot>,
+    components: Record<string, ComponentDefinition | Component>,
+    audiences: Record<string, AudienceDefinition | Audience>,
+    experiences: Array<ExperienceDefinition | Experience>,
 };
 
 export type TargetWorkspaceResources = WorkspacePath & {
@@ -64,7 +65,7 @@ export class ResourceMatcher {
     private async mapAudiences(
         definitions: Record<string, AudienceDefinition>,
         path: WorkspacePath,
-    ): Promise<Record<string, Audience|AudienceDefinition>> {
+    ): Promise<Record<string, Audience | AudienceDefinition>> {
         const {workspaceApi: api} = this.config;
 
         const audiences = await Promise.all(
@@ -76,7 +77,7 @@ export class ResourceMatcher {
             ),
         );
 
-        const map: Record<string, Audience|AudienceDefinition> = {};
+        const map: Record<string, Audience | AudienceDefinition> = {};
 
         for (const [slug, audience] of audiences) {
             map[slug] = audience === null || !ResourceMatcher.isSimilarAudience(definitions[slug], audience)
@@ -90,7 +91,7 @@ export class ResourceMatcher {
     private async mapComponents(
         definitions: Record<string, ComponentDefinition>,
         path: WorkspacePath,
-    ): Promise<Record<string, Component|ComponentDefinition>> {
+    ): Promise<Record<string, Component | ComponentDefinition>> {
         const {workspaceApi: api} = this.config;
         const components = await Promise.all(
             Object.keys(definitions).map<Promise<[string, Component | null]>>(
@@ -101,7 +102,7 @@ export class ResourceMatcher {
             ),
         );
 
-        const map: Record<string, Component|ComponentDefinition> = {};
+        const map: Record<string, Component | ComponentDefinition> = {};
 
         for (const [slug, component] of components) {
             map[slug] = component === null || !ResourceMatcher.isSimilarComponent(definitions[slug], component)
@@ -115,7 +116,7 @@ export class ResourceMatcher {
     private async mapSlots(
         definitions: Record<string, SlotDefinition>,
         path: WorkspacePath,
-    ): Promise<Record<string, Slot|SlotDefinition>> {
+    ): Promise<Record<string, Slot | SlotDefinition>> {
         const {workspaceApi: api} = this.config;
 
         const slots = await Promise.all(
@@ -127,7 +128,7 @@ export class ResourceMatcher {
             ),
         );
 
-        const map: Record<string, Slot|SlotDefinition> = {};
+        const map: Record<string, Slot | SlotDefinition> = {};
 
         for (const [slug, slot] of slots) {
             map[slug] = slot === null || !ResourceMatcher.isSimilarSlot(definitions[slug], slot)
@@ -141,7 +142,7 @@ export class ResourceMatcher {
     private async mapExperiences(
         definitions: ExperienceDefinition[],
         path: WorkspacePath,
-    ): Promise<Array<Experience|ExperienceDefinition>> {
+    ): Promise<Array<Experience | ExperienceDefinition>> {
         const {workspaceApi: api} = this.config;
 
         const summaries = await api.getExperiences({

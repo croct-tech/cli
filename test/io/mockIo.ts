@@ -1,5 +1,6 @@
-import {Readable, Writable} from 'stream';
-import {KeyboardInput, MockInput} from './mockInput';
+import type {Readable, Writable} from 'stream';
+import type {KeyboardInput} from './mockInput';
+import {MockInput} from './mockInput';
 import {MockOutput} from './mockOutput';
 
 class AnswerBuilder implements KeyboardInput {

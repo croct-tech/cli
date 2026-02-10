@@ -1,17 +1,21 @@
-import {JsonPrimitive, JsonValue} from '@croct/json';
-import jsep, {CoreExpression, Expression} from 'jsep';
-import jsepObject, {Property} from '@jsep-plugin/object';
-import jsepSpread, {SpreadElement} from '@jsep-plugin/spread';
+import type {JsonPrimitive, JsonValue} from '@croct/json';
+import type {CoreExpression, Expression} from 'jsep';
+import jsep from 'jsep';
+import type {Property} from '@jsep-plugin/object';
+import jsepObject from '@jsep-plugin/object';
+import type {SpreadElement} from '@jsep-plugin/spread';
+import jsepSpread from '@jsep-plugin/spread';
 import jsepRegex from '@jsep-plugin/regex';
-import {
+import type {
     EvaluationContext,
-    EvaluationError,
     ExpressionEvaluator,
     GenericFunction,
     VariableMap,
 } from '@/application/template/evaluation';
-import {Deferred, Deferrable} from '@/application/template/deferral';
-import {Help, HelpfulError} from '@/application/error';
+import {EvaluationError} from '@/application/template/evaluation';
+import type {Deferred, Deferrable} from '@/application/template/deferral';
+import type {Help} from '@/application/error';
+import {HelpfulError} from '@/application/error';
 
 export type Configuration = {
     functions?: Record<string, GenericFunction>,
@@ -74,13 +78,11 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
         'indexOf',
     ];
 
-    // eslint-disable-next-line @typescript-eslint/ban-types -- Intentional use of String for correct type inference
-    private static readonly ALLOWED_STRING_PROPERTIES: Array<Properties<String>> = [
+    private static readonly ALLOWED_STRING_PROPERTIES: Array<Properties<string>> = [
         'length',
     ];
 
-    // eslint-disable-next-line @typescript-eslint/ban-types -- Intentional use of String for correct type inference
-    private static readonly ALLOWED_STRING_METHODS: Array<Methods<String>> = [
+    private static readonly ALLOWED_STRING_METHODS: Array<Methods<string>> = [
         'slice',
         'indexOf',
         'match',
@@ -459,7 +461,6 @@ export class JsepExpressionEvaluator implements ExpressionEvaluator {
             }
 
             case matches(expression, 'ConditionalExpression'):
-                // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions -- Intentional type juggling
                 return await this.evaluateExpression(expression.test, context)
                     ? this.evaluateExpression(expression.consequent, context)
                     : this.evaluateExpression(expression.alternate, context);

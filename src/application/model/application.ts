@@ -1,4 +1,4 @@
-import {Platform} from '@/application/model/platform';
+import type {Platform} from '@/application/model/platform';
 
 export enum ApplicationEnvironment {
     DEVELOPMENT = 'DEVELOPMENT',

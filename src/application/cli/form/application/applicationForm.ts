@@ -1,13 +1,14 @@
-import {Input} from '@/application/cli/io/input';
-import {Output} from '@/application/cli/io/output';
-import {Form} from '@/application/cli/form/form';
-import {WorkspaceApi} from '@/application/api/workspace';
+import type {Input} from '@/application/cli/io/input';
+import type {Output} from '@/application/cli/io/output';
+import type {Form} from '@/application/cli/form/form';
+import type {WorkspaceApi} from '@/application/api/workspace';
 import {NameInput} from '@/application/cli/form/input/nameInput';
 import {UrlInput} from '@/application/cli/form/input/urlInput';
-import {Organization} from '@/application/model/organization';
-import {Workspace} from '@/application/model/workspace';
-import {Application, ApplicationEnvironment} from '@/application/model/application';
-import {Platform} from '@/application/model/platform';
+import type {Organization} from '@/application/model/organization';
+import type {Workspace} from '@/application/model/workspace';
+import type {Application} from '@/application/model/application';
+import {ApplicationEnvironment} from '@/application/model/application';
+import type {Platform} from '@/application/model/platform';
 
 export type Configuration = {
     input: Input,
@@ -145,7 +146,7 @@ export class ApplicationForm implements Form<SelectedApplication, ApplicationOpt
         }
     }
 
-    private static isValidUrl(url: string|undefined, environment: ApplicationEnvironment): url is string {
+    private static isValidUrl(url: string | undefined, environment: ApplicationEnvironment): url is string {
         if (url === undefined || !URL.canParse(url)) {
             return false;
         }

@@ -1,7 +1,8 @@
-import {JsonValue} from '@croct/json';
-import {Action, ActionError} from '@/application/template/action/action';
-import {ActionContext} from '@/application/template/action/context';
-import {Confirmation, Input, MultipleSelection, Prompt, Selection, Wait} from '@/application/cli/io/input';
+import type {JsonValue} from '@croct/json';
+import type {Action} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
+import type {ActionContext} from '@/application/template/action/context';
+import type {Confirmation, Input, MultipleSelection, Prompt, Selection, Wait} from '@/application/cli/io/input';
 import {ErrorReason} from '@/application/error';
 
 export type ConfirmationOptions = Confirmation;
@@ -56,7 +57,7 @@ export class PromptAction implements Action<PromptOptions> {
         }
     }
 
-    private getDefaultValue(options: PromptDefinition): JsonValue|undefined {
+    private getDefaultValue(options: PromptDefinition): JsonValue | undefined {
         switch (options.type) {
             case 'confirmation':
                 return options.default;

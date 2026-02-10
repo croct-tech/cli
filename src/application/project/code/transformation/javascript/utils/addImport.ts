@@ -25,7 +25,7 @@ type ImportMatch = Pick<DeclarationMatch, 'declaration'> & {
 };
 
 export function addImport(ast: t.File, target: ImportDeclaration): ImportResult {
-    const declarations: Array<ImportMatch|DeclarationMatch> = [];
+    const declarations: Array<ImportMatch | DeclarationMatch> = [];
 
     let importMatch: string | null = null;
 

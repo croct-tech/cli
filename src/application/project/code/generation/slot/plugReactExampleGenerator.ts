@@ -1,6 +1,6 @@
 import {ReactExampleGenerator} from './reactExampleGenerator';
-import {SlotDefinition} from './slotExampleGenerator';
-import {CodeWriter} from '@/application/project/code/generation/codeWritter';
+import type {SlotDefinition} from './slotExampleGenerator';
+import type {CodeWriter} from '@/application/project/code/generation/codeWritter';
 import {CodeLanguage} from '@/application/project/code/generation/example';
 
 export class PlugReactExampleGenerator extends ReactExampleGenerator {

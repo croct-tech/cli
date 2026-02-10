@@ -1,5 +1,5 @@
-import {Predicate} from '@/application/predicate/predicate';
-import {Process} from '@/application/system/process/process';
+import type {Predicate} from '@/application/predicate/predicate';
+import type {Process} from '@/application/system/process/process';
 
 export type Configuration = {
     process: Process,

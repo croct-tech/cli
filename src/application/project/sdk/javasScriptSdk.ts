@@ -1,24 +1,25 @@
 import {JsonArrayNode, JsonObjectNode, JsonParser} from '@croct/json5-parser/index.js';
-import {
+import type {
     UpdateOptions as BaseContentOptions,
     Installation,
     Sdk,
-    SdkError,
     UpdateOptions,
 } from '@/application/project/sdk/sdk';
-import {ProjectConfiguration, ProjectPaths} from '@/application/project/configuration/projectConfiguration';
-import {Task, TaskNotifier} from '@/application/cli/io/output';
-import {TargetSdk, WorkspaceApi} from '@/application/api/workspace';
-import {ExampleFile} from '@/application/project/code/generation/example';
-import {CodeFormatter} from '@/application/project/code/formatting/formatter';
+import {SdkError} from '@/application/project/sdk/sdk';
+import type {ProjectConfiguration, ProjectPaths} from '@/application/project/configuration/projectConfiguration';
+import type {Task, TaskNotifier} from '@/application/cli/io/output';
+import type {WorkspaceApi} from '@/application/api/workspace';
+import {TargetSdk} from '@/application/api/workspace';
+import type {ExampleFile} from '@/application/project/code/generation/example';
+import type {CodeFormatter} from '@/application/project/code/formatting/formatter';
 import {Version} from '@/application/model/version';
-import {FileSystem} from '@/application/fs/fileSystem';
-import {Slot} from '@/application/model/slot';
-import {LocalizedContentMap} from '@/application/model/experience';
+import type {FileSystem} from '@/application/fs/fileSystem';
+import type {Slot} from '@/application/model/slot';
+import type {LocalizedContentMap} from '@/application/model/experience';
 import {ErrorReason, HelpfulError} from '@/application/error';
-import {Dependency, PackageManager} from '@/application/project/packageManager/packageManager';
-import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
-import {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
+import type {Dependency, PackageManager} from '@/application/project/packageManager/packageManager';
+import type {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
 import {multiline} from '@/utils/multiline';
 import {formatName} from '@/application/project/utils/formatName';
 import {TaskProgressLogger} from '@/infrastructure/application/cli/io/taskProgressLogger';
@@ -280,7 +281,7 @@ export abstract class JavaScriptSdk implements Sdk {
 
     private async resolvePath(
         paths: string[],
-        currentPath: string|undefined,
+        currentPath: string | undefined,
         defaultPath: string,
     ): Promise<string> {
         if (currentPath !== undefined) {

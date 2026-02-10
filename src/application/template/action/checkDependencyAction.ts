@@ -1,7 +1,8 @@
-import {Action, ActionError} from '@/application/template/action/action';
-import {ActionContext} from '@/application/template/action/context';
-import {Help} from '@/application/error';
-import {PackageManager} from '@/application/project/packageManager/packageManager';
+import type {Action} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
+import type {ActionContext} from '@/application/template/action/context';
+import type {Help} from '@/application/error';
+import type {PackageManager} from '@/application/project/packageManager/packageManager';
 
 type Requirement = {
     name: string,

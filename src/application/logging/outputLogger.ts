@@ -1,5 +1,5 @@
-import {Log, Logger} from '@croct/logging';
-import {Output} from '@/application/cli/io/output';
+import type {Log, Logger} from '@croct/logging';
+import type {Output} from '@/application/cli/io/output';
 
 export class OutputLogger<L extends Log = Log> implements Logger<L> {
     private readonly output: Output;

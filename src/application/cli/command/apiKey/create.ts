@@ -1,16 +1,17 @@
 import clipboard from 'clipboardy';
-import {Command} from '@/application/cli/command/command';
-import {Output} from '@/application/cli/io/output';
-import {ApplicationApi} from '@/application/api/application';
-import {ApiKey, ApiKeyPermission, ApplicationEnvironment} from '@/application/model/application';
-import {Input} from '@/application/cli/io/input';
+import type {Command} from '@/application/cli/command/command';
+import type {Output} from '@/application/cli/io/output';
+import type {ApplicationApi} from '@/application/api/application';
+import type {ApiKey} from '@/application/model/application';
+import {ApiKeyPermission, ApplicationEnvironment} from '@/application/model/application';
+import type {Input} from '@/application/cli/io/input';
 import {NameInput} from '@/application/cli/form/input/nameInput';
-import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import type {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {ErrorReason, HelpfulError} from '@/application/error';
-import {UserApi} from '@/application/api/user';
-import {FileSystem} from '@/application/fs/fileSystem';
-import {WorkspaceApi} from '@/application/api/workspace';
-import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
+import type {UserApi} from '@/application/api/user';
+import type {FileSystem} from '@/application/fs/fileSystem';
+import type {WorkspaceApi} from '@/application/api/workspace';
+import type {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
 
 export type CreateApiKeyInput = {
     name?: ApiKey['name'],

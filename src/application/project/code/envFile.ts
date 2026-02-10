@@ -1,4 +1,4 @@
-import {FileSystem} from '@/application/fs/fileSystem';
+import type {FileSystem} from '@/application/fs/fileSystem';
 
 export class EnvFile {
     private readonly fileSystem: FileSystem;

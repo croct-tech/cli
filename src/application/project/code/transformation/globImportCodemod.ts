@@ -1,9 +1,10 @@
 import {Minimatch} from 'minimatch';
-import {Codemod, CodemodError, ResultCode} from '@/application/project/code/transformation/codemod';
-import {ImportResolver} from '@/application/project/import/importResolver';
-import {FileSystem, ScanFilter} from '@/application/fs/fileSystem';
-import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
-import {Predicate} from '@/application/predicate/predicate';
+import type {Codemod, ResultCode} from '@/application/project/code/transformation/codemod';
+import {CodemodError} from '@/application/project/code/transformation/codemod';
+import type {ImportResolver} from '@/application/project/import/importResolver';
+import type {FileSystem, ScanFilter} from '@/application/fs/fileSystem';
+import type {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {Predicate} from '@/application/predicate/predicate';
 import {ErrorReason} from '@/application/error';
 
 export type ImportDeclaration = {

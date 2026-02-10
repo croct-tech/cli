@@ -1,18 +1,18 @@
 import {spawn, spawnSync} from 'child_process';
-import {
+import type {
     CommandExecutor,
     DisposableListener,
     Execution,
-    ExecutionError,
     ExecutionOptions,
     ExecutionResult,
     ExitCallback,
     SynchronousCommandExecutor,
 } from '@/application/system/process/executor';
+import {ExecutionError} from '@/application/system/process/executor';
 import {BufferedIterator} from '@/infrastructure/bufferedIterator';
 import {ErrorReason, HelpfulError} from '@/application/error';
-import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
-import {Command} from '@/application/system/process/command';
+import type {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {Command} from '@/application/system/process/command';
 
 export type Configuration = {
     currentDirectory?: WorkingDirectory,
@@ -49,7 +49,7 @@ export class SpawnExecutor implements CommandExecutor, SynchronousCommandExecuto
 
         const output = new BufferedIterator<string>();
         const errorCallbacks: Array<(error: unknown) => void> = [];
-        let lastError: ExecutionError|null = null;
+        let lastError: ExecutionError | null = null;
 
         subprocess.on('error', (error: unknown) => {
             output.close();

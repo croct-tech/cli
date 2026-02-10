@@ -1,6 +1,7 @@
-import {Action, ActionError} from '@/application/template/action/action';
-import {FileSystem} from '@/application/fs/fileSystem';
-import {Input} from '@/application/cli/io/input';
+import type {Action} from '@/application/template/action/action';
+import {ActionError} from '@/application/template/action/action';
+import type {FileSystem} from '@/application/fs/fileSystem';
+import type {Input} from '@/application/cli/io/input';
 import {ErrorReason} from '@/application/error';
 
 export type WriteFileOptions = {

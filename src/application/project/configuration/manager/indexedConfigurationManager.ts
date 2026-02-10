@@ -1,13 +1,13 @@
-import {
+import type {
     PartialProjectConfiguration,
     ProjectConfiguration,
 } from '@/application/project/configuration/projectConfiguration';
-import {
+import type {
     ConfigurationManager,
     InitializationState,
 } from '@/application/project/configuration/manager/configurationManager';
-import {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
-import {CliConfigurationProvider} from '@/application/cli/configuration/provider';
+import type {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {CliConfigurationProvider} from '@/application/cli/configuration/provider';
 
 export type Configuration = {
     manager: ConfigurationManager,

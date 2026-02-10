@@ -1,6 +1,7 @@
-import {z, ZodType} from 'zod';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
-import {MovePathOptions} from '@/application/template/action/movePathAction';
+import type {MovePathOptions} from '@/application/template/action/movePathAction';
 
 const schema: ZodType<MovePathOptions> = z.strictObject({
     path: z.string().min(1),

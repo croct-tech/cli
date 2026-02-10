@@ -1,14 +1,14 @@
-import {Input} from '@/application/cli/io/input';
-import {Output} from '@/application/cli/io/output';
-import {Form} from '@/application/cli/form/form';
+import type {Input} from '@/application/cli/io/input';
+import type {Output} from '@/application/cli/io/output';
+import type {Form} from '@/application/cli/form/form';
 import {EmailInput} from '@/application/cli/form/input/emailInput';
-import {UserApi} from '@/application/api/user';
+import type {UserApi} from '@/application/api/user';
 import {PasswordInput} from '@/application/cli/form/input/passwordInput';
-import {AuthenticationListener} from '@/application/cli/authentication/authentication';
+import type {AuthenticationListener} from '@/application/cli/authentication/authentication';
 import {AccessDeniedReason, ApiError} from '@/application/api/error';
 import {ErrorReason, HelpfulError} from '@/application/error';
 
-type LinkGenerator = (email: string) => Promise<URL|null>;
+type LinkGenerator = (email: string) => Promise<URL | null>;
 
 export type Configuration = {
     input: Input,
@@ -230,7 +230,7 @@ export class SignInForm implements Form<string, SignInOptions> {
     private async createPassword(): Promise<string> {
         const {input, output} = this.config;
 
-        let password: string|null = null;
+        let password: string | null = null;
 
         while (password === null) {
             const enteredPassword = await PasswordInput.prompt({
@@ -255,7 +255,7 @@ export class SignInForm implements Form<string, SignInOptions> {
         return password;
     }
 
-    private async getInboxLink(generator: LinkGenerator, email: string): Promise<string|null> {
+    private async getInboxLink(generator: LinkGenerator, email: string): Promise<string | null> {
         const {input} = this.config;
         const link = await generator(email);
 

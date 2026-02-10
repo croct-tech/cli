@@ -1,11 +1,11 @@
 import generate from '@babel/generator';
 import {cloneNode, isNodesEquivalent} from '@babel/types';
 import {parse} from '@/application/project/code/transformation/javascript/utils/parse';
-import {
+import type {
     ImportDeclaration,
     ImportTransformer,
-    transformImports,
 } from '@/application/project/code/transformation/javascript/utils/transformImports';
+import {transformImports} from '@/application/project/code/transformation/javascript/utils/transformImports';
 
 describe('transformImports', () => {
     type Scenario = {
@@ -19,7 +19,7 @@ describe('transformImports', () => {
     it.each<Scenario>([
         {
             description: 'transform named imports',
-            transformer: (declaration): string|void => (declaration.source === 'module' ? 'module-x' : undefined),
+            transformer: (declaration): string | void => (declaration.source === 'module' ? 'module-x' : undefined),
             code: "import {foo, bar} from 'module';",
             result: 'import { foo, bar } from "module-x";',
             calls: [
@@ -31,7 +31,7 @@ describe('transformImports', () => {
         },
         {
             description: 'transform namespace imports',
-            transformer: (declaration): string|void => (declaration.source === 'module' ? 'module-x' : undefined),
+            transformer: (declaration): string | void => (declaration.source === 'module' ? 'module-x' : undefined),
             code: "import * as foo from 'module';",
             result: 'import * as foo from "module-x";',
             calls: [
@@ -55,7 +55,7 @@ describe('transformImports', () => {
         },
         {
             description: 'should transform only the matched imports',
-            transformer: (declaration): string|void => (declaration.source === 'module-b' ? 'module-x' : undefined),
+            transformer: (declaration): string | void => (declaration.source === 'module-b' ? 'module-x' : undefined),
             code: "import a from 'module-a';\nimport b from 'module-b';\nimport c from 'module-c';",
             result: "import a from 'module-a';\nimport b from \"module-x\";\nimport c from 'module-c';",
             calls: [

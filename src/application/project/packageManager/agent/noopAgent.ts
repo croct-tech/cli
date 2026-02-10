@@ -1,5 +1,5 @@
-import {Command} from '@/application/system/process/command';
-import {PackageManagerAgent} from '@/application/project/packageManager/agent/packageManagerAgent';
+import type {Command} from '@/application/system/process/command';
+import type {PackageManagerAgent} from '@/application/project/packageManager/agent/packageManagerAgent';
 import {PackageManagerError} from '@/application/project/packageManager/packageManager';
 
 export class NoopAgent implements PackageManagerAgent {

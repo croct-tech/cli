@@ -1,6 +1,6 @@
-import {JsonValue} from '@croct/json';
-import {Input} from '@/application/cli/io/input';
-import {Output} from '@/application/cli/io/output';
+import type {JsonValue} from '@croct/json';
+import type {Input} from '@/application/cli/io/input';
+import type {Output} from '@/application/cli/io/output';
 
 export type Configuration = {
     input?: Input,

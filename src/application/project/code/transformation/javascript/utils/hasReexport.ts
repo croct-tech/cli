@@ -58,7 +58,7 @@ export function hasReexport(source: string | t.File, matcher: ExportMatcher): bo
     return found;
 }
 
-function matches(value: t.Identifier|t.StringLiteral, matcher: string | RegExp): boolean {
+function matches(value: t.Identifier | t.StringLiteral, matcher: string | RegExp): boolean {
     const name = t.isIdentifier(value) ? value.name : value.value;
 
     if (typeof matcher === 'string') {

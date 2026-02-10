@@ -1,9 +1,5 @@
-import {
-    Resource,
-    ResourceNotFoundError,
-    ResourceProvider,
-    ResourceProviderError,
-} from '@/application/provider/resource/resourceProvider';
+import type {Resource, ResourceProvider} from '@/application/provider/resource/resourceProvider';
+import {ResourceNotFoundError, ResourceProviderError} from '@/application/provider/resource/resourceProvider';
 import {ErrorReason} from '@/application/error';
 
 export type Configuration<T> = {

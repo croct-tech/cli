@@ -1,7 +1,7 @@
-import {Input} from '@/application/cli/io/input';
-import {Output} from '@/application/cli/io/output';
-import {Form} from '@/application/cli/form/form';
-import {UserApi} from '@/application/api/user';
+import type {Input} from '@/application/cli/io/input';
+import type {Output} from '@/application/cli/io/output';
+import type {Form} from '@/application/cli/form/form';
+import type {UserApi} from '@/application/api/user';
 
 export type Configuration = {
     input: Input,

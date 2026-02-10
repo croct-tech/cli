@@ -1,5 +1,5 @@
-import {CacheProvider} from '@croct/cache';
-import {GraphqlClient} from '@/infrastructure/graphql';
+import type {CacheProvider} from '@croct/cache';
+import type {GraphqlClient} from '@/infrastructure/graphql';
 import {ApiError} from '@/application/api/error';
 import {ErrorReason} from '@/application/error';
 import {resourceIdQuery} from '@/infrastructure/application/api/graphql/queries/organization';

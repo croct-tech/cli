@@ -1,5 +1,6 @@
-import {Logger} from '@croct/logging';
-import {Help, HelpfulError} from '@/application/error';
+import type {Logger} from '@croct/logging';
+import type {Help} from '@/application/error';
+import {HelpfulError} from '@/application/error';
 
 type RunningStatus = {
     running: true,

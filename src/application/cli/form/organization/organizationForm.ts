@@ -1,10 +1,10 @@
 import {System} from '@/infrastructure/system';
-import {Input} from '@/application/cli/io/input';
-import {Notifier, Output} from '@/application/cli/io/output';
-import {UserApi} from '@/application/api/user';
-import {Form} from '@/application/cli/form/form';
+import type {Input} from '@/application/cli/io/input';
+import type {Notifier, Output} from '@/application/cli/io/output';
+import type {UserApi} from '@/application/api/user';
+import type {Form} from '@/application/cli/form/form';
 import {UrlInput} from '@/application/cli/form/input/urlInput';
-import {Organization} from '@/application/model/organization';
+import type {Organization} from '@/application/model/organization';
 
 export type Configuration = {
     input: Input,

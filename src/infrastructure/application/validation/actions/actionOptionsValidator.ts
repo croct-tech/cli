@@ -1,3 +1,4 @@
+import type {ZodTypeAny} from 'zod';
 import {
     ZodAny,
     ZodArray,
@@ -9,13 +10,12 @@ import {
     ZodPromise,
     ZodRecord,
     ZodTuple,
-    ZodTypeAny,
     ZodUnion,
 } from 'zod';
 import isPlainObject from 'is-plain-obj';
 import {ZodValidator} from '@/infrastructure/application/validation/zodValidator';
-import {ActionOptions} from '@/application/template/action/action';
-import {ValidationResult} from '@/application/validation';
+import type {ActionOptions} from '@/application/template/action/action';
+import type {ValidationResult} from '@/application/validation';
 import {TemplateError} from '@/application/template/templateProvider';
 
 type Segment = string | number | symbol;

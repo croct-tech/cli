@@ -1,6 +1,7 @@
-import {JsonValue} from '@croct/json';
+import type {JsonValue} from '@croct/json';
 import {randomUUID} from 'node:crypto';
-import {EvaluationError, GenericFunction} from '@/application/template/evaluation';
+import type {GenericFunction} from '@/application/template/evaluation';
+import {EvaluationError} from '@/application/template/evaluation';
 import {HelpfulError} from '@/application/error';
 
 export const ext: GenericFunction = (path: JsonValue): string => {

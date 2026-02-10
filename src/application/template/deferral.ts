@@ -1,10 +1,10 @@
-import {JsonArray, JsonObject, JsonPrimitive, JsonValue} from '@croct/json';
+import type {JsonArray, JsonObject, JsonPrimitive, JsonValue} from '@croct/json';
 
 type MaybeDeferred<T> = T | Promise<T>;
 
 type DeferredObject = MaybeDeferred<{
-    [key: string]: MaybeDeferred<DeferredValue>|undefined,
-    [key: symbol]: never|undefined,
+    [key: string]: MaybeDeferred<DeferredValue> | undefined,
+    [key: symbol]: never | undefined,
 }>;
 
 type DeferredArray = MaybeDeferred<Array<MaybeDeferred<DeferredValue>>>;

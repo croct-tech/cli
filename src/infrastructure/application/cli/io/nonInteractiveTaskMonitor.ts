@@ -1,6 +1,6 @@
-import {Writable} from 'stream';
-import {TaskList, Notifier, Semantics} from '@/application/cli/io/output';
-import {TaskExecution, TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
+import type {Writable} from 'stream';
+import type {TaskList, Notifier, Semantics} from '@/application/cli/io/output';
+import type {TaskExecution, TaskMonitor} from '@/infrastructure/application/cli/io/taskMonitor';
 import {format} from '@/infrastructure/application/cli/io/formatting';
 
 type InternalNotifier = Notifier & {

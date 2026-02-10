@@ -1,4 +1,4 @@
-import {Provider} from '@/application/provider/provider';
+import type {Provider} from '@/application/provider/provider';
 
 export class FallbackProvider<T, A extends any[]> implements Provider<T, A> {
     private readonly provider: Provider<T, A>;

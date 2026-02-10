@@ -1,5 +1,5 @@
-import {Provider} from '@/application/provider/provider';
-import {Predicate} from '@/application/predicate/predicate';
+import type {Provider} from '@/application/provider/provider';
+import type {Predicate} from '@/application/predicate/predicate';
 
 export class PredicateProvider<A extends any[]> implements Provider<boolean, A> {
     private readonly predicate: Predicate<A>;

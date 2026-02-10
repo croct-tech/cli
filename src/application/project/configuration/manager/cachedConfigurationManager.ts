@@ -1,8 +1,8 @@
-import {
+import type {
     PartialProjectConfiguration,
     ProjectConfiguration,
 } from '@/application/project/configuration/projectConfiguration';
-import {
+import type {
     ConfigurationManager,
     InitializationState,
 } from '@/application/project/configuration/manager/configurationManager';

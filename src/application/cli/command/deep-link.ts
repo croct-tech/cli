@@ -1,10 +1,10 @@
-import {Command} from '@/application/cli/command/command';
-import {ProtocolHandler, ProtocolRegistry} from '@/application/system/protocol/protocolRegistry';
-import {Input} from '@/application/cli/io/input';
-import {Output} from '@/application/cli/io/output';
-import {Provider} from '@/application/provider/provider';
-import {PackageManager} from '@/application/project/packageManager/packageManager';
-import {CliConfigurationProvider} from '@/application/cli/configuration/provider';
+import type {Command} from '@/application/cli/command/command';
+import type {ProtocolHandler, ProtocolRegistry} from '@/application/system/protocol/protocolRegistry';
+import type {Input} from '@/application/cli/io/input';
+import type {Output} from '@/application/cli/io/output';
+import type {Provider} from '@/application/provider/provider';
+import type {PackageManager} from '@/application/project/packageManager/packageManager';
+import type {CliConfigurationProvider} from '@/application/cli/configuration/provider';
 import {HelpfulError} from '@/application/error';
 
 type Operation = 'enable' | 'disable' | 'optionally-enable' | 'optionally-update';
@@ -15,7 +15,7 @@ export type DeepLinkInput = {
 
 export type DeepLinkConfig = {
     packageManager: PackageManager,
-    protocolRegistryProvider: Provider<ProtocolRegistry|null>,
+    protocolRegistryProvider: Provider<ProtocolRegistry | null>,
     configurationProvider: CliConfigurationProvider,
     cliPackage: string,
     protocolHandler: Omit<ProtocolHandler, 'command'>,

@@ -1,4 +1,5 @@
-import {hasImport, ImportMatcher} from '@/application/project/code/transformation/javascript/utils/hasImport';
+import type {ImportMatcher} from '@/application/project/code/transformation/javascript/utils/hasImport';
+import {hasImport} from '@/application/project/code/transformation/javascript/utils/hasImport';
 
 describe('hasImport', () => {
     type Scenario = {

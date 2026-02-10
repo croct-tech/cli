@@ -1,4 +1,4 @@
-import {TypedDocumentString} from '@/infrastructure/graphql/schema/graphql';
+import type {TypedDocumentString} from '@/infrastructure/graphql/schema/graphql';
 
 export type GraphqlResponse<R> = {
     data: R,

@@ -1,7 +1,8 @@
-import {z, ZodType} from 'zod';
-import {RunOptions} from '@/application/template/action/runAction';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
+import type {RunOptions} from '@/application/template/action/runAction';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
-import {ActionDefinition} from '@/application/template/template';
+import type {ActionDefinition} from '@/application/template/template';
 
 const actionsSchema: ZodType<ActionDefinition> = z.object({name: z.string().min(1)}).passthrough();
 

@@ -1,10 +1,14 @@
 import {extname} from 'path';
-import {InstallationPlan, JavaScriptSdkPlugin, JavaScriptPluginContext} from '@/application/project/sdk/javasScriptSdk';
-import {Task} from '@/application/cli/io/output';
+import type {
+    InstallationPlan,
+    JavaScriptSdkPlugin,
+    JavaScriptPluginContext,
+} from '@/application/project/sdk/javasScriptSdk';
+import type {Task} from '@/application/cli/io/output';
 import {HelpfulError} from '@/application/error';
-import {Codemod} from '@/application/project/code/transformation/codemod';
-import {Installation} from '@/application/project/sdk/sdk';
-import {ScanFilter} from '@/application/fs/fileSystem';
+import type {Codemod} from '@/application/project/code/transformation/codemod';
+import type {Installation} from '@/application/project/sdk/sdk';
+import type {ScanFilter} from '@/application/fs/fileSystem';
 
 export type Configuration = {
     scanFilter: ScanFilter,

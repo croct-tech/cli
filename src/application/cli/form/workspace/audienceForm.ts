@@ -1,9 +1,9 @@
-import {Confirmation, Input} from '@/application/cli/io/input';
-import {Output} from '@/application/cli/io/output';
-import {Form} from '@/application/cli/form/form';
-import {WorkspaceApi} from '@/application/api/workspace';
-import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
-import {Audience} from '@/application/model/audience';
+import type {Confirmation, Input} from '@/application/cli/io/input';
+import type {Output} from '@/application/cli/io/output';
+import type {Form} from '@/application/cli/form/form';
+import type {WorkspaceApi} from '@/application/api/workspace';
+import type {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
+import type {Audience} from '@/application/model/audience';
 
 export type Configuration = {
     input: Input,

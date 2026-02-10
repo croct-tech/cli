@@ -1,11 +1,11 @@
-import {Command} from '@/application/cli/command/command';
+import type {Command} from '@/application/cli/command/command';
 import {ErrorReason, HelpfulError} from '@/application/error';
-import {CliConfiguration} from '@/application/cli/configuration/provider';
-import {CurrentWorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
-import {Provider} from '@/application/provider/provider';
-import {Input} from '@/application/cli/io/input';
-import {FileSystem} from '@/application/fs/fileSystem';
-import {Output} from '@/application/cli/io/output';
+import type {CliConfiguration} from '@/application/cli/configuration/provider';
+import type {CurrentWorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
+import type {Provider} from '@/application/provider/provider';
+import type {Input} from '@/application/cli/io/input';
+import type {FileSystem} from '@/application/fs/fileSystem';
+import type {Output} from '@/application/cli/io/output';
 
 export type OpenInput = {
     url: string,

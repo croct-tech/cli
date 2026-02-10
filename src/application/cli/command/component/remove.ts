@@ -1,13 +1,13 @@
-import {Command} from '@/application/cli/command/command';
-import {Output} from '@/application/cli/io/output';
-import {Input} from '@/application/cli/io/input';
-import {Installation, Sdk} from '@/application/project/sdk/sdk';
-import {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
-import {Form} from '@/application/cli/form/form';
-import {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
-import {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
+import type {Command} from '@/application/cli/command/command';
+import type {Output} from '@/application/cli/io/output';
+import type {Input} from '@/application/cli/io/input';
+import type {Installation, Sdk} from '@/application/project/sdk/sdk';
+import type {ProjectConfiguration} from '@/application/project/configuration/projectConfiguration';
+import type {Form} from '@/application/cli/form/form';
+import type {ComponentOptions} from '@/application/cli/form/workspace/componentForm';
+import type {ConfigurationManager} from '@/application/project/configuration/manager/configurationManager';
 import {Version} from '@/application/model/version';
-import {Component} from '@/application/model/component';
+import type {Component} from '@/application/model/component';
 
 export type RemoveComponentInput = {
     components?: string[],
@@ -89,7 +89,7 @@ export class RemoveComponentCommand implements Command<RemoveComponentInput> {
     private static getVersionMap(
         specifiers: string[],
         components: ProjectConfiguration['components'],
-    ): Record<string, Version|null> {
+    ): Record<string, Version | null> {
         return Object.fromEntries(
             specifiers.map(versionedId => {
                 const [slug, specifier] = versionedId.split('@', 2);

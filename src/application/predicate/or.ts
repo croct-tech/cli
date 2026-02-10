@@ -1,4 +1,4 @@
-import {Predicate} from '@/application/predicate/predicate';
+import type {Predicate} from '@/application/predicate/predicate';
 
 export class Or<A extends any[]> implements Predicate<A> {
     private readonly predicates: Array<Predicate<A>>;

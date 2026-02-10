@@ -1,6 +1,7 @@
-import {z, ZodType} from 'zod';
+import type {ZodType} from 'zod';
+import {z} from 'zod';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
-import {RepeatOptions} from '@/application/template/action/repeatAction';
+import type {RepeatOptions} from '@/application/template/action/repeatAction';
 
 const schema: ZodType<RepeatOptions> = z.strictObject({
     condition: z.instanceof(Promise),
