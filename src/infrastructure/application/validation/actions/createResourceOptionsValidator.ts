@@ -6,7 +6,7 @@ import type {
     ContentDefinition,
     RootDefinition,
 } from '@croct/content-model/definition/definition';
-import {Content, ListItem, PrimitiveValue} from '@croct/content-model/content/content';
+import type {Content, ListItem, PrimitiveValue} from '@croct/content-model/content/content';
 import type {JsonValue} from '@croct/json';
 import type {CreateResourceOptions} from '@/application/template/action/createResourceAction';
 import type {
