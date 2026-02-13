@@ -6,7 +6,7 @@ import type {
     ContentDefinition,
     RootDefinition,
 } from '@croct/content-model/definition/definition';
-import type {Content, PrimitiveValue} from '@croct/content-model/content/content';
+import type {Content, ListItem, PrimitiveValue} from '@croct/content-model/content/content';
 import type {JsonValue} from '@croct/json';
 import type {CreateResourceOptions} from '@/application/template/action/createResourceAction';
 import type {
@@ -215,13 +215,19 @@ const structureContentSchema = z.strictObject({
     attributes: z.record(z.string(), z.lazy((): ZodType<Content> => contentSchema)),
 }) satisfies ZodType<Content<'structure'>>;
 
+const labeledItemSchema: ZodType<ListItem<Content>> = z.lazy(
+    () => z.discriminatedUnion('type', [
+        textContentSchema.extend({label: z.string().optional()}),
+        numberContentSchema.extend({label: z.string().optional()}),
+        booleanContentSchema.extend({label: z.string().optional()}),
+        structureContentSchema.extend({label: z.string().optional()}),
+        listContentSchema.extend({label: z.string().optional()}),
+    ]),
+);
+
 const listContentSchema = z.strictObject({
     type: z.literal('list'),
-    items: z.array(z.lazy(
-        (): ZodType<Content> => z.intersection(contentSchema, z.object({
-            label: z.string().optional(),
-        })),
-    )),
+    items: z.array(labeledItemSchema),
 }) satisfies ZodType<Content<'list'>>;
 
 const contentSchema = z.discriminatedUnion('type', [
