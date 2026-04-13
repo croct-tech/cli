@@ -7,9 +7,8 @@ on:
 
 jobs:
   deploy:
-    uses: croct-tech/github-workflows/.github/workflows/publish-npm-package.yml@unify-workflows
+    uses: croct-tech/shared-public-configs/.github/workflows/publish-public-npm-package.yml@master
     with:
-      publish-access: "public"
       pre-build-script: >-
         npm run graphql-codegen &&
         sed -i -e "s~\"version\": \"0.0.0-dev\"~\"version\": \"${GITHUB_REF##*/}\"~" package.json
