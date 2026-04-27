@@ -1,4 +1,4 @@
-name: Validations
+name: Validate branch
 
 on:
   push:
@@ -11,8 +11,12 @@ on:
       - synchronize
       - opened
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
-  security-checks:
+  audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,7 +38,7 @@ jobs:
       - name: Check for vulnerabilities
         run: npm audit
 
-  validate:
+  type-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
