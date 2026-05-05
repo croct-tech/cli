@@ -29,6 +29,9 @@ export default defineConfig(
         files: ['tsup.config.ts'],
         rules: {
             'import/no-default-export': 'off',
+            'import-x/no-default-export': 'off',
+            'object-shorthand': 'off',
+            'func-names': 'off',
         },
     }
 );

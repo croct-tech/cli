@@ -39,6 +39,7 @@ jobs:
       - name: Prepare release
         run: |-
           cp package.json LICENSE README.md build/
+          npm --prefix build pkg delete dependencies
           cd build
 
       - name: Publish preview

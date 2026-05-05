@@ -93,6 +93,11 @@ export class TypeErasureCodemod implements Codemod<File, TypeErasureCodemodOptio
             ],
             ast: true,
             configFile: false,
+            // Skip browserslist config resolution. Without this, Babel's
+            // partial-config pipeline calls into @babel/helper-compilation-targets,
+            // which requires browserslist + baseline-browser-mapping (~170KB
+            // of code we never use since we don't pass any browser targets).
+            browserslistConfigFile: false,
         });
 
         return {

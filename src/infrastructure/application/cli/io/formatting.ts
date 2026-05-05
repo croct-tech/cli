@@ -4,8 +4,17 @@ import isUnicodeSupported from 'is-unicode-supported';
 import {render as renderMarkdown} from '@croct/md-lite/rendering.js';
 import terminalLink from 'terminal-link';
 import {unescape as unescapeMarkdown} from '@croct/md-lite/parsing.js';
-import {strip} from 'node-emoji';
 import type {Semantics} from '@/application/cli/io/output';
+
+// Strips both unicode pictographs and `:shortcode:` markers from a string.
+// Replaces node-emoji's strip(), which pulls a 275KB emoji dataset for the
+// same effect when the terminal can't render unicode.
+const EMOJI_PICTOGRAPH = /\p{Extended_Pictographic}(️|‍\p{Extended_Pictographic})*/gu;
+const EMOJI_SHORTCODE = /:[\w+-]+:/g;
+
+function stripEmoji(value: string): string {
+    return value.replace(EMOJI_PICTOGRAPH, '').replace(EMOJI_SHORTCODE, '');
+}
 
 const unicodeSupport = isUnicodeSupported();
 
@@ -43,7 +52,7 @@ export function format(message: string, options: FormatingOptions = {}): string 
     let result = options.basic === true ? message : render(message);
 
     if (!unicodeSupport) {
-        result = strip(result);
+        result = stripEmoji(result);
     }
 
     if (options.text !== undefined) {
