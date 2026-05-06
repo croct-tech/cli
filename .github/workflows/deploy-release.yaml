@@ -9,11 +9,10 @@ jobs:
   deploy:
     uses: croct-tech/shared-public-configs/.github/workflows/publish-public-npm-package.yml@master
     with:
-      pre-build-script: >-
-        npm run graphql-codegen &&
-        sed -i -e "s~\"version\": \"0.0.0-dev\"~\"version\": \"${GITHUB_REF##*/}\"~" package.json
+      build-script: >-
+        graphql-codegen &&
+        sed -i -e "s~\"version\": \"0.0.0-dev\"~\"version\": \"${GITHUB_REF##*/}\"~" package.json &&
+        npm run build
       prepare-script: >-
         cp package.json LICENSE README.md build/ &&
         npm --prefix build pkg delete dependencies
-    secrets:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
