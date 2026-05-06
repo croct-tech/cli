@@ -13,6 +13,7 @@ jobs:
         npm run graphql-codegen &&
         sed -i -e "s~\"version\": \"0.0.0-dev\"~\"version\": \"${GITHUB_REF##*/}\"~" package.json
       prepare-script: >-
-        cp package.json LICENSE README.md build/
+        cp package.json LICENSE README.md build/ &&
+        npm --prefix build pkg delete dependencies
     secrets:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
