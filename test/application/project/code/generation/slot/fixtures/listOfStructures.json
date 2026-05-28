@@ -1,0 +1,33 @@
+{
+  "id": "product-grid",
+  "version": 3,
+  "definition": {
+    "type": "structure",
+    "attributes": {
+      "products": {
+        "type": {
+          "type": "list",
+          "itemLabel": "Product",
+          "items": {
+            "type": "structure",
+            "attributes": {
+              "name": {
+                "type": {
+                  "type": "text"
+                },
+                "position": 0
+              },
+              "price": {
+                "type": {
+                  "type": "number"
+                },
+                "position": 1
+              }
+            }
+          }
+        },
+        "position": 0
+      }
+    }
+  }
+}

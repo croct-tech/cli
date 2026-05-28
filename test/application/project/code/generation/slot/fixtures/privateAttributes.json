@@ -1,0 +1,22 @@
+{
+  "id": "tracked-banner",
+  "version": 1,
+  "definition": {
+    "type": "structure",
+    "attributes": {
+      "headline": {
+        "type": {
+          "type": "text"
+        },
+        "position": 0
+      },
+      "trackingId": {
+        "type": {
+          "type": "text"
+        },
+        "private": true,
+        "position": 1
+      }
+    }
+  }
+}

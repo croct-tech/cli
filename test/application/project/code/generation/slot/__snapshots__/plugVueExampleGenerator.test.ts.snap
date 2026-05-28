@@ -1,0 +1,815 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PlugVueExampleGenerator should generate JavaScript SFCs for booleanWithLabel: booleanWithLabel-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup>
+import FeatureToggle from './feature-toggle.vue';
+</script>
+
+<template>
+  <FeatureToggle />
+</template>",
+      "language": "vue",
+      "path": "src/examples/feature-toggle-example.vue",
+    },
+    {
+      "code": "<script setup>
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('feature-toggle@1');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li><strong>Enabled:</strong> {{ content.enabled ? 'Active' : 'Inactive' }}</li>
+      <li><strong>Visible:</strong> {{ content.visible ? 'Yes' : 'No' }}</li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/feature-toggle.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate JavaScript SFCs for labeledAttributes: labeledAttributes-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup>
+import Stylized from './stylized.vue';
+</script>
+
+<template>
+  <Stylized />
+</template>",
+      "language": "vue",
+      "path": "src/examples/stylized-example.vue",
+    },
+    {
+      "code": "<script setup>
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('stylized@1');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li><strong>Tom &amp; Jerry &lt;special&gt;:</strong> {{ content.title }}</li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/stylized.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate JavaScript SFCs for listOfScalars: listOfScalars-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup>
+import TagCloud from './tag-cloud.vue';
+</script>
+
+<template>
+  <TagCloud />
+</template>",
+      "language": "vue",
+      "path": "src/examples/tag-cloud-example.vue",
+    },
+    {
+      "code": "<script setup>
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('tag-cloud@1');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li>
+        <strong>Tags</strong>
+        <ol>
+          <li v-for="(item, index) in content.tags" :key="index">
+            {{ item }}
+          </li>
+        </ol>
+      </li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/tag-cloud.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate JavaScript SFCs for listOfStructures: listOfStructures-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup>
+import ProductGrid from './product-grid.vue';
+</script>
+
+<template>
+  <ProductGrid />
+</template>",
+      "language": "vue",
+      "path": "src/examples/product-grid-example.vue",
+    },
+    {
+      "code": "<script setup>
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('product-grid@3');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li>
+        <strong>Products</strong>
+        <ol>
+          <li v-for="(product, index) in content.products" :key="index">
+            <ul>
+              <li><strong>Name:</strong> {{ product.name }}</li>
+              <li><strong>Price:</strong> {{ product.price }}</li>
+            </ul>
+          </li>
+        </ol>
+      </li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/product-grid.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate JavaScript SFCs for nestedStructure: nestedStructure-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup>
+import AuthorCard from './author-card.vue';
+</script>
+
+<template>
+  <AuthorCard />
+</template>",
+      "language": "vue",
+      "path": "src/examples/author-card-example.vue",
+    },
+    {
+      "code": "<script setup>
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('author-card@1');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li>
+        <strong>Author</strong>
+        <ul>
+          <li><strong>Name:</strong> {{ content.author.name }}</li>
+          <li v-if="content.author.bio"><strong>Bio:</strong> {{ content.author.bio }}</li>
+        </ul>
+      </li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/author-card.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate JavaScript SFCs for optionalAttributes: optionalAttributes-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup>
+import PromoCard from './promo-card.vue';
+</script>
+
+<template>
+  <PromoCard />
+</template>",
+      "language": "vue",
+      "path": "src/examples/promo-card-example.vue",
+    },
+    {
+      "code": "<script setup>
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('promo-card@2');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li><strong>Title:</strong> {{ content.title }}</li>
+      <li v-if="content.subtitle"><strong>Subtitle:</strong> {{ content.subtitle }}</li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/promo-card.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate JavaScript SFCs for privateAttributes: privateAttributes-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup>
+import TrackedBanner from './tracked-banner.vue';
+</script>
+
+<template>
+  <TrackedBanner />
+</template>",
+      "language": "vue",
+      "path": "src/examples/tracked-banner-example.vue",
+    },
+    {
+      "code": "<script setup>
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('tracked-banner@1');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li><strong>Headline:</strong> {{ content.headline }}</li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/tracked-banner.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate JavaScript SFCs for simpleStructure: simpleStructure-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup>
+import HomeHero from './home-hero.vue';
+</script>
+
+<template>
+  <HomeHero />
+</template>",
+      "language": "vue",
+      "path": "src/examples/home-hero-example.vue",
+    },
+    {
+      "code": "<script setup>
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('home-hero@1');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li><strong>Headline:</strong> {{ content.headline }}</li>
+      <li><strong>View count:</strong> {{ content.viewCount }}</li>
+      <li><strong>Featured:</strong> {{ content.featured ? 'Yes' : 'No' }}</li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/home-hero.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate JavaScript SFCs for unionInStructure: unionInStructure-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup>
+import Block from './block.vue';
+</script>
+
+<template>
+  <Block />
+</template>",
+      "language": "vue",
+      "path": "src/examples/block-example.vue",
+    },
+    {
+      "code": "<script setup>
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('block@1');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li>
+        <strong>Media</strong>
+        <template v-if="content.media?._type === 'image'">
+          <ul>
+            <li><strong>Url:</strong> {{ content.media.url }}</li>
+          </ul>
+        </template>
+        <template v-if="content.media?._type === 'video'">
+          <ul>
+            <li><strong>Source:</strong> {{ content.media.source }}</li>
+          </ul>
+        </template>
+      </li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/block.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate JavaScript SFCs for unionRoot: unionRoot-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup>
+import CtaBlock from './cta-block.vue';
+</script>
+
+<template>
+  <CtaBlock />
+</template>",
+      "language": "vue",
+      "path": "src/examples/cta-block-example.vue",
+    },
+    {
+      "code": "<script setup>
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('cta-block@1');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <template v-if="content?._type === 'button'">
+      <ul>
+        <li><strong>Label:</strong> {{ content.label }}</li>
+      </ul>
+    </template>
+    <template v-if="content?._type === 'link'">
+      <ul>
+        <li><strong>Url:</strong> {{ content.url }}</li>
+        <li><strong>Text:</strong> {{ content.text }}</li>
+      </ul>
+    </template>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/cta-block.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate TypeScript SFCs for booleanWithLabel: booleanWithLabel 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup lang="ts">
+import FeatureToggle from './feature-toggle.vue';
+</script>
+
+<template>
+  <FeatureToggle />
+</template>",
+      "language": "vue",
+      "path": "src/examples/feature-toggle-example.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('feature-toggle@1');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li><strong>Enabled:</strong> {{ content.enabled ? 'Active' : 'Inactive' }}</li>
+      <li><strong>Visible:</strong> {{ content.visible ? 'Yes' : 'No' }}</li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/feature-toggle.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate TypeScript SFCs for labeledAttributes: labeledAttributes 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup lang="ts">
+import Stylized from './stylized.vue';
+</script>
+
+<template>
+  <Stylized />
+</template>",
+      "language": "vue",
+      "path": "src/examples/stylized-example.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('stylized@1');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li><strong>Tom &amp; Jerry &lt;special&gt;:</strong> {{ content.title }}</li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/stylized.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate TypeScript SFCs for listOfScalars: listOfScalars 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup lang="ts">
+import TagCloud from './tag-cloud.vue';
+</script>
+
+<template>
+  <TagCloud />
+</template>",
+      "language": "vue",
+      "path": "src/examples/tag-cloud-example.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('tag-cloud@1');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li>
+        <strong>Tags</strong>
+        <ol>
+          <li v-for="(item, index) in content.tags" :key="index">
+            {{ item }}
+          </li>
+        </ol>
+      </li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/tag-cloud.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate TypeScript SFCs for listOfStructures: listOfStructures 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup lang="ts">
+import ProductGrid from './product-grid.vue';
+</script>
+
+<template>
+  <ProductGrid />
+</template>",
+      "language": "vue",
+      "path": "src/examples/product-grid-example.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('product-grid@3');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li>
+        <strong>Products</strong>
+        <ol>
+          <li v-for="(product, index) in content.products" :key="index">
+            <ul>
+              <li><strong>Name:</strong> {{ product.name }}</li>
+              <li><strong>Price:</strong> {{ product.price }}</li>
+            </ul>
+          </li>
+        </ol>
+      </li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/product-grid.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate TypeScript SFCs for nestedStructure: nestedStructure 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup lang="ts">
+import AuthorCard from './author-card.vue';
+</script>
+
+<template>
+  <AuthorCard />
+</template>",
+      "language": "vue",
+      "path": "src/examples/author-card-example.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('author-card@1');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li>
+        <strong>Author</strong>
+        <ul>
+          <li><strong>Name:</strong> {{ content.author.name }}</li>
+          <li v-if="content.author.bio"><strong>Bio:</strong> {{ content.author.bio }}</li>
+        </ul>
+      </li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/author-card.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate TypeScript SFCs for optionalAttributes: optionalAttributes 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup lang="ts">
+import PromoCard from './promo-card.vue';
+</script>
+
+<template>
+  <PromoCard />
+</template>",
+      "language": "vue",
+      "path": "src/examples/promo-card-example.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('promo-card@2');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li><strong>Title:</strong> {{ content.title }}</li>
+      <li v-if="content.subtitle"><strong>Subtitle:</strong> {{ content.subtitle }}</li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/promo-card.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate TypeScript SFCs for privateAttributes: privateAttributes 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup lang="ts">
+import TrackedBanner from './tracked-banner.vue';
+</script>
+
+<template>
+  <TrackedBanner />
+</template>",
+      "language": "vue",
+      "path": "src/examples/tracked-banner-example.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('tracked-banner@1');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li><strong>Headline:</strong> {{ content.headline }}</li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/tracked-banner.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate TypeScript SFCs for simpleStructure: simpleStructure 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup lang="ts">
+import HomeHero from './home-hero.vue';
+</script>
+
+<template>
+  <HomeHero />
+</template>",
+      "language": "vue",
+      "path": "src/examples/home-hero-example.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('home-hero@1');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li><strong>Headline:</strong> {{ content.headline }}</li>
+      <li><strong>View count:</strong> {{ content.viewCount }}</li>
+      <li><strong>Featured:</strong> {{ content.featured ? 'Yes' : 'No' }}</li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/home-hero.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate TypeScript SFCs for unionInStructure: unionInStructure 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup lang="ts">
+import Block from './block.vue';
+</script>
+
+<template>
+  <Block />
+</template>",
+      "language": "vue",
+      "path": "src/examples/block-example.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('block@1');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <ul v-if="content">
+      <li>
+        <strong>Media</strong>
+        <template v-if="content.media?._type === 'image'">
+          <ul>
+            <li><strong>Url:</strong> {{ content.media.url }}</li>
+          </ul>
+        </template>
+        <template v-if="content.media?._type === 'video'">
+          <ul>
+            <li><strong>Source:</strong> {{ content.media.source }}</li>
+          </ul>
+        </template>
+      </li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/block.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugVueExampleGenerator should generate TypeScript SFCs for unionRoot: unionRoot 1`] = `
+{
+  "files": [
+    {
+      "code": "<script setup lang="ts">
+import CtaBlock from './cta-block.vue';
+</script>
+
+<template>
+  <CtaBlock />
+</template>",
+      "language": "vue",
+      "path": "src/examples/cta-block-example.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+import {useContent} from '@croct/plug-vue';
+
+const {data: content, isLoading} = useContent('cta-block@1');
+</script>
+
+<template>
+  <p v-if="isLoading">Loading...</p>
+  <template v-else>
+    <template v-if="content?._type === 'button'">
+      <ul>
+        <li><strong>Label:</strong> {{ content.label }}</li>
+      </ul>
+    </template>
+    <template v-if="content?._type === 'link'">
+      <ul>
+        <li><strong>Url:</strong> {{ content.url }}</li>
+        <li><strong>Text:</strong> {{ content.text }}</li>
+      </ul>
+    </template>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "src/components/cta-block.vue",
+    },
+  ],
+}
+`;

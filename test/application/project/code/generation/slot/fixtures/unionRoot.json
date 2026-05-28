@@ -1,0 +1,37 @@
+{
+  "id": "cta-block",
+  "version": 1,
+  "definition": {
+    "type": "union",
+    "types": {
+      "button": {
+        "type": "structure",
+        "attributes": {
+          "label": {
+            "type": {
+              "type": "text"
+            },
+            "position": 0
+          }
+        }
+      },
+      "link": {
+        "type": "structure",
+        "attributes": {
+          "url": {
+            "type": {
+              "type": "text"
+            },
+            "position": 0
+          },
+          "text": {
+            "type": {
+              "type": "text"
+            },
+            "position": 1
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,635 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for booleanWithLabel: booleanWithLabel-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <FeatureToggle />
+</template>",
+      "language": "vue",
+      "path": "pages/feature-toggle/index.vue",
+    },
+    {
+      "code": "<script setup>
+const {data} = await useContent('feature-toggle@1');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li><strong>Enabled:</strong> {{ data.content.enabled ? 'Active' : 'Inactive' }}</li>
+    <li><strong>Visible:</strong> {{ data.content.visible ? 'Yes' : 'No' }}</li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/feature-toggle.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for labeledAttributes: labeledAttributes-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <Stylized />
+</template>",
+      "language": "vue",
+      "path": "pages/stylized/index.vue",
+    },
+    {
+      "code": "<script setup>
+const {data} = await useContent('stylized@1');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li><strong>Tom &amp; Jerry &lt;special&gt;:</strong> {{ data.content.title }}</li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/stylized.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for listOfScalars: listOfScalars-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <TagCloud />
+</template>",
+      "language": "vue",
+      "path": "pages/tag-cloud/index.vue",
+    },
+    {
+      "code": "<script setup>
+const {data} = await useContent('tag-cloud@1');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li>
+      <strong>Tags</strong>
+      <ol>
+        <li v-for="(item, index) in data.content.tags" :key="index">
+          {{ item }}
+        </li>
+      </ol>
+    </li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/tag-cloud.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for listOfStructures: listOfStructures-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <ProductGrid />
+</template>",
+      "language": "vue",
+      "path": "pages/product-grid/index.vue",
+    },
+    {
+      "code": "<script setup>
+const {data} = await useContent('product-grid@3');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li>
+      <strong>Products</strong>
+      <ol>
+        <li v-for="(product, index) in data.content.products" :key="index">
+          <ul>
+            <li><strong>Name:</strong> {{ product.name }}</li>
+            <li><strong>Price:</strong> {{ product.price }}</li>
+          </ul>
+        </li>
+      </ol>
+    </li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/product-grid.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for nestedStructure: nestedStructure-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <AuthorCard />
+</template>",
+      "language": "vue",
+      "path": "pages/author-card/index.vue",
+    },
+    {
+      "code": "<script setup>
+const {data} = await useContent('author-card@1');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li>
+      <strong>Author</strong>
+      <ul>
+        <li><strong>Name:</strong> {{ data.content.author.name }}</li>
+        <li v-if="data.content.author.bio"><strong>Bio:</strong> {{ data.content.author.bio }}</li>
+      </ul>
+    </li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/author-card.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for optionalAttributes: optionalAttributes-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <PromoCard />
+</template>",
+      "language": "vue",
+      "path": "pages/promo-card/index.vue",
+    },
+    {
+      "code": "<script setup>
+const {data} = await useContent('promo-card@2');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li><strong>Title:</strong> {{ data.content.title }}</li>
+    <li v-if="data.content.subtitle"><strong>Subtitle:</strong> {{ data.content.subtitle }}</li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/promo-card.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for privateAttributes: privateAttributes-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <TrackedBanner />
+</template>",
+      "language": "vue",
+      "path": "pages/tracked-banner/index.vue",
+    },
+    {
+      "code": "<script setup>
+const {data} = await useContent('tracked-banner@1');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li><strong>Headline:</strong> {{ data.content.headline }}</li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/tracked-banner.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for simpleStructure: simpleStructure-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <HomeHero />
+</template>",
+      "language": "vue",
+      "path": "pages/home-hero/index.vue",
+    },
+    {
+      "code": "<script setup>
+const {data} = await useContent('home-hero@1');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li><strong>Headline:</strong> {{ data.content.headline }}</li>
+    <li><strong>View count:</strong> {{ data.content.viewCount }}</li>
+    <li><strong>Featured:</strong> {{ data.content.featured ? 'Yes' : 'No' }}</li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/home-hero.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for unionInStructure: unionInStructure-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <Block />
+</template>",
+      "language": "vue",
+      "path": "pages/block/index.vue",
+    },
+    {
+      "code": "<script setup>
+const {data} = await useContent('block@1');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li>
+      <strong>Media</strong>
+      <template v-if="data.content.media?._type === 'image'">
+        <ul>
+          <li><strong>Url:</strong> {{ data.content.media.url }}</li>
+        </ul>
+      </template>
+      <template v-if="data.content.media?._type === 'video'">
+        <ul>
+          <li><strong>Source:</strong> {{ data.content.media.source }}</li>
+        </ul>
+      </template>
+    </li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/block.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for unionRoot: unionRoot-js 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <CtaBlock />
+</template>",
+      "language": "vue",
+      "path": "pages/cta-block/index.vue",
+    },
+    {
+      "code": "<script setup>
+const {data} = await useContent('cta-block@1');
+</script>
+
+<template>
+  <template v-if="data.content?._type === 'button'">
+    <ul>
+      <li><strong>Label:</strong> {{ data.content.label }}</li>
+    </ul>
+  </template>
+  <template v-if="data.content?._type === 'link'">
+    <ul>
+      <li><strong>Url:</strong> {{ data.content.url }}</li>
+      <li><strong>Text:</strong> {{ data.content.text }}</li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "components/cta-block.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for booleanWithLabel: booleanWithLabel 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <FeatureToggle />
+</template>",
+      "language": "vue",
+      "path": "pages/feature-toggle/index.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+const {data} = await useContent('feature-toggle@1');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li><strong>Enabled:</strong> {{ data.content.enabled ? 'Active' : 'Inactive' }}</li>
+    <li><strong>Visible:</strong> {{ data.content.visible ? 'Yes' : 'No' }}</li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/feature-toggle.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for labeledAttributes: labeledAttributes 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <Stylized />
+</template>",
+      "language": "vue",
+      "path": "pages/stylized/index.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+const {data} = await useContent('stylized@1');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li><strong>Tom &amp; Jerry &lt;special&gt;:</strong> {{ data.content.title }}</li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/stylized.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for listOfScalars: listOfScalars 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <TagCloud />
+</template>",
+      "language": "vue",
+      "path": "pages/tag-cloud/index.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+const {data} = await useContent('tag-cloud@1');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li>
+      <strong>Tags</strong>
+      <ol>
+        <li v-for="(item, index) in data.content.tags" :key="index">
+          {{ item }}
+        </li>
+      </ol>
+    </li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/tag-cloud.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for listOfStructures: listOfStructures 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <ProductGrid />
+</template>",
+      "language": "vue",
+      "path": "pages/product-grid/index.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+const {data} = await useContent('product-grid@3');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li>
+      <strong>Products</strong>
+      <ol>
+        <li v-for="(product, index) in data.content.products" :key="index">
+          <ul>
+            <li><strong>Name:</strong> {{ product.name }}</li>
+            <li><strong>Price:</strong> {{ product.price }}</li>
+          </ul>
+        </li>
+      </ol>
+    </li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/product-grid.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for nestedStructure: nestedStructure 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <AuthorCard />
+</template>",
+      "language": "vue",
+      "path": "pages/author-card/index.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+const {data} = await useContent('author-card@1');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li>
+      <strong>Author</strong>
+      <ul>
+        <li><strong>Name:</strong> {{ data.content.author.name }}</li>
+        <li v-if="data.content.author.bio"><strong>Bio:</strong> {{ data.content.author.bio }}</li>
+      </ul>
+    </li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/author-card.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for optionalAttributes: optionalAttributes 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <PromoCard />
+</template>",
+      "language": "vue",
+      "path": "pages/promo-card/index.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+const {data} = await useContent('promo-card@2');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li><strong>Title:</strong> {{ data.content.title }}</li>
+    <li v-if="data.content.subtitle"><strong>Subtitle:</strong> {{ data.content.subtitle }}</li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/promo-card.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for privateAttributes: privateAttributes 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <TrackedBanner />
+</template>",
+      "language": "vue",
+      "path": "pages/tracked-banner/index.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+const {data} = await useContent('tracked-banner@1');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li><strong>Headline:</strong> {{ data.content.headline }}</li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/tracked-banner.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for simpleStructure: simpleStructure 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <HomeHero />
+</template>",
+      "language": "vue",
+      "path": "pages/home-hero/index.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+const {data} = await useContent('home-hero@1');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li><strong>Headline:</strong> {{ data.content.headline }}</li>
+    <li><strong>View count:</strong> {{ data.content.viewCount }}</li>
+    <li><strong>Featured:</strong> {{ data.content.featured ? 'Yes' : 'No' }}</li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/home-hero.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for unionInStructure: unionInStructure 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <Block />
+</template>",
+      "language": "vue",
+      "path": "pages/block/index.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+const {data} = await useContent('block@1');
+</script>
+
+<template>
+  <ul v-if="data.content">
+    <li>
+      <strong>Media</strong>
+      <template v-if="data.content.media?._type === 'image'">
+        <ul>
+          <li><strong>Url:</strong> {{ data.content.media.url }}</li>
+        </ul>
+      </template>
+      <template v-if="data.content.media?._type === 'video'">
+        <ul>
+          <li><strong>Source:</strong> {{ data.content.media.source }}</li>
+        </ul>
+      </template>
+    </li>
+  </ul>
+</template>",
+      "language": "vue",
+      "path": "components/block.vue",
+    },
+  ],
+}
+`;
+
+exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for unionRoot: unionRoot 1`] = `
+{
+  "files": [
+    {
+      "code": "<template>
+  <CtaBlock />
+</template>",
+      "language": "vue",
+      "path": "pages/cta-block/index.vue",
+    },
+    {
+      "code": "<script setup lang="ts">
+const {data} = await useContent('cta-block@1');
+</script>
+
+<template>
+  <template v-if="data.content?._type === 'button'">
+    <ul>
+      <li><strong>Label:</strong> {{ data.content.label }}</li>
+    </ul>
+  </template>
+  <template v-if="data.content?._type === 'link'">
+    <ul>
+      <li><strong>Url:</strong> {{ data.content.url }}</li>
+      <li><strong>Text:</strong> {{ data.content.text }}</li>
+    </ul>
+  </template>
+</template>",
+      "language": "vue",
+      "path": "components/cta-block.vue",
+    },
+  ],
+}
+`;

@@ -121,10 +121,15 @@ function createNormalizationMap<M extends string, A extends string>(map: Record<
     };
 }
 
+// The GraphQL schema does not yet have first-class Vue/Nuxt platforms, so they are
+// reported to the server as JavaScript. JAVASCRIPT is intentionally listed last so that
+// the inverse (api -> model) map resolves the shared `Javascript` value back to JAVASCRIPT.
 const platformMap = createNormalizationMap<Platform, GraphqlPlatform>({
-    [Platform.JAVASCRIPT]: GraphqlPlatform.Javascript,
+    [Platform.VUE]: GraphqlPlatform.Javascript,
+    [Platform.NUXT]: GraphqlPlatform.Javascript,
     [Platform.REACT]: GraphqlPlatform.React,
     [Platform.NEXTJS]: GraphqlPlatform.Next,
+    [Platform.JAVASCRIPT]: GraphqlPlatform.Javascript,
 });
 
 const environmentMap = createNormalizationMap<ApplicationEnvironment, GraphqlApplicationEnvironment>({

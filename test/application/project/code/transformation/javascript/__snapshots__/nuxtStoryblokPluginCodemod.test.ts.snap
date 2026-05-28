@@ -1,0 +1,51 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NuxtStoryblokPluginCodemod should correctly transform aliasedDefineNuxtPlugin.ts: aliasedDefineNuxtPlugin.ts 1`] = `
+"import { defineNuxtPlugin as defineNuxt } from '#app';
+
+export default defineNuxt(nuxtApp => {
+    console.log('custom plugin', nuxtApp);
+});
+"
+`;
+
+exports[`NuxtStoryblokPluginCodemod should correctly transform alreadyScaffolded.ts: alreadyScaffolded.ts 1`] = `
+"import { withCroct } from '@croct/plug-storyblok/nuxt';
+import { useStoryblokApi } from '@storyblok/vue';
+import { defineNuxtPlugin } from '#app';
+
+export default defineNuxtPlugin(nuxtApp => {
+    withCroct(nuxtApp, useStoryblokApi());
+});
+"
+`;
+
+exports[`NuxtStoryblokPluginCodemod should correctly transform empty.ts: empty.ts 1`] = `
+"import { defineNuxtPlugin } from "#app";
+import { useStoryblokApi } from "@storyblok/vue";
+import { withCroct } from "@croct/plug-storyblok/nuxt";
+
+export default defineNuxtPlugin(nuxtApp => {
+  withCroct(nuxtApp, useStoryblokApi());
+});"
+`;
+
+exports[`NuxtStoryblokPluginCodemod should correctly transform partialScaffold.ts: partialScaffold.ts 1`] = `
+"import { defineNuxtPlugin } from '#app';
+
+export default defineNuxtPlugin(nuxtApp => {
+    console.log('custom plugin', nuxtApp);
+});
+"
+`;
+
+exports[`NuxtStoryblokPluginCodemod should correctly transform withComments.ts: withComments.ts 1`] = `
+"import { defineNuxtPlugin } from "#app";
+import { useStoryblokApi } from "@storyblok/vue";
+import { withCroct } from "@croct/plug-storyblok/nuxt";
+
+export default defineNuxtPlugin(nuxtApp => {
+  withCroct(nuxtApp, useStoryblokApi());
+});
+"
+`;

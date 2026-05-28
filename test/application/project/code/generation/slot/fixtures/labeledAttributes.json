@@ -1,0 +1,16 @@
+{
+  "id": "stylized",
+  "version": 1,
+  "definition": {
+    "type": "structure",
+    "attributes": {
+      "title": {
+        "type": {
+          "type": "text"
+        },
+        "label": "Tom & Jerry <special>",
+        "position": 0
+      }
+    }
+  }
+}
