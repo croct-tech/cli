@@ -1,0 +1,229 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`VueStoryblokCodemod should correctly transform storyblokAliasedImport.ts: storyblokAliasedImport.ts 1`] = `
+"import { withCroct } from "@croct/plug-storyblok/vue";
+import { createApp } from 'vue';
+import { apiPlugin } from '@storyblok/vue';
+import App from './App.vue';
+const app = createApp(App);
+
+app.use(withCroct({
+    accessToken: 'YOUR_ACCESS_TOKEN',
+    use: [apiPlugin],
+}));
+
+app.mount('#app');
+"
+`;
+
+exports[`VueStoryblokCodemod should correctly transform storyblokAlreadyMigrated.ts: storyblokAlreadyMigrated.ts 1`] = `
+"import { createApp } from 'vue';
+import { apiPlugin } from '@storyblok/vue';
+import { withCroct } from '@croct/plug-storyblok/vue';
+import App from './App.vue';
+
+const app = createApp(App);
+app.use(withCroct({
+    accessToken: 'YOUR_ACCESS_TOKEN',
+    use: [apiPlugin],
+}));
+app.mount('#app');
+"
+`;
+
+exports[`VueStoryblokCodemod should correctly transform storyblokBasicMigration.ts: storyblokBasicMigration.ts 1`] = `
+"import { withCroct } from "@croct/plug-storyblok/vue";
+import { createApp } from 'vue';
+import { apiPlugin } from '@storyblok/vue';
+import App from './App.vue';
+const app = createApp(App);
+
+app.use(withCroct({
+    accessToken: 'YOUR_ACCESS_TOKEN',
+    use: [apiPlugin],
+    components: {},
+}));
+
+app.mount('#app');
+"
+`;
+
+exports[`VueStoryblokCodemod should correctly transform storyblokChainedAppUse.ts: storyblokChainedAppUse.ts 1`] = `
+"import { withCroct } from "@croct/plug-storyblok/vue";
+import { createApp } from 'vue';
+import { apiPlugin } from '@storyblok/vue';
+import App from './App.vue';
+
+createApp(App)
+    .use(withCroct({
+        accessToken: 'YOUR_ACCESS_TOKEN',
+        use: [apiPlugin],
+    }))
+    .mount('#app');
+"
+`;
+
+exports[`VueStoryblokCodemod should correctly transform storyblokImportedButNoUseCall.ts: storyblokImportedButNoUseCall.ts 1`] = `
+"import { createApp } from 'vue';
+import { StoryblokVue } from '@storyblok/vue';
+import App from './App.vue';
+
+console.log(StoryblokVue);
+
+const app = createApp(App);
+app.mount('#app');
+"
+`;
+
+exports[`VueStoryblokCodemod should correctly transform storyblokMultipleAppUseCalls.ts: storyblokMultipleAppUseCalls.ts 1`] = `
+"import { withCroct } from "@croct/plug-storyblok/vue";
+import { createApp } from 'vue';
+import { apiPlugin } from '@storyblok/vue';
+import router from './router';
+import pinia from './pinia';
+import App from './App.vue';
+const app = createApp(App);
+app.use(router);
+
+app.use(withCroct({
+    accessToken: 'YOUR_ACCESS_TOKEN',
+    use: [apiPlugin],
+}));
+
+app.use(pinia);
+app.mount('#app');
+"
+`;
+
+exports[`VueStoryblokCodemod should correctly transform storyblokNoCreateApp.ts: storyblokNoCreateApp.ts 1`] = `
+"import { StoryblokVue } from '@storyblok/vue';
+
+const app = { use: () => app, mount: () => {} };
+
+app.use(StoryblokVue, { accessToken: 'YOUR_ACCESS_TOKEN' });
+app.mount('#app');
+"
+`;
+
+exports[`VueStoryblokCodemod should correctly transform storyblokNoImport.ts: storyblokNoImport.ts 1`] = `
+"import { createApp } from 'vue';
+import { apiPlugin } from '@storyblok/vue';
+import App from './App.vue';
+
+const app = createApp(App);
+app.mount('#app');
+"
+`;
+
+exports[`VueStoryblokCodemod should correctly transform storyblokOnlySpecifier.ts: storyblokOnlySpecifier.ts 1`] = `
+"import { withCroct } from "@croct/plug-storyblok/vue";
+import { createApp } from 'vue';
+import App from './App.vue';
+
+const app = createApp(App);
+app.use(withCroct({
+    accessToken: 'YOUR_ACCESS_TOKEN',
+}));
+app.mount('#app');
+"
+`;
+
+exports[`VueStoryblokCodemod should correctly transform storyblokOptionsArePreserved.ts: storyblokOptionsArePreserved.ts 1`] = `
+"import { withCroct } from "@croct/plug-storyblok/vue";
+import { createApp } from 'vue';
+import { apiPlugin } from '@storyblok/vue';
+import App from './App.vue';
+import MyComponent from './MyComponent.vue';
+const sharedOptions = { foo: 'bar' };
+const app = createApp(App);
+
+app.use(withCroct({
+    accessToken: 'YOUR_ACCESS_TOKEN',
+    use: [apiPlugin],
+    components: { MyComponent },
+    ...sharedOptions,
+}));
+
+app.mount('#app');
+"
+`;
+
+exports[`VueStoryblokCodemod should correctly transform storyblokStringSpecifier.ts: storyblokStringSpecifier.ts 1`] = `
+"import { withCroct } from "@croct/plug-storyblok/vue";
+import { createApp } from 'vue';
+import { 'apiPlugin' as apiPlugin } from '@storyblok/vue';
+import App from './App.vue';
+const app = createApp(App);
+
+app.use(withCroct({
+    accessToken: 'YOUR_ACCESS_TOKEN',
+    use: [apiPlugin],
+}));
+
+app.mount('#app');
+"
+`;
+
+exports[`VueStoryblokCodemod should correctly transform storyblokWithCroctAliasedButNotUsed.ts: storyblokWithCroctAliasedButNotUsed.ts 1`] = `
+"import { createApp } from 'vue';
+import { apiPlugin } from '@storyblok/vue';
+import { withCroct as croctSb } from '@croct/plug-storyblok/vue';
+import App from './App.vue';
+
+const app = createApp(App);
+app.use(croctSb({
+    accessToken: 'YOUR_ACCESS_TOKEN',
+    use: [apiPlugin],
+}));
+app.mount('#app');
+"
+`;
+
+exports[`VueStoryblokCodemod should correctly transform storyblokWithCroctImportedButNotUsed.ts: storyblokWithCroctImportedButNotUsed.ts 1`] = `
+"import { createApp } from 'vue';
+import { apiPlugin } from '@storyblok/vue';
+import { withCroct } from '@croct/plug-storyblok/vue';
+import App from './App.vue';
+
+const app = createApp(App);
+app.use(withCroct({
+    accessToken: 'YOUR_ACCESS_TOKEN',
+    use: [apiPlugin],
+}));
+app.mount('#app');
+"
+`;
+
+exports[`VueStoryblokCodemod should correctly transform storyblokWithDefaultSpecifier.ts: storyblokWithDefaultSpecifier.ts 1`] = `
+"import { withCroct } from "@croct/plug-storyblok/vue";
+import { createApp } from 'vue';
+import StoryblokDefault, { apiPlugin } from '@storyblok/vue';
+import App from './App.vue';
+const app = createApp(App);
+
+app.use(withCroct({
+    accessToken: 'YOUR_ACCESS_TOKEN',
+    use: [apiPlugin],
+}));
+
+app.mount('#app');
+export { StoryblokDefault };
+"
+`;
+
+exports[`VueStoryblokCodemod should correctly transform storyblokWithOtherSpecifiers.ts: storyblokWithOtherSpecifiers.ts 1`] = `
+"import { withCroct } from "@croct/plug-storyblok/vue";
+import { createApp } from 'vue';
+import { apiPlugin, useStoryblok } from '@storyblok/vue';
+import App from './App.vue';
+const app = createApp(App);
+
+app.use(withCroct({
+    accessToken: 'YOUR_ACCESS_TOKEN',
+    use: [apiPlugin],
+}));
+
+app.mount('#app');
+export { useStoryblok };
+"
+`;

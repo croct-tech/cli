@@ -1,0 +1,200 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NuxtConfigModuleCodemod should correctly transform aliasedDefineNuxtConfig.ts: aliasedDefineNuxtConfig.ts 1`] = `
+"import { defineNuxtConfig as defineConfig } from 'nuxt/config';
+
+export default defineConfig({
+    modules: ['@nuxtjs/tailwindcss', "@croct/plug-nuxt"],
+});
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform aliasedIndirectConfig.ts: aliasedIndirectConfig.ts 1`] = `
+"import { defineNuxtConfig as defineConfig } from 'nuxt/config';
+
+const config = defineConfig({
+    modules: ['@nuxtjs/tailwindcss', "@croct/plug-nuxt"],
+});
+
+export default config;
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform alreadyConfigured.ts: alreadyConfigured.ts 1`] = `
+"export default defineNuxtConfig({
+    modules: ['@croct/plug-nuxt'],
+});
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform alreadyConfiguredAsTuple.ts: alreadyConfiguredAsTuple.ts 1`] = `
+"export default defineNuxtConfig({
+    modules: [
+        ['@croct/plug-nuxt', { debug: true }],
+    ],
+});
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform bareObjectExport.ts: bareObjectExport.ts 1`] = `
+"export default {
+    modules: ['@nuxtjs/tailwindcss', "@croct/plug-nuxt"],
+};
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform bareObjectExportNoModules.ts: bareObjectExportNoModules.ts 1`] = `
+"export default {
+  modules: ["@croct/plug-nuxt"]
+};
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform bareObjectIndirectVariable.ts: bareObjectIndirectVariable.ts 1`] = `
+"const config = {
+    modules: ['@nuxtjs/tailwindcss', "@croct/plug-nuxt"],
+};
+
+export default config;
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform defineCallWithReference.ts: defineCallWithReference.ts 1`] = `
+"const opts = { modules: [] };
+
+export default defineNuxtConfig(opts);
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform emptyDefineCall.ts: emptyDefineCall.ts 1`] = `
+"export default defineNuxtConfig();
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform emptyModulesArray.ts: emptyModulesArray.ts 1`] = `
+"export default defineNuxtConfig({
+    modules: ["@croct/plug-nuxt"],
+});
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform existingModules.ts: existingModules.ts 1`] = `
+"export default defineNuxtConfig({
+    modules: ['@nuxtjs/tailwindcss', "@croct/plug-nuxt"],
+});
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform functionDefaultExport.ts: functionDefaultExport.ts 1`] = `
+"export default function makeConfig() {
+    return { modules: [] };
+}
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform indirectConfigVariable.ts: indirectConfigVariable.ts 1`] = `
+"const config = defineNuxtConfig({
+    modules: ['@nuxtjs/tailwindcss', "@croct/plug-nuxt"],
+});
+
+export default config;
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform indirectConfigWithExtraDeclarator.ts: indirectConfigWithExtraDeclarator.ts 1`] = `
+"const unrelated = 1;
+const config = defineNuxtConfig({
+    modules: ['@nuxtjs/tailwindcss', "@croct/plug-nuxt"],
+});
+
+export default config;
+export { unrelated };
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform modulesAsSpread.ts: modulesAsSpread.ts 1`] = `
+"const sharedModules = ['@nuxtjs/tailwindcss'];
+
+export default defineNuxtConfig({
+    modules: [...sharedModules, "@croct/plug-nuxt"],
+});
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform noModulesKey.ts: noModulesKey.ts 1`] = `
+"export default defineNuxtConfig({
+  modules: ["@croct/plug-nuxt"]
+});
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform nonArrayModules.ts: nonArrayModules.ts 1`] = `
+"const modules = ['@nuxtjs/tailwindcss'];
+
+export default defineNuxtConfig({
+    modules: modules,
+});
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform nonObjectExport.ts: nonObjectExport.ts 1`] = `
+"export default makeConfig();
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform sparseModulesArray.ts: sparseModulesArray.ts 1`] = `
+"export default defineNuxtConfig({
+    modules: [, '@nuxtjs/tailwindcss', "@croct/plug-nuxt"],
+});
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform spreadConfigProperties.ts: spreadConfigProperties.ts 1`] = `
+"const shared = { modules: ['@nuxtjs/tailwindcss'] };
+
+export default defineNuxtConfig({
+    ...shared,
+    modules: ["@croct/plug-nuxt"]
+});
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform stringLiteralModulesKey.ts: stringLiteralModulesKey.ts 1`] = `
+"export default defineNuxtConfig({
+    'modules': ['@nuxtjs/tailwindcss', "@croct/plug-nuxt"],
+});
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform uninitializedBinding.ts: uninitializedBinding.ts 1`] = `
+"let config;
+
+export default config;
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform withStoryblokModule.ts: withStoryblokModule.ts 1`] = `
+"export default defineNuxtConfig({
+    modules: [
+        ['@storyblok/nuxt', { accessToken: 'YOUR_ACCESS_TOKEN' }],
+        "@croct/plug-nuxt"
+    ],
+});
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform withTypeAssertionAsConst.ts: withTypeAssertionAsConst.ts 1`] = `
+"export default defineNuxtConfig({
+    modules: ['@nuxtjs/tailwindcss', "@croct/plug-nuxt"],
+} as const);
+"
+`;
+
+exports[`NuxtConfigModuleCodemod should correctly transform withTypeAssertionSatisfies.ts: withTypeAssertionSatisfies.ts 1`] = `
+"import type { NuxtConfig } from 'nuxt/schema';
+
+export default defineNuxtConfig({
+    modules: ['@nuxtjs/tailwindcss', "@croct/plug-nuxt"],
+} satisfies NuxtConfig);
+"
+`;

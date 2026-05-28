@@ -1,0 +1,332 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`VuePluginCodemod apply should correctly transform aliasedFactoryImportAndUsed.ts: aliasedFactoryImportAndUsed.ts 1`] = `
+"import { createApp } from 'vue';
+import { createCroct as plug } from '@croct/plug-vue';
+import App from './App.vue';
+
+const app = createApp(App);
+app.use(plug({ appId: 'YOUR_APP_ID' }));
+app.mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform alreadyRegistered.ts: alreadyRegistered.ts 1`] = `
+"import { createApp } from 'vue';
+import { createCroct } from '@croct/plug-vue';
+import App from './App.vue';
+
+const app = createApp(App);
+app.use(createCroct({ appId: 'YOUR_APP_ID' }));
+app.mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform argsReference.ts: argsReference.ts 1`] = `
+"import { createCroct } from "@croct/plug-vue";
+import { createApp } from 'vue';
+import App from './App.vue';
+const app = createApp(App);
+
+app.use(createCroct({
+  appId: import.meta.env.VITE_CROCT_APP_ID
+}));
+
+app.mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform argsTernary.ts: argsTernary.ts 1`] = `
+"import { createCroct } from "@croct/plug-vue";
+import { createApp } from 'vue';
+import App from './App.vue';
+const app = createApp(App);
+
+app.use(createCroct({
+  appId: import.meta.env.MODE === "production" ? import.meta.env.VITE_CROCT_APP_ID_PROD : import.meta.env.VITE_CROCT_APP_ID_DEV
+}));
+
+app.mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform chainedAlreadyRegistered.ts: chainedAlreadyRegistered.ts 1`] = `
+"import { createApp } from 'vue';
+import { createCroct } from '@croct/plug-vue';
+import App from './App.vue';
+
+createApp(App).use(createCroct({ appId: 'YOUR_APP_ID' })).mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform chainedMount.ts: chainedMount.ts 1`] = `
+"import { createCroct } from "@croct/plug-vue";
+import { createApp } from 'vue';
+import App from './App.vue';
+
+createApp(App).use(createCroct({
+  appId: "YOUR_APP_ID"
+})).mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform chainedWithPlugins.ts: chainedWithPlugins.ts 1`] = `
+"import { createCroct } from "@croct/plug-vue";
+import { createApp } from 'vue';
+import router from './router';
+import pinia from './pinia';
+import App from './App.vue';
+
+createApp(App).use(router).use(pinia).use(createCroct({
+  appId: "YOUR_APP_ID"
+})).mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform computedMountAccess.ts: computedMountAccess.ts 1`] = `
+"import { createCroct } from "@croct/plug-vue";
+import { createApp } from 'vue';
+import App from './App.vue';
+const app = createApp(App);
+app['mount']('#app');
+
+app.use(createCroct({
+  appId: "YOUR_APP_ID"
+}));
+
+app.mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform createAppAsArgument.ts: createAppAsArgument.ts 1`] = `
+"import { createApp } from 'vue';
+import App from './App.vue';
+
+console.log(createApp(App));
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform createAppFromOtherPackage.ts: createAppFromOtherPackage.ts 1`] = `
+"import { createApp } from 'other-package';
+
+createApp({}).mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform createAppImportedButNotCalled.ts: createAppImportedButNotCalled.ts 1`] = `
+"import { createApp } from 'vue';
+
+console.log(createApp);
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform destructuredCreateApp.ts: destructuredCreateApp.ts 1`] = `
+"import { createApp } from 'vue';
+import App from './App.vue';
+
+const { mount } = createApp(App);
+
+mount('#app');
+
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform exportedCreateApp.ts: exportedCreateApp.ts 1`] = `
+"import { createApp } from 'vue';
+import App from './App.vue';
+
+export const app = createApp(App);
+
+app.mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform importedAliasedButNotUsed.ts: importedAliasedButNotUsed.ts 1`] = `
+"import { createApp } from 'vue';
+import { createCroct as plug } from '@croct/plug-vue';
+import App from './App.vue';
+const app = createApp(App);
+
+app.use(plug({
+  appId: "YOUR_APP_ID"
+}));
+
+app.mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform importedButNotUsed.ts: importedButNotUsed.ts 1`] = `
+"import { createApp } from 'vue';
+import { createCroct } from '@croct/plug-vue';
+import App from './App.vue';
+const app = createApp(App);
+
+app.use(createCroct({
+  appId: "YOUR_APP_ID"
+}));
+
+app.mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform incompleteChain.ts: incompleteChain.ts 1`] = `
+"import { createApp } from 'vue';
+import App from './App.vue';
+
+const mountFn = createApp(App).mount;
+mountFn('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform intermediateNonUseStatement.ts: intermediateNonUseStatement.ts 1`] = `
+"import { createCroct } from "@croct/plug-vue";
+import { createApp } from 'vue';
+import App from './App.vue';
+const app = createApp(App);
+const flag = true;
+app.use(router);
+console.log(flag);
+
+app.use(createCroct({
+  appId: "YOUR_APP_ID"
+}));
+
+app.mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform intermediateUnrelatedCalls.ts: intermediateUnrelatedCalls.ts 1`] = `
+"import { createApp } from 'vue';
+import { createCroct } from '@croct/plug-vue';
+import App from './App.vue';
+const app = createApp(App);
+app['use'](router);
+app.config.globalProperties.foo = 'bar';
+console.log('hi');
+app.mixin({});
+
+app.use(createCroct({
+  appId: "YOUR_APP_ID"
+}));
+
+app.mount('#app');
+
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform mountWithDocumentBody.ts: mountWithDocumentBody.ts 1`] = `
+"import { createCroct } from "@croct/plug-vue";
+import { createApp } from 'vue';
+import App from './App.vue';
+const app = createApp(App);
+
+app.use(createCroct({
+  appId: "YOUR_APP_ID"
+}));
+
+app.mount(document.body);
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform multipleCreateAppCallsChainedFirst.ts: multipleCreateAppCallsChainedFirst.ts 1`] = `
+"import { createCroct } from "@croct/plug-vue";
+import { createApp } from 'vue';
+import App from './App.vue';
+import Other from './Other.vue';
+
+createApp(App).use(createCroct({
+  appId: "YOUR_APP_ID"
+})).mount('#app');
+
+const second = createApp(Other);
+second.mount('#second');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform multipleCreateAppCallsVariableFirst.ts: multipleCreateAppCallsVariableFirst.ts 1`] = `
+"import { createCroct } from "@croct/plug-vue";
+import { createApp } from 'vue';
+import App from './App.vue';
+import Other from './Other.vue';
+const app = createApp(App);
+
+app.use(createCroct({
+  appId: "YOUR_APP_ID"
+}));
+
+app.mount('#app');
+createApp(Other).mount('#second');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform noArgs.ts: noArgs.ts 1`] = `
+"import { createCroct } from "@croct/plug-vue";
+import { createApp } from 'vue';
+import App from './App.vue';
+const app = createApp(App);
+app.use(createCroct());
+app.mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform noCreateAppCall.ts: noCreateAppCall.ts 1`] = `
+"import { something } from 'somewhere';
+
+something({ foo: 'bar' });
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform noMountCall.ts: noMountCall.ts 1`] = `
+"import { createApp } from 'vue';
+import App from './App.vue';
+
+const app = createApp(App);
+app.use(router);
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform typescriptInput.ts: typescriptInput.ts 1`] = `
+"import { createCroct } from "@croct/plug-vue";
+import { createApp, App as VueApp } from 'vue';
+import App from './App.vue';
+const app: VueApp = createApp(App);
+
+app.use(createCroct({
+  appId: "YOUR_APP_ID"
+}));
+
+app.mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform variableForm.ts: variableForm.ts 1`] = `
+"import { createCroct } from "@croct/plug-vue";
+import { createApp } from 'vue';
+import App from './App.vue';
+const app = createApp(App);
+
+app.use(createCroct({
+  appId: "YOUR_APP_ID"
+}));
+
+app.mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform variableWithPlugins.ts: variableWithPlugins.ts 1`] = `
+"import { createCroct } from "@croct/plug-vue";
+import { createApp } from 'vue';
+import router from './router';
+import pinia from './pinia';
+import App from './App.vue';
+const app = createApp(App);
+app.use(router);
+app.use(pinia);
+
+app.use(createCroct({
+  appId: "YOUR_APP_ID"
+}));
+
+app.mount('#app');
+"
+`;
