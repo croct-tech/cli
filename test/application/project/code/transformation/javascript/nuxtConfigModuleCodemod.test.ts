@@ -19,7 +19,7 @@ describe('NuxtConfigModuleCodemod', () => {
 
     it.each(scenarios)('should correctly transform $name', async ({name, fixture, options}) => {
         const transformer = new JavaScriptCodemod({
-            languages: ['typescript', 'jsx'],
+            languages: ['typescript'],
             codemod: new NuxtConfigModuleCodemod(options),
         });
 
