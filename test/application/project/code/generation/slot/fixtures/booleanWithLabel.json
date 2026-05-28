@@ -1,0 +1,25 @@
+{
+  "id": "feature-toggle",
+  "version": 1,
+  "definition": {
+    "type": "structure",
+    "attributes": {
+      "enabled": {
+        "type": {
+          "type": "boolean",
+          "label": {
+            "true": "Active",
+            "false": "Inactive"
+          }
+        },
+        "position": 0
+      },
+      "visible": {
+        "type": {
+          "type": "boolean"
+        },
+        "position": 1
+      }
+    }
+  }
+}

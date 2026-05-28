@@ -4,6 +4,7 @@ export enum CodeLanguage {
     JAVASCRIPT_XML = 'jsx',
     TYPESCRIPT = 'typescript',
     TYPESCRIPT_XML = 'tsx',
+    VUE = 'vue',
 }
 
 export type ExampleFile = {

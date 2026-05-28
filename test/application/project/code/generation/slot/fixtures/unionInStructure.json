@@ -1,0 +1,39 @@
+{
+  "id": "block",
+  "version": 1,
+  "definition": {
+    "type": "structure",
+    "attributes": {
+      "media": {
+        "type": {
+          "type": "union",
+          "types": {
+            "image": {
+              "type": "structure",
+              "attributes": {
+                "url": {
+                  "type": {
+                    "type": "text"
+                  },
+                  "position": 0
+                }
+              }
+            },
+            "video": {
+              "type": "structure",
+              "attributes": {
+                "source": {
+                  "type": {
+                    "type": "text"
+                  },
+                  "position": 0
+                }
+              }
+            }
+          }
+        },
+        "position": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "author-card",
+  "version": 1,
+  "definition": {
+    "type": "structure",
+    "attributes": {
+      "author": {
+        "type": {
+          "type": "structure",
+          "attributes": {
+            "name": {
+              "type": {
+                "type": "text"
+              },
+              "position": 0
+            },
+            "bio": {
+              "type": {
+                "type": "text"
+              },
+              "optional": true,
+              "position": 1
+            }
+          }
+        },
+        "position": 0
+      }
+    }
+  }
+}

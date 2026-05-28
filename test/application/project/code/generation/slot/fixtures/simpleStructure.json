@@ -1,0 +1,27 @@
+{
+  "id": "home-hero",
+  "version": 1,
+  "definition": {
+    "type": "structure",
+    "attributes": {
+      "headline": {
+        "type": {
+          "type": "text"
+        },
+        "position": 0
+      },
+      "viewCount": {
+        "type": {
+          "type": "number"
+        },
+        "position": 1
+      },
+      "featured": {
+        "type": {
+          "type": "boolean"
+        },
+        "position": 2
+      }
+    }
+  }
+}

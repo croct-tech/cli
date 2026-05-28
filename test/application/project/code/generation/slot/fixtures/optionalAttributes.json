@@ -1,0 +1,22 @@
+{
+  "id": "promo-card",
+  "version": 2,
+  "definition": {
+    "type": "structure",
+    "attributes": {
+      "title": {
+        "type": {
+          "type": "text"
+        },
+        "position": 0
+      },
+      "subtitle": {
+        "type": {
+          "type": "text"
+        },
+        "optional": true,
+        "position": 1
+      }
+    }
+  }
+}
