@@ -87,26 +87,45 @@ describe('createObjectProps', () => {
             expect(print(expression)).toBe('process.env.NODE_ENV === "production"');
         });
 
-        it('should build a comparison expression with other operators', () => {
-            const operators: Array<AttributeType['type'] extends never ? never : '===' | '!==' | '>' | '>=' | '<' | '<='> = [
-                '===',
-                '!==',
-                '>',
-                '>=',
-                '<',
-                '<=',
-            ];
+        type ComparisonScenario = {
+            description: string,
+            operator: Extract<AttributeType, {type: 'comparison'}>['operator'],
+        };
 
-            for (const operator of operators) {
-                const expression = buildPropertyExpression({
-                    type: 'comparison',
-                    operator: operator,
-                    left: {type: 'literal', value: 1},
-                    right: {type: 'literal', value: 2},
-                });
+        it.each<ComparisonScenario>([
+            {
+                description: 'strict equality',
+                operator: '===',
+            },
+            {
+                description: 'strict inequality',
+                operator: '!==',
+            },
+            {
+                description: 'greater than',
+                operator: '>',
+            },
+            {
+                description: 'greater than or equal',
+                operator: '>=',
+            },
+            {
+                description: 'less than',
+                operator: '<',
+            },
+            {
+                description: 'less than or equal',
+                operator: '<=',
+            },
+        ])('should build a comparison expression with $description', ({operator}) => {
+            const expression = buildPropertyExpression({
+                type: 'comparison',
+                operator: operator,
+                left: {type: 'literal', value: 1},
+                right: {type: 'literal', value: 2},
+            });
 
-                expect(print(expression)).toBe(`1 ${operator} 2`);
-            }
+            expect(print(expression)).toBe(`1 ${operator} 2`);
         });
 
         it('should build a ternary expression', () => {
@@ -173,8 +192,10 @@ describe('createObjectProps', () => {
                 },
             });
 
-            expect(print(expression))
-                .toBe('{ literal: "l", reference: process.env.X, ternary: mode === "prod" ? "a" : "b", comparison: 1 > 0 }');
+            expect(print(expression)).toBe(
+                '{ literal: "l", reference: process.env.X, '
+                + 'ternary: mode === "prod" ? "a" : "b", comparison: 1 > 0 }',
+            );
         });
     });
 });
