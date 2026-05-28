@@ -11,44 +11,43 @@ import type {Installation} from '@/application/project/sdk/sdk';
 import type {ScanFilter} from '@/application/fs/fileSystem';
 
 export type Configuration = {
+    storyblokPackage: string,
+    marker: string,
     scanFilter: ScanFilter,
     codemod: Codemod<string>,
 };
 
-export class StoryblokPlugin implements JavaScriptSdkPlugin {
-    private readonly codemod: Codemod<string>;
-
-    private readonly scanFilter: ScanFilter;
+export class WrapperStoryblokPlugin implements JavaScriptSdkPlugin {
+    private readonly configuration: Configuration;
 
     public constructor(configuration: Configuration) {
-        this.codemod = configuration.codemod;
-        this.scanFilter = configuration.scanFilter;
+        this.configuration = configuration;
     }
 
     public async getInstallationPlan(
         _: Installation,
         context: JavaScriptPluginContext,
     ): Promise<Partial<InstallationPlan>> {
-        if (!await context.packageManager.hasDependency('@storyblok/js')) {
+        if (!await context.packageManager.hasDirectDependency(this.configuration.storyblokPackage)) {
             return {};
         }
 
-        const tasks: Task[] = [];
+        const tasks: Task[] = [
+            {
+                title: 'Configure Storyblok integration',
+                task: async notifier => {
+                    notifier.update('Configuring Storyblok integration');
 
-        tasks.push({
-            title: 'Configure Storyblok integration',
-            task: async notifier => {
-                notifier.update('Configuring Storyblok integration');
+                    try {
+                        await this.configureStoryblok(context);
 
-                try {
-                    await this.configureStoryblok(context);
-
-                    notifier.confirm('Storyblok configured');
-                } catch (error) {
-                    notifier.alert('Failed to configure Storyblok', HelpfulError.formatMessage(error));
-                }
+                        notifier.confirm('Storyblok configured');
+                    } catch (error) {
+                        notifier.alert('Failed to configure Storyblok', HelpfulError.formatMessage(error));
+                    }
+                },
             },
-        });
+        ];
 
         return {
             tasks: tasks,
@@ -57,14 +56,15 @@ export class StoryblokPlugin implements JavaScriptSdkPlugin {
     }
 
     private async configureStoryblok(scope: JavaScriptPluginContext): Promise<void> {
-        const initializationFiles = await this.findStoryblokInitializationFiles(scope);
+        const candidateFiles = await this.findCandidateFiles(scope);
 
-        if (initializationFiles.length === 0) {
+        if (candidateFiles.length === 0) {
             throw new HelpfulError('Could not find any file containing Storyblok initialization.');
         }
 
-        const results = initializationFiles.map(
-            file => this.codemod
+        const results = candidateFiles.map(
+            file => this.configuration
+                .codemod
                 .apply(file)
                 .then(result => result.modified),
         );
@@ -74,12 +74,12 @@ export class StoryblokPlugin implements JavaScriptSdkPlugin {
         }
     }
 
-    private async findStoryblokInitializationFiles(scope: JavaScriptPluginContext): Promise<string[]> {
+    private async findCandidateFiles(scope: JavaScriptPluginContext): Promise<string[]> {
         const {fileSystem, projectDirectory} = scope;
 
         const directory = projectDirectory.get();
         const iterator = fileSystem.list(directory, async (path, depth) => {
-            if (!await this.scanFilter(path, depth) || depth > 20) {
+            if (!await this.configuration.scanFilter(path, depth) || depth > 20) {
                 return false;
             }
 
@@ -103,7 +103,7 @@ export class StoryblokPlugin implements JavaScriptSdkPlugin {
             const path = fileSystem.joinPaths(directory, entry.name);
             const content = await fileSystem.readTextFile(path);
 
-            if (content.includes('storyblokInit')) {
+            if (content.includes(this.configuration.marker)) {
                 files.push(path);
             }
         }

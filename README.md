@@ -42,7 +42,7 @@ For more information, visit our [official documentation](https://docs.croct.com/
 
 ## Documentation
 
-Visit our [official documentation](https://docs.croct.com/reference/sdk/cli/installation).
+Visit our [official documentation](https://docs.croct.com/reference/cli/installation).
 
 ## Support
 
@@ -52,8 +52,8 @@ Join our official [Slack channel](https://croct.link/community) to get help from
 
 Contributions are always welcome!
 
-- Report any bugs or issues on the [issue tracker](https://github.com/croct-tech/plug-next/issues).
-- For major changes, please [open an issue](https://github.com/croct-tech/plug-next/issues) first to discuss what you would like to change.
+- Report any bugs or issues on the [issue tracker](https://github.com/croct-tech/cli/issues).
+- For major changes, please [open an issue](https://github.com/croct-tech/cli/issues) first to discuss what you would like to change.
 - Please make sure to update tests as appropriate. Run tests with `npm test`.
 
 ## License

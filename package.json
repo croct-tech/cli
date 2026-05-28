@@ -77,7 +77,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@croct/eslint-plugin": "../coding-standard-js",
+    "@croct/eslint-plugin": "^0.9.2",
     "@graphql-codegen/cli": "^5.0.7",
     "@swc/jest": "^0.2.39",
     "@types/ini": "^4.1.1",
@@ -95,5 +95,8 @@
   "files": [
     "**/*.js",
     "**/*.ts"
-  ]
+  ],
+  "overrides": {
+    "lodash": "^4.17.24"
+  }
 }

@@ -1,0 +1,18 @@
+{
+  "id": "tag-cloud",
+  "version": 1,
+  "definition": {
+    "type": "structure",
+    "attributes": {
+      "tags": {
+        "type": {
+          "type": "list",
+          "items": {
+            "type": "text"
+          }
+        },
+        "position": 0
+      }
+    }
+  }
+}

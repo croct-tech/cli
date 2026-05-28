@@ -83,10 +83,7 @@ export class PlugReactSdk extends JavaScriptSdk {
                 ? CodeLanguage.TYPESCRIPT_XML
                 : CodeLanguage.JAVASCRIPT_XML,
             contentVariable: 'content',
-            slotImportPath: await this.importResolver.getImportPath(
-                slotPath,
-                this.fileSystem.getDirectoryName(pagePath),
-            ),
+            slotImportPath: await this.importResolver.getImportPath(slotPath, pagePath),
             slotFilePath: slotPath,
             slotComponentName: '%name%',
             pageFilePath: pagePath,
