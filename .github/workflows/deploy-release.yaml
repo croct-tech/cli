@@ -15,4 +15,4 @@ jobs:
         npm run build
       prepare-script: >-
         cp package.json LICENSE README.md build/ &&
-        npm --prefix build pkg delete dependencies
+        npm --prefix build pkg delete dependencies devDependencies
