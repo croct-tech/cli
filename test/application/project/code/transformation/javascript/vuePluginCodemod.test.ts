@@ -21,7 +21,7 @@ describe('VuePluginCodemod', () => {
     };
 
     function loadFixture(name: string): t.File {
-        return parse(readFileSync(resolve(fixturesPath, name), 'utf-8'), ['typescript', 'jsx']);
+        return parse(readFileSync(resolve(fixturesPath, name), 'utf-8'), ['typescript']);
     }
 
     it.each(
@@ -70,7 +70,7 @@ describe('VuePluginCodemod', () => {
         ),
     )('apply should correctly transform $name', async ({name, fixture, options}) => {
         const transformer = new JavaScriptCodemod({
-            languages: ['typescript', 'jsx'],
+            languages: ['typescript'],
             codemod: new VuePluginCodemod(options),
         });
 
