@@ -12,13 +12,13 @@ exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for booleanWit
     },
     {
       "code": "<script setup>
-const {data: content} = await useContent('feature-toggle@1');
+const {data} = await useContent('feature-toggle@1');
 </script>
 
 <template>
-  <ul v-if="content">
-    <li><strong>Enabled:</strong> {{ content.enabled ? 'Active' : 'Inactive' }}</li>
-    <li><strong>Visible:</strong> {{ content.visible ? 'Yes' : 'No' }}</li>
+  <ul v-if="data.content">
+    <li><strong>Enabled:</strong> {{ data.content.enabled ? 'Active' : 'Inactive' }}</li>
+    <li><strong>Visible:</strong> {{ data.content.visible ? 'Yes' : 'No' }}</li>
   </ul>
 </template>",
       "language": "vue",
@@ -40,12 +40,12 @@ exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for labeledAtt
     },
     {
       "code": "<script setup>
-const {data: content} = await useContent('stylized@1');
+const {data} = await useContent('stylized@1');
 </script>
 
 <template>
-  <ul v-if="content">
-    <li><strong>Tom &amp; Jerry &lt;special&gt;:</strong> {{ content.title }}</li>
+  <ul v-if="data.content">
+    <li><strong>Tom &amp; Jerry &lt;special&gt;:</strong> {{ data.content.title }}</li>
   </ul>
 </template>",
       "language": "vue",
@@ -67,15 +67,15 @@ exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for listOfScal
     },
     {
       "code": "<script setup>
-const {data: content} = await useContent('tag-cloud@1');
+const {data} = await useContent('tag-cloud@1');
 </script>
 
 <template>
-  <ul v-if="content">
+  <ul v-if="data.content">
     <li>
       <strong>Tags</strong>
       <ol>
-        <li v-for="(item, index) in content.tags" :key="index">
+        <li v-for="(item, index) in data.content.tags" :key="index">
           {{ item }}
         </li>
       </ol>
@@ -101,15 +101,15 @@ exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for listOfStru
     },
     {
       "code": "<script setup>
-const {data: content} = await useContent('product-grid@3');
+const {data} = await useContent('product-grid@3');
 </script>
 
 <template>
-  <ul v-if="content">
+  <ul v-if="data.content">
     <li>
       <strong>Products</strong>
       <ol>
-        <li v-for="(product, index) in content.products" :key="index">
+        <li v-for="(product, index) in data.content.products" :key="index">
           <ul>
             <li><strong>Name:</strong> {{ product.name }}</li>
             <li><strong>Price:</strong> {{ product.price }}</li>
@@ -138,16 +138,16 @@ exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for nestedStru
     },
     {
       "code": "<script setup>
-const {data: content} = await useContent('author-card@1');
+const {data} = await useContent('author-card@1');
 </script>
 
 <template>
-  <ul v-if="content">
+  <ul v-if="data.content">
     <li>
       <strong>Author</strong>
       <ul>
-        <li><strong>Name:</strong> {{ content.author.name }}</li>
-        <li v-if="content.author.bio"><strong>Bio:</strong> {{ content.author.bio }}</li>
+        <li><strong>Name:</strong> {{ data.content.author.name }}</li>
+        <li v-if="data.content.author.bio"><strong>Bio:</strong> {{ data.content.author.bio }}</li>
       </ul>
     </li>
   </ul>
@@ -171,13 +171,13 @@ exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for optionalAt
     },
     {
       "code": "<script setup>
-const {data: content} = await useContent('promo-card@2');
+const {data} = await useContent('promo-card@2');
 </script>
 
 <template>
-  <ul v-if="content">
-    <li><strong>Title:</strong> {{ content.title }}</li>
-    <li v-if="content.subtitle"><strong>Subtitle:</strong> {{ content.subtitle }}</li>
+  <ul v-if="data.content">
+    <li><strong>Title:</strong> {{ data.content.title }}</li>
+    <li v-if="data.content.subtitle"><strong>Subtitle:</strong> {{ data.content.subtitle }}</li>
   </ul>
 </template>",
       "language": "vue",
@@ -199,12 +199,12 @@ exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for privateAtt
     },
     {
       "code": "<script setup>
-const {data: content} = await useContent('tracked-banner@1');
+const {data} = await useContent('tracked-banner@1');
 </script>
 
 <template>
-  <ul v-if="content">
-    <li><strong>Headline:</strong> {{ content.headline }}</li>
+  <ul v-if="data.content">
+    <li><strong>Headline:</strong> {{ data.content.headline }}</li>
   </ul>
 </template>",
       "language": "vue",
@@ -226,14 +226,14 @@ exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for simpleStru
     },
     {
       "code": "<script setup>
-const {data: content} = await useContent('home-hero@1');
+const {data} = await useContent('home-hero@1');
 </script>
 
 <template>
-  <ul v-if="content">
-    <li><strong>Headline:</strong> {{ content.headline }}</li>
-    <li><strong>View count:</strong> {{ content.viewCount }}</li>
-    <li><strong>Featured:</strong> {{ content.featured ? 'Yes' : 'No' }}</li>
+  <ul v-if="data.content">
+    <li><strong>Headline:</strong> {{ data.content.headline }}</li>
+    <li><strong>View count:</strong> {{ data.content.viewCount }}</li>
+    <li><strong>Featured:</strong> {{ data.content.featured ? 'Yes' : 'No' }}</li>
   </ul>
 </template>",
       "language": "vue",
@@ -255,21 +255,21 @@ exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for unionInStr
     },
     {
       "code": "<script setup>
-const {data: content} = await useContent('block@1');
+const {data} = await useContent('block@1');
 </script>
 
 <template>
-  <ul v-if="content">
+  <ul v-if="data.content">
     <li>
       <strong>Media</strong>
-      <template v-if="content.media?._type === 'image'">
+      <template v-if="data.content.media?._type === 'image'">
         <ul>
-          <li><strong>Url:</strong> {{ content.media.url }}</li>
+          <li><strong>Url:</strong> {{ data.content.media.url }}</li>
         </ul>
       </template>
-      <template v-if="content.media?._type === 'video'">
+      <template v-if="data.content.media?._type === 'video'">
         <ul>
-          <li><strong>Source:</strong> {{ content.media.source }}</li>
+          <li><strong>Source:</strong> {{ data.content.media.source }}</li>
         </ul>
       </template>
     </li>
@@ -294,19 +294,19 @@ exports[`PlugNuxtExampleGenerator should generate JavaScript SFCs for unionRoot:
     },
     {
       "code": "<script setup>
-const {data: content} = await useContent('cta-block@1');
+const {data} = await useContent('cta-block@1');
 </script>
 
 <template>
-  <template v-if="content?._type === 'button'">
+  <template v-if="data.content?._type === 'button'">
     <ul>
-      <li><strong>Label:</strong> {{ content.label }}</li>
+      <li><strong>Label:</strong> {{ data.content.label }}</li>
     </ul>
   </template>
-  <template v-if="content?._type === 'link'">
+  <template v-if="data.content?._type === 'link'">
     <ul>
-      <li><strong>Url:</strong> {{ content.url }}</li>
-      <li><strong>Text:</strong> {{ content.text }}</li>
+      <li><strong>Url:</strong> {{ data.content.url }}</li>
+      <li><strong>Text:</strong> {{ data.content.text }}</li>
     </ul>
   </template>
 </template>",
@@ -329,13 +329,13 @@ exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for booleanWit
     },
     {
       "code": "<script setup lang="ts">
-const {data: content} = await useContent('feature-toggle@1');
+const {data} = await useContent('feature-toggle@1');
 </script>
 
 <template>
-  <ul v-if="content">
-    <li><strong>Enabled:</strong> {{ content.enabled ? 'Active' : 'Inactive' }}</li>
-    <li><strong>Visible:</strong> {{ content.visible ? 'Yes' : 'No' }}</li>
+  <ul v-if="data.content">
+    <li><strong>Enabled:</strong> {{ data.content.enabled ? 'Active' : 'Inactive' }}</li>
+    <li><strong>Visible:</strong> {{ data.content.visible ? 'Yes' : 'No' }}</li>
   </ul>
 </template>",
       "language": "vue",
@@ -357,12 +357,12 @@ exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for labeledAtt
     },
     {
       "code": "<script setup lang="ts">
-const {data: content} = await useContent('stylized@1');
+const {data} = await useContent('stylized@1');
 </script>
 
 <template>
-  <ul v-if="content">
-    <li><strong>Tom &amp; Jerry &lt;special&gt;:</strong> {{ content.title }}</li>
+  <ul v-if="data.content">
+    <li><strong>Tom &amp; Jerry &lt;special&gt;:</strong> {{ data.content.title }}</li>
   </ul>
 </template>",
       "language": "vue",
@@ -384,15 +384,15 @@ exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for listOfScal
     },
     {
       "code": "<script setup lang="ts">
-const {data: content} = await useContent('tag-cloud@1');
+const {data} = await useContent('tag-cloud@1');
 </script>
 
 <template>
-  <ul v-if="content">
+  <ul v-if="data.content">
     <li>
       <strong>Tags</strong>
       <ol>
-        <li v-for="(item, index) in content.tags" :key="index">
+        <li v-for="(item, index) in data.content.tags" :key="index">
           {{ item }}
         </li>
       </ol>
@@ -418,15 +418,15 @@ exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for listOfStru
     },
     {
       "code": "<script setup lang="ts">
-const {data: content} = await useContent('product-grid@3');
+const {data} = await useContent('product-grid@3');
 </script>
 
 <template>
-  <ul v-if="content">
+  <ul v-if="data.content">
     <li>
       <strong>Products</strong>
       <ol>
-        <li v-for="(product, index) in content.products" :key="index">
+        <li v-for="(product, index) in data.content.products" :key="index">
           <ul>
             <li><strong>Name:</strong> {{ product.name }}</li>
             <li><strong>Price:</strong> {{ product.price }}</li>
@@ -455,16 +455,16 @@ exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for nestedStru
     },
     {
       "code": "<script setup lang="ts">
-const {data: content} = await useContent('author-card@1');
+const {data} = await useContent('author-card@1');
 </script>
 
 <template>
-  <ul v-if="content">
+  <ul v-if="data.content">
     <li>
       <strong>Author</strong>
       <ul>
-        <li><strong>Name:</strong> {{ content.author.name }}</li>
-        <li v-if="content.author.bio"><strong>Bio:</strong> {{ content.author.bio }}</li>
+        <li><strong>Name:</strong> {{ data.content.author.name }}</li>
+        <li v-if="data.content.author.bio"><strong>Bio:</strong> {{ data.content.author.bio }}</li>
       </ul>
     </li>
   </ul>
@@ -488,13 +488,13 @@ exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for optionalAt
     },
     {
       "code": "<script setup lang="ts">
-const {data: content} = await useContent('promo-card@2');
+const {data} = await useContent('promo-card@2');
 </script>
 
 <template>
-  <ul v-if="content">
-    <li><strong>Title:</strong> {{ content.title }}</li>
-    <li v-if="content.subtitle"><strong>Subtitle:</strong> {{ content.subtitle }}</li>
+  <ul v-if="data.content">
+    <li><strong>Title:</strong> {{ data.content.title }}</li>
+    <li v-if="data.content.subtitle"><strong>Subtitle:</strong> {{ data.content.subtitle }}</li>
   </ul>
 </template>",
       "language": "vue",
@@ -516,12 +516,12 @@ exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for privateAtt
     },
     {
       "code": "<script setup lang="ts">
-const {data: content} = await useContent('tracked-banner@1');
+const {data} = await useContent('tracked-banner@1');
 </script>
 
 <template>
-  <ul v-if="content">
-    <li><strong>Headline:</strong> {{ content.headline }}</li>
+  <ul v-if="data.content">
+    <li><strong>Headline:</strong> {{ data.content.headline }}</li>
   </ul>
 </template>",
       "language": "vue",
@@ -543,14 +543,14 @@ exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for simpleStru
     },
     {
       "code": "<script setup lang="ts">
-const {data: content} = await useContent('home-hero@1');
+const {data} = await useContent('home-hero@1');
 </script>
 
 <template>
-  <ul v-if="content">
-    <li><strong>Headline:</strong> {{ content.headline }}</li>
-    <li><strong>View count:</strong> {{ content.viewCount }}</li>
-    <li><strong>Featured:</strong> {{ content.featured ? 'Yes' : 'No' }}</li>
+  <ul v-if="data.content">
+    <li><strong>Headline:</strong> {{ data.content.headline }}</li>
+    <li><strong>View count:</strong> {{ data.content.viewCount }}</li>
+    <li><strong>Featured:</strong> {{ data.content.featured ? 'Yes' : 'No' }}</li>
   </ul>
 </template>",
       "language": "vue",
@@ -572,21 +572,21 @@ exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for unionInStr
     },
     {
       "code": "<script setup lang="ts">
-const {data: content} = await useContent('block@1');
+const {data} = await useContent('block@1');
 </script>
 
 <template>
-  <ul v-if="content">
+  <ul v-if="data.content">
     <li>
       <strong>Media</strong>
-      <template v-if="content.media?._type === 'image'">
+      <template v-if="data.content.media?._type === 'image'">
         <ul>
-          <li><strong>Url:</strong> {{ content.media.url }}</li>
+          <li><strong>Url:</strong> {{ data.content.media.url }}</li>
         </ul>
       </template>
-      <template v-if="content.media?._type === 'video'">
+      <template v-if="data.content.media?._type === 'video'">
         <ul>
-          <li><strong>Source:</strong> {{ content.media.source }}</li>
+          <li><strong>Source:</strong> {{ data.content.media.source }}</li>
         </ul>
       </template>
     </li>
@@ -611,19 +611,19 @@ exports[`PlugNuxtExampleGenerator should generate TypeScript SFCs for unionRoot:
     },
     {
       "code": "<script setup lang="ts">
-const {data: content} = await useContent('cta-block@1');
+const {data} = await useContent('cta-block@1');
 </script>
 
 <template>
-  <template v-if="content?._type === 'button'">
+  <template v-if="data.content?._type === 'button'">
     <ul>
-      <li><strong>Label:</strong> {{ content.label }}</li>
+      <li><strong>Label:</strong> {{ data.content.label }}</li>
     </ul>
   </template>
-  <template v-if="content?._type === 'link'">
+  <template v-if="data.content?._type === 'link'">
     <ul>
-      <li><strong>Url:</strong> {{ content.url }}</li>
-      <li><strong>Text:</strong> {{ content.text }}</li>
+      <li><strong>Url:</strong> {{ data.content.url }}</li>
+      <li><strong>Text:</strong> {{ data.content.text }}</li>
     </ul>
   </template>
 </template>",

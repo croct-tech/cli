@@ -22,6 +22,8 @@ import type {
 import {PlugJsSdk} from '@/application/project/sdk/plugJsSdk';
 import {PlugReactSdk} from '@/application/project/sdk/plugReactSdk';
 import {PlugNextSdk} from '@/application/project/sdk/plugNextSdk';
+import {PlugVueSdk} from '@/application/project/sdk/plugVueSdk';
+import {PlugNuxtSdk} from '@/application/project/sdk/plugNuxtSdk';
 import type {InitInput} from '@/application/cli/command/init';
 import {InitCommand} from '@/application/cli/command/init';
 import type {LoginInput} from '@/application/cli/command/login';
@@ -349,7 +351,15 @@ import {
     CreateApiKeyOptionsValidator,
 } from '@/infrastructure/application/validation/actions/createApiKeyOptionsValidator';
 import {StoryblokInitCodemod} from '@/application/project/code/transformation/javascript/storyblokInitCodemod';
-import {StoryblokPlugin} from '@/application/project/sdk/storyblokPlugin';
+import {WrapperStoryblokPlugin} from '@/application/project/sdk/wrapperStoryblokPlugin';
+import {NuxtStoryblokPlugin} from '@/application/project/sdk/nuxtStoryblokPlugin';
+import {VuePluginCodemod} from '@/application/project/code/transformation/javascript/vuePluginCodemod';
+import {VueStoryblokCodemod} from '@/application/project/code/transformation/javascript/vueStoryblokCodemod';
+import {NuxtConfigModuleCodemod} from '@/application/project/code/transformation/javascript/nuxtConfigModuleCodemod';
+
+import {
+    NuxtStoryblokPluginCodemod,
+} from '@/application/project/code/transformation/javascript/nuxtStoryblokPluginCodemod';
 
 export type Configuration = {
     program: Program,
@@ -1801,6 +1811,59 @@ export class Cli {
                             },
                         ],
                     }),
+                    [Platform.VUE]: (): Sdk => new PlugVueSdk({
+                        ...config,
+                        plugins: [this.createVueStoryblokPlugin()],
+                        importResolver: importResolver,
+                        codemod: {
+                            plugin: new FormatCodemod(
+                                formatter,
+                                new FileCodemod({
+                                    fileSystem: this.getFileSystem(),
+                                    codemod: new JavaScriptCodemod({
+                                        languages: ['typescript'],
+                                        codemod: new VuePluginCodemod({
+                                            plugin: {
+                                                module: '@croct/plug-vue',
+                                                factory: 'createCroct',
+                                            },
+                                        }),
+                                    }),
+                                }),
+                            ),
+                        },
+                        bundlers: [
+                            {
+                                package: 'vite',
+                                prefix: 'import.meta.env.VITE_',
+                            },
+                            {
+                                package: 'parcel',
+                                prefix: 'process.env.',
+                            },
+                        ],
+                    }),
+                    [Platform.NUXT]: (): Sdk => new PlugNuxtSdk({
+                        ...config,
+                        plugins: [this.createNuxtStoryblokPlugin()],
+                        userApi: this.getUserApi(),
+                        applicationApi: this.getApplicationApi(),
+                        commandExecutor: this.getAsynchronousCommandExecutor(),
+                        codemod: {
+                            config: new FormatCodemod(
+                                formatter,
+                                new FileCodemod({
+                                    fileSystem: this.getFileSystem(),
+                                    codemod: new JavaScriptCodemod({
+                                        languages: ['typescript'],
+                                        codemod: new NuxtConfigModuleCodemod({
+                                            moduleName: '@croct/plug-nuxt',
+                                        }),
+                                    }),
+                                }),
+                            ),
+                        },
+                    }),
                     [Platform.NEXTJS]: (): Sdk => {
                         const providerProps: Record<string, AttributeType> = {
                             appId: {
@@ -1947,6 +2010,8 @@ export class Cli {
                         [Platform.JAVASCRIPT]: () => this.getJavaScriptFormatter(),
                         [Platform.REACT]: () => this.getJavaScriptFormatter(),
                         [Platform.NEXTJS]: () => this.getJavaScriptFormatter(),
+                        [Platform.VUE]: () => this.getJavaScriptFormatter(),
+                        [Platform.NUXT]: () => this.getJavaScriptFormatter(),
                         [unknown]: (): never => {
                             throw new ProviderError('No code formatter detected.', {
                                 reason: ErrorReason.NOT_SUPPORTED,
@@ -1971,7 +2036,9 @@ export class Cli {
             [Platform.NEXTJS]: 'next',
         };
 
-        return new StoryblokPlugin({
+        return new WrapperStoryblokPlugin({
+            storyblokPackage: '@storyblok/js',
+            marker: 'storyblokInit',
             scanFilter: this.getScanFilter(),
             codemod: new FormatCodemod(
                 this.getJavaScriptFormatter(),
@@ -1985,6 +2052,57 @@ export class Cli {
                                 module: `@croct/plug-storyblok/${modules[platform]}`,
                             }),
                         },
+                    }),
+                }),
+            ),
+        });
+    }
+
+    private createVueStoryblokPlugin(): JavaScriptSdkPlugin {
+        return new WrapperStoryblokPlugin({
+            storyblokPackage: '@storyblok/vue',
+            marker: 'StoryblokVue',
+            scanFilter: this.getScanFilter(),
+            codemod: new FormatCodemod(
+                this.getJavaScriptFormatter(),
+                new FileCodemod({
+                    fileSystem: this.getFileSystem(),
+                    codemod: new JavaScriptCodemod({
+                        languages: ['typescript'],
+                        codemod: new VueStoryblokCodemod({
+                            plugin: {
+                                module: '@croct/plug-storyblok/vue',
+                                factory: 'withCroct',
+                            },
+                            storyblok: {
+                                module: '@storyblok/vue',
+                                identifier: 'StoryblokVue',
+                            },
+                        }),
+                    }),
+                }),
+            ),
+        });
+    }
+
+    private createNuxtStoryblokPlugin(): JavaScriptSdkPlugin {
+        return new NuxtStoryblokPlugin({
+            storyblokPackage: '@storyblok/nuxt',
+            pluginFile: 'plugins/croct-storyblok.ts',
+            codemod: new FormatCodemod(
+                this.getJavaScriptFormatter(),
+                new FileCodemod({
+                    fileSystem: this.getFileSystem(),
+                    codemod: new JavaScriptCodemod({
+                        languages: ['typescript'],
+                        codemod: new NuxtStoryblokPluginCodemod({
+                            plugin: {
+                                module: '@croct/plug-storyblok/nuxt',
+                                factory: 'withCroct',
+                            },
+                            storyblokVueModule: '@storyblok/vue',
+                            nuxtAppModule: '#app',
+                        }),
                     }),
                 }),
             ),
@@ -2165,6 +2283,8 @@ export class Cli {
                     [Platform.JAVASCRIPT]: () => this.getNodeServerProvider().get(),
                     [Platform.REACT]: () => this.getNodeServerProvider().get(),
                     [Platform.NEXTJS]: () => this.getNodeServerProvider().get(),
+                    [Platform.VUE]: () => this.getNodeServerProvider().get(),
+                    [Platform.NUXT]: () => this.getNodeServerProvider().get(),
                     [unknown]: () => null,
                 },
             });
@@ -2314,10 +2434,24 @@ export class Cli {
                             }),
                         },
                         {
+                            value: Platform.NUXT,
+                            condition: new HasDependency({
+                                packageManager: nodePackageManager,
+                                dependencies: ['nuxt'],
+                            }),
+                        },
+                        {
                             value: Platform.REACT,
                             condition: new HasDependency({
                                 packageManager: nodePackageManager,
                                 dependencies: ['react'],
+                            }),
+                        },
+                        {
+                            value: Platform.VUE,
+                            condition: new HasDependency({
+                                packageManager: nodePackageManager,
+                                dependencies: ['vue'],
                             }),
                         },
                         {

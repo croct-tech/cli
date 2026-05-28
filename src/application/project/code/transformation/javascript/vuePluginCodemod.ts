@@ -87,7 +87,7 @@ export class VuePluginCodemod implements Codemod<t.File, VuePluginOptions> {
         if (anchor.kind === 'chain') {
             VuePluginCodemod.injectIntoChain(anchor, factoryCall);
         } else {
-            VuePluginCodemod.injectBeforeMount(anchor, factoryCall);
+            VuePluginCodemod.injectAfterDeclaration(anchor, factoryCall);
         }
 
         return Promise.resolve({modified: true, result: input});
@@ -380,17 +380,36 @@ export class VuePluginCodemod implements Codemod<t.File, VuePluginOptions> {
         return first !== undefined && t.isIdentifier(first) && first.name === identifier;
     }
 
+    /**
+     * Inserts the plugin registration as the first link of the chain.
+     *
+     * Walking down through the chained calls and splicing the registration right after
+     * the createApp call ensures the Croct context is set up before any plugin that
+     * integrates with it, such as the Storyblok bridge.
+     */
     private static injectIntoChain(anchor: ChainAnchor, factoryCall: t.CallExpression): void {
-        const {mountCall} = anchor;
-        const receiver = mountCall.callee.object;
+        let parent: t.MemberExpression = anchor.mountCall.callee;
 
-        mountCall.callee.object = t.callExpression(
-            t.memberExpression(receiver, t.identifier('use')),
+        // Walk down through chained .use(...) links until we hit the createApp(App)
+        // call at the bottom. Its callee is an Identifier (createApp), so it fails the
+        // ChainCall check, which is exactly the stop condition.
+        while (VuePluginCodemod.isChainCall(parent.object)) {
+            parent = parent.object.callee;
+        }
+
+        parent.object = t.callExpression(
+            t.memberExpression(parent.object, t.identifier('use')),
             [factoryCall],
         );
     }
 
-    private static injectBeforeMount(anchor: VariableAnchor, factoryCall: t.CallExpression): void {
+    /**
+     * Inserts the plugin registration immediately after the variable declaration.
+     *
+     * Placing the call right next to the declaration guarantees that it runs before any
+     * other plugin registration against the same binding.
+     */
+    private static injectAfterDeclaration(anchor: VariableAnchor, factoryCall: t.CallExpression): void {
         const useStatement = t.expressionStatement(
             t.callExpression(
                 t.memberExpression(t.identifier(anchor.binding), t.identifier('use')),
@@ -398,8 +417,10 @@ export class VuePluginCodemod implements Codemod<t.File, VuePluginOptions> {
             ),
         );
 
-        const mountIndex = anchor.parentBody.findIndex(statement => statement === anchor.mountStatement);
+        const declarationIndex = anchor.parentBody.findIndex(
+            statement => statement === anchor.declarationStatement,
+        );
 
-        anchor.parentBody.splice(mountIndex, 0, useStatement);
+        anchor.parentBody.splice(declarationIndex + 1, 0, useStatement);
     }
 }

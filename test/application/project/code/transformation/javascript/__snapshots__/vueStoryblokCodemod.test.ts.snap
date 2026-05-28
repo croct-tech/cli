@@ -41,7 +41,6 @@ const app = createApp(App);
 app.use(withCroct({
     accessToken: 'YOUR_ACCESS_TOKEN',
     use: [apiPlugin],
-    components: {},
 }));
 
 app.mount('#app');

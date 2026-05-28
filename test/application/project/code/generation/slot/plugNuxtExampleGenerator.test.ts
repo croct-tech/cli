@@ -21,7 +21,7 @@ describe('PlugNuxtExampleGenerator', () => {
 
     const tsOptions: Configuration = {
         typescript: true,
-        contentVariable: 'content',
+        contentVariable: 'data.content',
         slotImportPath: '~/components/%slug%.vue',
         slotFilePath: 'components/%slug%.vue',
         slotComponentName: '%name%',
@@ -40,15 +40,8 @@ describe('PlugNuxtExampleGenerator', () => {
         expect(example).toMatchSnapshot(`${name}-js`);
     });
 
-    it('should use a custom content variable binding', () => {
-        const example = new PlugNuxtExampleGenerator({...tsOptions, contentVariable: 'props'})
-            .generate(loadFixture('simpleStructure.json'));
-
-        expect(example.files[1].code).toContain("const {data: props} = await useContent('home-hero@1');");
-    });
-
-    it('should not rebind the destructured variable when it is named "data"', () => {
-        const example = new PlugNuxtExampleGenerator({...tsOptions, contentVariable: 'data'})
+    it('should destructure only data from useContent', () => {
+        const example = new PlugNuxtExampleGenerator(tsOptions)
             .generate(loadFixture('simpleStructure.json'));
 
         expect(example.files[1].code).toContain("const {data} = await useContent('home-hero@1');");

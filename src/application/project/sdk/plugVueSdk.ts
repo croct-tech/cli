@@ -79,10 +79,7 @@ export class PlugVueSdk extends JavaScriptSdk {
         const generator = new PlugVueExampleGenerator({
             typescript: isTypeScript,
             contentVariable: 'content',
-            slotImportPath: await this.importResolver.getImportPath(
-                slotPath,
-                this.fileSystem.getDirectoryName(pagePath),
-            ),
+            slotImportPath: await this.importResolver.getImportPath(slotPath, pagePath),
             slotFilePath: slotPath,
             slotComponentName: '%name%',
             pageFilePath: pagePath,

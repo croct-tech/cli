@@ -17,6 +17,7 @@ import {ApiError} from '@/application/api/error';
 import type {Slot} from '@/application/model/slot';
 import {ErrorReason, HelpfulError} from '@/application/error';
 import {ApiKeyPermission} from '@/application/model/application';
+import type {CommandExecutor} from '@/application/system/process/executor';
 
 type CodemodConfiguration = {
     config: Codemod<string>,
@@ -27,6 +28,7 @@ export type Configuration = JavaScriptSdkConfiguration & {
     userApi: UserApi,
     workspaceApi: WorkspaceApi,
     applicationApi: ApplicationApi,
+    commandExecutor: CommandExecutor,
 };
 
 type NuxtProjectInfo = {
@@ -34,11 +36,7 @@ type NuxtProjectInfo = {
     config: {
         file: string,
     },
-    env: {
-        localFile: EnvFile,
-        developmentFile: EnvFile,
-        productionFile: EnvFile,
-    },
+    envFile: EnvFile,
 };
 
 type NuxtInstallation = Installation & {
@@ -58,12 +56,15 @@ export class PlugNuxtSdk extends JavaScriptSdk {
 
     private readonly codemod: CodemodConfiguration;
 
+    private readonly commandExecutor: CommandExecutor;
+
     public constructor(configuration: Configuration) {
         super(configuration);
 
         this.codemod = configuration.codemod;
         this.userApi = configuration.userApi;
         this.applicationApi = configuration.applicationApi;
+        this.commandExecutor = configuration.commandExecutor;
     }
 
     protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
@@ -75,7 +76,7 @@ export class PlugNuxtSdk extends JavaScriptSdk {
 
         const generator = new PlugNuxtExampleGenerator({
             typescript: isTypeScript,
-            contentVariable: 'content',
+            contentVariable: 'data.content',
             slotImportPath: this.fileSystem.joinPaths('~', paths.components, '%slug%.vue'),
             slotFilePath: slotPath,
             slotComponentName: '%name%',
@@ -125,20 +126,10 @@ export class PlugNuxtSdk extends JavaScriptSdk {
             config: {
                 file: configFile ?? `nuxt.config.${extension}`,
             },
-            env: {
-                localFile: new EnvFile(
-                    this.fileSystem,
-                    this.fileSystem.joinPaths(projectDirectory, '.env.local'),
-                ),
-                developmentFile: new EnvFile(
-                    this.fileSystem,
-                    this.fileSystem.joinPaths(projectDirectory, '.env.development'),
-                ),
-                productionFile: new EnvFile(
-                    this.fileSystem,
-                    this.fileSystem.joinPaths(projectDirectory, '.env.production'),
-                ),
-            },
+            envFile: new EnvFile(
+                this.fileSystem,
+                this.fileSystem.joinPaths(projectDirectory, '.env'),
+            ),
         };
     }
 
@@ -161,6 +152,20 @@ export class PlugNuxtSdk extends JavaScriptSdk {
                         notifier.confirm('Module registered');
                     } catch (error) {
                         notifier.alert('Failed to register module', HelpfulError.formatMessage(error));
+                    }
+                },
+            },
+            {
+                title: 'Generate Nuxt type aliases',
+                task: async notifier => {
+                    notifier.update('Generating Nuxt type aliases');
+
+                    try {
+                        await this.generateNuxtTypeAliases();
+
+                        notifier.confirm('Nuxt type aliases generated');
+                    } catch (error) {
+                        notifier.alert('Failed to generate Nuxt type aliases', HelpfulError.formatMessage(error));
                     }
                 },
             },
@@ -190,25 +195,28 @@ export class PlugNuxtSdk extends JavaScriptSdk {
             .apply(this.fileSystem.joinPaths(this.projectDirectory.get(), file));
     }
 
+    private async generateNuxtTypeAliases(): Promise<void> {
+        const command = await this.packageManager.getPackageCommand('nuxi', ['prepare']);
+
+        const execution = await this.commandExecutor.run(command, {
+            workingDirectory: this.projectDirectory.get(),
+        });
+
+        if (await execution.wait() !== 0) {
+            throw new HelpfulError(`Failed to execute command \`${command.name}\`.`);
+        }
+    }
+
     private async updateEnvVariables(installation: NuxtInstallation): Promise<void> {
-        const {project: {env}, configuration, notifier} = installation;
+        const {project: {envFile}, configuration, notifier} = installation;
 
         notifier.update('Loading information');
 
-        const [developmentApplication, productionApplication] = await Promise.all([
-            this.workspaceApi.getApplication({
-                organizationSlug: configuration.organization,
-                workspaceSlug: configuration.workspace,
-                applicationSlug: configuration.applications.development,
-            }),
-            configuration.applications.production === undefined
-                ? null
-                : this.workspaceApi.getApplication({
-                    organizationSlug: configuration.organization,
-                    workspaceSlug: configuration.workspace,
-                    applicationSlug: configuration.applications.production,
-                }),
-        ]);
+        const developmentApplication = await this.workspaceApi.getApplication({
+            organizationSlug: configuration.organization,
+            workspaceSlug: configuration.workspace,
+            applicationSlug: configuration.applications.development,
+        });
 
         if (developmentApplication === null) {
             throw new SdkError(
@@ -217,7 +225,7 @@ export class PlugNuxtSdk extends JavaScriptSdk {
             );
         }
 
-        if (!await env.localFile.hasVariable(NuxtEnvVar.API_KEY) && installation.skipApiKeySetup !== true) {
+        if (!await envFile.hasVariable(NuxtEnvVar.API_KEY) && installation.skipApiKeySetup !== true) {
             const user = await this.userApi.getUser();
 
             notifier.update('Creating API key');
@@ -245,20 +253,13 @@ export class PlugNuxtSdk extends JavaScriptSdk {
                 throw error;
             }
 
-            await env.localFile.setVariables({
+            await envFile.setVariables({
                 [NuxtEnvVar.API_KEY]: apiKey.secret,
             });
         }
 
-        await Promise.all([
-            env.developmentFile.setVariables({
-                [NuxtEnvVar.APP_ID]: developmentApplication.publicId,
-            }),
-            productionApplication === null
-                ? Promise.resolve()
-                : env.productionFile.setVariables({
-                    [NuxtEnvVar.APP_ID]: productionApplication.publicId,
-                }),
-        ]);
+        await envFile.setVariables({
+            [NuxtEnvVar.APP_ID]: developmentApplication.publicId,
+        });
     }
 }

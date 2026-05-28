@@ -77,9 +77,26 @@ import router from './router';
 import pinia from './pinia';
 import App from './App.vue';
 
-createApp(App).use(router).use(pinia).use(createCroct({
+createApp(App).use(createCroct({
   appId: "YOUR_APP_ID"
-})).mount('#app');
+})).use(router).use(pinia).mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform chainedWithStoryblok.ts: chainedWithStoryblok.ts 1`] = `
+"import { createCroct } from "@croct/plug-vue";
+import { createApp } from 'vue';
+import { StoryblokVue, apiPlugin } from '@storyblok/vue';
+import App from './App.vue';
+
+createApp(App).use(createCroct({
+    appId: "YOUR_APP_ID"
+}))
+    .use(StoryblokVue, {
+        accessToken: 'YOUR_ACCESS_TOKEN',
+        use: [apiPlugin],
+    })
+    .mount('#app');
 "
 `;
 
@@ -88,12 +105,12 @@ exports[`VuePluginCodemod apply should correctly transform computedMountAccess.t
 import { createApp } from 'vue';
 import App from './App.vue';
 const app = createApp(App);
-app['mount']('#app');
 
 app.use(createCroct({
   appId: "YOUR_APP_ID"
 }));
 
+app['mount']('#app');
 app.mount('#app');
 "
 `;
@@ -183,14 +200,14 @@ exports[`VuePluginCodemod apply should correctly transform intermediateNonUseSta
 import { createApp } from 'vue';
 import App from './App.vue';
 const app = createApp(App);
-const flag = true;
-app.use(router);
-console.log(flag);
 
 app.use(createCroct({
   appId: "YOUR_APP_ID"
 }));
 
+const flag = true;
+app.use(router);
+console.log(flag);
 app.mount('#app');
 "
 `;
@@ -200,15 +217,15 @@ exports[`VuePluginCodemod apply should correctly transform intermediateUnrelated
 import { createCroct } from '@croct/plug-vue';
 import App from './App.vue';
 const app = createApp(App);
-app['use'](router);
-app.config.globalProperties.foo = 'bar';
-console.log('hi');
-app.mixin({});
 
 app.use(createCroct({
   appId: "YOUR_APP_ID"
 }));
 
+app['use'](router);
+app.config.globalProperties.foo = 'bar';
+console.log('hi');
+app.mixin({});
 app.mount('#app');
 
 "
@@ -320,12 +337,32 @@ import router from './router';
 import pinia from './pinia';
 import App from './App.vue';
 const app = createApp(App);
-app.use(router);
-app.use(pinia);
 
 app.use(createCroct({
   appId: "YOUR_APP_ID"
 }));
+
+app.use(router);
+app.use(pinia);
+app.mount('#app');
+"
+`;
+
+exports[`VuePluginCodemod apply should correctly transform withStoryblokAppUse.ts: withStoryblokAppUse.ts 1`] = `
+"import { createCroct } from "@croct/plug-vue";
+import { createApp } from 'vue';
+import { StoryblokVue, apiPlugin } from '@storyblok/vue';
+import App from './App.vue';
+const app = createApp(App);
+
+app.use(createCroct({
+    appId: "YOUR_APP_ID"
+}));
+
+app.use(StoryblokVue, {
+    accessToken: 'YOUR_ACCESS_TOKEN',
+    use: [apiPlugin],
+});
 
 app.mount('#app');
 "
