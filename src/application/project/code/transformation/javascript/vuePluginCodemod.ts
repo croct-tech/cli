@@ -36,6 +36,10 @@ export type VuePluginConfiguration = {
     args?: Record<string, AttributeType>,
 };
 
+export type VuePluginOptions = CodemodOptions & {
+    args?: Record<string, AttributeType>,
+};
+
 /**
  * Registers a Vue plugin in the main entry file.
  *
@@ -43,21 +47,22 @@ export type VuePluginConfiguration = {
  * form the user wrote (chained or variable). If the plugin is already
  * registered, the codemod returns unmodified.
  */
-export class VuePluginCodemod implements Codemod<t.File, CodemodOptions> {
+export class VuePluginCodemod implements Codemod<t.File, VuePluginOptions> {
     private readonly configuration: VuePluginConfiguration;
 
     public constructor(configuration: VuePluginConfiguration) {
         this.configuration = configuration;
     }
 
-    public apply(input: t.File): Promise<ResultCode<t.File>> {
+    public apply(input: t.File, options: VuePluginOptions = {}): Promise<ResultCode<t.File>> {
         const anchor = VuePluginCodemod.findMountAnchor(input);
 
         if (anchor === null) {
             return Promise.resolve({modified: false, result: input});
         }
 
-        const {plugin, args} = this.configuration;
+        const {plugin} = this.configuration;
+        const args = options.args ?? this.configuration.args;
 
         const factoryLocal = getImportLocalName(input, {
             moduleName: plugin.module,
