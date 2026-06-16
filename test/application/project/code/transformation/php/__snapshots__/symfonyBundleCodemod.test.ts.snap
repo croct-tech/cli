@@ -1,0 +1,38 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SymfonyBundleCodemod transforms already-registered.php: already-registered.php 1`] = `
+"<?php
+
+return [
+    Symfony\\Bundle\\FrameworkBundle\\FrameworkBundle::class => ['all' => true],
+    Croct\\Plug\\Symfony\\CroctBundle::class => ['all' => true],
+];
+"
+`;
+
+exports[`SymfonyBundleCodemod transforms empty-array.php: empty-array.php 1`] = `
+"<?php
+
+return [    Croct\\Plug\\Symfony\\CroctBundle::class => ['all' => true],
+];
+"
+`;
+
+exports[`SymfonyBundleCodemod transforms no-closing-array.php: no-closing-array.php 1`] = `
+"<?php
+
+// bundles.php is somehow malformed and has no closing array.
+return something_else();
+"
+`;
+
+exports[`SymfonyBundleCodemod transforms standard.php: standard.php 1`] = `
+"<?php
+
+return [
+    Symfony\\Bundle\\FrameworkBundle\\FrameworkBundle::class => ['all' => true],
+    Symfony\\Bundle\\TwigBundle\\TwigBundle::class => ['all' => true],
+    Croct\\Plug\\Symfony\\CroctBundle::class => ['all' => true],
+];
+"
+`;

@@ -1,12 +1,9 @@
 import type {Content} from '@croct/content-model/content/content';
 import type {JsonValue} from '@croct/json';
 import type {ContentDefinition} from '@croct/content-model/definition/definition';
-import type {Installation} from '@/application/project/sdk/sdk';
+import type {Installation, InstallationPlan} from '@/application/project/sdk/sdk';
 import {SdkError} from '@/application/project/sdk/sdk';
-import type {
-    Configuration as JavaScriptSdkConfiguration,
-    InstallationPlan,
-} from '@/application/project/sdk/javasScriptSdk';
+import type {Configuration as JavaScriptSdkConfiguration} from '@/application/project/sdk/javasScriptSdk';
 import {JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import {PlugJsExampleGenerator} from '@/application/project/code/generation/slot/plugJsExampleGenerator';
 import type {ExampleFile} from '@/application/project/code/generation/example';
@@ -14,6 +11,8 @@ import {CodeLanguage} from '@/application/project/code/generation/example';
 import type {Slot} from '@/application/model/slot';
 import {sortAttributes} from '@/application/project/code/generation/utils';
 import {ErrorReason} from '@/application/error';
+import type {Example} from '@/application/project/example/example';
+import {FileExample} from '@/application/project/example/example';
 
 export type Configuration = JavaScriptSdkConfiguration & {
     bundlers: string[],
@@ -26,6 +25,15 @@ export class PlugJsSdk extends JavaScriptSdk {
         super(configuration);
 
         this.bundlers = bundlers;
+    }
+
+    protected async createExample(slot: Slot, installation: Installation): Promise<Example> {
+        const {examples} = await this.getPaths(installation.configuration);
+
+        return new FileExample(
+            slot.name,
+            this.fileSystem.joinPaths(this.projectDirectory.get(), examples, slot.slug, 'index.html'),
+        );
     }
 
     protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {

@@ -71,6 +71,11 @@ export class ProcessServer implements Server {
         this.execution.onExit(() => {
             this.execution = undefined;
             processObserver.off('exit', onExit);
+
+            // If the process dies before the port opens (e.g. a boot error), stop polling
+            // immediately so startup fails fast with the captured output instead of waiting
+            // out the full startup timeout.
+            abortController.abort();
         });
 
         if (!this.execution.running) {
@@ -97,11 +102,11 @@ export class ProcessServer implements Server {
             }
         })();
 
+        void loggingLoop.catch(() => {});
+
         const url = await this.waitStart(abortController);
 
         abortController.abort();
-
-        await loggingLoop;
 
         if (url === null) {
             logger?.log({
@@ -121,6 +126,10 @@ export class ProcessServer implements Server {
         await this.execution?.kill('SIGINT');
 
         this.execution = undefined;
+    }
+
+    public async wait(): Promise<void> {
+        await this.execution?.wait();
     }
 
     private async waitStart(controller: AbortController): Promise<URL | null> {

@@ -1,9 +1,6 @@
-import type {Installation} from '@/application/project/sdk/sdk';
+import type {Installation, InstallationPlan} from '@/application/project/sdk/sdk';
 import {SdkError} from '@/application/project/sdk/sdk';
-import type {
-    InstallationPlan,
-    Configuration as JavaScriptSdkConfiguration,
-} from '@/application/project/sdk/javasScriptSdk';
+import type {Configuration as JavaScriptSdkConfiguration} from '@/application/project/sdk/javasScriptSdk';
 import {JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import type {Codemod} from '@/application/project/code/transformation/codemod';
 import type {Task, TaskNotifier} from '@/application/cli/io/output';

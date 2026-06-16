@@ -1,9 +1,10 @@
 import {JsonArrayNode, JsonObjectNode, JsonParser} from '@croct/json5-parser/index.js';
 import type {
-    UpdateOptions as BaseContentOptions,
     Installation,
+    InstallationPlan,
     Sdk,
     UpdateOptions,
+    UpdateOptions as BaseContentOptions,
 } from '@/application/project/sdk/sdk';
 import {SdkError} from '@/application/project/sdk/sdk';
 import type {ProjectConfiguration, ProjectPaths} from '@/application/project/configuration/projectConfiguration';
@@ -12,23 +13,19 @@ import type {WorkspaceApi} from '@/application/api/workspace';
 import {TargetSdk} from '@/application/api/workspace';
 import type {ExampleFile} from '@/application/project/code/generation/example';
 import type {CodeFormatter} from '@/application/project/code/formatting/formatter';
-import {Version} from '@/application/model/version';
 import type {FileSystem} from '@/application/fs/fileSystem';
 import type {Slot} from '@/application/model/slot';
-import type {LocalizedContentMap} from '@/application/model/experience';
-import {ErrorReason, HelpfulError} from '@/application/error';
+import type {ContentLoader} from '@/application/project/sdk/content/contentLoader';
+import {HelpfulError} from '@/application/error';
 import type {Dependency, PackageManager} from '@/application/project/packageManager/packageManager';
 import type {WorkingDirectory} from '@/application/fs/workingDirectory/workingDirectory';
 import type {TsConfigLoader} from '@/application/project/import/tsConfigLoader';
 import {multiline} from '@/utils/multiline';
 import {formatName} from '@/application/project/utils/formatName';
 import {TaskProgressLogger} from '@/infrastructure/application/cli/io/taskProgressLogger';
-
-export type InstallationPlan = {
-    tasks: Task[],
-    dependencies: string[],
-    configuration: ProjectConfiguration,
-};
+import type {ExampleLauncher} from '@/application/project/example/exampleLauncher';
+import type {Example} from '@/application/project/example/example';
+import {InstructionExample} from '@/application/project/example/example';
 
 export type Configuration = {
     workspaceApi: WorkspaceApi,
@@ -37,15 +34,10 @@ export type Configuration = {
     formatter: CodeFormatter,
     fileSystem: FileSystem,
     tsConfigLoader: TsConfigLoader,
+    contentLoader: ContentLoader,
+    exampleLauncher: ExampleLauncher,
     plugins?: JavaScriptSdkPlugin[],
 };
-
-type VersionedContent = {
-    version: number,
-    content: LocalizedContentMap,
-};
-
-type VersionedContentMap = Record<string, VersionedContent[]>;
 
 type ContentOptions = BaseContentOptions & {
     notifier?: TaskNotifier,
@@ -79,6 +71,10 @@ export abstract class JavaScriptSdk implements Sdk {
 
     private readonly importConfigLoader: TsConfigLoader;
 
+    private readonly contentLoader: ContentLoader;
+
+    protected readonly exampleLauncher: ExampleLauncher;
+
     private readonly plugins: JavaScriptSdkPlugin[];
 
     protected constructor(configuration: Configuration) {
@@ -88,6 +84,8 @@ export abstract class JavaScriptSdk implements Sdk {
         this.formatter = configuration.formatter;
         this.fileSystem = configuration.fileSystem;
         this.importConfigLoader = configuration.tsConfigLoader;
+        this.contentLoader = configuration.contentLoader;
+        this.exampleLauncher = configuration.exampleLauncher;
         this.plugins = configuration.plugins ?? [];
     }
 
@@ -113,6 +111,29 @@ export abstract class JavaScriptSdk implements Sdk {
     }
 
     protected abstract generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]>;
+
+    public async presentExamples(slots: Slot[], installation: Installation): Promise<void> {
+        await this.exampleLauncher.launch({
+            examples: await Promise.all(slots.map(slot => this.createExample(slot, installation))),
+            input: installation.input,
+            output: installation.output,
+        });
+    }
+
+    /**
+     * Builds the object describing how the generated example for a slot is reached.
+     *
+     * Defaults to a component the developer imports; subclasses whose example is a route or a
+     * standalone file override this.
+     */
+    protected async createExample(slot: Slot, installation: Installation): Promise<Example> {
+        const {examples} = await this.getPaths(installation.configuration);
+
+        return new InstructionExample(
+            slot.name,
+            `Import the '${slot.name}' example from \`${examples}\` into a page to view it.`,
+        );
+    }
 
     public async setup(installation: Installation): Promise<ProjectConfiguration> {
         const {input, output} = installation;
@@ -372,7 +393,9 @@ export abstract class JavaScriptSdk implements Sdk {
         const contentImports: Record<string, string> = {};
         const contentVariableMap: Record<string, Record<string, string>> = {};
 
-        for (const [slotId, versionedContent] of Object.entries(await this.loadContent(installation, options.clean))) {
+        const loadedContent = await this.contentLoader.loadContent(configuration, options.clean === true);
+
+        for (const [slotId, versionedContent] of Object.entries(loadedContent)) {
             const latestVersion = Math.max(...versionedContent.map(({version}) => version));
 
             for (const {version, content: localizedContent} of versionedContent) {
@@ -543,100 +566,6 @@ export abstract class JavaScriptSdk implements Sdk {
         notifier.confirm('Content updated');
     }
 
-    private async loadContent(installation: Installation, update = false): Promise<VersionedContentMap> {
-        const {configuration} = installation;
-
-        if (configuration.paths?.content === undefined) {
-            return this.loadRemoteContent(installation);
-        }
-
-        const filePath = this.fileSystem.joinPaths(configuration.paths.content, 'slots.json');
-
-        if (!update && await this.fileSystem.exists(filePath)) {
-            return this.loadLocalContent(filePath);
-        }
-
-        const content = await this.loadRemoteContent(installation);
-
-        await this.saveContent(content, filePath);
-
-        return content;
-    }
-
-    private async saveContent(content: VersionedContentMap, path: string): Promise<void> {
-        const directory = this.fileSystem.getDirectoryName(path);
-
-        await this.fileSystem.createDirectory(directory, {recursive: true});
-
-        await this.fileSystem.writeTextFile(
-            path,
-            JSON.stringify(content, null, 2),
-            {overwrite: true},
-        );
-    }
-
-    private async loadLocalContent(path: string): Promise<VersionedContentMap> {
-        let content: string;
-
-        try {
-            content = await this.fileSystem.readTextFile(path);
-        } catch {
-            return {};
-        }
-
-        try {
-            return JSON.parse(content);
-        } catch (error) {
-            throw new SdkError('Failed to parse content file.', {
-                reason: ErrorReason.INVALID_INPUT,
-                cause: error,
-                details: [`File: ${path}`],
-            });
-        }
-    }
-
-    private async loadRemoteContent(installation: Installation): Promise<VersionedContentMap> {
-        const configuration = await this.resolveVersions(installation.configuration);
-
-        const slots = Object.entries(configuration.slots);
-        const slotVersions: Record<string, readonly number[]> = {};
-
-        for (const [slot, versionSpecifier] of slots) {
-            slotVersions[slot] = Version.parse(versionSpecifier).getVersions();
-        }
-
-        return Object.fromEntries(
-            await Promise.all(
-                slots.map(
-                    async ([slot]) => [
-                        slot,
-                        await Promise.all(
-                            slotVersions[slot].map(
-                                version => this.workspaceApi
-                                    .getSlotStaticContent(
-                                        {
-                                            organizationSlug: configuration.organization,
-                                            workspaceSlug: configuration.workspace,
-                                            slotSlug: slot,
-                                        },
-                                        version,
-                                    )
-                                    .then(
-                                        (versionedContent): VersionedContent => ({
-                                            version: version,
-                                            content: Object.fromEntries(
-                                                versionedContent.map(({locale, content}) => [locale, content]),
-                                            ),
-                                        }),
-                                    ),
-                            ),
-                        ),
-                    ] as const,
-                ),
-            ),
-        );
-    }
-
     private async updateTypes(installation: Installation, options: ContentOptions = {}): Promise<void> {
         const {output, configuration} = installation;
 
@@ -647,7 +576,7 @@ export abstract class JavaScriptSdk implements Sdk {
             let module = '';
 
             if (Object.keys(configuration.slots).length > 0 || Object.keys(configuration.components).length > 0) {
-                module = `${await this.generateTypes(configuration)}`;
+                module = `${await this.contentLoader.loadTypes(configuration, TargetSdk.JAVASCRIPT)}`;
             }
 
             module = multiline`
@@ -668,28 +597,6 @@ export abstract class JavaScriptSdk implements Sdk {
         }
 
         notifier.confirm('Types updated');
-    }
-
-    private async generateTypes(configuration: ProjectConfiguration): Promise<string> {
-        const {organization, workspace, components, slots} = await this.resolveVersions(configuration);
-
-        return this.workspaceApi.generateTypes({
-            organizationSlug: organization,
-            workspaceSlug: workspace,
-            target: TargetSdk.JAVASCRIPT,
-            components: Object.entries(components).map(
-                ([component, version]) => ({
-                    id: component,
-                    version: version,
-                }),
-            ),
-            slots: Object.entries(slots).map(
-                ([slot, version]) => ({
-                    id: slot,
-                    version: version,
-                }),
-            ),
-        });
     }
 
     private async registerTypeFile(installation: Installation, notifier?: TaskNotifier): Promise<void> {
@@ -749,76 +656,6 @@ export abstract class JavaScriptSdk implements Sdk {
         await this.fileSystem.writeTextFile(configPath, config.toString(), {overwrite: true});
 
         output.confirm('Type file registered');
-    }
-
-    private async resolveVersions(configuration: ProjectConfiguration): Promise<ProjectConfiguration> {
-        const listedComponents = Object.keys(configuration.components);
-        const listedSlots = Object.keys(configuration.slots);
-
-        if (listedComponents.length === 0 && listedSlots.length === 0) {
-            return configuration;
-        }
-
-        const [slots, components] = await Promise.all([
-            Promise.all(listedSlots.map(
-                slot => (
-                    this.workspaceApi.getSlot({
-                        organizationSlug: configuration.organization,
-                        workspaceSlug: configuration.workspace,
-                        slotSlug: slot,
-                    })
-                ),
-            )).then(list => list.filter(slot => slot !== null)),
-            Promise.all(listedComponents.map(
-                component => (
-                    this.workspaceApi.getComponent({
-                        organizationSlug: configuration.organization,
-                        workspaceSlug: configuration.workspace,
-                        componentSlug: component,
-                    })
-                ),
-            )).then(list => list.filter(component => component !== null)),
-        ]);
-
-        return {
-            ...configuration,
-            components: Object.fromEntries(
-                Object.entries(configuration.components).flatMap<[string, string]>(([slug, version]) => {
-                    const versions = Version.parse(version)
-                        .getVersions()
-                        .filter(
-                            major => components.some(
-                                component => component.slug === slug
-                                    && major <= component.version.major,
-                            ),
-                        );
-
-                    if (versions.length === 0) {
-                        return [];
-                    }
-
-                    return [[slug, Version.either(...versions).toString()]];
-                }),
-            ),
-            slots: Object.fromEntries(
-                Object.entries(configuration.slots).flatMap<[string, string]>(([slug, version]) => {
-                    const versions = Version.parse(version)
-                        .getVersions()
-                        .filter(
-                            major => slots.some(
-                                slot => slot.slug === slug
-                                    && major <= slot.version.major,
-                            ),
-                        );
-
-                    if (versions.length === 0) {
-                        return [];
-                    }
-
-                    return [[slug, Version.either(...versions).toString()]];
-                }),
-            ),
-        };
     }
 
     private async mountContentPackageFolder(): Promise<Dependency | null> {

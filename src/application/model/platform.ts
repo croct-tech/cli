@@ -4,6 +4,10 @@ export enum Platform {
     REACT = 'react',
     VUE = 'vue',
     JAVASCRIPT = 'javascript',
+    LARAVEL = 'laravel',
+    SYMFONY = 'symfony',
+    DRUPAL = 'drupal',
+    PHP = 'php',
 }
 
 export namespace Platform {
@@ -23,6 +27,18 @@ export namespace Platform {
 
             case Platform.JAVASCRIPT:
                 return 'JavaScript';
+
+            case Platform.LARAVEL:
+                return 'Laravel';
+
+            case Platform.SYMFONY:
+                return 'Symfony';
+
+            case Platform.DRUPAL:
+                return 'Drupal';
+
+            case Platform.PHP:
+                return 'PHP';
         }
     }
 }

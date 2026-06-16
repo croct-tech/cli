@@ -1,9 +1,6 @@
-import type {Installation} from '@/application/project/sdk/sdk';
+import type {Installation, InstallationPlan} from '@/application/project/sdk/sdk';
 import {SdkError} from '@/application/project/sdk/sdk';
-import type {
-    Configuration as JavaScriptSdkConfiguration,
-    InstallationPlan,
-} from '@/application/project/sdk/javasScriptSdk';
+import type {Configuration as JavaScriptSdkConfiguration} from '@/application/project/sdk/javasScriptSdk';
 import {JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import type {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
 import type {WorkspaceApi} from '@/application/api/workspace';
@@ -26,6 +23,8 @@ import {
 import {ApiError} from '@/application/api/error';
 import type {Slot} from '@/application/model/slot';
 import {ErrorReason, HelpfulError} from '@/application/error';
+import type {Example} from '@/application/project/example/example';
+import {UrlExample} from '@/application/project/example/example';
 import type {ImportResolver} from '@/application/project/import/importResolver';
 import {ApiKeyPermission} from '@/application/model/application';
 import {PlugReactExampleGenerator} from '@/application/project/code/generation/slot/plugReactExampleGenerator';
@@ -94,6 +93,15 @@ export class PlugNextSdk extends JavaScriptSdk {
         this.importResolver = configuration.importResolver;
         this.userApi = configuration.userApi;
         this.applicationApi = configuration.applicationApi;
+    }
+
+    protected async createExample(slot: Slot, installation: Installation): Promise<Example> {
+        if (await this.isFallbackMode()) {
+            // Next.js < 13: the example is a React component to import, not a route.
+            return super.createExample(slot, installation);
+        }
+
+        return new UrlExample(slot.name, `/${slot.slug}`);
     }
 
     protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
