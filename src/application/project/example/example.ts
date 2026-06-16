@@ -45,27 +45,6 @@ export class UrlExample extends Example {
 }
 
 /**
- * An example opened directly as a file (e.g. a generated `index.html`).
- */
-export class FileExample extends Example {
-    private readonly path: string;
-
-    public constructor(name: string, path: string) {
-        super(name);
-
-        this.path = path;
-    }
-
-    public async present({input, output}: ExampleContext): Promise<void> {
-        output.inform(`View the '${this.name}' example by opening \`${this.path}\` in your browser.`);
-
-        if (input !== undefined && await input.confirm({message: 'Open it now?', default: true})) {
-            await output.open(`file://${this.path}`);
-        }
-    }
-}
-
-/**
  * An example the developer wires up by following an instruction (e.g. importing a component).
  */
 export class InstructionExample extends Example {

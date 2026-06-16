@@ -204,6 +204,7 @@ import type {Command as ProcessCommand} from '@/application/system/process/comma
 import {ExampleLauncher} from '@/application/project/example/exampleLauncher';
 import {ProjectServerProvider} from '@/application/project/server/provider/projectServerProvider';
 import {NextCommandParser} from '@/application/project/server/provider/parser/nextCommandParser';
+import {NuxtCommandParser} from '@/application/project/server/provider/parser/nuxtCommandParser';
 import {ViteCommandParser} from '@/application/project/server/provider/parser/viteCommandParser';
 import {ParcelCommandParser} from '@/application/project/server/provider/parser/parcelCommandParser';
 import {ReactScriptCommandParser} from '@/application/project/server/provider/parser/reactScriptCommandParser';
@@ -2426,6 +2427,7 @@ export class Cli {
                 factory: this.getServerFactory(),
                 parsers: [
                     new NextCommandParser(),
+                    new NuxtCommandParser(),
                     new ViteCommandParser(),
                     new ParcelCommandParser(),
                     new ReactScriptCommandParser(),

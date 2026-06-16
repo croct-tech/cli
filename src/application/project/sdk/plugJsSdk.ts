@@ -12,7 +12,7 @@ import type {Slot} from '@/application/model/slot';
 import {sortAttributes} from '@/application/project/code/generation/utils';
 import {ErrorReason} from '@/application/error';
 import type {Example} from '@/application/project/example/example';
-import {FileExample} from '@/application/project/example/example';
+import {UrlExample} from '@/application/project/example/example';
 
 export type Configuration = JavaScriptSdkConfiguration & {
     bundlers: string[],
@@ -30,10 +30,10 @@ export class PlugJsSdk extends JavaScriptSdk {
     protected async createExample(slot: Slot, installation: Installation): Promise<Example> {
         const {examples} = await this.getPaths(installation.configuration);
 
-        return new FileExample(
-            slot.name,
-            this.fileSystem.joinPaths(this.projectDirectory.get(), examples, slot.slug, 'index.html'),
-        );
+        // The example is an HTML page that loads `slot.js` as a module importing `@croct/plug`,
+        // which only resolves when served by the dev server (a `file://` open is blocked as a
+        // unique origin), so present it as a served URL like the other SDKs.
+        return new UrlExample(slot.name, PlugJsSdk.resolveExampleUrl(examples, slot.slug));
     }
 
     protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
@@ -142,5 +142,9 @@ export class PlugJsSdk extends JavaScriptSdk {
             dependencies: ['@croct/plug'],
             configuration: installation.configuration,
         });
+    }
+
+    private static resolveExampleUrl(examplesDirectory: string, slug: string): string {
+        return `/${examplesDirectory}/${slug}/index.html`;
     }
 }
