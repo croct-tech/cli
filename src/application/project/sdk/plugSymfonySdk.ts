@@ -153,14 +153,14 @@ export class PlugSymfonySdk extends PhpSdk {
 
     private resolveTemplateReference(examplesDirectory: string, slug: string): string {
         const rootPath = this.projectDirectory.get();
-        const namespace = this.fileSystem.normalizeSeparators(
-            this.fileSystem.getRelativePath(
-                this.fileSystem.joinPaths(rootPath, PlugSymfonySdk.TEMPLATES_DIRECTORY),
-                this.fileSystem.joinPaths(rootPath, examplesDirectory),
-            ),
+        const namespace = this.fileSystem.getRelativePath(
+            this.fileSystem.joinPaths(rootPath, PlugSymfonySdk.TEMPLATES_DIRECTORY),
+            this.fileSystem.joinPaths(rootPath, examplesDirectory),
         );
 
-        return [...namespace.split('/'), `${formatSlug(slug)}.html.twig`]
+        // Split on either separator: the relative path uses the OS separator (backslashes on
+        // Windows), while the Twig reference is always built with forward slashes.
+        return [...namespace.split(/[\\/]/), `${formatSlug(slug)}.html.twig`]
             .filter(segment => segment !== '' && segment !== '.')
             .join('/');
     }
@@ -191,6 +191,6 @@ export class PlugSymfonySdk extends PhpSdk {
     }
 
     private static resolveExampleUrl(slug: string): string {
-        return `/croct/${formatSlug(slug)}`;
+        return `/${formatSlug(slug)}`;
     }
 }

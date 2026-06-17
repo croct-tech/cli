@@ -30,7 +30,10 @@ export class SymfonyBundleCodemod implements Codemod<string> {
             return Promise.resolve({modified: false, result: input});
         }
 
-        const entry = `    ${this.bundle}::class => ['all' => true],\n`;
+        // Break onto its own line when inserting right after the opening `[` (e.g. `return [];`),
+        // so the result stays readable even when no PHP formatter is available to fix it up.
+        const leadingNewline = closing > 0 && input[closing - 1] !== '\n' ? '\n' : '';
+        const entry = `${leadingNewline}    ${this.bundle}::class => ['all' => true],\n`;
 
         return Promise.resolve({
             modified: true,

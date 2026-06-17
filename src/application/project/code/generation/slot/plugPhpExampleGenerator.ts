@@ -24,7 +24,7 @@ export class PlugPhpExampleGenerator extends PhpExampleGenerator {
 
     protected writeScript(writer: CodeWriter, definition: SlotDefinition): void {
         const slotId = PlugPhpExampleGenerator.escapeString(definition.id);
-        const rootPath = this.autoloadPath.replace(/\/?vendor\/autoload\.php$/, '') || '.';
+        const rootPath = this.autoloadPath.replace(/[\\/]?vendor[\\/]autoload\.php$/, '') || '.';
 
         writer.write('<?php')
             .newLine()

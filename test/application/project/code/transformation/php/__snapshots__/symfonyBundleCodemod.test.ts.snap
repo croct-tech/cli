@@ -13,7 +13,8 @@ return [
 exports[`SymfonyBundleCodemod transforms empty-array.php: empty-array.php 1`] = `
 "<?php
 
-return [    Croct\\Plug\\Symfony\\CroctBundle::class => ['all' => true],
+return [
+    Croct\\Plug\\Symfony\\CroctBundle::class => ['all' => true],
 ];
 "
 `;

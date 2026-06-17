@@ -86,11 +86,15 @@ export class ProcessServer implements Server {
 
         const {output} = this.execution;
         const buffer = new ScreenBuffer();
+        let capturing = true;
 
+        // Drain the output for the whole lifetime of the process so it never backs up in memory,
+        // but only record it while the server is starting: the snapshot explains a startup
+        // failure, and once the server is up the per-request logs are not needed.
         const loggingLoop = (async (): Promise<void> => {
             for await (const line of output) {
-                if (abortController.signal.aborted) {
-                    return;
+                if (!capturing) {
+                    continue;
                 }
 
                 buffer.write(line);
@@ -109,6 +113,15 @@ export class ProcessServer implements Server {
         abortController.abort();
 
         if (url === null) {
+            // A null URL with no live process means the server exited during startup (e.g. a boot
+            // error). Let the loop finish draining the now-closed output so the snapshot includes
+            // the final lines that explain the failure.
+            if (this.execution === undefined) {
+                await loggingLoop.catch(() => {});
+            }
+
+            capturing = false;
+
             logger?.log({
                 level: LogLevel.ERROR,
                 message: 'Unable to reach the server after it was started.',
@@ -118,6 +131,8 @@ export class ProcessServer implements Server {
 
             throw new ServerError(`Server is unreachable${finalOutput === '' ? '.' : `:\n\n${finalOutput}`}`);
         }
+
+        capturing = false;
 
         return url;
     }

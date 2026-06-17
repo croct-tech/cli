@@ -98,19 +98,19 @@ export class PlugLaravelSdk extends PhpSdk {
 
     private resolveViewName(examplesDirectory: string, slug: string): string {
         const rootPath = this.projectDirectory.get();
-        const namespace = this.fileSystem.normalizeSeparators(
-            this.fileSystem.getRelativePath(
-                this.fileSystem.joinPaths(rootPath, PlugLaravelSdk.VIEWS_DIRECTORY),
-                this.fileSystem.joinPaths(rootPath, examplesDirectory),
-            ),
+        const namespace = this.fileSystem.getRelativePath(
+            this.fileSystem.joinPaths(rootPath, PlugLaravelSdk.VIEWS_DIRECTORY),
+            this.fileSystem.joinPaths(rootPath, examplesDirectory),
         );
 
-        return [...namespace.split('/'), formatSlug(slug)]
+        // Split on either separator: the relative path uses the OS separator (backslashes on
+        // Windows), while the Blade view name is always built with dots.
+        return [...namespace.split(/[\\/]/), formatSlug(slug)]
             .filter(segment => segment !== '' && segment !== '.')
             .join('.');
     }
 
     private static resolveExampleUrl(slug: string): string {
-        return `/croct/${formatSlug(slug)}`;
+        return `/${formatSlug(slug)}`;
     }
 }

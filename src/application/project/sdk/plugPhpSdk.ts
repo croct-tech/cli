@@ -53,9 +53,11 @@ export class PlugPhpSdk extends PhpSdk {
         const absoluteExamples = this.fileSystem.joinPaths(projectDirectory, examplesDirectory);
         const relativeRoot = this.fileSystem.getRelativePath(absoluteExamples, projectDirectory);
 
-        return this.fileSystem.normalizeSeparators(
-            this.fileSystem.joinPaths(relativeRoot, 'vendor', 'autoload.php'),
-        );
+        // Use forward slashes: the path is embedded in generated PHP, which accepts `/` on every
+        // platform, and the generator strips the `vendor/autoload.php` suffix with a `/` matcher.
+        return this.fileSystem
+            .joinPaths(relativeRoot, 'vendor', 'autoload.php')
+            .replace(/\\/g, '/');
     }
 
     private static resolveExampleUrl(examplesDirectory: string, slug: string): string {
