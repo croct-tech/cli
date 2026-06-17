@@ -38,9 +38,15 @@ export type PartialComposerManifest = {
     extra?: Record<string, unknown>,
 };
 
+type ComposerLockPackage = {
+    name?: string,
+    version?: string,
+    provide?: Record<string, string>,
+};
+
 export type ComposerLock = {
-    packages?: Array<{provide?: Record<string, string>}>,
-    'packages-dev'?: Array<{provide?: Record<string, string>}>,
+    packages?: ComposerLockPackage[],
+    'packages-dev'?: ComposerLockPackage[],
 };
 
 /**
@@ -210,10 +216,23 @@ export class ComposerPackageManager implements PackageManager {
 
         return {
             name: manifest.name ?? name,
-            version: manifest.version ?? null,
+            // The authoritative installed version lives in `composer.lock`: a package's own
+            // `vendor/<name>/composer.json` usually omits `version` (and a self-declared one can
+            // be stale), so read the lock first. Fall back to the manifest only when the lock
+            // has no entry (e.g. no lock file present) to avoid a needless null version.
+            version: (await this.getLockedVersion(name)) ?? manifest.version ?? null,
             directory: this.fileSystem.getDirectoryName(manifestPath),
             metadata: manifest,
         };
+    }
+
+    private async getLockedVersion(name: string): Promise<string | null> {
+        const lock = await this.readLock();
+
+        const entry = [...(lock.packages ?? []), ...(lock['packages-dev'] ?? [])]
+            .find(item => item.name === name);
+
+        return entry?.version ?? null;
     }
 
     public async getScripts(): Promise<Record<string, string>> {
