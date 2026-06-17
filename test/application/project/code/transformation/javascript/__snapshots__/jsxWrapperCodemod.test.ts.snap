@@ -13,6 +13,122 @@ export default function App({Component, pageProps}: AppProps): ReactElement {
 "
 `;
 
+exports[`JsxWrapperCodemod should correctly transform containerAlreadyWrapped.tsx: containerAlreadyWrapped.tsx 1`] = `
+"import {Analytics} from '@shopify/hydrogen';
+import {CroctProvider} from '@croct/plug-react';
+
+export default function App({data}) {
+    return <Analytics.Provider cart={data.cart} shop={data.shop} consent={data.consent}>
+        <CroctProvider>
+            <PageLayout {...data}>
+                <Outlet />
+            </PageLayout>
+        </CroctProvider>
+    </Analytics.Provider>;
+}
+"
+`;
+
+exports[`JsxWrapperCodemod should correctly transform containerIdentifierElement.tsx: containerIdentifierElement.tsx 1`] = `
+"import { CroctProvider } from "@croct/plug-react";
+
+export default function App({data}) {
+    return (<Providers>
+<CroctProvider>
+
+            <PageLayout {...data} />
+
+        </CroctProvider>
+</Providers>);
+}
+"
+`;
+
+exports[`JsxWrapperCodemod should correctly transform containerMemberExpression.tsx: containerMemberExpression.tsx 1`] = `
+"import { CroctProvider } from "@croct/plug-react";
+import {Analytics} from '@shopify/hydrogen';
+
+export default function App({data}) {
+    return (<Analytics.Provider cart={data.cart} shop={data.shop} consent={data.consent}>
+<CroctProvider>
+
+            <PageLayout {...data}>
+                <Outlet />
+            </PageLayout>
+
+        </CroctProvider>
+</Analytics.Provider>);
+}
+"
+`;
+
+exports[`JsxWrapperCodemod should correctly transform containerNamespaced.tsx: containerNamespaced.tsx 1`] = `
+"import { CroctProvider } from "@croct/plug-react";
+
+export default function App() {
+    return (<svg>
+        <svg:g>
+<CroctProvider>
+
+                <PageLayout />
+
+            </CroctProvider>
+</svg:g>
+    </svg>);
+}
+"
+`;
+
+exports[`JsxWrapperCodemod should correctly transform containerNotFound.tsx: containerNotFound.tsx 1`] = `
+"export default function App({data}) {
+    return <div>
+        <PageLayout {...data}>
+            <Outlet />
+        </PageLayout>
+    </div>;
+}
+"
+`;
+
+exports[`JsxWrapperCodemod should correctly transform containerRemixTernary.tsx: containerRemixTernary.tsx 1`] = `
+"import { CroctProvider } from "@croct/plug-react";
+import {Analytics} from '@shopify/hydrogen';
+
+export function Layout({children}) {
+    const data = useRouteLoaderData('root');
+
+    return (<html>
+        <body>
+            {data ? (
+                <Analytics.Provider cart={data.cart} shop={data.shop} consent={data.consent}>
+<CroctProvider>
+
+                        <PageLayout {...data}>{children}</PageLayout>
+
+                    </CroctProvider>
+</Analytics.Provider>
+            ) : (
+                children
+            )}
+        </body>
+    </html>);
+}
+
+export default function App() {
+    return <Outlet />;
+}
+"
+`;
+
+exports[`JsxWrapperCodemod should correctly transform containerSelfClosing.tsx: containerSelfClosing.tsx 1`] = `
+"import {Analytics} from '@shopify/hydrogen';
+
+export default function App() {
+    return <Analytics.Provider />;
+}
+"
+`;
+
 exports[`JsxWrapperCodemod should correctly transform defaultExport.tsx: defaultExport.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 import type {AppProps} from "next/app";
@@ -376,6 +492,22 @@ export default function App({Component, pageProps}) {
                 <Component {...pageProps} />
             </CroctProvider>
         </section>
+    </div>);
+}
+"
+`;
+
+exports[`JsxWrapperCodemod should correctly transform targetComponentMemberExpression.tsx: targetComponentMemberExpression.tsx 1`] = `
+"import { CroctProvider } from "@croct/plug-react";
+import {Theme} from 'ui';
+
+export default function App({Component, pageProps}) {
+    return (<div>
+        <CroctProvider>
+            <Theme.Provider>
+                <Component {...pageProps} />
+            </Theme.Provider>
+        </CroctProvider>
     </div>);
 }
 "

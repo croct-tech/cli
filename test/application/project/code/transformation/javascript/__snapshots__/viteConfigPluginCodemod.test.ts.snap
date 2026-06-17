@@ -1,0 +1,287 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ViteConfigPluginCodemod should correctly transform aliasedDefineConfig.ts: aliasedDefineConfig.ts 1`] = `
+"import { croct } from "@croct/plug-hydrogen/vite";
+import {defineConfig as define} from 'vite';
+import {hydrogen} from '@shopify/hydrogen/vite';
+
+export default define({
+    plugins: [hydrogen(), croct()],
+});
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform alreadyRegistered.ts: alreadyRegistered.ts 1`] = `
+"import {defineConfig} from 'vite';
+import {hydrogen} from '@shopify/hydrogen/vite';
+import {croct} from '@croct/plug-hydrogen/vite';
+
+export default defineConfig({
+    plugins: [hydrogen(), croct()],
+});
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform asConstConfig.ts: asConstConfig.ts 1`] = `
+"import { croct } from "@croct/plug-hydrogen/vite";
+import {defineConfig} from 'vite';
+import type {UserConfig} from 'vite';
+import {hydrogen} from '@shopify/hydrogen/vite';
+
+export default defineConfig({
+    plugins: [hydrogen(), croct()],
+}) as UserConfig;
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform bareObjectExport.ts: bareObjectExport.ts 1`] = `
+"import { croct } from "@croct/plug-hydrogen/vite";
+import {hydrogen} from '@shopify/hydrogen/vite';
+
+export default {
+    plugins: [hydrogen(), croct()],
+};
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform bareObjectIndirectVariable.ts: bareObjectIndirectVariable.ts 1`] = `
+"import { croct } from "@croct/plug-hydrogen/vite";
+import {hydrogen} from '@shopify/hydrogen/vite';
+
+const config = {
+    plugins: [hydrogen(), croct()],
+};
+
+export default config;
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform emptyDefineCall.ts: emptyDefineCall.ts 1`] = `
+"import {defineConfig} from 'vite';
+
+export default defineConfig();
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform emptyPlugins.ts: emptyPlugins.ts 1`] = `
+"import { croct } from "@croct/plug-hydrogen/vite";
+import {defineConfig} from 'vite';
+
+export default defineConfig({
+    plugins: [croct()],
+});
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform functionConfig.ts: functionConfig.ts 1`] = `
+"import {defineConfig} from 'vite';
+import {hydrogen} from '@shopify/hydrogen/vite';
+
+export default defineConfig(() => ({
+    plugins: [hydrogen()],
+}));
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform functionDefaultExport.ts: functionDefaultExport.ts 1`] = `
+"export default function config() {
+    return {plugins: []};
+}
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform importPresentNoCall.ts: importPresentNoCall.ts 1`] = `
+"import {defineConfig} from 'vite';
+import {hydrogen} from '@shopify/hydrogen/vite';
+import {croct} from '@croct/plug-hydrogen/vite';
+
+export default defineConfig({
+    plugins: [hydrogen(), croct()],
+});
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform indirectConfigVariable.ts: indirectConfigVariable.ts 1`] = `
+"import { croct } from "@croct/plug-hydrogen/vite";
+import {defineConfig} from 'vite';
+import {hydrogen} from '@shopify/hydrogen/vite';
+
+const config = defineConfig({
+    plugins: [hydrogen(), croct()],
+});
+
+export default config;
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform indirectConfigWithExtraDeclarator.ts: indirectConfigWithExtraDeclarator.ts 1`] = `
+"import { croct } from "@croct/plug-hydrogen/vite";
+import {defineConfig} from 'vite';
+import {hydrogen} from '@shopify/hydrogen/vite';
+const version = '2024';
+
+const config = defineConfig({
+    plugins: [hydrogen(), croct()],
+});
+
+export default config;
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform indirectNonDefineCall.ts: indirectNonDefineCall.ts 1`] = `
+"import {hydrogen} from '@shopify/hydrogen/vite';
+
+function build() {
+    return {plugins: [hydrogen()]};
+}
+
+const config = build();
+
+export default config;
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform memberCalleeExport.ts: memberCalleeExport.ts 1`] = `
+"import * as vite from 'vite';
+import {hydrogen} from '@shopify/hydrogen/vite';
+
+export default vite.defineConfig({
+    plugins: [hydrogen()],
+});
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform noPluginsKey.ts: noPluginsKey.ts 1`] = `
+"import { croct } from "@croct/plug-hydrogen/vite";
+import {defineConfig} from 'vite';
+
+export default defineConfig({
+    server: {
+        port: 3000,
+    },
+
+    plugins: [croct()]
+});
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform nonArrayPlugins.ts: nonArrayPlugins.ts 1`] = `
+"import {defineConfig} from 'vite';
+import {hydrogen} from '@shopify/hydrogen/vite';
+
+const basePlugins = [hydrogen()];
+
+export default defineConfig({
+    plugins: basePlugins,
+});
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform nonDefineConfigCall.ts: nonDefineConfigCall.ts 1`] = `
+"import {hydrogen} from '@shopify/hydrogen/vite';
+
+function wrapConfig(config) {
+    return config;
+}
+
+export default wrapConfig({
+    plugins: [hydrogen()],
+});
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform positionStart.ts: positionStart.ts 1`] = `
+"import { croct } from "@croct/plug-hydrogen/vite";
+import {defineConfig} from 'vite';
+import {hydrogen} from '@shopify/hydrogen/vite';
+
+export default defineConfig({
+    plugins: [croct(), hydrogen()],
+});
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform remixPlugins.ts: remixPlugins.ts 1`] = `
+"import { croct } from "@croct/plug-hydrogen/vite";
+import {defineConfig} from 'vite';
+import {hydrogen} from '@shopify/hydrogen/vite';
+import {oxygen} from '@shopify/mini-oxygen/vite';
+import {vitePlugin as remix} from '@remix-run/dev';
+import tsconfigPaths from 'vite-tsconfig-paths';
+
+export default defineConfig({
+    plugins: [hydrogen(), oxygen(), remix({
+        presets: [hydrogen.v3preset()],
+    }), tsconfigPaths(), croct()],
+});
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform satisfiesConfig.ts: satisfiesConfig.ts 1`] = `
+"import { croct } from "@croct/plug-hydrogen/vite";
+import {defineConfig} from 'vite';
+import type {UserConfig} from 'vite';
+import {hydrogen} from '@shopify/hydrogen/vite';
+
+export default defineConfig({
+    plugins: [hydrogen(), croct()],
+}) satisfies UserConfig;
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform sparsePluginsArray.ts: sparsePluginsArray.ts 1`] = `
+"import {defineConfig} from 'vite';
+import {hydrogen} from '@shopify/hydrogen/vite';
+import {croct} from '@croct/plug-hydrogen/vite';
+
+export default defineConfig({
+    plugins: [hydrogen(), , croct()],
+});
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform spreadConfigProperties.ts: spreadConfigProperties.ts 1`] = `
+"import { croct } from "@croct/plug-hydrogen/vite";
+import {defineConfig} from 'vite';
+import {hydrogen} from '@shopify/hydrogen/vite';
+const base = {server: {port: 3000}};
+
+export default defineConfig({
+    ...base,
+    plugins: [hydrogen(), croct()],
+});
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform standard.ts: standard.ts 1`] = `
+"import { croct } from "@croct/plug-hydrogen/vite";
+import {defineConfig} from 'vite';
+import {hydrogen} from '@shopify/hydrogen/vite';
+import {oxygen} from '@shopify/mini-oxygen/vite';
+import {reactRouter} from '@react-router/dev/vite';
+
+export default defineConfig({
+    plugins: [hydrogen(), oxygen(), reactRouter(), croct()],
+});
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform stringLiteralPluginsKey.ts: stringLiteralPluginsKey.ts 1`] = `
+"import { croct } from "@croct/plug-hydrogen/vite";
+import {defineConfig} from 'vite';
+import {hydrogen} from '@shopify/hydrogen/vite';
+
+export default defineConfig({
+    'plugins': [hydrogen(), croct()],
+});
+"
+`;
+
+exports[`ViteConfigPluginCodemod should correctly transform uninitializedBinding.ts: uninitializedBinding.ts 1`] = `
+"import {defineConfig} from 'vite';
+
+let config;
+
+export default config;
+"
+`;

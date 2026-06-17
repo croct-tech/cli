@@ -25,6 +25,47 @@ describe('JsxWrapperCodemod', () => {
                     component: 'Component',
                 },
             },
+            'targetComponentMemberExpression.tsx': {
+                targets: {
+                    component: 'Theme.Provider',
+                },
+            },
+            'containerMemberExpression.tsx': {
+                targets: {
+                    container: 'Analytics.Provider',
+                },
+            },
+            'containerRemixTernary.tsx': {
+                targets: {
+                    container: 'Analytics.Provider',
+                },
+                fallbackToNamedExports: true,
+            },
+            'containerAlreadyWrapped.tsx': {
+                targets: {
+                    container: 'Analytics.Provider',
+                },
+            },
+            'containerNotFound.tsx': {
+                targets: {
+                    container: 'Analytics.Provider',
+                },
+            },
+            'containerSelfClosing.tsx': {
+                targets: {
+                    container: 'Analytics.Provider',
+                },
+            },
+            'containerNamespaced.tsx': {
+                targets: {
+                    container: 'svg:g',
+                },
+            },
+            'containerIdentifierElement.tsx': {
+                targets: {
+                    container: 'Providers',
+                },
+            },
             'targetChildren.tsx': {
                 targets: {
                     variable: 'children',
