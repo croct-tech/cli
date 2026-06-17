@@ -35,6 +35,11 @@ describe('JsxWrapperCodemod', () => {
                     container: 'Analytics.Provider',
                 },
             },
+            'containerAliasedImport.tsx': {
+                targets: {
+                    container: 'Analytics.Provider',
+                },
+            },
             'containerRemixTernary.tsx': {
                 targets: {
                     container: 'Analytics.Provider',

@@ -123,6 +123,9 @@ function createNormalizationMap<M extends string, A extends string>(map: Record<
 
 const platformMap = createNormalizationMap<Platform, GraphqlPlatform>({
     [Platform.JAVASCRIPT]: GraphqlPlatform.Javascript,
+    // The API has no Hydrogen platform; report it as React (it is a React framework). Listed
+    // before React so the reverse map keeps `React → react`.
+    [Platform.HYDROGEN]: GraphqlPlatform.React,
     [Platform.REACT]: GraphqlPlatform.React,
     [Platform.NEXTJS]: GraphqlPlatform.Next,
     [Platform.VUE]: GraphqlPlatform.Vue,

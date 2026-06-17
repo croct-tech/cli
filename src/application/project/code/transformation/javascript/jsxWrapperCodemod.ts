@@ -312,7 +312,12 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
         const container = this.configuration.targets?.container;
 
         if (container !== undefined) {
-            return this.wrapElementChildren(node, container, component, options);
+            return this.wrapElementChildren(
+                node,
+                JsxWrapperCodemod.resolveElementName(ast, container),
+                component,
+                options,
+            );
         }
 
         const target = this.findTargetChildren(ast, node);
@@ -469,6 +474,23 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
     }
 
     /**
+     * Resolves the import alias of a target element name's root identifier, so an aliased import
+     * (e.g. `import {Analytics as Shopify}`) still matches `<Shopify.Provider>` for the configured
+     * `Analytics.Provider`. The root is matched against any module, leaving it untouched when it is
+     * not an imported binding.
+     */
+    private static resolveElementName(ast: t.File, name: string): string {
+        const segments = name.split('.');
+        const local = getImportLocalName(ast, {moduleName: /.*/, importName: segments[0]});
+
+        if (local !== null) {
+            segments[0] = local;
+        }
+
+        return segments.join('.');
+    }
+
+    /**
      * Determines if the element contains the specified component.
      *
      * @param parent The parent element to search for the component.
@@ -558,6 +580,10 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
             return null;
         }
 
+        const componentName = configuration.targets?.component === undefined
+            ? undefined
+            : JsxWrapperCodemod.resolveElementName(ast, configuration.targets.component);
+
         traverse(ast, {
             enter: function enter(path) {
                 const {node} = path;
@@ -589,8 +615,8 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
                         const {openingElement} = nestedPath.node;
 
                         if (
-                            configuration.targets?.component !== undefined
-                            && JsxWrapperCodemod.getJsxName(openingElement.name) === configuration.targets.component
+                            componentName !== undefined
+                            && JsxWrapperCodemod.getJsxName(openingElement.name) === componentName
                         ) {
                             if (nestedPath.parent !== null) {
                                 const parent = nestedPath.parent as t.JSXElement;

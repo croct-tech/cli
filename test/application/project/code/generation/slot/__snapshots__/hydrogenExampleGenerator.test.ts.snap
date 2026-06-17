@@ -1,0 +1,447 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`HydrogenExampleGenerator should generate a route for booleanWithLabel: booleanWithLabel 1`] = `
+{
+  "files": [
+    {
+      "code": "import {Slot} from '@croct/plug-hydrogen';
+import {fetchContent} from '@croct/plug-hydrogen/server';
+import {useLoaderData} from 'react-router';
+import type {Route} from './+types/feature-toggle';
+
+export async function loader({context}: Route.LoaderArgs) {
+  const {content} = await fetchContent('feature-toggle', {context});
+
+  return {content};
+}
+
+export default function FeatureToggleRoute() {
+  const data = useLoaderData<typeof loader>();
+
+  return (
+    <Slot id="feature-toggle" initial={data.content}>
+      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
+    </Slot>
+  );
+}
+",
+      "language": "tsx",
+      "path": "app/routes/feature-toggle.tsx",
+    },
+  ],
+}
+`;
+
+exports[`HydrogenExampleGenerator should generate a route for labeledAttributes: labeledAttributes 1`] = `
+{
+  "files": [
+    {
+      "code": "import {Slot} from '@croct/plug-hydrogen';
+import {fetchContent} from '@croct/plug-hydrogen/server';
+import {useLoaderData} from 'react-router';
+import type {Route} from './+types/stylized';
+
+export async function loader({context}: Route.LoaderArgs) {
+  const {content} = await fetchContent('stylized', {context});
+
+  return {content};
+}
+
+export default function StylizedRoute() {
+  const data = useLoaderData<typeof loader>();
+
+  return (
+    <Slot id="stylized" initial={data.content}>
+      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
+    </Slot>
+  );
+}
+",
+      "language": "tsx",
+      "path": "app/routes/stylized.tsx",
+    },
+  ],
+}
+`;
+
+exports[`HydrogenExampleGenerator should generate a route for listOfScalars: listOfScalars 1`] = `
+{
+  "files": [
+    {
+      "code": "import {Slot} from '@croct/plug-hydrogen';
+import {fetchContent} from '@croct/plug-hydrogen/server';
+import {useLoaderData} from 'react-router';
+import type {Route} from './+types/tag-cloud';
+
+export async function loader({context}: Route.LoaderArgs) {
+  const {content} = await fetchContent('tag-cloud', {context});
+
+  return {content};
+}
+
+export default function TagCloudRoute() {
+  const data = useLoaderData<typeof loader>();
+
+  return (
+    <Slot id="tag-cloud" initial={data.content}>
+      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
+    </Slot>
+  );
+}
+",
+      "language": "tsx",
+      "path": "app/routes/tag-cloud.tsx",
+    },
+  ],
+}
+`;
+
+exports[`HydrogenExampleGenerator should generate a route for listOfStructures: listOfStructures 1`] = `
+{
+  "files": [
+    {
+      "code": "import {Slot} from '@croct/plug-hydrogen';
+import {fetchContent} from '@croct/plug-hydrogen/server';
+import {useLoaderData} from 'react-router';
+import type {Route} from './+types/product-grid';
+
+export async function loader({context}: Route.LoaderArgs) {
+  const {content} = await fetchContent('product-grid', {context});
+
+  return {content};
+}
+
+export default function ProductGridRoute() {
+  const data = useLoaderData<typeof loader>();
+
+  return (
+    <Slot id="product-grid" initial={data.content}>
+      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
+    </Slot>
+  );
+}
+",
+      "language": "tsx",
+      "path": "app/routes/product-grid.tsx",
+    },
+  ],
+}
+`;
+
+exports[`HydrogenExampleGenerator should generate a route for nestedStructure: nestedStructure 1`] = `
+{
+  "files": [
+    {
+      "code": "import {Slot} from '@croct/plug-hydrogen';
+import {fetchContent} from '@croct/plug-hydrogen/server';
+import {useLoaderData} from 'react-router';
+import type {Route} from './+types/author-card';
+
+export async function loader({context}: Route.LoaderArgs) {
+  const {content} = await fetchContent('author-card', {context});
+
+  return {content};
+}
+
+export default function AuthorCardRoute() {
+  const data = useLoaderData<typeof loader>();
+
+  return (
+    <Slot id="author-card" initial={data.content}>
+      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
+    </Slot>
+  );
+}
+",
+      "language": "tsx",
+      "path": "app/routes/author-card.tsx",
+    },
+  ],
+}
+`;
+
+exports[`HydrogenExampleGenerator should generate a route for optionalAttributes: optionalAttributes 1`] = `
+{
+  "files": [
+    {
+      "code": "import {Slot} from '@croct/plug-hydrogen';
+import {fetchContent} from '@croct/plug-hydrogen/server';
+import {useLoaderData} from 'react-router';
+import type {Route} from './+types/promo-card';
+
+export async function loader({context}: Route.LoaderArgs) {
+  const {content} = await fetchContent('promo-card', {context});
+
+  return {content};
+}
+
+export default function PromoCardRoute() {
+  const data = useLoaderData<typeof loader>();
+
+  return (
+    <Slot id="promo-card" initial={data.content}>
+      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
+    </Slot>
+  );
+}
+",
+      "language": "tsx",
+      "path": "app/routes/promo-card.tsx",
+    },
+  ],
+}
+`;
+
+exports[`HydrogenExampleGenerator should generate a route for privateAttributes: privateAttributes 1`] = `
+{
+  "files": [
+    {
+      "code": "import {Slot} from '@croct/plug-hydrogen';
+import {fetchContent} from '@croct/plug-hydrogen/server';
+import {useLoaderData} from 'react-router';
+import type {Route} from './+types/tracked-banner';
+
+export async function loader({context}: Route.LoaderArgs) {
+  const {content} = await fetchContent('tracked-banner', {context});
+
+  return {content};
+}
+
+export default function TrackedBannerRoute() {
+  const data = useLoaderData<typeof loader>();
+
+  return (
+    <Slot id="tracked-banner" initial={data.content}>
+      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
+    </Slot>
+  );
+}
+",
+      "language": "tsx",
+      "path": "app/routes/tracked-banner.tsx",
+    },
+  ],
+}
+`;
+
+exports[`HydrogenExampleGenerator should generate a route for simpleStructure: simpleStructure 1`] = `
+{
+  "files": [
+    {
+      "code": "import {Slot} from '@croct/plug-hydrogen';
+import {fetchContent} from '@croct/plug-hydrogen/server';
+import {useLoaderData} from 'react-router';
+import type {Route} from './+types/home-hero';
+
+export async function loader({context}: Route.LoaderArgs) {
+  const {content} = await fetchContent('home-hero', {context});
+
+  return {content};
+}
+
+export default function HomeHeroRoute() {
+  const data = useLoaderData<typeof loader>();
+
+  return (
+    <Slot id="home-hero" initial={data.content}>
+      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
+    </Slot>
+  );
+}
+",
+      "language": "tsx",
+      "path": "app/routes/home-hero.tsx",
+    },
+  ],
+}
+`;
+
+exports[`HydrogenExampleGenerator should generate a route for unionInStructure: unionInStructure 1`] = `
+{
+  "files": [
+    {
+      "code": "import {Slot} from '@croct/plug-hydrogen';
+import {fetchContent} from '@croct/plug-hydrogen/server';
+import {useLoaderData} from 'react-router';
+import type {Route} from './+types/block';
+
+export async function loader({context}: Route.LoaderArgs) {
+  const {content} = await fetchContent('block', {context});
+
+  return {content};
+}
+
+export default function BlockRoute() {
+  const data = useLoaderData<typeof loader>();
+
+  return (
+    <Slot id="block" initial={data.content}>
+      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
+    </Slot>
+  );
+}
+",
+      "language": "tsx",
+      "path": "app/routes/block.tsx",
+    },
+  ],
+}
+`;
+
+exports[`HydrogenExampleGenerator should generate a route for unionRoot: unionRoot 1`] = `
+{
+  "files": [
+    {
+      "code": "import {Slot} from '@croct/plug-hydrogen';
+import {fetchContent} from '@croct/plug-hydrogen/server';
+import {useLoaderData} from 'react-router';
+import type {Route} from './+types/cta-block';
+
+export async function loader({context}: Route.LoaderArgs) {
+  const {content} = await fetchContent('cta-block', {context});
+
+  return {content};
+}
+
+export default function CtaBlockRoute() {
+  const data = useLoaderData<typeof loader>();
+
+  return (
+    <Slot id="cta-block" initial={data.content}>
+      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
+    </Slot>
+  );
+}
+",
+      "language": "tsx",
+      "path": "app/routes/cta-block.tsx",
+    },
+  ],
+}
+`;
+
+exports[`HydrogenExampleGenerator should generate the react-router-js route: react-router-js 1`] = `
+{
+  "files": [
+    {
+      "code": "import {Slot} from '@croct/plug-hydrogen';
+import {fetchContent} from '@croct/plug-hydrogen/server';
+import {useLoaderData} from 'react-router';
+
+export async function loader({context}) {
+  const {content} = await fetchContent('home-hero', {context});
+
+  return {content};
+}
+
+export default function HomeHeroRoute() {
+  const data = useLoaderData();
+
+  return (
+    <Slot id="home-hero" initial={data.content}>
+      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
+    </Slot>
+  );
+}
+",
+      "language": "jsx",
+      "path": "app/routes/home-hero.tsx",
+    },
+  ],
+}
+`;
+
+exports[`HydrogenExampleGenerator should generate the react-router-ts route: react-router-ts 1`] = `
+{
+  "files": [
+    {
+      "code": "import {Slot} from '@croct/plug-hydrogen';
+import {fetchContent} from '@croct/plug-hydrogen/server';
+import {useLoaderData} from 'react-router';
+import type {Route} from './+types/home-hero';
+
+export async function loader({context}: Route.LoaderArgs) {
+  const {content} = await fetchContent('home-hero', {context});
+
+  return {content};
+}
+
+export default function HomeHeroRoute() {
+  const data = useLoaderData<typeof loader>();
+
+  return (
+    <Slot id="home-hero" initial={data.content}>
+      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
+    </Slot>
+  );
+}
+",
+      "language": "tsx",
+      "path": "app/routes/home-hero.tsx",
+    },
+  ],
+}
+`;
+
+exports[`HydrogenExampleGenerator should generate the remix-js route: remix-js 1`] = `
+{
+  "files": [
+    {
+      "code": "import {Slot} from '@croct/plug-hydrogen';
+import {fetchContent} from '@croct/plug-hydrogen/server';
+import {useLoaderData} from '@remix-run/react';
+
+export async function loader({context}) {
+  const {content} = await fetchContent('home-hero', {context});
+
+  return {content};
+}
+
+export default function HomeHeroRoute() {
+  const data = useLoaderData();
+
+  return (
+    <Slot id="home-hero" initial={data.content}>
+      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
+    </Slot>
+  );
+}
+",
+      "language": "jsx",
+      "path": "app/routes/home-hero.tsx",
+    },
+  ],
+}
+`;
+
+exports[`HydrogenExampleGenerator should generate the remix-ts route: remix-ts 1`] = `
+{
+  "files": [
+    {
+      "code": "import {Slot} from '@croct/plug-hydrogen';
+import {fetchContent} from '@croct/plug-hydrogen/server';
+import {useLoaderData} from '@remix-run/react';
+import type {LoaderFunctionArgs} from '@shopify/remix-oxygen';
+
+export async function loader({context}: LoaderFunctionArgs) {
+  const {content} = await fetchContent('home-hero', {context});
+
+  return {content};
+}
+
+export default function HomeHeroRoute() {
+  const data = useLoaderData<typeof loader>();
+
+  return (
+    <Slot id="home-hero" initial={data.content}>
+      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
+    </Slot>
+  );
+}
+",
+      "language": "tsx",
+      "path": "app/routes/home-hero.tsx",
+    },
+  ],
+}
+`;

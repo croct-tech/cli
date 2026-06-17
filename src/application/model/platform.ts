@@ -1,6 +1,7 @@
 export enum Platform {
     NEXTJS = 'nextjs',
     NUXT = 'nuxt',
+    HYDROGEN = 'hydrogen',
     REACT = 'react',
     VUE = 'vue',
     JAVASCRIPT = 'javascript',
@@ -18,6 +19,9 @@ export namespace Platform {
 
             case Platform.NUXT:
                 return 'Nuxt';
+
+            case Platform.HYDROGEN:
+                return 'Hydrogen';
 
             case Platform.REACT:
                 return 'React';

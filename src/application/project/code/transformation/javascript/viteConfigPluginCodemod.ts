@@ -3,6 +3,7 @@ import {traverse} from '@babel/core';
 import type {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
 import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
 import {addImport} from '@/application/project/code/transformation/javascript/utils/addImport';
+import {spreadAsArray} from '@/application/project/code/transformation/javascript/utils/spreadAsArray';
 
 export type ViteConfigPluginConfiguration = {
     /**
@@ -25,8 +26,9 @@ export type ViteConfigPluginConfiguration = {
  *
  * Supports the `defineConfig` call form and bare object exports, including the
  * indirect variable forms of each, with type-assertion wrappers unwrapped. The
- * plugin import is added and a `<plugin>()` call is inserted into the array. If
- * the plugin is already registered, the codemod returns unmodified.
+ * plugin import is added and a `<plugin>()` call is inserted into the array,
+ * creating it when missing and normalizing a non-array value into one. If the
+ * plugin is already registered, the codemod returns unmodified.
  */
 export class ViteConfigPluginCodemod implements Codemod<t.File, CodemodOptions> {
     private readonly configuration: ViteConfigPluginConfiguration;
@@ -43,11 +45,6 @@ export class ViteConfigPluginCodemod implements Codemod<t.File, CodemodOptions> 
         }
 
         const plugins = ViteConfigPluginCodemod.resolvePluginsArray(config);
-
-        if (plugins === null) {
-            return Promise.resolve({modified: false, result: input});
-        }
-
         const {plugin, position = 'end'} = this.configuration;
         const importedName = getImportLocalName(input, {
             moduleName: plugin.moduleName,
@@ -86,11 +83,11 @@ export class ViteConfigPluginCodemod implements Codemod<t.File, CodemodOptions> 
     }
 
     /**
-     * Returns the `plugins` array of the config, creating an empty one if it is
-     * missing. Returns null when a `plugins` property exists but is not an inline
-     * array (e.g. a spread or a variable), which cannot be edited safely.
+     * Returns the `plugins` array of the config, creating an empty one if it is missing. When
+     * `plugins` is a non-array value (a variable, a call, etc.), it is normalized into an array,
+     * preserving the existing value, so the plugin can still be appended.
      */
-    private static resolvePluginsArray(config: t.ObjectExpression): t.ArrayExpression | null {
+    private static resolvePluginsArray(config: t.ObjectExpression): t.ArrayExpression {
         for (const property of config.properties) {
             if (!t.isObjectProperty(property) || property.computed) {
                 continue;
@@ -101,7 +98,18 @@ export class ViteConfigPluginCodemod implements Codemod<t.File, CodemodOptions> 
                 || (t.isStringLiteral(key) && key.value === 'plugins');
 
             if (isPlugins) {
-                return t.isArrayExpression(property.value) ? property.value : null;
+                if (t.isArrayExpression(property.value)) {
+                    return property.value;
+                }
+
+                // Normalize a non-array plugins value, preserving it. The cast is forced by
+                // `ObjectProperty.value`'s `Expression | PatternLike` type; an object-literal
+                // value is always an expression.
+                const normalized = t.arrayExpression([spreadAsArray(property.value as t.Expression)]);
+
+                property.value = normalized;
+
+                return normalized;
             }
         }
 

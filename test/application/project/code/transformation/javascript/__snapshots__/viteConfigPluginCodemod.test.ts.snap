@@ -166,13 +166,13 @@ export default defineConfig({
 `;
 
 exports[`ViteConfigPluginCodemod should correctly transform nonArrayPlugins.ts: nonArrayPlugins.ts 1`] = `
-"import {defineConfig} from 'vite';
+"import { croct } from "@croct/plug-hydrogen/vite";
+import {defineConfig} from 'vite';
 import {hydrogen} from '@shopify/hydrogen/vite';
-
 const basePlugins = [hydrogen()];
 
 export default defineConfig({
-    plugins: basePlugins,
+    plugins: [...(Array.isArray(basePlugins) ? basePlugins : [basePlugins]), croct()],
 });
 "
 `;

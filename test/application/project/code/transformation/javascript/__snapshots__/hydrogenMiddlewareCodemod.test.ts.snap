@@ -1,0 +1,93 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`HydrogenMiddlewareCodemod should correctly transform absent.ts: absent.ts 1`] = `
+"import { createCroctMiddleware } from "@croct/plug-hydrogen/server";
+
+export default function App() {
+    return null;
+}
+
+export const middleware = [createCroctMiddleware()];
+"
+`;
+
+exports[`HydrogenMiddlewareCodemod should correctly transform alreadyRegistered.ts: alreadyRegistered.ts 1`] = `
+"import {createCroctMiddleware} from '@croct/plug-hydrogen/server';
+
+export const middleware = [createCroctMiddleware()];
+"
+`;
+
+exports[`HydrogenMiddlewareCodemod should correctly transform decoyConst.ts: decoyConst.ts 1`] = `
+"import { createCroctMiddleware } from "@croct/plug-hydrogen/server";
+import {logger} from './middleware/logger';
+const VERSION = '1';
+export const middleware = [logger(), createCroctMiddleware()];
+"
+`;
+
+exports[`HydrogenMiddlewareCodemod should correctly transform emptyArray.ts: emptyArray.ts 1`] = `
+"import { createCroctMiddleware } from "@croct/plug-hydrogen/server";
+export const middleware = [createCroctMiddleware()];
+"
+`;
+
+exports[`HydrogenMiddlewareCodemod should correctly transform existingArray.ts: existingArray.ts 1`] = `
+"import { createCroctMiddleware } from "@croct/plug-hydrogen/server";
+import {logger} from './middleware/logger';
+export const middleware = [logger(), createCroctMiddleware()];
+"
+`;
+
+exports[`HydrogenMiddlewareCodemod should correctly transform identifierInit.ts: identifierInit.ts 1`] = `
+"import { createCroctMiddleware } from "@croct/plug-hydrogen/server";
+import {baseMiddleware} from './middleware/base';
+const existingMiddleware = baseMiddleware;
+
+export const middleware = [
+  ...(Array.isArray(existingMiddleware) ? existingMiddleware : [existingMiddleware]),
+  createCroctMiddleware()
+];
+"
+`;
+
+exports[`HydrogenMiddlewareCodemod should correctly transform importPresentNoCall.ts: importPresentNoCall.ts 1`] = `
+"import {createCroctMiddleware} from '@croct/plug-hydrogen/server';
+import {logger} from './middleware/logger';
+
+export const middleware = [logger(), createCroctMiddleware()];
+"
+`;
+
+exports[`HydrogenMiddlewareCodemod should correctly transform multipleDeclarators.ts: multipleDeclarators.ts 1`] = `
+"import { createCroctMiddleware } from "@croct/plug-hydrogen/server";
+import {logger} from './middleware/logger';
+export const version = '1', middleware = [logger(), createCroctMiddleware()];
+"
+`;
+
+exports[`HydrogenMiddlewareCodemod should correctly transform nonArrayInit.ts: nonArrayInit.ts 1`] = `
+"import { createCroctMiddleware } from "@croct/plug-hydrogen/server";
+import {buildMiddleware} from './middleware';
+const existingMiddleware = buildMiddleware();
+
+export const middleware = [
+  ...(Array.isArray(existingMiddleware) ? existingMiddleware : [existingMiddleware]),
+  createCroctMiddleware()
+];
+"
+`;
+
+exports[`HydrogenMiddlewareCodemod should correctly transform typedArray.ts: typedArray.ts 1`] = `
+"import { createCroctMiddleware } from "@croct/plug-hydrogen/server";
+import type {MiddlewareFunction} from 'react-router';
+import {logger} from './middleware/logger';
+export const middleware: MiddlewareFunction[] = [logger(), createCroctMiddleware()];
+"
+`;
+
+exports[`HydrogenMiddlewareCodemod should correctly transform uninitializedLet.ts: uninitializedLet.ts 1`] = `
+"import { createCroctMiddleware } from "@croct/plug-hydrogen/server";
+export let middleware = [createCroctMiddleware()];
+"
+`;

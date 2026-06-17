@@ -1,0 +1,114 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`HydrogenCspCodemod should correctly transform aliasedImport.ts: aliasedImport.ts 1`] = `
+"import {createContentSecurityPolicy as createCsp} from '@shopify/hydrogen';
+
+const csp = createCsp({
+    connectSrc: ['https://example.com', "https://api.croct.io"],
+});
+"
+`;
+
+exports[`HydrogenCspCodemod should correctly transform alreadyPresent.ts: alreadyPresent.ts 1`] = `
+"import {createContentSecurityPolicy} from '@shopify/hydrogen';
+
+const csp = createContentSecurityPolicy({
+    connectSrc: ['https://api.croct.io'],
+});
+"
+`;
+
+exports[`HydrogenCspCodemod should correctly transform emptyCall.ts: emptyCall.ts 1`] = `
+"import {createContentSecurityPolicy} from '@shopify/hydrogen';
+
+const csp = createContentSecurityPolicy();
+"
+`;
+
+exports[`HydrogenCspCodemod should correctly transform emptyConnectSrc.ts: emptyConnectSrc.ts 1`] = `
+"import {createContentSecurityPolicy} from '@shopify/hydrogen';
+
+const csp = createContentSecurityPolicy({
+    connectSrc: ["https://api.croct.io"],
+});
+"
+`;
+
+exports[`HydrogenCspCodemod should correctly transform existingConnectSrc.ts: existingConnectSrc.ts 1`] = `
+"import {createContentSecurityPolicy} from '@shopify/hydrogen';
+
+const csp = createContentSecurityPolicy({
+    connectSrc: ['https://example.com', "https://api.croct.io"],
+});
+"
+`;
+
+exports[`HydrogenCspCodemod should correctly transform memberCalleeCall.ts: memberCalleeCall.ts 1`] = `
+"const csp = security.createContentSecurityPolicy({
+    connectSrc: ['https://example.com'],
+});
+"
+`;
+
+exports[`HydrogenCspCodemod should correctly transform noCall.ts: noCall.ts 1`] = `
+"const csp = buildPolicy({
+    connectSrc: ['https://example.com'],
+});
+"
+`;
+
+exports[`HydrogenCspCodemod should correctly transform nonArrayConnectSrc.ts: nonArrayConnectSrc.ts 1`] = `
+"import {createContentSecurityPolicy} from '@shopify/hydrogen';
+
+const csp = createContentSecurityPolicy({
+    connectSrc: [
+        ...(Array.isArray(defaultSources) ? defaultSources : [defaultSources]),
+        "https://api.croct.io"
+    ],
+});
+"
+`;
+
+exports[`HydrogenCspCodemod should correctly transform nonObjectArg.ts: nonObjectArg.ts 1`] = `
+"import {createContentSecurityPolicy} from '@shopify/hydrogen';
+
+const csp = createContentSecurityPolicy(policyOptions);
+"
+`;
+
+exports[`HydrogenCspCodemod should correctly transform spreadOption.ts: spreadOption.ts 1`] = `
+"import {createContentSecurityPolicy} from '@shopify/hydrogen';
+
+const csp = createContentSecurityPolicy({
+    ...base,
+    connectSrc: ['https://example.com', "https://api.croct.io"],
+});
+"
+`;
+
+exports[`HydrogenCspCodemod should correctly transform standard.ts: standard.ts 1`] = `
+"import {createContentSecurityPolicy} from '@shopify/hydrogen';
+
+export default function handleRequest(request, context) {
+    const {header} = createContentSecurityPolicy({
+        shop: {
+            checkoutDomain: context.env.PUBLIC_CHECKOUT_DOMAIN,
+            storeDomain: context.env.PUBLIC_STORE_DOMAIN,
+        },
+
+        connectSrc: ["https://api.croct.io"]
+    });
+
+    return header;
+}
+"
+`;
+
+exports[`HydrogenCspCodemod should correctly transform stringLiteralKey.ts: stringLiteralKey.ts 1`] = `
+"import {createContentSecurityPolicy} from '@shopify/hydrogen';
+
+const csp = createContentSecurityPolicy({
+    'connectSrc': ['https://example.com', "https://api.croct.io"],
+});
+"
+`;

@@ -13,6 +13,24 @@ export default function App({Component, pageProps}: AppProps): ReactElement {
 "
 `;
 
+exports[`JsxWrapperCodemod should correctly transform containerAliasedImport.tsx: containerAliasedImport.tsx 1`] = `
+"import { CroctProvider } from "@croct/plug-react";
+import {Analytics as Shopify} from '@shopify/hydrogen';
+
+export default function App({data}) {
+    return (<Shopify.Provider cart={data.cart} shop={data.shop} consent={data.consent}>
+<CroctProvider>
+
+            <PageLayout {...data}>
+                <Outlet />
+            </PageLayout>
+
+        </CroctProvider>
+</Shopify.Provider>);
+}
+"
+`;
+
 exports[`JsxWrapperCodemod should correctly transform containerAlreadyWrapped.tsx: containerAlreadyWrapped.tsx 1`] = `
 "import {Analytics} from '@shopify/hydrogen';
 import {CroctProvider} from '@croct/plug-react';
