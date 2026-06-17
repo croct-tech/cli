@@ -1,9 +1,6 @@
-import type {Installation} from '@/application/project/sdk/sdk';
+import type {Installation, InstallationPlan} from '@/application/project/sdk/sdk';
 import {SdkError} from '@/application/project/sdk/sdk';
-import type {
-    Configuration as JavaScriptSdkConfiguration,
-    InstallationPlan,
-} from '@/application/project/sdk/javasScriptSdk';
+import type {Configuration as JavaScriptSdkConfiguration} from '@/application/project/sdk/javasScriptSdk';
 import {JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import type {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
 import type {WorkspaceApi} from '@/application/api/workspace';
@@ -16,6 +13,8 @@ import {PlugNuxtExampleGenerator} from '@/application/project/code/generation/sl
 import {ApiError} from '@/application/api/error';
 import type {Slot} from '@/application/model/slot';
 import {ErrorReason, HelpfulError} from '@/application/error';
+import type {Example} from '@/application/project/example/example';
+import {UrlExample} from '@/application/project/example/example';
 import {ApiKeyPermission} from '@/application/model/application';
 import type {CommandExecutor} from '@/application/system/process/executor';
 
@@ -65,6 +64,11 @@ export class PlugNuxtSdk extends JavaScriptSdk {
         this.userApi = configuration.userApi;
         this.applicationApi = configuration.applicationApi;
         this.commandExecutor = configuration.commandExecutor;
+    }
+
+    protected createExample(slot: Slot): Promise<Example> {
+        // Nuxt auto-routes `pages/<slug>/index.vue` to `/<slug>`.
+        return Promise.resolve(new UrlExample(slot.name, `/${slot.slug}`));
     }
 
     protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {

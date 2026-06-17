@@ -32,4 +32,12 @@ export interface Server {
     start(options?: StartServerOptions): Promise<URL>;
 
     stop(options?: StartServerOptions): Promise<void>;
+
+    /**
+     * Resolves when the server process started by this instance exits.
+     *
+     * Resolves immediately when no process is running. Used to keep the CLI in the foreground while
+     * a server it started serves requests, returning once it is stopped (e.g. with Ctrl+C).
+     */
+    wait(): Promise<void>;
 }

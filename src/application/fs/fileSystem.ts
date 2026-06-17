@@ -57,6 +57,8 @@ export interface FileSystem {
     move(source: string, destination: string, options?: MoveOptions): Promise<void>;
     readTextFile(path: string): Promise<string>;
     writeTextFile(path: string, data: string, options?: FileWritingOptions): Promise<void>;
+    getPermissions(path: string): Promise<number>;
+    setPermissions(path: string, mode: number): Promise<void>;
     isAbsolutePath(path: string): boolean;
     isSubPath(parent: string, path: string): boolean;
     joinPaths(...paths: string[]): string;

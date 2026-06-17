@@ -24,6 +24,12 @@ import {PlugReactSdk} from '@/application/project/sdk/plugReactSdk';
 import {PlugNextSdk} from '@/application/project/sdk/plugNextSdk';
 import {PlugVueSdk} from '@/application/project/sdk/plugVueSdk';
 import {PlugNuxtSdk} from '@/application/project/sdk/plugNuxtSdk';
+import {PlugPhpSdk} from '@/application/project/sdk/plugPhpSdk';
+import {PlugLaravelSdk} from '@/application/project/sdk/plugLaravelSdk';
+import {PlugSymfonySdk} from '@/application/project/sdk/plugSymfonySdk';
+import {PlugDrupalSdk} from '@/application/project/sdk/plugDrupalSdk';
+import type {Configuration as PhpSdkConfiguration} from '@/application/project/sdk/phpSdk';
+import {WorkspaceContentLoader} from '@/application/project/sdk/content/workspaceContentLoader';
 import type {InitInput} from '@/application/cli/command/init';
 import {InitCommand} from '@/application/cli/command/init';
 import type {LoginInput} from '@/application/cli/command/login';
@@ -59,6 +65,11 @@ import {NextJsProxyCodemod} from '@/application/project/code/transformation/java
 import type {CodeFormatter} from '@/application/project/code/formatting/formatter';
 import {FormatCodemod} from '@/application/project/code/transformation/formatCodemod';
 import {FileCodemod} from '@/application/project/code/transformation/fileCodemod';
+import {SymfonyBundleCodemod} from '@/application/project/code/transformation/php/symfonyBundleCodemod';
+import {YamlMappingCodemod} from '@/application/project/code/transformation/yml/yamlMappingCodemod';
+import {NeonListCodemod} from '@/application/project/code/transformation/neon/neonListCodemod';
+import {DrupalLocalSettingsCodemod} from '@/application/project/code/transformation/php/drupalLocalSettingsCodemod';
+import {LaravelRouteCodemod} from '@/application/project/code/transformation/php/laravelRouteCodemod';
 import {
     NextJsLayoutComponentCodemod,
 } from '@/application/project/code/transformation/javascript/nextJsLayoutComponentCodemod';
@@ -66,6 +77,7 @@ import {
     NextJsAppComponentCodemod,
 } from '@/application/project/code/transformation/javascript/nextJsAppComponentCodemod';
 import {JavaScriptFormatter} from '@/infrastructure/application/project/javaScriptFormatter';
+import {PhpFormatter} from '@/infrastructure/application/project/phpFormatter';
 import type {AddSlotInput} from '@/application/cli/command/slot/add';
 import {AddSlotCommand} from '@/application/cli/command/slot/add';
 import {SlotForm} from '@/application/cli/form/workspace/slotForm';
@@ -188,8 +200,11 @@ import {FailOptionsValidator} from '@/infrastructure/application/validation/acti
 import {SpecificResourceProvider} from '@/application/provider/resource/specificResourceProvider';
 import {ConstantProvider} from '@/application/provider/constantProvider';
 import type {Server} from '@/application/project/server/server';
+import type {Command as ProcessCommand} from '@/application/system/process/command';
+import {ExampleLauncher} from '@/application/project/example/exampleLauncher';
 import {ProjectServerProvider} from '@/application/project/server/provider/projectServerProvider';
 import {NextCommandParser} from '@/application/project/server/provider/parser/nextCommandParser';
+import {NuxtCommandParser} from '@/application/project/server/provider/parser/nuxtCommandParser';
 import {ViteCommandParser} from '@/application/project/server/provider/parser/viteCommandParser';
 import {ParcelCommandParser} from '@/application/project/server/provider/parser/parcelCommandParser';
 import {ReactScriptCommandParser} from '@/application/project/server/provider/parser/reactScriptCommandParser';
@@ -221,6 +236,12 @@ import type {
     Configuration as NodePackageManagerConfiguration,
 } from '@/application/project/packageManager/nodePackageManager';
 import {NodePackageManager} from '@/application/project/packageManager/nodePackageManager';
+import {ComposerPackageManager} from '@/application/project/packageManager/composerPackageManager';
+import {ComposerAgent} from '@/application/project/packageManager/agent/composerAgent';
+import {
+    PartialComposerManifestValidator,
+} from '@/infrastructure/application/validation/partialComposerManifestValidator';
+import {PartialComposerLockValidator} from '@/infrastructure/application/validation/partialComposerLockValidator';
 import {NpmAgent} from '@/application/project/packageManager/agent/npmAgent';
 import {YarnAgent} from '@/application/project/packageManager/agent/yarnAgent';
 import {BunAgent} from '@/application/project/packageManager/agent/bunAgent';
@@ -1751,6 +1772,10 @@ export class Cli {
             const formatter = this.getJavaScriptFormatter();
             const fileSystem = this.getFileSystem();
             const importResolver = this.getNodeImportResolver();
+            const contentLoader = new WorkspaceContentLoader({
+                workspaceApi: this.getWorkspaceApi(),
+                fileSystem: fileSystem,
+            });
 
             const config: JavaScriptSdkConfiguration = {
                 projectDirectory: this.workingDirectory,
@@ -1759,6 +1784,25 @@ export class Cli {
                 formatter: formatter,
                 workspaceApi: this.getWorkspaceApi(),
                 tsConfigLoader: this.getTsConfigLoader(),
+                contentLoader: contentLoader,
+                exampleLauncher: new ExampleLauncher(this.getServerProvider()),
+            };
+
+            const phpConfig: PhpSdkConfiguration = {
+                projectDirectory: this.workingDirectory,
+                packageManager: this.getComposerPackageManager(),
+                fileSystem: fileSystem,
+                formatter: this.getPhpFormatter(),
+                commandExecutor: this.getAsynchronousCommandExecutor(),
+                contentLoader: contentLoader,
+                workspaceApi: this.getWorkspaceApi(),
+                userApi: this.getUserApi(),
+                applicationApi: this.getApplicationApi(),
+                exampleLauncher: new ExampleLauncher(this.getServerProvider()),
+                phpstanIncludeCodemod: new FileCodemod({
+                    fileSystem: fileSystem,
+                    codemod: new NeonListCodemod(),
+                }),
             };
 
             const unknown = Symbol('unknown');
@@ -1993,6 +2037,38 @@ export class Cli {
                             },
                         });
                     },
+                    [Platform.PHP]: (): Sdk => new PlugPhpSdk(phpConfig),
+                    [Platform.LARAVEL]: (): Sdk => new PlugLaravelSdk({
+                        ...phpConfig,
+                        // Raw content codemod: the SDK runs it over routes/web.php and returns the
+                        // result as an example file, so the base writes and formats it.
+                        routeCodemod: new LaravelRouteCodemod(),
+                    }),
+                    [Platform.SYMFONY]: (): Sdk => new PlugSymfonySdk({
+                        ...phpConfig,
+                        bundleCodemod: new FormatCodemod(
+                            phpConfig.formatter,
+                            new FileCodemod({
+                                fileSystem: fileSystem,
+                                codemod: new SymfonyBundleCodemod({bundle: 'Croct\\Plug\\Symfony\\CroctBundle'}),
+                            }),
+                        ),
+                        // YAML has no formatter, so it is not wrapped in FormatCodemod.
+                        configCodemod: new FileCodemod({
+                            fileSystem: fileSystem,
+                            codemod: new YamlMappingCodemod(),
+                        }),
+                    }),
+                    [Platform.DRUPAL]: (): Sdk => new PlugDrupalSdk({
+                        ...phpConfig,
+                        localSettingsFileCodemod: new FormatCodemod(
+                            phpConfig.formatter,
+                            new FileCodemod({
+                                fileSystem: fileSystem,
+                                codemod: new DrupalLocalSettingsCodemod({file: PlugDrupalSdk.LOCAL_SETTINGS_FILE}),
+                            }),
+                        ),
+                    }),
                     [unknown]: () => null,
                 },
             });
@@ -2012,6 +2088,10 @@ export class Cli {
                         [Platform.NEXTJS]: () => this.getJavaScriptFormatter(),
                         [Platform.VUE]: () => this.getJavaScriptFormatter(),
                         [Platform.NUXT]: () => this.getJavaScriptFormatter(),
+                        [Platform.LARAVEL]: () => this.getPhpFormatter(),
+                        [Platform.SYMFONY]: () => this.getPhpFormatter(),
+                        [Platform.DRUPAL]: () => this.getPhpFormatter(),
+                        [Platform.PHP]: () => this.getPhpFormatter(),
                         [unknown]: (): never => {
                             throw new ProviderError('No code formatter detected.', {
                                 reason: ErrorReason.NOT_SUPPORTED,
@@ -2168,6 +2248,25 @@ export class Cli {
         });
     }
 
+    private getComposerPackageManager(): PackageManager {
+        return this.share(this.getComposerPackageManager, () => {
+            const fileSystem = this.getFileSystem();
+
+            return new ComposerPackageManager({
+                projectDirectory: this.workingDirectory,
+                fileSystem: fileSystem,
+                packageValidator: new PartialComposerManifestValidator(),
+                lockValidator: new PartialComposerLockValidator(),
+                agent: new ComposerAgent({
+                    projectDirectory: this.workingDirectory,
+                    fileSystem: fileSystem,
+                    commandExecutor: this.getAsynchronousCommandExecutor(),
+                    executableLocator: this.getExecutableLocator(),
+                }),
+            });
+        });
+    }
+
     private getNodePackageManagerProvider(): Provider<PackageManager | null> {
         return this.share(this.getNodePackageManagerProvider, () => {
             const managers = this.getNodePackageManagers();
@@ -2285,6 +2384,35 @@ export class Cli {
                     [Platform.NEXTJS]: () => this.getNodeServerProvider().get(),
                     [Platform.VUE]: () => this.getNodeServerProvider().get(),
                     [Platform.NUXT]: () => this.getNodeServerProvider().get(),
+                    [Platform.LARAVEL]: () => this.createDevServer(
+                        {name: 'php', arguments: ['artisan', 'serve']},
+                        8000,
+                    ),
+                    [Platform.SYMFONY]: async () => {
+                        // `symfony serve` needs the Symfony CLI; fall back to PHP's built-in
+                        // server (routing through `public/index.php`) when it is not installed.
+                        if (await this.getExecutableLocator().locate('symfony') !== null) {
+                            return this.createDevServer({name: 'symfony', arguments: ['serve']}, 8000);
+                        }
+
+                        return this.createDevServer(
+                            {
+                                name: 'php',
+                                arguments: ['-S', '127.0.0.1:8000', '-t', 'public', 'public/index.php'],
+                            },
+                            8000,
+                            8000,
+                        );
+                    },
+                    [Platform.DRUPAL]: async () => this.createDevServer(
+                        await this.getComposerPackageManager().getPackageCommand('drush', ['runserver']),
+                        8888,
+                    ),
+                    [Platform.PHP]: () => this.createDevServer(
+                        {name: 'php', arguments: ['-S', '127.0.0.1:8000']},
+                        8000,
+                        8000,
+                    ),
                     [unknown]: () => null,
                 },
             });
@@ -2299,12 +2427,23 @@ export class Cli {
                 factory: this.getServerFactory(),
                 parsers: [
                     new NextCommandParser(),
+                    new NuxtCommandParser(),
                     new ViteCommandParser(),
                     new ParcelCommandParser(),
                     new ReactScriptCommandParser(),
                 ],
             }),
         );
+    }
+
+    private createDevServer(command: ProcessCommand, defaultPort: number, port?: number): Promise<Server> {
+        return this.getServerFactory().create({
+            protocol: 'http',
+            host: '127.0.0.1',
+            defaultPort: defaultPort,
+            ...(port !== undefined ? {port: port} : {}),
+            command: command,
+        });
     }
 
     private getServerFactory(): ServerFactory {
@@ -2345,6 +2484,36 @@ export class Cli {
                         package: '@biomejs/biome',
                         bin: 'biome',
                         args: files => ['format', '--write', ...files],
+                    },
+                ],
+            }),
+        );
+    }
+
+    private getPhpFormatter(): CodeFormatter {
+        return this.share(
+            this.getPhpFormatter,
+            () => new PhpFormatter({
+                commandExecutor: this.getSynchronousCommandExecutor(),
+                workingDirectory: this.workingDirectory,
+                packageManager: this.getComposerPackageManager(),
+                fileSystem: this.getFileSystem(),
+                timeout: 10_000,
+                tools: [
+                    {
+                        package: 'laravel/pint',
+                        binary: 'pint',
+                        args: files => [...files],
+                    },
+                    {
+                        package: 'friendsofphp/php-cs-fixer',
+                        binary: 'php-cs-fixer',
+                        args: files => ['fix', ...files],
+                    },
+                    {
+                        package: 'squizlabs/php_codesniffer',
+                        binary: 'phpcbf',
+                        args: files => [...files],
                     },
                 ],
             }),
@@ -2423,6 +2592,14 @@ export class Cli {
                 agent: new NoopAgent(),
             });
 
+            const composerPackageManager = new ComposerPackageManager({
+                projectDirectory: this.workingDirectory,
+                packageValidator: new PartialComposerManifestValidator(),
+                lockValidator: new PartialComposerLockValidator(),
+                fileSystem: this.getFileSystem(),
+                agent: new NoopAgent(),
+            });
+
             return new MemoizedProvider(
                 new ConditionalProvider({
                     candidates: [
@@ -2454,10 +2631,42 @@ export class Cli {
                                 dependencies: ['vue'],
                             }),
                         },
+                        // Framework-specific dependencies are matched before the generic
+                        // package.json/composer.json fallbacks, so a Laravel app that ships a JS
+                        // build toolchain (e.g. Vite) still resolves to Laravel rather than
+                        // JavaScript. Drupal is matched before Laravel/Symfony because it builds
+                        // on Symfony but declares its own core packages.
+                        {
+                            value: Platform.DRUPAL,
+                            condition: new HasDependency({
+                                packageManager: composerPackageManager,
+                                dependencies: ['drupal/core', 'drupal/core-recommended'],
+                            }),
+                        },
+                        {
+                            value: Platform.LARAVEL,
+                            condition: new HasDependency({
+                                packageManager: composerPackageManager,
+                                dependencies: ['laravel/framework'],
+                            }),
+                        },
+                        {
+                            value: Platform.SYMFONY,
+                            condition: new HasDependency({
+                                packageManager: composerPackageManager,
+                                dependencies: ['symfony/framework-bundle'],
+                            }),
+                        },
                         {
                             value: Platform.JAVASCRIPT,
                             condition: new IsProject({
                                 packageManager: nodePackageManager,
+                            }),
+                        },
+                        {
+                            value: Platform.PHP,
+                            condition: new IsProject({
+                                packageManager: composerPackageManager,
                             }),
                         },
                     ],

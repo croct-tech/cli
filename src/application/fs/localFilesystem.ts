@@ -1,4 +1,5 @@
 import {
+    chmod,
     cp,
     rename,
     link,
@@ -8,6 +9,7 @@ import {
     readFile,
     realpath,
     rm,
+    stat,
     symlink,
     writeFile,
     mkdtemp,
@@ -288,6 +290,14 @@ export class LocalFilesystem implements FileSystem {
                 encoding: this.config.defaultEncoding,
             }),
         );
+    }
+
+    public getPermissions(path: string): Promise<number> {
+        return this.execute(async () => (await stat(this.resolvePath(path))).mode & 0o777);
+    }
+
+    public setPermissions(path: string, mode: number): Promise<void> {
+        return this.execute(() => chmod(this.resolvePath(path), mode));
     }
 
     public async createDirectory(path: string, options?: DirectoryCreationOptions): Promise<void> {

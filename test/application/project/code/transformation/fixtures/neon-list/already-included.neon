@@ -1,0 +1,5 @@
+includes:
+	- vendor/croct/plug-php/extension.neon
+
+parameters:
+	level: 8

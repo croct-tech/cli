@@ -1,0 +1,45 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`YamlMappingCodemod transforms already-configured.yaml: already-configured.yaml 1`] = `
+"croct:
+    app_id: '%env(CROCT_APP_ID)%'
+    api_key: '%env(CROCT_API_KEY)%'
+"
+`;
+
+exports[`YamlMappingCodemod transforms commented-croct.yaml: commented-croct.yaml 1`] = `
+"# croct:
+#     app_id: '%env(CROCT_APP_ID)%'
+
+croct:
+    app_id: '%env(CROCT_APP_ID)%'
+    api_key: '%env(CROCT_API_KEY)%'
+"
+`;
+
+exports[`YamlMappingCodemod transforms empty.yaml: empty.yaml 1`] = `
+"croct:
+    app_id: '%env(CROCT_APP_ID)%'
+    api_key: '%env(CROCT_API_KEY)%'
+"
+`;
+
+exports[`YamlMappingCodemod transforms no-trailing-newline.yaml: no-trailing-newline.yaml 1`] = `
+"parameters:
+    locale: en
+
+croct:
+    app_id: '%env(CROCT_APP_ID)%'
+    api_key: '%env(CROCT_API_KEY)%'
+"
+`;
+
+exports[`YamlMappingCodemod transforms other-config.yaml: other-config.yaml 1`] = `
+"framework:
+    secret: '%env(APP_SECRET)%'
+
+croct:
+    app_id: '%env(CROCT_APP_ID)%'
+    api_key: '%env(CROCT_API_KEY)%'
+"
+`;

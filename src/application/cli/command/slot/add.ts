@@ -87,7 +87,9 @@ export class AddSlotCommand implements Command<AddSlotInput> {
             const notifier = output.notify('Generating example');
 
             try {
-                await Promise.all(addedSlots.map(([slot]) => sdk.generateSlotExample(slot, installation)));
+                for (const [slot] of addedSlots) {
+                    await sdk.generateSlotExample(slot, installation);
+                }
             } catch (error) {
                 notifier.stop();
 
@@ -95,6 +97,8 @@ export class AddSlotCommand implements Command<AddSlotInput> {
             }
 
             notifier.confirm('Example generated');
+
+            await sdk.presentExamples?.(addedSlots.map(([slot]) => slot), installation);
         }
     }
 

@@ -5,6 +5,10 @@ export enum CodeLanguage {
     TYPESCRIPT = 'typescript',
     TYPESCRIPT_XML = 'tsx',
     VUE = 'vue',
+    PHP = 'php',
+    BLADE = 'blade',
+    TWIG = 'twig',
+    YAML = 'yaml',
 }
 
 export type ExampleFile = {

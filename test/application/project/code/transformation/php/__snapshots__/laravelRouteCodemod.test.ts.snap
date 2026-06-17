@@ -1,0 +1,115 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`LaravelRouteCodemod transforms already-registered.php: already-registered.php 1`] = `
+"<?php
+
+use Illuminate\\Support\\Facades\\Route;
+
+Route::get('/croct/home-banner', static function (\\Croct\\Plug\\Plug $croct) {
+    return view('croct.home-banner', [
+        'content' => $croct->fetchContent('home-banner')->getContent(),
+    ]);
+});
+"
+`;
+
+exports[`LaravelRouteCodemod transforms commented-routes.php: commented-routes.php 1`] = `
+"<?php
+
+use Illuminate\\Support\\Facades\\Route;
+
+// Route::get('/croct/home-banner', fn () => 'commented with slashes');
+# Route::get('/croct/home-banner', fn () => 'commented with hash');
+/* Route::get('/croct/home-banner', fn () => 'commented in a block'); */
+
+Route::get('/', fn () => view('welcome'));
+
+Route::get('/croct/home-banner', static function (\\Croct\\Plug\\Plug $croct) {
+    return view('croct.home-banner', [
+        'content' => $croct->fetchContent('home-banner')->getContent(),
+    ]);
+});
+"
+`;
+
+exports[`LaravelRouteCodemod transforms double-quoted.php: double-quoted.php 1`] = `
+"<?php
+
+Route::get("/croct/home-banner", fn () => view("croct.home-banner"));
+"
+`;
+
+exports[`LaravelRouteCodemod transforms escaped-string.php: escaped-string.php 1`] = `
+"<?php
+
+Route::get('/', function () {
+    return view('welcome', ['note' => 'it\\'s a test']);
+});
+
+Route::get('/croct/home-banner', static function (\\Croct\\Plug\\Plug $croct) {
+    return view('croct.home-banner', [
+        'content' => $croct->fetchContent('home-banner')->getContent(),
+    ]);
+});
+"
+`;
+
+exports[`LaravelRouteCodemod transforms existing-routes.php: existing-routes.php 1`] = `
+"<?php
+
+use Illuminate\\Support\\Facades\\Route;
+
+Route::get('/', function () {
+    return view('welcome');
+});
+
+Route::get('/croct/home-banner', static function (\\Croct\\Plug\\Plug $croct) {
+    return view('croct.home-banner', [
+        'content' => $croct->fetchContent('home-banner')->getContent(),
+    ]);
+});
+"
+`;
+
+exports[`LaravelRouteCodemod transforms no-routes.php: no-routes.php 1`] = `
+"<?php
+
+use Illuminate\\Support\\Facades\\Route;
+
+Route::get('/croct/home-banner', static function (\\Croct\\Plug\\Plug $croct) {
+    return view('croct.home-banner', [
+        'content' => $croct->fetchContent('home-banner')->getContent(),
+    ]);
+});
+"
+`;
+
+exports[`LaravelRouteCodemod transforms no-trailing-newline.php: no-trailing-newline.php 1`] = `
+"<?php
+
+Route::get('/', fn () => view('welcome'));
+
+Route::get('/croct/home-banner', static function (\\Croct\\Plug\\Plug $croct) {
+    return view('croct.home-banner', [
+        'content' => $croct->fetchContent('home-banner')->getContent(),
+    ]);
+});
+"
+`;
+
+exports[`LaravelRouteCodemod transforms url-as-label.php: url-as-label.php 1`] = `
+"<?php
+
+use Illuminate\\Support\\Facades\\Route;
+
+$label = '/croct/home-banner';
+
+Route::get('/dashboard', fn () => view('dashboard', ['label' => $label]));
+
+Route::get('/croct/home-banner', static function (\\Croct\\Plug\\Plug $croct) {
+    return view('croct.home-banner', [
+        'content' => $croct->fetchContent('home-banner')->getContent(),
+    ]);
+});
+"
+`;

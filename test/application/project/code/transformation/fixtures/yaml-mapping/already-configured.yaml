@@ -1,0 +1,3 @@
+croct:
+    app_id: '%env(CROCT_APP_ID)%'
+    api_key: '%env(CROCT_API_KEY)%'

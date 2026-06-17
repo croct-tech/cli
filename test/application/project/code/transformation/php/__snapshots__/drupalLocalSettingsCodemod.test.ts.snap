@@ -1,0 +1,174 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DrupalLocalSettingsCodemod transforms absent.php: absent.php 1`] = `
+"<?php
+
+$databases = [];
+
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+    include $app_root . '/' . $site_path . '/settings.local.php';
+}
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms absent-no-newline.php: absent-no-newline.php 1`] = `
+"<?php
+$settings = [];
+
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+    include $app_root . '/' . $site_path . '/settings.local.php';
+}
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms active-double-quote.php: active-double-quote.php 1`] = `
+"<?php
+
+include "sites/default/settings.local.php";
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms active-require-once.php: active-require-once.php 1`] = `
+"<?php
+
+require_once $app_root . '/sites/default/settings.local.php';
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms active-stock.php: active-stock.php 1`] = `
+"<?php
+
+$databases = [];
+
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+  include $app_root . '/' . $site_path . '/settings.local.php';
+}
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms active-uppercase.php: active-uppercase.php 1`] = `
+"<?php
+
+INCLUDE 'sites/default/settings.local.php';
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms active-with-escaped-string.php: active-with-escaped-string.php 1`] = `
+"<?php
+
+$note = 'it\\'s local';
+include 'sites/default/settings.local.php';
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms block-commented.php: block-commented.php 1`] = `
+"<?php
+
+/*
+include $app_root . '/sites/default/settings.local.php';
+*/
+
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+    include $app_root . '/' . $site_path . '/settings.local.php';
+}
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms commented-after-code.php: commented-after-code.php 1`] = `
+"<?php
+
+$settings['hash_salt'] = 'x'; # include $app_root . '/sites/default/settings.local.php';
+
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+    include $app_root . '/' . $site_path . '/settings.local.php';
+}
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms commented-at-eof-no-newline.php: commented-at-eof-no-newline.php 1`] = `
+"<?php
+include $app_root . "/sites/default/settings.local.php";"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms commented-bare.php: commented-bare.php 1`] = `
+"<?php
+include $app_root . '/sites/default/settings.local.php';
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms commented-first-line.php: commented-first-line.php 1`] = `
+"include $app_root . '/sites/default/settings.local.php';
+$databases = [];
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms commented-if-no-closer-eof.php: commented-if-no-closer-eof.php 1`] = `
+"<?php
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+  include $app_root . '/' . $site_path . '/settings.local.php';"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms commented-indented-no-space.php: commented-indented-no-space.php 1`] = `
+"<?php
+
+  include $app_root . '/sites/default/settings.local.php';
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms commented-no-closer.php: commented-no-closer.php 1`] = `
+"<?php
+
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+  include $app_root . '/' . $site_path . '/settings.local.php';
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms commented-note-opener.php: commented-note-opener.php 1`] = `
+"<?php
+
+# Load local overrides.
+include $app_root . '/sites/default/settings.local.php';
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms commented-slash.php: commented-slash.php 1`] = `
+"<?php
+
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+  include $app_root . '/' . $site_path . '/settings.local.php';
+}
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms commented-stock.php: commented-stock.php 1`] = `
+"<?php
+
+$databases = [];
+
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+  include $app_root . '/' . $site_path . '/settings.local.php';
+}
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms inactive-keyword-in-string.php: inactive-keyword-in-string.php 1`] = `
+"<?php
+
+$message = 'remember to include settings.local.php manually';
+
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+    include $app_root . '/' . $site_path . '/settings.local.php';
+}
+"
+`;
+
+exports[`DrupalLocalSettingsCodemod transforms inactive-var-named-include.php: inactive-var-named-include.php 1`] = `
+"<?php
+
+$included = 'settings.local.php';
+
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+    include $app_root . '/' . $site_path . '/settings.local.php';
+}
+"
+`;

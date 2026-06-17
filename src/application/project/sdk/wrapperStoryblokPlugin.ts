@@ -1,13 +1,9 @@
 import {extname} from 'path';
-import type {
-    InstallationPlan,
-    JavaScriptSdkPlugin,
-    JavaScriptPluginContext,
-} from '@/application/project/sdk/javasScriptSdk';
+import type {JavaScriptSdkPlugin, JavaScriptPluginContext} from '@/application/project/sdk/javasScriptSdk';
 import type {Task} from '@/application/cli/io/output';
 import {HelpfulError} from '@/application/error';
 import type {Codemod} from '@/application/project/code/transformation/codemod';
-import type {Installation} from '@/application/project/sdk/sdk';
+import type {Installation, InstallationPlan} from '@/application/project/sdk/sdk';
 import type {ScanFilter} from '@/application/fs/fileSystem';
 
 export type Configuration = {
