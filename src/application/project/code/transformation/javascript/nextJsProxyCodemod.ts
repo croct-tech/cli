@@ -28,6 +28,7 @@ export type ProxyConfiguration = {
         proxyFactoryName: string,
         proxyName: string,
     },
+    required?: boolean,
 };
 
 /**

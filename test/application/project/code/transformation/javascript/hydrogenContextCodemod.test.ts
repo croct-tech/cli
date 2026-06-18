@@ -30,4 +30,15 @@ describe('HydrogenContextCodemod', () => {
 
         expect(output.result).toMatchSnapshot(name);
     });
+
+    it('throws when required and there is no Hydrogen load context', async () => {
+        const transformer = new JavaScriptCodemod({
+            languages: ['typescript'],
+            codemod: new HydrogenContextCodemod({...defaultOptions, required: true}),
+        });
+
+        await expect(transformer.apply('export function noop() {\n    return 1;\n}\n'))
+            .rejects
+            .toThrow('No Hydrogen load context found');
+    });
 });

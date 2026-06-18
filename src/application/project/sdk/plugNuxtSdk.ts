@@ -154,8 +154,11 @@ export class PlugNuxtSdk extends JavaScriptSdk {
                         await this.applyConfigCodemod(installation.project.config.file);
 
                         notifier.confirm('Module registered');
-                    } catch (error) {
-                        notifier.alert('Failed to register module', HelpfulError.formatMessage(error));
+                    } catch {
+                        notifier.alert(
+                            'Failed to register module',
+                            'Add \'@croct/plug-nuxt\' to the modules array in your nuxt.config.',
+                        );
                     }
                 },
             },

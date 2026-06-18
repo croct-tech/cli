@@ -25,4 +25,15 @@ describe('HydrogenCspCodemod', () => {
 
         expect(output.result).toMatchSnapshot(name);
     });
+
+    it('throws when required and there is no content security policy', async () => {
+        const transformer = new JavaScriptCodemod({
+            languages: ['typescript'],
+            codemod: new HydrogenCspCodemod({...defaultOptions, required: true}),
+        });
+
+        await expect(transformer.apply('export const value = 1;\n'))
+            .rejects
+            .toThrow('No content security policy configuration found');
+    });
 });

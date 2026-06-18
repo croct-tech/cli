@@ -106,6 +106,11 @@ type CodemodTaskOptions = {
      * The target file, or null when it could not be located.
      */
     file: string | null,
+
+    /**
+     * The manual step shown when the codemod cannot wire the file, so the user can do it by hand.
+     */
+    instructions: string,
 };
 
 export class PlugHydrogenSdk extends JavaScriptSdk {
@@ -285,6 +290,7 @@ export class PlugHydrogenSdk extends JavaScriptSdk {
                 confirmation: 'Vite plugin registered',
                 codemod: 'vite',
                 file: project.viteConfig,
+                instructions: 'Add the `croct()` plugin to the `plugins` array in your Vite config.',
             }),
             project.framework === 'react-router'
                 ? this.getCodemodTask({
@@ -292,42 +298,50 @@ export class PlugHydrogenSdk extends JavaScriptSdk {
                     confirmation: 'Middleware registered',
                     codemod: 'middleware',
                     file: project.root,
+                    instructions: 'Add `createCroctMiddleware()` to the `middleware` array exported from app/root.',
                 })
                 : this.getCodemodTask({
                     title: 'Expose Croct context',
                     confirmation: 'Croct context exposed',
                     codemod: 'context',
                     file: project.context,
+                    instructions: 'Add `croct: await createCroctContext(request, context)` to the load context.',
                 }),
             this.getCodemodTask({
                 title: 'Configure Croct cookies',
                 confirmation: 'Croct cookies configured',
                 codemod: 'cookies',
                 file: project.server,
+                instructions: 'Call `writeCroctCookies(response, context)` after the session commits in server.ts.',
             }),
             this.getCodemodTask({
                 title: 'Configure provider',
                 confirmation: 'Provider configured',
                 codemod: 'provider',
                 file: project.root,
+                instructions: 'Wrap your app with `<CroctProvider>` in app/root.',
             }),
             this.getCodemodTask({
                 title: 'Configure content security policy',
                 confirmation: 'Content security policy configured',
                 codemod: 'csp',
                 file: project.entryServer,
+                instructions: 'Add `https://api.croct.io` to `connectSrc` in your content security policy.',
             }),
         ];
     }
 
-    private getCodemodTask({title, confirmation, codemod, file}: CodemodTaskOptions): Task {
+    private getCodemodTask(options: CodemodTaskOptions): Task {
+        const {title, confirmation, codemod, file, instructions} = options;
+        const action = `${title.charAt(0).toLowerCase()}${title.slice(1)}`;
+
         return {
             title: title,
             task: async notifier => {
                 notifier.update(title);
 
                 if (file === null) {
-                    notifier.warn(`${title}: file not found`);
+                    notifier.alert(`Failed to ${action}`, instructions);
 
                     return;
                 }
@@ -336,10 +350,8 @@ export class PlugHydrogenSdk extends JavaScriptSdk {
                     await this.applyCodemod(this.codemod[codemod], file);
 
                     notifier.confirm(confirmation);
-                } catch (error) {
-                    const action = `${title.charAt(0).toLowerCase()}${title.slice(1)}`;
-
-                    notifier.alert(`Failed to ${action}`, HelpfulError.formatMessage(error));
+                } catch {
+                    notifier.alert(`Failed to ${action}`, instructions);
                 }
             },
         };

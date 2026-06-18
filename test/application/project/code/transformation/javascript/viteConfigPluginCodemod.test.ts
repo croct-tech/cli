@@ -35,4 +35,15 @@ describe('ViteConfigPluginCodemod', () => {
 
         expect(output.result).toMatchSnapshot(name);
     });
+
+    it('throws when required and there is no Vite config', async () => {
+        const transformer = new JavaScriptCodemod({
+            languages: ['typescript'],
+            codemod: new ViteConfigPluginCodemod({...defaultOptions, required: true}),
+        });
+
+        await expect(transformer.apply('export const value = 1;\n'))
+            .rejects
+            .toThrow('No Vite configuration found');
+    });
 });

@@ -2,12 +2,14 @@
 import * as t from '@babel/types';
 import {traverse} from '@babel/core';
 import type {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
+import {CodemodError} from '@/application/project/code/transformation/codemod';
 import {addImport} from '@/application/project/code/transformation/javascript/utils/addImport';
 import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
 
 export type StoryblokInitCodemodOptions = CodemodOptions & {
     name: string,
     module: string,
+    required?: boolean,
 };
 
 export class StoryblokInitCodemod implements Codemod<t.File, StoryblokInitCodemodOptions> {
@@ -25,18 +27,20 @@ export class StoryblokInitCodemod implements Codemod<t.File, StoryblokInitCodemo
         });
 
         if (localName === null) {
+            if (options.required === true) {
+                throw new CodemodError('No Storyblok import found to wire the Croct integration.');
+            }
+
             return Promise.resolve({
                 modified: false,
                 result: input,
             });
         }
 
-        const importLocalName = options.module !== undefined
-            ? getImportLocalName(input, {
-                importName: options.name,
-                moduleName: options.module,
-            })
-            : null;
+        const importLocalName = getImportLocalName(input, {
+            importName: options.name,
+            moduleName: options.module,
+        });
 
         const wrapperName = importLocalName ?? options.name;
         let modified = false;

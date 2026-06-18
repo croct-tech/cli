@@ -279,6 +279,13 @@ export default Reference;
 "
 `;
 
+exports[`JsxWrapperCodemod should correctly transform defaultExportUninitializedReference.tsx: defaultExportUninitializedReference.tsx 1`] = `
+"let Component;
+
+export default Component;
+"
+`;
+
 exports[`JsxWrapperCodemod should correctly transform defaultExportUnrelated.tsx: defaultExportUnrelated.tsx 1`] = `
 "export default 1;
 "
@@ -551,6 +558,19 @@ export default function App({Component, pageProps}) {
             </Theme.Provider>
         </CroctProvider>
     </div>);
+}
+"
+`;
+
+exports[`JsxWrapperCodemod should correctly transform targetSingleChild.tsx: targetSingleChild.tsx 1`] = `
+"import { CroctProvider } from "@croct/plug-react";
+
+export default function App({Component, pageProps}) {
+    return (<section>
+        <CroctProvider>
+            <Component {...pageProps} />
+        </CroctProvider>
+    </section>);
 }
 "
 `;

@@ -1,8 +1,8 @@
 import * as t from '@babel/types';
 import {traverse} from '@babel/core';
-import type {NodePath} from '@babel/core';
 import {traverseFast} from '@babel/types';
 import type {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
+import {CodemodError} from '@/application/project/code/transformation/codemod';
 import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
 import {addImport} from '@/application/project/code/transformation/javascript/utils/addImport';
 
@@ -15,13 +15,19 @@ export type HydrogenCookiesConfiguration = {
         importName: string,
         localName?: string,
     },
+
+    /**
+     * When true, throw if there is no session `Set-Cookie` to anchor to (instead of a silent
+     * no-op), so the SDK can report the failure.
+     */
+    required?: boolean,
 };
 
 type Anchor = {
     response: t.Expression,
     context: t.Expression,
     statements: t.Statement[],
-    after: t.Statement,
+    call: t.CallExpression,
     scope: t.Statement[],
 };
 
@@ -39,6 +45,10 @@ export class HydrogenCookiesCodemod implements Codemod<t.File, CodemodOptions> {
         const anchor = HydrogenCookiesCodemod.findAnchor(input);
 
         if (anchor === null) {
+            if (this.configuration.required === true) {
+                throw new CodemodError('No session Set-Cookie statement found to write the Croct cookies after.');
+            }
+
             return Promise.resolve({modified: false, result: input});
         }
 
@@ -59,7 +69,9 @@ export class HydrogenCookiesCodemod implements Codemod<t.File, CodemodOptions> {
             localName: writer.localName,
         });
 
-        const index = anchor.statements.indexOf(anchor.after);
+        const index = anchor.statements.findIndex(
+            statement => HydrogenCookiesCodemod.contains(statement, anchor.call),
+        );
 
         anchor.statements.splice(
             index + 1,
@@ -98,23 +110,23 @@ export class HydrogenCookiesCodemod implements Codemod<t.File, CodemodOptions> {
                     return;
                 }
 
-                const insertion = HydrogenCookiesCodemod.findInsertionPoint(path);
-
-                if (insertion === null) {
-                    return;
-                }
-
-                const block = insertion.parentPath;
-
-                if (block === null || !block.isBlockStatement()) {
-                    return;
-                }
+                // Insert in the block that holds the session cookie — the wrapping `try`, if any,
+                // so the writer runs before `return response`, not after the try/catch. A guarding
+                // `if (session.isPending) { … }` is handled by `findIndex`/`contains` below, which
+                // resolves to the whole guard statement rather than the nested set call.
+                const tryStatement = fn.node
+                    .body
+                    .body
+                    .find(
+                        (statement): statement is t.TryStatement => t.isTryStatement(statement)
+                        && HydrogenCookiesCodemod.contains(statement.block, path.node),
+                    );
 
                 anchor = {
                     response: response,
                     context: context,
-                    statements: block.node.body,
-                    after: insertion.node,
+                    statements: tryStatement !== undefined ? tryStatement.block.body : fn.node.body.body,
+                    call: path.node,
                     scope: fn.node.body.body,
                 };
 
@@ -125,36 +137,19 @@ export class HydrogenCookiesCodemod implements Codemod<t.File, CodemodOptions> {
         return anchor;
     }
 
-    private static findInsertionPoint(callPath: NodePath<t.CallExpression>): NodePath<t.Statement> | null {
-        let statement = callPath.getStatementParent();
+    /**
+     * Whether the node contains the target node anywhere within it.
+     */
+    private static contains(node: t.Node, target: t.Node): boolean {
+        let found = false;
 
-        while (statement !== null) {
-            const parent = statement.parentPath;
-
-            if (parent === null) {
-                break;
+        traverseFast(node, current => {
+            if (current === target) {
+                found = true;
             }
+        });
 
-            if (parent.isIfStatement()) {
-                // Braceless guard: `if (session.isPending) <statement>`.
-                statement = parent;
-
-                continue;
-            }
-
-            const grandParent = parent.parentPath;
-
-            if (parent.isBlockStatement() && grandParent !== null && grandParent.isIfStatement()) {
-                // Braced guard: `if (session.isPending) { <statement> }`.
-                statement = grandParent;
-
-                continue;
-            }
-
-            break;
-        }
-
-        return statement;
+        return found;
     }
 
     /**

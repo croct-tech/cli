@@ -55,8 +55,12 @@ export class PlugSymfonySdk extends PhpSdk {
                                     ? 'Bundle registered'
                                     : 'Bundle already registered',
                             );
-                        } catch (error) {
-                            notifier.alert('Failed to register bundle', HelpfulError.formatMessage(error));
+                        } catch {
+                            notifier.alert(
+                                'Failed to register bundle',
+                                'Add Croct\\Plug\\Symfony\\CroctBundle::class => [\'all\' => true] '
+                                + 'to the array in config/bundles.php.',
+                            );
                         }
                     },
                 },

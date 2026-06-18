@@ -21,7 +21,9 @@ const csp = createContentSecurityPolicy({
 exports[`HydrogenCspCodemod should correctly transform emptyCall.ts: emptyCall.ts 1`] = `
 "import {createContentSecurityPolicy} from '@shopify/hydrogen';
 
-const csp = createContentSecurityPolicy();
+const csp = createContentSecurityPolicy({
+  connectSrc: ["https://api.croct.io"]
+});
 "
 `;
 

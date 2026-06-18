@@ -138,6 +138,24 @@ describe('StoryblokInitCodemod', () => {
         expect(result).toBe(input);
     });
 
+    it('should throw when required and no storyblok import is found', async () => {
+        const transformer = createTransformer();
+
+        const input = [
+            "import { someOtherFunction } from '@storyblok/js';",
+            '',
+            'someOtherFunction({ accessToken: "token" });',
+        ].join('\n');
+
+        await expect(
+            transformer.apply(input, {
+                name: 'withCroct',
+                module: '@croct/storyblok',
+                required: true,
+            }),
+        ).rejects.toThrow('No Storyblok import found to wire the Croct integration.');
+    });
+
     it('should return unmodified when options are not provided', async () => {
         const transformer = createTransformer();
 

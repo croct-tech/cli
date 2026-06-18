@@ -3,6 +3,7 @@ import * as t from '@babel/types';
 import {traverse} from '@babel/core';
 import {traverseFast} from '@babel/types';
 import type {ResultCode, Codemod, CodemodOptions} from '@/application/project/code/transformation/codemod';
+import {CodemodError} from '@/application/project/code/transformation/codemod';
 import {addImport} from '@/application/project/code/transformation/javascript/utils/addImport';
 import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
 import type {AttributeType} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
@@ -59,6 +60,12 @@ export type WrapperConfiguration<O extends CodemodOptions = CodemodOptions> = {
     targets?: WrapperTarget,
     fallbackToNamedExports?: boolean,
     fallbackCodemod?: Codemod<t.File, O>,
+
+    /**
+     * When true, throw if no component could be wrapped (instead of a silent no-op), so the SDK
+     * can report the failure. Already-wrapped inputs stay a clean no-op.
+     */
+    required?: boolean,
 };
 
 export type WrapperOptions = CodemodOptions & {
@@ -156,7 +163,7 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
                 }
 
                 // export {Component as SomeComponent};
-                for (const specifier of namedExport.specifiers ?? []) {
+                for (const specifier of namedExport.specifiers) {
                     if (t.isExportSpecifier(specifier)) {
                         const declaration = this.findComponentDeclaration(input, specifier.local.name);
 
@@ -199,6 +206,10 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
 
         if (result === Transformation.NOT_APPLIED && fallbackCodemod !== undefined) {
             return fallbackCodemod.apply(input, options);
+        }
+
+        if (result === Transformation.NOT_APPLIED && this.configuration.required === true) {
+            throw new CodemodError(`No component found to wrap with <${this.configuration.wrapper.component}>.`);
         }
 
         return Promise.resolve({
@@ -334,7 +345,7 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
         if (target !== null) {
             const {parent, index} = target;
 
-            const children = [...parent.children ?? []];
+            const children = [...parent.children];
             const child = children.splice(index, 1)[0];
 
             target.parent.children = children.length === 0
@@ -385,18 +396,18 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
      * @param options The wrapper options.
      * @return The wrapped JSX element.
      */
-    private wrapElement(node: JsxKind, name: string | undefined, options?: O): t.JSXElement {
+    private wrapElement(node: JsxKind, name: string, options?: O): t.JSXElement {
         if (node.extra?.parenthesized === true) {
             node.extra.parenthesized = false;
         }
 
         return t.jsxElement(
             t.jsxOpeningElement(
-                t.jsxIdentifier(name ?? this.configuration.wrapper.component),
+                t.jsxIdentifier(name),
                 this.getProviderProps(options),
             ),
             t.jsxClosingElement(
-                t.jsxIdentifier(name ?? this.configuration.wrapper.component),
+                t.jsxIdentifier(name),
             ),
             [
                 t.jsxText('\n'),

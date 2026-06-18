@@ -1837,6 +1837,7 @@ export class Cli {
                                         languages: ['typescript', 'jsx'],
                                         codemod: new JsxWrapperCodemod({
                                             fallbackToNamedExports: true,
+                                            required: true,
                                             wrapper: {
                                                 module: '@croct/plug-react',
                                                 component: 'CroctProvider',
@@ -1880,6 +1881,7 @@ export class Cli {
                                                 module: '@croct/plug-vue',
                                                 factory: 'createCroct',
                                             },
+                                            required: true,
                                         }),
                                     }),
                                 }),
@@ -1911,6 +1913,7 @@ export class Cli {
                                         languages: ['typescript'],
                                         codemod: new NuxtConfigModuleCodemod({
                                             moduleName: '@croct/plug-nuxt',
+                                            required: true,
                                         }),
                                     }),
                                 }),
@@ -1934,6 +1937,7 @@ export class Cli {
                                                 moduleName: '@croct/plug-hydrogen/vite',
                                                 importName: 'croct',
                                             },
+                                            required: true,
                                         }),
                                     }),
                                 }),
@@ -1953,6 +1957,7 @@ export class Cli {
                                                 container: 'Analytics.Provider',
                                             },
                                             fallbackToNamedExports: true,
+                                            required: true,
                                         }),
                                     }),
                                 }),
@@ -1983,6 +1988,7 @@ export class Cli {
                                                 moduleName: '@croct/plug-hydrogen/server',
                                                 importName: 'createCroctContext',
                                             },
+                                            required: true,
                                         }),
                                     }),
                                 }),
@@ -1998,6 +2004,7 @@ export class Cli {
                                                 moduleName: '@croct/plug-hydrogen/server',
                                                 importName: 'writeCroctCookies',
                                             },
+                                            required: true,
                                         }),
                                     }),
                                 }),
@@ -2010,6 +2017,7 @@ export class Cli {
                                         languages: ['typescript', 'jsx'],
                                         codemod: new HydrogenCspCodemod({
                                             origin: 'https://api.croct.io',
+                                            required: true,
                                         }),
                                     }),
                                 }),
@@ -2158,7 +2166,10 @@ export class Cli {
                             phpConfig.formatter,
                             new FileCodemod({
                                 fileSystem: fileSystem,
-                                codemod: new SymfonyBundleCodemod({bundle: 'Croct\\Plug\\Symfony\\CroctBundle'}),
+                                codemod: new SymfonyBundleCodemod({
+                                    bundle: 'Croct\\Plug\\Symfony\\CroctBundle',
+                                    required: true,
+                                }),
                             }),
                         ),
                         // YAML has no formatter, so it is not wrapped in FormatCodemod.
@@ -2173,7 +2184,10 @@ export class Cli {
                             phpConfig.formatter,
                             new FileCodemod({
                                 fileSystem: fileSystem,
-                                codemod: new DrupalLocalSettingsCodemod({file: PlugDrupalSdk.LOCAL_SETTINGS_FILE}),
+                                codemod: new DrupalLocalSettingsCodemod({
+                                    file: PlugDrupalSdk.LOCAL_SETTINGS_FILE,
+                                    required: true,
+                                }),
                             }),
                         ),
                     }),

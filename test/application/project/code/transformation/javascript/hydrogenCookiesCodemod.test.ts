@@ -66,4 +66,15 @@ describe('HydrogenCookiesCodemod', () => {
         // not just the insertion block.
         expect((result.match(/writeCroctCookies\(/g) ?? []).length).toBe(1);
     });
+
+    it('throws when required and there is no session Set-Cookie statement', async () => {
+        const transformer = new JavaScriptCodemod({
+            languages: ['typescript'],
+            codemod: new HydrogenCookiesCodemod({...defaultOptions, required: true}),
+        });
+
+        await expect(transformer.apply('export function handleFetch() {\n    return new Response();\n}\n'))
+            .rejects
+            .toThrow('No session Set-Cookie statement found');
+    });
 });

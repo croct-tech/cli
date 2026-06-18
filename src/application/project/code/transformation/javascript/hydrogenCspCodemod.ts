@@ -1,6 +1,7 @@
 import * as t from '@babel/types';
 import {traverse} from '@babel/core';
 import type {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
+import {CodemodError} from '@/application/project/code/transformation/codemod';
 import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
 import {spreadAsArray} from '@/application/project/code/transformation/javascript/utils/spreadAsArray';
 
@@ -9,15 +10,16 @@ export type HydrogenCspConfiguration = {
      * The origin the browser SDK must be allowed to reach, e.g. `https://api.croct.io`.
      */
     origin: string,
+
+    /**
+     * When true, throw if no content security policy configuration could be found (instead of a
+     * silent no-op), so the SDK can report the failure.
+     */
+    required?: boolean,
 };
 
 /**
  * Allows the Croct origin in Hydrogen's Content Security Policy.
- *
- * Adds the origin to the `connectSrc` array of the options object passed to
- * `createContentSecurityPolicy(...)`, creating the directive when missing and normalizing a
- * non-array value into one. The function import is resolved so aliased imports are matched. Returns
- * unmodified when the call or its options object is absent or when the origin is already present.
  */
 export class HydrogenCspCodemod implements Codemod<t.File, CodemodOptions> {
     private static readonly FUNCTION_NAME = 'createContentSecurityPolicy';
@@ -33,9 +35,13 @@ export class HydrogenCspCodemod implements Codemod<t.File, CodemodOptions> {
     }
 
     public apply(input: t.File): Promise<ResultCode<t.File>> {
-        const options = HydrogenCspCodemod.findOptionsObject(input);
+        const options = HydrogenCspCodemod.resolveOptionsObject(input);
 
         if (options === null) {
+            if (this.configuration.required === true) {
+                throw new CodemodError('No content security policy configuration found to allow the Croct origin.');
+            }
+
             return Promise.resolve({modified: false, result: input});
         }
 
@@ -76,7 +82,7 @@ export class HydrogenCspCodemod implements Codemod<t.File, CodemodOptions> {
         return Promise.resolve({modified: true, result: input});
     }
 
-    private static findOptionsObject(ast: t.File): t.ObjectExpression | null {
+    private static resolveOptionsObject(ast: t.File): t.ObjectExpression | null {
         const functionName = getImportLocalName(ast, {
             moduleName: HydrogenCspCodemod.FUNCTION_MODULE,
             importName: HydrogenCspCodemod.FUNCTION_NAME,
@@ -92,9 +98,18 @@ export class HydrogenCspCodemod implements Codemod<t.File, CodemodOptions> {
 
                 const [argument] = path.node.arguments;
 
-                if (argument !== undefined && t.isObjectExpression(argument)) {
-                    options = argument;
+                if (argument === undefined) {
+                    // The policy is created without options; add an empty object to extend.
+                    options = t.objectExpression([]);
 
+                    path.node
+                        .arguments
+                        .push(options);
+                } else if (t.isObjectExpression(argument)) {
+                    options = argument;
+                }
+
+                if (options !== null) {
                     path.stop();
                 }
             },

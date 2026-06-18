@@ -2,6 +2,7 @@ import * as t from '@babel/types';
 import {traverse} from '@babel/core';
 import {traverseFast} from '@babel/types';
 import type {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
+import {CodemodError} from '@/application/project/code/transformation/codemod';
 import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
 import {addImport} from '@/application/project/code/transformation/javascript/utils/addImport';
 
@@ -14,6 +15,12 @@ export type HydrogenContextConfiguration = {
         importName: string,
         localName?: string,
     },
+
+    /**
+     * When true, throw if the load-context factory's return could not be found (instead of a
+     * silent no-op), so the SDK can report the failure.
+     */
+    required?: boolean,
 };
 
 type Anchor = {
@@ -49,6 +56,10 @@ export class HydrogenContextCodemod implements Codemod<t.File, CodemodOptions> {
         const anchor = HydrogenContextCodemod.findAnchor(input);
 
         if (anchor === null) {
+            if (this.configuration.required === true) {
+                throw new CodemodError('No Hydrogen load context found to expose the Croct context on.');
+            }
+
             return Promise.resolve({modified: false, result: input});
         }
 

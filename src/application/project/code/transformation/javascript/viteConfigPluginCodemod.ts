@@ -1,6 +1,7 @@
 import * as t from '@babel/types';
 import {traverse} from '@babel/core';
 import type {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
+import {CodemodError} from '@/application/project/code/transformation/codemod';
 import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
 import {addImport} from '@/application/project/code/transformation/javascript/utils/addImport';
 import {spreadAsArray} from '@/application/project/code/transformation/javascript/utils/spreadAsArray';
@@ -19,6 +20,7 @@ export type ViteConfigPluginConfiguration = {
      * Where to insert the plugin in the `plugins` array. Defaults to the end.
      */
     position?: 'start' | 'end',
+    required?: boolean,
 };
 
 /**
@@ -41,6 +43,10 @@ export class ViteConfigPluginCodemod implements Codemod<t.File, CodemodOptions> 
         const config = ViteConfigPluginCodemod.findConfig(input);
 
         if (config === null) {
+            if (this.configuration.required === true) {
+                throw new CodemodError('No Vite configuration found to register the plugin.');
+            }
+
             return Promise.resolve({modified: false, result: input});
         }
 
