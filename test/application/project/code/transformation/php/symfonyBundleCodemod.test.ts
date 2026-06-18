@@ -22,4 +22,14 @@ describe('SymfonyBundleCodemod', () => {
         expect(reapplied.modified).toBe(false);
         expect(reapplied.result).toBe(result);
     });
+
+    it('throws when required and the bundle array is missing', async () => {
+        const requiredCodemod = new SymfonyBundleCodemod({
+            bundle: 'Croct\\Plug\\Symfony\\CroctBundle',
+            required: true,
+        });
+
+        await expect(async () => requiredCodemod.apply('<?php\n\nreturn something_else();')).rejects
+            .toThrow('No bundle array found in config/bundles.php to register the Croct bundle.');
+    });
 });

@@ -1,0 +1,200 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`HydrogenContextCodemod should correctly transform aliasedFactory.ts: aliasedFactory.ts 1`] = `
+"import { createCroctContext } from "@croct/plug-hydrogen/server";
+import {createHydrogenContext as createContext} from '@shopify/hydrogen';
+
+export async function createAppLoadContext(request, env, executionContext) {
+    const hydrogenContext = createContext({env, request});
+
+    return {
+        ...hydrogenContext,
+        extra: true,
+        croct: await createCroctContext(request, hydrogenContext)
+    };
+}
+"
+`;
+
+exports[`HydrogenContextCodemod should correctly transform alreadyWired.ts: alreadyWired.ts 1`] = `
+"import {createHydrogenContext} from '@shopify/hydrogen';
+import {createCroctContext} from '@croct/plug-hydrogen/server';
+
+export async function createAppLoadContext(request, env, executionContext) {
+    const hydrogenContext = createHydrogenContext({env, request});
+
+    return {
+        ...hydrogenContext,
+        croct: await createCroctContext(request, hydrogenContext),
+    };
+}
+"
+`;
+
+exports[`HydrogenContextCodemod should correctly transform awaitedContext.ts: awaitedContext.ts 1`] = `
+"import { createCroctContext } from "@croct/plug-hydrogen/server";
+import {createHydrogenContext} from '@shopify/hydrogen';
+
+export async function createAppLoadContext(request, env, executionContext) {
+    const hydrogenContext = await createHydrogenContext({env, request});
+
+    return {
+        ...hydrogenContext,
+        croct: await createCroctContext(request, hydrogenContext)
+    };
+}
+"
+`;
+
+exports[`HydrogenContextCodemod should correctly transform croctAlreadyOnObject.ts: croctAlreadyOnObject.ts 1`] = `
+"import {createHydrogenContext} from '@shopify/hydrogen';
+
+export async function createAppLoadContext(request, env, executionContext) {
+    const hydrogenContext = createHydrogenContext({env, request});
+
+    return {
+        ...hydrogenContext,
+        croct: customCroct,
+    };
+}
+"
+`;
+
+exports[`HydrogenContextCodemod should correctly transform croctStringLiteralKey.ts: croctStringLiteralKey.ts 1`] = `
+"import {createHydrogenContext} from '@shopify/hydrogen';
+
+export async function createAppLoadContext(request, env) {
+    const hydrogenContext = createHydrogenContext({env, request});
+
+    return {
+        ...hydrogenContext,
+        'croct': customCroct,
+    };
+}
+"
+`;
+
+exports[`HydrogenContextCodemod should correctly transform destructuredContextId.ts: destructuredContextId.ts 1`] = `
+"import {createHydrogenContext} from '@shopify/hydrogen';
+
+export async function createAppLoadContext(request, env) {
+    const {storefront} = createHydrogenContext({env, request});
+
+    return {storefront};
+}
+"
+`;
+
+exports[`HydrogenContextCodemod should correctly transform destructuredParam.ts: destructuredParam.ts 1`] = `
+"import {createHydrogenContext} from '@shopify/hydrogen';
+
+export async function createAppLoadContext({request, env}) {
+    const hydrogenContext = createHydrogenContext({env, request});
+
+    return hydrogenContext;
+}
+"
+`;
+
+exports[`HydrogenContextCodemod should correctly transform nestedReturn.ts: nestedReturn.ts 1`] = `
+"import { createCroctContext } from "@croct/plug-hydrogen/server";
+import {createHydrogenContext} from '@shopify/hydrogen';
+
+export async function createAppLoadContext(request, env) {
+    const hydrogenContext = createHydrogenContext({env, request});
+
+    hydrogenContext.cart = createCartHandler({
+        getCartId: () => {
+            return request.headers.get('Cookie');
+        },
+    });
+
+    return {
+        ...hydrogenContext,
+        croct: await createCroctContext(request, hydrogenContext)
+    };
+}
+"
+`;
+
+exports[`HydrogenContextCodemod should correctly transform noFactory.ts: noFactory.ts 1`] = `
+"export async function createAppLoadContext(request, env, executionContext) {
+    let pending;
+    const count = 1;
+    const built = factory.create();
+    const handler = createRequestHandler(request);
+
+    return handler;
+}
+"
+`;
+
+exports[`HydrogenContextCodemod should correctly transform noFunction.ts: noFunction.ts 1`] = `
+"import {createHydrogenContext} from '@shopify/hydrogen';
+
+const hydrogenContext = createHydrogenContext({env, request});
+
+export {hydrogenContext};
+"
+`;
+
+exports[`HydrogenContextCodemod should correctly transform noParams.ts: noParams.ts 1`] = `
+"import {createHydrogenContext} from '@shopify/hydrogen';
+
+export async function createAppLoadContext() {
+    const hydrogenContext = createHydrogenContext({});
+
+    return hydrogenContext;
+}
+"
+`;
+
+exports[`HydrogenContextCodemod should correctly transform noReturn.ts: noReturn.ts 1`] = `
+"import {createHydrogenContext} from '@shopify/hydrogen';
+
+export async function createAppLoadContext(request, env) {
+    const hydrogenContext = createHydrogenContext({env, request});
+
+    if (!request) {
+        return;
+    }
+
+    doSomething(hydrogenContext);
+}
+"
+`;
+
+exports[`HydrogenContextCodemod should correctly transform returnIdentifier.ts: returnIdentifier.ts 1`] = `
+"import { createCroctContext } from "@croct/plug-hydrogen/server";
+import {createHydrogenContext} from '@shopify/hydrogen';
+
+export async function createAppLoadContext(request, env, executionContext) {
+    const hydrogenContext = createHydrogenContext({
+        env,
+        request,
+        cache: await caches.open('hydrogen'),
+    });
+
+    return {
+        ...hydrogenContext,
+        croct: await createCroctContext(request, hydrogenContext)
+    };
+}
+"
+`;
+
+exports[`HydrogenContextCodemod should correctly transform returnObject.ts: returnObject.ts 1`] = `
+"import { createCroctContext } from "@croct/plug-hydrogen/server";
+import {createHydrogenContext} from '@shopify/hydrogen';
+
+export async function createAppLoadContext(request, env, executionContext) {
+    const hydrogenContext = createHydrogenContext({env, request});
+
+    return {
+        ...hydrogenContext,
+        extra: true,
+        croct: await createCroctContext(request, hydrogenContext)
+    };
+}
+"
+`;

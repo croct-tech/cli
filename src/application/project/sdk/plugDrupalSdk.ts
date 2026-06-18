@@ -19,6 +19,12 @@ export type Configuration = PhpSdkConfiguration & {
     localSettingsFileCodemod: Codemod<string>,
 };
 
+/**
+ * The outcome of including `settings.local.php`: added, already present, file not found, or the
+ * codemod could not modify it.
+ */
+type LocalSettingsResult = 'included' | 'unchanged' | 'missing' | 'failed';
+
 export class PlugDrupalSdk extends PhpSdk {
     private static readonly MODULE_NAME = 'croct_example';
 
@@ -79,6 +85,9 @@ export class PlugDrupalSdk extends PhpSdk {
 
                     case 'unchanged':
                         return notifier.confirm('`settings.php` already includes `settings.local.php`');
+
+                    case 'failed':
+                        return notifier.alert('Could not include the local settings', instruction);
 
                     default:
                         return notifier.warn('Could not include the local settings', instruction);
@@ -465,7 +474,7 @@ export class PlugDrupalSdk extends PhpSdk {
         );
     }
 
-    private async includeLocalSettings(): Promise<'included' | 'unchanged' | 'missing'> {
+    private async includeLocalSettings(): Promise<LocalSettingsResult> {
         const path = await this.resolveSettingsFile();
 
         if (path === null) {
@@ -475,9 +484,13 @@ export class PlugDrupalSdk extends PhpSdk {
         // The injected codemod reads/writes settings.php and style-fixes it by
         // decoration; its `modified` flag tells whether the include was added. Drupal leaves
         // settings.php read-only after install, so apply it under a temporary unlock.
-        const {modified} = await this.runWritablePaths([path], () => this.localSettingsFileCodemod.apply(path));
+        try {
+            const {modified} = await this.runWritablePaths([path], () => this.localSettingsFileCodemod.apply(path));
 
-        return modified ? 'included' : 'unchanged';
+            return modified ? 'included' : 'unchanged';
+        } catch {
+            return 'failed';
+        }
     }
 
     private async resolveSettingsFile(): Promise<string | null> {

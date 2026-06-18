@@ -24,6 +24,7 @@ import {PlugReactSdk} from '@/application/project/sdk/plugReactSdk';
 import {PlugNextSdk} from '@/application/project/sdk/plugNextSdk';
 import {PlugVueSdk} from '@/application/project/sdk/plugVueSdk';
 import {PlugNuxtSdk} from '@/application/project/sdk/plugNuxtSdk';
+import {PlugHydrogenSdk} from '@/application/project/sdk/plugHydrogenSdk';
 import {PlugPhpSdk} from '@/application/project/sdk/plugPhpSdk';
 import {PlugLaravelSdk} from '@/application/project/sdk/plugLaravelSdk';
 import {PlugSymfonySdk} from '@/application/project/sdk/plugSymfonySdk';
@@ -205,6 +206,7 @@ import {ExampleLauncher} from '@/application/project/example/exampleLauncher';
 import {ProjectServerProvider} from '@/application/project/server/provider/projectServerProvider';
 import {NextCommandParser} from '@/application/project/server/provider/parser/nextCommandParser';
 import {NuxtCommandParser} from '@/application/project/server/provider/parser/nuxtCommandParser';
+import {HydrogenCommandParser} from '@/application/project/server/provider/parser/hydrogenCommandParser';
 import {ViteCommandParser} from '@/application/project/server/provider/parser/viteCommandParser';
 import {ParcelCommandParser} from '@/application/project/server/provider/parser/parcelCommandParser';
 import {ReactScriptCommandParser} from '@/application/project/server/provider/parser/reactScriptCommandParser';
@@ -377,6 +379,13 @@ import {NuxtStoryblokPlugin} from '@/application/project/sdk/nuxtStoryblokPlugin
 import {VuePluginCodemod} from '@/application/project/code/transformation/javascript/vuePluginCodemod';
 import {VueStoryblokCodemod} from '@/application/project/code/transformation/javascript/vueStoryblokCodemod';
 import {NuxtConfigModuleCodemod} from '@/application/project/code/transformation/javascript/nuxtConfigModuleCodemod';
+import {ViteConfigPluginCodemod} from '@/application/project/code/transformation/javascript/viteConfigPluginCodemod';
+import {
+    HydrogenMiddlewareCodemod,
+} from '@/application/project/code/transformation/javascript/hydrogenMiddlewareCodemod';
+import {HydrogenContextCodemod} from '@/application/project/code/transformation/javascript/hydrogenContextCodemod';
+import {HydrogenCookiesCodemod} from '@/application/project/code/transformation/javascript/hydrogenCookiesCodemod';
+import {HydrogenCspCodemod} from '@/application/project/code/transformation/javascript/hydrogenCspCodemod';
 
 import {
     NuxtStoryblokPluginCodemod,
@@ -1828,6 +1837,7 @@ export class Cli {
                                         languages: ['typescript', 'jsx'],
                                         codemod: new JsxWrapperCodemod({
                                             fallbackToNamedExports: true,
+                                            required: true,
                                             wrapper: {
                                                 module: '@croct/plug-react',
                                                 component: 'CroctProvider',
@@ -1871,6 +1881,7 @@ export class Cli {
                                                 module: '@croct/plug-vue',
                                                 factory: 'createCroct',
                                             },
+                                            required: true,
                                         }),
                                     }),
                                 }),
@@ -1902,6 +1913,111 @@ export class Cli {
                                         languages: ['typescript'],
                                         codemod: new NuxtConfigModuleCodemod({
                                             moduleName: '@croct/plug-nuxt',
+                                            required: true,
+                                        }),
+                                    }),
+                                }),
+                            ),
+                        },
+                    }),
+                    [Platform.HYDROGEN]: (): Sdk => new PlugHydrogenSdk({
+                        ...config,
+                        userApi: this.getUserApi(),
+                        applicationApi: this.getApplicationApi(),
+                        importResolver: importResolver,
+                        codemod: {
+                            vite: new FormatCodemod(
+                                formatter,
+                                new FileCodemod({
+                                    fileSystem: this.getFileSystem(),
+                                    codemod: new JavaScriptCodemod({
+                                        languages: ['typescript'],
+                                        codemod: new ViteConfigPluginCodemod({
+                                            plugin: {
+                                                moduleName: '@croct/plug-hydrogen/vite',
+                                                importName: 'croct',
+                                            },
+                                            required: true,
+                                        }),
+                                    }),
+                                }),
+                            ),
+                            provider: new FormatCodemod(
+                                formatter,
+                                new FileCodemod({
+                                    fileSystem: this.getFileSystem(),
+                                    codemod: new JavaScriptCodemod({
+                                        languages: ['typescript', 'jsx'],
+                                        codemod: new JsxWrapperCodemod({
+                                            wrapper: {
+                                                component: 'CroctProvider',
+                                                module: '@croct/plug-hydrogen',
+                                            },
+                                            targets: {
+                                                container: 'Analytics.Provider',
+                                            },
+                                            fallbackToNamedExports: true,
+                                            required: true,
+                                        }),
+                                    }),
+                                }),
+                            ),
+                            middleware: new FormatCodemod(
+                                formatter,
+                                new FileCodemod({
+                                    fileSystem: this.getFileSystem(),
+                                    codemod: new JavaScriptCodemod({
+                                        languages: ['typescript', 'jsx'],
+                                        codemod: new HydrogenMiddlewareCodemod({
+                                            middleware: {
+                                                moduleName: '@croct/plug-hydrogen/server',
+                                                importName: 'createCroctMiddleware',
+                                            },
+                                        }),
+                                    }),
+                                }),
+                            ),
+                            context: new FormatCodemod(
+                                formatter,
+                                new FileCodemod({
+                                    fileSystem: this.getFileSystem(),
+                                    codemod: new JavaScriptCodemod({
+                                        languages: ['typescript'],
+                                        codemod: new HydrogenContextCodemod({
+                                            factory: {
+                                                moduleName: '@croct/plug-hydrogen/server',
+                                                importName: 'createCroctContext',
+                                            },
+                                            required: true,
+                                        }),
+                                    }),
+                                }),
+                            ),
+                            cookies: new FormatCodemod(
+                                formatter,
+                                new FileCodemod({
+                                    fileSystem: this.getFileSystem(),
+                                    codemod: new JavaScriptCodemod({
+                                        languages: ['typescript'],
+                                        codemod: new HydrogenCookiesCodemod({
+                                            writer: {
+                                                moduleName: '@croct/plug-hydrogen/server',
+                                                importName: 'writeCroctCookies',
+                                            },
+                                            required: true,
+                                        }),
+                                    }),
+                                }),
+                            ),
+                            csp: new FormatCodemod(
+                                formatter,
+                                new FileCodemod({
+                                    fileSystem: this.getFileSystem(),
+                                    codemod: new JavaScriptCodemod({
+                                        languages: ['typescript', 'jsx'],
+                                        codemod: new HydrogenCspCodemod({
+                                            origin: 'https://api.croct.io',
+                                            required: true,
                                         }),
                                     }),
                                 }),
@@ -2050,7 +2166,10 @@ export class Cli {
                             phpConfig.formatter,
                             new FileCodemod({
                                 fileSystem: fileSystem,
-                                codemod: new SymfonyBundleCodemod({bundle: 'Croct\\Plug\\Symfony\\CroctBundle'}),
+                                codemod: new SymfonyBundleCodemod({
+                                    bundle: 'Croct\\Plug\\Symfony\\CroctBundle',
+                                    required: true,
+                                }),
                             }),
                         ),
                         // YAML has no formatter, so it is not wrapped in FormatCodemod.
@@ -2065,7 +2184,10 @@ export class Cli {
                             phpConfig.formatter,
                             new FileCodemod({
                                 fileSystem: fileSystem,
-                                codemod: new DrupalLocalSettingsCodemod({file: PlugDrupalSdk.LOCAL_SETTINGS_FILE}),
+                                codemod: new DrupalLocalSettingsCodemod({
+                                    file: PlugDrupalSdk.LOCAL_SETTINGS_FILE,
+                                    required: true,
+                                }),
                             }),
                         ),
                     }),
@@ -2088,6 +2210,7 @@ export class Cli {
                         [Platform.NEXTJS]: () => this.getJavaScriptFormatter(),
                         [Platform.VUE]: () => this.getJavaScriptFormatter(),
                         [Platform.NUXT]: () => this.getJavaScriptFormatter(),
+                        [Platform.HYDROGEN]: () => this.getJavaScriptFormatter(),
                         [Platform.LARAVEL]: () => this.getPhpFormatter(),
                         [Platform.SYMFONY]: () => this.getPhpFormatter(),
                         [Platform.DRUPAL]: () => this.getPhpFormatter(),
@@ -2384,6 +2507,7 @@ export class Cli {
                     [Platform.NEXTJS]: () => this.getNodeServerProvider().get(),
                     [Platform.VUE]: () => this.getNodeServerProvider().get(),
                     [Platform.NUXT]: () => this.getNodeServerProvider().get(),
+                    [Platform.HYDROGEN]: () => this.getNodeServerProvider().get(),
                     [Platform.LARAVEL]: () => this.createDevServer(
                         {name: 'php', arguments: ['artisan', 'serve']},
                         8000,
@@ -2428,6 +2552,7 @@ export class Cli {
                 parsers: [
                     new NextCommandParser(),
                     new NuxtCommandParser(),
+                    new HydrogenCommandParser(),
                     new ViteCommandParser(),
                     new ParcelCommandParser(),
                     new ReactScriptCommandParser(),
@@ -2615,6 +2740,14 @@ export class Cli {
                             condition: new HasDependency({
                                 packageManager: nodePackageManager,
                                 dependencies: ['nuxt'],
+                            }),
+                        },
+                        // Hydrogen ships React, so it must be matched before the generic React rule.
+                        {
+                            value: Platform.HYDROGEN,
+                            condition: new HasDependency({
+                                packageManager: nodePackageManager,
+                                dependencies: ['@shopify/hydrogen'],
                             }),
                         },
                         {

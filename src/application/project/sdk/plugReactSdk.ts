@@ -216,14 +216,12 @@ export class PlugReactSdk extends JavaScriptSdk {
                 notifier.update('Configuring provider');
 
                 const providerFile = installation.project.provider.file;
+                const instructions = 'Wrap your app\'s root component with <CroctProvider> from @croct/plug-react.';
 
                 try {
                     if (providerFile === null) {
-                        // @todo add help link to documentation
-                        notifier.alert('No root component found');
+                        notifier.alert('No root component found', instructions);
                     } else {
-                        notifier.update('Configuring provider');
-
                         await this.installProvider(providerFile, {
                             props: {
                                 appId: PlugReactSdk.getAppIdProperty(await getPublicIds(), projectEnv?.property),
@@ -232,8 +230,8 @@ export class PlugReactSdk extends JavaScriptSdk {
 
                         notifier.confirm('Provider configured');
                     }
-                } catch (error) {
-                    notifier.alert('Failed to install provider', HelpfulError.formatMessage(error));
+                } catch {
+                    notifier.alert('Failed to install provider', instructions);
                 }
             },
         });

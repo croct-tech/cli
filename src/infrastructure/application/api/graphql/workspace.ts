@@ -123,6 +123,7 @@ function createNormalizationMap<M extends string, A extends string>(map: Record<
 
 const platformMap = createNormalizationMap<Platform, GraphqlPlatform>({
     [Platform.JAVASCRIPT]: GraphqlPlatform.Javascript,
+    [Platform.HYDROGEN]: GraphqlPlatform.Hydrogen,
     [Platform.REACT]: GraphqlPlatform.React,
     [Platform.NEXTJS]: GraphqlPlatform.Next,
     [Platform.VUE]: GraphqlPlatform.Vue,

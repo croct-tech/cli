@@ -223,8 +223,12 @@ export class PlugVueSdk extends JavaScriptSdk {
 
                         notifier.confirm('Plugin registered');
                     }
-                } catch (error) {
-                    notifier.alert('Failed to register plugin', HelpfulError.formatMessage(error));
+                } catch {
+                    notifier.alert(
+                        'Failed to register plugin',
+                        'Register the Croct plugin in your Vue entry: '
+                        + 'app.use(createCroct({appId: \'<your-app-id>\'})) before app.mount().',
+                    );
                 }
             },
         });

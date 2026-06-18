@@ -1,10 +1,12 @@
 import type {Codemod, ResultCode} from '@/application/project/code/transformation/codemod';
+import {CodemodError} from '@/application/project/code/transformation/codemod';
 
 export type Configuration = {
     /**
      * The fully-qualified bundle class to register (without a leading backslash).
      */
     bundle: string,
+    required?: boolean,
 };
 
 /**
@@ -13,8 +15,11 @@ export type Configuration = {
 export class SymfonyBundleCodemod implements Codemod<string> {
     private readonly bundle: string;
 
-    public constructor({bundle}: Configuration) {
+    private readonly required: boolean;
+
+    public constructor({bundle, required = false}: Configuration) {
         this.bundle = bundle;
+        this.required = required;
     }
 
     public apply(input: string): Promise<ResultCode<string>> {
@@ -27,6 +32,10 @@ export class SymfonyBundleCodemod implements Codemod<string> {
         const closing = input.lastIndexOf('];');
 
         if (closing === -1) {
+            if (this.required) {
+                throw new CodemodError('No bundle array found in config/bundles.php to register the Croct bundle.');
+            }
+
             return Promise.resolve({modified: false, result: input});
         }
 

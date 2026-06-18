@@ -1,0 +1,189 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`HydrogenCookiesCodemod should correctly transform alreadyPresent.ts: alreadyPresent.ts 1`] = `
+"import {writeCroctCookies} from '@croct/plug-hydrogen/server';
+
+export async function handleFetch(request, hydrogenContext) {
+    const response = await handleRequest(request);
+
+    if (hydrogenContext.session.isPending) {
+        response.headers.set('Set-Cookie', await hydrogenContext.session.commit());
+    }
+
+    writeCroctCookies(response, hydrogenContext);
+
+    return response;
+}
+"
+`;
+
+exports[`HydrogenCookiesCodemod should correctly transform alreadyPresentOutsideBlock.ts: alreadyPresentOutsideBlock.ts 1`] = `
+"import {writeCroctCookies} from '@croct/plug-hydrogen/server';
+
+export async function handleFetch(request, appLoadContext) {
+    let response;
+
+    try {
+        response = await handleRequest(request);
+
+        if (appLoadContext.session.isPending) {
+            response.headers.set('Set-Cookie', await appLoadContext.session.commit());
+        }
+    } catch (error) {
+        response = new Response('error', {status: 500});
+    }
+
+    // Already called, but in the function body — not in the \`try\` block that holds the Set-Cookie.
+    writeCroctCookies(response, appLoadContext);
+
+    return response;
+}
+"
+`;
+
+exports[`HydrogenCookiesCodemod should correctly transform arrowExpressionBody.ts: arrowExpressionBody.ts 1`] = `
+"export const handle = (request, hydrogenContext) => response.headers.set(
+    'Set-Cookie',
+    hydrogenContext.session.commit(),
+);
+"
+`;
+
+exports[`HydrogenCookiesCodemod should correctly transform destructuredHeaders.ts: destructuredHeaders.ts 1`] = `
+"export async function handleFetch(request, hydrogenContext) {
+    const response = await handleRequest(request);
+    const {headers} = response;
+
+    headers.set('Set-Cookie', await hydrogenContext.session.commit());
+
+    return response;
+}
+"
+`;
+
+exports[`HydrogenCookiesCodemod should correctly transform differentVars.ts: differentVars.ts 1`] = `
+"import { writeCroctCookies } from "@croct/plug-hydrogen/server";
+
+export async function handleFetch(request, appLoadContext) {
+    const res = await handleRequest(request);
+
+    if (appLoadContext.session.isPending) {
+        res.headers.set('Set-Cookie', await appLoadContext.session.commit());
+    }
+
+    writeCroctCookies(res, appLoadContext);
+    return res;
+}
+"
+`;
+
+exports[`HydrogenCookiesCodemod should correctly transform directSet.ts: directSet.ts 1`] = `
+"import { writeCroctCookies } from "@croct/plug-hydrogen/server";
+
+export async function handleFetch(request, appLoadContext) {
+    const response = await handleRequest(request);
+    response.headers.set('Set-Cookie', await appLoadContext.session.commit());
+    writeCroctCookies(response, appLoadContext);
+    return response;
+}
+"
+`;
+
+exports[`HydrogenCookiesCodemod should correctly transform ifWrapped.ts: ifWrapped.ts 1`] = `
+"import { writeCroctCookies } from "@croct/plug-hydrogen/server";
+import {createRequestHandler} from '@shopify/hydrogen';
+
+export default {
+    async fetch(request, env, executionContext) {
+        const hydrogenContext = await createHydrogenRouterContext(request, env, executionContext);
+        const handleRequest = createRequestHandler({build: serverBuild, getContext: () => hydrogenContext});
+        const response = await handleRequest(request);
+
+        if (hydrogenContext.session.isPending) {
+            response.headers.set('Set-Cookie', await hydrogenContext.session.commit());
+        }
+
+        writeCroctCookies(response, hydrogenContext);
+        return response;
+    },
+};
+"
+`;
+
+exports[`HydrogenCookiesCodemod should correctly transform noFunction.ts: noFunction.ts 1`] = `
+"const response = new Response();
+
+response.headers.set('Set-Cookie', await hydrogenContext.session.commit());
+"
+`;
+
+exports[`HydrogenCookiesCodemod should correctly transform noSession.ts: noSession.ts 1`] = `
+"export async function handleFetch(request) {
+    const response = await handleRequest(request);
+
+    response.headers.set('Set-Cookie', buildCookie());
+
+    return response;
+}
+"
+`;
+
+exports[`HydrogenCookiesCodemod should correctly transform nonHeadersObject.ts: nonHeadersObject.ts 1`] = `
+"export async function handleFetch(request, hydrogenContext) {
+    const response = await handleRequest(request);
+
+    response.cookies.set('Set-Cookie', await hydrogenContext.session.commit());
+
+    return response;
+}
+"
+`;
+
+exports[`HydrogenCookiesCodemod should correctly transform notSetCookieHeader.ts: notSetCookieHeader.ts 1`] = `
+"export async function handleFetch(request, hydrogenContext) {
+    const response = await handleRequest(request);
+
+    response.headers.set('Content-Type', 'text/html');
+
+    return response;
+}
+"
+`;
+
+exports[`HydrogenCookiesCodemod should correctly transform tryCatchWrapped.ts: tryCatchWrapped.ts 1`] = `
+"import { writeCroctCookies } from "@croct/plug-hydrogen/server";
+import {storefrontRedirect, createRequestHandler} from '@shopify/hydrogen';
+import {createAppLoadContext} from '~/lib/context';
+
+export default {
+    async fetch(request, env, executionContext) {
+        try {
+            const appLoadContext = await createAppLoadContext(request, env, executionContext);
+
+            const handleRequest = createRequestHandler({
+                build: remixBuild,
+                mode: process.env.NODE_ENV,
+                getLoadContext: () => appLoadContext,
+            });
+
+            const response = await handleRequest(request);
+
+            if (appLoadContext.session.isPending) {
+                response.headers.set('Set-Cookie', await appLoadContext.session.commit());
+            }
+
+            writeCroctCookies(response, appLoadContext);
+
+            if (response.status === 404) {
+                return storefrontRedirect({request, response, storefront: appLoadContext.storefront});
+            }
+
+            return response;
+        } catch (error) {
+            console.error(error);
+            return new Response('An unexpected error occurred', {status: 500});
+        }
+    },
+};
+"
+`;

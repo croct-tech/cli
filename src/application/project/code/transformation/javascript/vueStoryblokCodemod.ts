@@ -1,6 +1,7 @@
 import * as t from '@babel/types';
 import {traverse} from '@babel/core';
 import type {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
+import {CodemodError} from '@/application/project/code/transformation/codemod';
 import {addImport} from '@/application/project/code/transformation/javascript/utils/addImport';
 import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
 import {VuePluginCodemod} from '@/application/project/code/transformation/javascript/vuePluginCodemod';
@@ -14,6 +15,7 @@ export type VueStoryblokConfiguration = {
         module: string,
         identifier: string,
     },
+    required?: boolean,
 };
 
 /**
@@ -35,6 +37,10 @@ export class VueStoryblokCodemod implements Codemod<t.File, CodemodOptions> {
         const anchor = VuePluginCodemod.findMountAnchor(input);
 
         if (anchor === null) {
+            if (this.configuration.required === true) {
+                throw new CodemodError('No Vue app initialization found to wire the Storyblok integration.');
+            }
+
             return Promise.resolve({modified: false, result: input});
         }
 
@@ -55,12 +61,20 @@ export class VueStoryblokCodemod implements Codemod<t.File, CodemodOptions> {
         });
 
         if (storyblokLocal === null) {
+            if (this.configuration.required === true) {
+                throw new CodemodError('No Storyblok Vue plugin import found.');
+            }
+
             return Promise.resolve({modified: false, result: input});
         }
 
         const useCall = VuePluginCodemod.findUseCall(anchor, storyblokLocal);
 
         if (useCall === null) {
+            if (this.configuration.required === true) {
+                throw new CodemodError('No app.use(StoryblokVue) call found to wrap.');
+            }
+
             return Promise.resolve({modified: false, result: input});
         }
 

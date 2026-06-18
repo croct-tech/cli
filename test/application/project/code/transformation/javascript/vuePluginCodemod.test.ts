@@ -210,4 +210,15 @@ describe('VuePluginCodemod', () => {
 
         expect(useCall).toEqual(expected);
     });
+
+    it('throws when required and there is no Vue app initialization', async () => {
+        const transformer = new JavaScriptCodemod({
+            languages: ['typescript'],
+            codemod: new VuePluginCodemod({...defaultOptions, required: true}),
+        });
+
+        await expect(transformer.apply("import { something } from 'somewhere';\n\nsomething({ foo: 'bar' });\n"))
+            .rejects
+            .toThrow('No Vue app initialization found to register the Croct plugin.');
+    });
 });

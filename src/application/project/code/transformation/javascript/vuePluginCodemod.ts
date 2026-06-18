@@ -1,6 +1,7 @@
 import * as t from '@babel/types';
 import {traverse} from '@babel/core';
 import type {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
+import {CodemodError} from '@/application/project/code/transformation/codemod';
 import {addImport} from '@/application/project/code/transformation/javascript/utils/addImport';
 import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
 import type {AttributeType} from '@/application/project/code/transformation/javascript/utils/createObjectProps';
@@ -34,6 +35,7 @@ export type VuePluginConfiguration = {
         factory: string,
     },
     args?: Record<string, AttributeType>,
+    required?: boolean,
 };
 
 export type VuePluginOptions = CodemodOptions & {
@@ -58,6 +60,10 @@ export class VuePluginCodemod implements Codemod<t.File, VuePluginOptions> {
         const anchor = VuePluginCodemod.findMountAnchor(input);
 
         if (anchor === null) {
+            if (this.configuration.required === true) {
+                throw new CodemodError('No Vue app initialization found to register the Croct plugin.');
+            }
+
             return Promise.resolve({modified: false, result: input});
         }
 

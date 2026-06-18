@@ -458,6 +458,15 @@ export const config = {
 "
 `;
 
+exports[`NextJsProxyCodemod should correctly transform existingProxyReexportWithConfig.ts: existingProxyReexportWithConfig.ts 1`] = `
+"export { proxy } from "@croct/plug-next/proxy";
+
+export const config = {
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+}
+"
+`;
+
 exports[`NextJsProxyCodemod should correctly transform matcherAlias.ts: matcherAlias.ts 1`] = `
 "import { withCroct } from "@croct/plug-next/proxy";
 

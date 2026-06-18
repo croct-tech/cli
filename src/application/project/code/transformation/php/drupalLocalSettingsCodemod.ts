@@ -1,10 +1,12 @@
 import type {Codemod, ResultCode} from '@/application/project/code/transformation/codemod';
+import {CodemodError} from '@/application/project/code/transformation/codemod';
 
 export type Configuration = {
     /**
      * The local settings filename that `settings.php` should include.
      */
     file: string,
+    required?: boolean,
 };
 
 type Scan = {
@@ -29,12 +31,19 @@ export class DrupalLocalSettingsCodemod implements Codemod<string> {
 
     private readonly file: string;
 
-    public constructor({file}: Configuration) {
+    private readonly required: boolean;
+
+    public constructor({file, required = false}: Configuration) {
         this.file = file;
+        this.required = required;
     }
 
     public apply(input: string): Promise<ResultCode<string>> {
         if (input.trim() === '') {
+            if (this.required) {
+                throw new CodemodError('settings.php is empty; cannot add the settings.local.php include.');
+            }
+
             return Promise.resolve({modified: false, result: input});
         }
 

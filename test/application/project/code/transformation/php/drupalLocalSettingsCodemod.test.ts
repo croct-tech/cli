@@ -29,4 +29,14 @@ describe('DrupalLocalSettingsCodemod', () => {
         expect(modified).toBe(false);
         expect(result).toBe('');
     });
+
+    it('throws when required and the content is empty', async () => {
+        const requiredCodemod = new DrupalLocalSettingsCodemod({
+            file: 'settings.local.php',
+            required: true,
+        });
+
+        await expect(async () => requiredCodemod.apply('   \n\t')).rejects
+            .toThrow('settings.php is empty; cannot add the settings.local.php include.');
+    });
 });

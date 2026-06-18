@@ -132,7 +132,7 @@ exports[`NuxtConfigModuleCodemod should correctly transform nonArrayModules.ts: 
 "const modules = ['@nuxtjs/tailwindcss'];
 
 export default defineNuxtConfig({
-    modules: modules,
+    modules: [...(Array.isArray(modules) ? modules : [modules]), "@croct/plug-nuxt"],
 });
 "
 `;
