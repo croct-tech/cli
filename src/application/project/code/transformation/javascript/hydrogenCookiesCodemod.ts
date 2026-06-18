@@ -1,5 +1,6 @@
 import * as t from '@babel/types';
 import {traverse} from '@babel/core';
+import type {NodePath} from '@babel/core';
 import {traverseFast} from '@babel/types';
 import type {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
 import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
@@ -20,16 +21,12 @@ type Anchor = {
     response: t.Expression,
     context: t.Expression,
     statements: t.Statement[],
-    call: t.CallExpression,
+    after: t.Statement,
+    scope: t.Statement[],
 };
 
 /**
  * Writes the Croct visitor cookies after Hydrogen commits its session.
- *
- * Finds the `<response>.headers.set('Set-Cookie', … <context>.session.commit())` statement in the
- * server fetch handler and inserts `<writer>(<response>, <context>)` right after it (so it runs
- * after the session `Set-Cookie`, which is replaced rather than appended). Adds the import.
- * Returns unmodified when the anchor is absent or the writer is already called.
  */
 export class HydrogenCookiesCodemod implements Codemod<t.File, CodemodOptions> {
     private readonly configuration: HydrogenCookiesConfiguration;
@@ -51,7 +48,7 @@ export class HydrogenCookiesCodemod implements Codemod<t.File, CodemodOptions> {
             importName: writer.importName,
         });
 
-        if (importedName !== null && HydrogenCookiesCodemod.hasCall(anchor.statements, importedName)) {
+        if (importedName !== null && HydrogenCookiesCodemod.hasCall(anchor.scope, importedName)) {
             return Promise.resolve({modified: false, result: input});
         }
 
@@ -62,7 +59,7 @@ export class HydrogenCookiesCodemod implements Codemod<t.File, CodemodOptions> {
             localName: writer.localName,
         });
 
-        const index = anchor.statements.findIndex(statement => HydrogenCookiesCodemod.contains(statement, anchor.call));
+        const index = anchor.statements.indexOf(anchor.after);
 
         anchor.statements.splice(
             index + 1,
@@ -101,11 +98,24 @@ export class HydrogenCookiesCodemod implements Codemod<t.File, CodemodOptions> {
                     return;
                 }
 
+                const insertion = HydrogenCookiesCodemod.findInsertionPoint(path);
+
+                if (insertion === null) {
+                    return;
+                }
+
+                const block = insertion.parentPath;
+
+                if (block === null || !block.isBlockStatement()) {
+                    return;
+                }
+
                 anchor = {
                     response: response,
                     context: context,
-                    statements: fn.node.body.body,
-                    call: path.node,
+                    statements: block.node.body,
+                    after: insertion.node,
+                    scope: fn.node.body.body,
                 };
 
                 path.stop();
@@ -113,6 +123,38 @@ export class HydrogenCookiesCodemod implements Codemod<t.File, CodemodOptions> {
         });
 
         return anchor;
+    }
+
+    private static findInsertionPoint(callPath: NodePath<t.CallExpression>): NodePath<t.Statement> | null {
+        let statement = callPath.getStatementParent();
+
+        while (statement !== null) {
+            const parent = statement.parentPath;
+
+            if (parent === null) {
+                break;
+            }
+
+            if (parent.isIfStatement()) {
+                // Braceless guard: `if (session.isPending) <statement>`.
+                statement = parent;
+
+                continue;
+            }
+
+            const grandParent = parent.parentPath;
+
+            if (parent.isBlockStatement() && grandParent !== null && grandParent.isIfStatement()) {
+                // Braced guard: `if (session.isPending) { <statement> }`.
+                statement = grandParent;
+
+                continue;
+            }
+
+            break;
+        }
+
+        return statement;
     }
 
     /**
@@ -185,17 +227,5 @@ export class HydrogenCookiesCodemod implements Codemod<t.File, CodemodOptions> {
 
             return called;
         });
-    }
-
-    private static contains(statement: t.Statement, target: t.Node): boolean {
-        let found = false;
-
-        traverseFast(statement, node => {
-            if (node === target) {
-                found = true;
-            }
-        });
-
-        return found;
     }
 }

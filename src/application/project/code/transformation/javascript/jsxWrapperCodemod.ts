@@ -270,7 +270,16 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
      * @return the result of the transformation.
      */
     private wrapBlockStatement(node: t.BlockStatement, component: string, ast: t.File, options?: O): Transformation {
-        const returnStatement = JsxWrapperCodemod.findReturnStatement(node);
+        const container = this.configuration.targets?.container;
+
+        // When wrapping the children of a container element, target the return that actually renders
+        // it: a component may guard with early returns (e.g. `if (!data) return <Outlet/>;`) before
+        // the branch that mounts the container.
+        const returnStatement = container !== undefined
+            ? this.findReturnWithElement(node, JsxWrapperCodemod.resolveElementName(ast, container))
+                ?? JsxWrapperCodemod.findReturnStatement(node)
+            : JsxWrapperCodemod.findReturnStatement(node);
+
         const argument = returnStatement?.argument ?? null;
 
         if (returnStatement !== null && argument !== null) {
@@ -653,5 +662,25 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
         });
 
         return returnStatement;
+    }
+
+    /**
+     * Finds the first return statement whose argument renders an element with the given (dotted) name.
+     */
+    private findReturnWithElement(body: t.BlockStatement, name: string): t.ReturnStatement | null {
+        let match: t.ReturnStatement | null = null;
+
+        traverseFast(body, node => {
+            if (
+                match === null
+                && t.isReturnStatement(node)
+                && node.argument != null
+                && this.findElement(node.argument, name) !== null
+            ) {
+                match = node;
+            }
+        });
+
+        return match;
     }
 }

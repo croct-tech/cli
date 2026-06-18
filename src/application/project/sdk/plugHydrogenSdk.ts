@@ -300,8 +300,8 @@ export class PlugHydrogenSdk extends JavaScriptSdk {
                     file: project.context,
                 }),
             this.getCodemodTask({
-                title: 'Write Croct cookies',
-                confirmation: 'Croct cookies written',
+                title: 'Configure Croct cookies',
+                confirmation: 'Croct cookies configured',
                 codemod: 'cookies',
                 file: project.server,
             }),

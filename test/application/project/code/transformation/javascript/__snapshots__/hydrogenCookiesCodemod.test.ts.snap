@@ -17,6 +17,30 @@ export async function handleFetch(request, hydrogenContext) {
 "
 `;
 
+exports[`HydrogenCookiesCodemod should correctly transform alreadyPresentOutsideBlock.ts: alreadyPresentOutsideBlock.ts 1`] = `
+"import {writeCroctCookies} from '@croct/plug-hydrogen/server';
+
+export async function handleFetch(request, appLoadContext) {
+    let response;
+
+    try {
+        response = await handleRequest(request);
+
+        if (appLoadContext.session.isPending) {
+            response.headers.set('Set-Cookie', await appLoadContext.session.commit());
+        }
+    } catch (error) {
+        response = new Response('error', {status: 500});
+    }
+
+    // Already called, but in the function body — not in the \`try\` block that holds the Set-Cookie.
+    writeCroctCookies(response, appLoadContext);
+
+    return response;
+}
+"
+`;
+
 exports[`HydrogenCookiesCodemod should correctly transform arrowExpressionBody.ts: arrowExpressionBody.ts 1`] = `
 "export const handle = (request, hydrogenContext) => response.headers.set(
     'Set-Cookie',
@@ -123,5 +147,43 @@ exports[`HydrogenCookiesCodemod should correctly transform notSetCookieHeader.ts
 
     return response;
 }
+"
+`;
+
+exports[`HydrogenCookiesCodemod should correctly transform tryCatchWrapped.ts: tryCatchWrapped.ts 1`] = `
+"import { writeCroctCookies } from "@croct/plug-hydrogen/server";
+import {storefrontRedirect, createRequestHandler} from '@shopify/hydrogen';
+import {createAppLoadContext} from '~/lib/context';
+
+export default {
+    async fetch(request, env, executionContext) {
+        try {
+            const appLoadContext = await createAppLoadContext(request, env, executionContext);
+
+            const handleRequest = createRequestHandler({
+                build: remixBuild,
+                mode: process.env.NODE_ENV,
+                getLoadContext: () => appLoadContext,
+            });
+
+            const response = await handleRequest(request);
+
+            if (appLoadContext.session.isPending) {
+                response.headers.set('Set-Cookie', await appLoadContext.session.commit());
+            }
+
+            writeCroctCookies(response, appLoadContext);
+
+            if (response.status === 404) {
+                return storefrontRedirect({request, response, storefront: appLoadContext.storefront});
+            }
+
+            return response;
+        } catch (error) {
+            console.error(error);
+            return new Response('An unexpected error occurred', {status: 500});
+        }
+    },
+};
 "
 `;

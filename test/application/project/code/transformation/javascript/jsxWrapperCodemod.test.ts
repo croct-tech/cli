@@ -46,6 +46,11 @@ describe('JsxWrapperCodemod', () => {
                 },
                 fallbackToNamedExports: true,
             },
+            'containerEarlyReturn.tsx': {
+                targets: {
+                    container: 'Analytics.Provider',
+                },
+            },
             'containerAlreadyWrapped.tsx': {
                 targets: {
                     container: 'Analytics.Provider',
