@@ -42,8 +42,7 @@ describe('ViteConfigPluginCodemod', () => {
             codemod: new ViteConfigPluginCodemod({...defaultOptions, required: true}),
         });
 
-        await expect(transformer.apply('export const value = 1;\n'))
-            .rejects
+        await expect(transformer.apply('export const value = 1;\n')).rejects
             .toThrow('No Vite configuration found');
     });
 });

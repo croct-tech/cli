@@ -10,11 +10,6 @@ export type HydrogenCspConfiguration = {
      * The origin the browser SDK must be allowed to reach, e.g. `https://api.croct.io`.
      */
     origin: string,
-
-    /**
-     * When true, throw if no content security policy configuration could be found (instead of a
-     * silent no-op), so the SDK can report the failure.
-     */
     required?: boolean,
 };
 

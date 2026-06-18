@@ -32,8 +32,7 @@ describe('HydrogenCspCodemod', () => {
             codemod: new HydrogenCspCodemod({...defaultOptions, required: true}),
         });
 
-        await expect(transformer.apply('export const value = 1;\n'))
-            .rejects
+        await expect(transformer.apply('export const value = 1;\n')).rejects
             .toThrow('No content security policy configuration found');
     });
 });

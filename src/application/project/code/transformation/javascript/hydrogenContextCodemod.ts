@@ -15,11 +15,6 @@ export type HydrogenContextConfiguration = {
         importName: string,
         localName?: string,
     },
-
-    /**
-     * When true, throw if the load-context factory's return could not be found (instead of a
-     * silent no-op), so the SDK can report the failure.
-     */
     required?: boolean,
 };
 

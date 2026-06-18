@@ -16,12 +16,7 @@ export interface ImportResolver {
     getImportPath(filePath: string, importPath?: string): Promise<string>;
 
     /**
-     * Resolves an import specifier written in `sourcePath` to the project-relative file path it
-     * points to (specifier → file), the inverse of {@link getImportPath}.
-     *
-     * Honors the project's tsconfig `paths`/`baseUrl` aliases and relative specifiers, then probes
-     * extensions (`.ts`, `.tsx`, `.js`, `.jsx`, and `index.*`) the way the TypeScript/Node resolver
-     * does. Returns null for bare packages or when no matching file exists.
+     * Resolves an import specifier from `sourcePath` to the file it points to, or null (specifier → file).
      */
     resolveImport(importPath: string, sourcePath: string): Promise<string | null>;
 }

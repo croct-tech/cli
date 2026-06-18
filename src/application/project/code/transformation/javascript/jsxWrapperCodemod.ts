@@ -60,11 +60,6 @@ export type WrapperConfiguration<O extends CodemodOptions = CodemodOptions> = {
     targets?: WrapperTarget,
     fallbackToNamedExports?: boolean,
     fallbackCodemod?: Codemod<t.File, O>,
-
-    /**
-     * When true, throw if no component could be wrapped (instead of a silent no-op), so the SDK
-     * can report the failure. Already-wrapped inputs stay a clean no-op.
-     */
     required?: boolean,
 };
 
@@ -283,9 +278,6 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
     private wrapBlockStatement(node: t.BlockStatement, component: string, ast: t.File, options?: O): Transformation {
         const container = this.configuration.targets?.container;
 
-        // When wrapping the children of a container element, target the return that actually renders
-        // it: a component may guard with early returns (e.g. `if (!data) return <Outlet/>;`) before
-        // the branch that mounts the container.
         const returnStatement = container !== undefined
             ? this.findReturnWithElement(node, JsxWrapperCodemod.resolveElementName(ast, container))
                 ?? JsxWrapperCodemod.findReturnStatement(node)

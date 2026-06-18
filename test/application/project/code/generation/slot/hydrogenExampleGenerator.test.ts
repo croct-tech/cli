@@ -27,10 +27,36 @@ describe('HydrogenExampleGenerator', () => {
     };
 
     const variants: Array<{label: string, options: Partial<Configuration>}> = [
-        {label: 'react-router-ts', options: {framework: 'react-router', typescript: true}},
-        {label: 'react-router-js', options: {framework: 'react-router', typescript: false}},
-        {label: 'remix-ts', options: {framework: 'remix', typescript: true}},
-        {label: 'remix-js', options: {framework: 'remix', typescript: false}},
+        {
+            label: 'react-router-ts',
+            options: {
+                framework: 'react-router',
+                typescript: true,
+            },
+        },
+        {
+            label: 'react-router-js',
+            options: {
+                framework: 'react-router',
+                typescript: false,
+                routeFilePath: 'app/routes/%slug%.jsx',
+            },
+        },
+        {
+            label: 'remix-ts',
+            options: {
+                framework: 'remix',
+                typescript: true,
+            },
+        },
+        {
+            label: 'remix-js',
+            options: {
+                framework: 'remix',
+                typescript: false,
+                routeFilePath: 'app/routes/%slug%.jsx',
+            },
+        },
     ];
 
     it.each(variants)('should generate the $label route', ({label, options}) => {

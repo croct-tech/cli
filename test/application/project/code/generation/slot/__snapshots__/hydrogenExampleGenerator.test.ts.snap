@@ -393,7 +393,7 @@ export default function HomeHeroRoute() {
 }
 ",
       "language": "jsx",
-      "path": "app/routes/home-hero.tsx",
+      "path": "app/routes/home-hero.jsx",
     },
   ],
 }
@@ -458,7 +458,7 @@ export default function HomeHeroRoute() {
 }
 ",
       "language": "jsx",
-      "path": "app/routes/home-hero.tsx",
+      "path": "app/routes/home-hero.jsx",
     },
   ],
 }

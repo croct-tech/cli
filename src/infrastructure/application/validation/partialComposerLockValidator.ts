@@ -4,6 +4,8 @@ import {ZodValidator} from '@/infrastructure/application/validation/zodValidator
 import type {ComposerLock} from '@/application/project/packageManager/composerPackageManager';
 
 const lockPackageSchema = z.object({
+    name: z.string().optional(),
+    version: z.string().optional(),
     provide: z.record(z.string()).optional(),
 });
 

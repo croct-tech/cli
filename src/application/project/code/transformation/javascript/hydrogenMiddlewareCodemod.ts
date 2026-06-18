@@ -22,14 +22,6 @@ type Match = {
 
 /**
  * Registers the Croct middleware in the Hydrogen (React Router 7) root route.
- *
- * Ensures the `export const middleware` array contains a `<middleware>()` call and adds the import:
- * - creates `export const middleware = [<middleware>()]` when absent;
- * - appends to an existing array;
- * - normalizes a non-array value (e.g. `buildMiddleware()`) to
- *   `[...(Array.isArray(existing) ? existing : [existing]), <middleware>()]`, preserving it.
- *
- * Returns unmodified when the middleware is already registered.
  */
 export class HydrogenMiddlewareCodemod implements Codemod<t.File, CodemodOptions> {
     private static readonly EXPORT_NAME = 'middleware';

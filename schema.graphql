@@ -2629,6 +2629,7 @@ input PlanQuotaIntentInput {
 enum Platform {
   ASTRO
   DRUPAL
+  HYDROGEN
   JAVASCRIPT
   LARAVEL
   NEXT

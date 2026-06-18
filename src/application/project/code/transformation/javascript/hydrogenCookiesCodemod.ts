@@ -15,11 +15,6 @@ export type HydrogenCookiesConfiguration = {
         importName: string,
         localName?: string,
     },
-
-    /**
-     * When true, throw if there is no session `Set-Cookie` to anchor to (instead of a silent
-     * no-op), so the SDK can report the failure.
-     */
     required?: boolean,
 };
 
