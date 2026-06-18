@@ -17,12 +17,16 @@ import type {UserApi} from '@/application/api/user';
 import type {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
 import {ApiKeyPermission} from '@/application/model/application';
 import {ApiError} from '@/application/api/error';
+import {getImportSource} from '@/application/project/code/transformation/javascript/utils/getImportSource';
+import type {ImportResolver} from '@/application/project/import/importResolver';
 
 /**
- * The Hydrogen era. The boundary is `@shopify/hydrogen@2025.5.0`, where the skeleton migrated from
+ * The Hydrogen's underlying framework, which determines the codemod transformations.
+ *
+ * The boundary is `@shopify/hydrogen@2025.5.0`, where the skeleton migrated from
  * Remix to React Router 7.
  */
-type Era = 'react-router' | 'remix';
+type Framework = 'react-router' | 'remix';
 
 type CodemodConfiguration = {
     /**
@@ -60,6 +64,7 @@ export type Configuration = JavaScriptSdkConfiguration & {
     codemod: CodemodConfiguration,
     userApi: UserApi,
     applicationApi: ApplicationApi,
+    importResolver: ImportResolver,
 };
 
 enum HydrogenEnvVar {
@@ -68,7 +73,7 @@ enum HydrogenEnvVar {
 }
 
 type HydrogenProjectInfo = {
-    era: Era,
+    framework: Framework,
     viteConfig: string | null,
     server: string | null,
     root: string | null,
@@ -81,6 +86,28 @@ type HydrogenInstallation = Installation & {
     project: HydrogenProjectInfo,
 };
 
+type CodemodTaskOptions = {
+    /**
+     * The task title, shown while it runs.
+     */
+    title: string,
+
+    /**
+     * The success message confirmed once the codemod is applied.
+     */
+    confirmation: string,
+
+    /**
+     * The codemod to apply.
+     */
+    codemod: keyof CodemodConfiguration,
+
+    /**
+     * The target file, or null when it could not be located.
+     */
+    file: string | null,
+};
+
 export class PlugHydrogenSdk extends JavaScriptSdk {
     private readonly codemod: CodemodConfiguration;
 
@@ -88,12 +115,15 @@ export class PlugHydrogenSdk extends JavaScriptSdk {
 
     private readonly applicationApi: ApplicationApi;
 
+    private readonly importResolver: ImportResolver;
+
     public constructor(configuration: Configuration) {
         super(configuration);
 
         this.codemod = configuration.codemod;
         this.userApi = configuration.userApi;
         this.applicationApi = configuration.applicationApi;
+        this.importResolver = configuration.importResolver;
     }
 
     public getPaths(configuration: ProjectConfiguration): Promise<ProjectPaths> {
@@ -112,16 +142,16 @@ export class PlugHydrogenSdk extends JavaScriptSdk {
     }
 
     protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
-        const [isTypeScript, era] = await Promise.all([
+        const [isTypeScript, framework] = await Promise.all([
             this.isTypeScriptProject(),
-            this.detectEra(),
+            this.detectFramework(),
         ]);
 
         const paths = await this.getPaths(installation.configuration);
 
         const generator = new HydrogenExampleGenerator({
             typescript: isTypeScript,
-            era: era,
+            framework: framework,
             routeFilePath: this.fileSystem.joinPaths(paths.examples, `%slug%${isTypeScript ? '.tsx' : '.jsx'}`),
             routeComponentName: '%name%Route',
         });
@@ -149,17 +179,27 @@ export class PlugHydrogenSdk extends JavaScriptSdk {
     private async getProjectInfo(): Promise<HydrogenProjectInfo> {
         const projectDirectory = this.projectDirectory.get();
 
-        const [era, viteConfig, server, root, context, entryServer] = await Promise.all([
-            this.detectEra(),
-            this.locateFile('vite.config.ts', 'vite.config.js', 'vite.config.mts'),
+        const [framework, viteConfig, server, root, entryServer] = await Promise.all([
+            this.detectFramework(),
+            this.locateFile(
+                'vite.config.ts',
+                'vite.config.mts',
+                'vite.config.cts',
+                'vite.config.js',
+                'vite.config.mjs',
+                'vite.config.cjs',
+            ),
             this.locateFile('server.ts', 'server.js'),
             this.locateFile('app/root.tsx', 'app/root.jsx'),
-            this.locateFile('app/lib/context.ts', 'app/lib/context.js'),
             this.locateFile('app/entry.server.tsx', 'app/entry.server.jsx'),
         ]);
 
+        // The load-context module is app code, not a fixed framework path, so follow its import
+        // from the server entry before assuming the skeleton's conventional location.
+        const context = await this.locateContext(server);
+
         return {
-            era: era,
+            framework: framework,
             viteConfig: viteConfig,
             server: server,
             root: root,
@@ -172,19 +212,60 @@ export class PlugHydrogenSdk extends JavaScriptSdk {
     /**
      * Detects the era from the `@shopify/hydrogen` version, falling back to the routing dependency.
      */
-    private async detectEra(): Promise<Era> {
-        const [byVersion, hasReactRouter] = await Promise.all([
+    private async detectFramework(): Promise<Framework> {
+        const [hydrogenVersionUsesReactRouter, hasReactRouterDependency] = await Promise.all([
             this.packageManager.hasDirectDependency('@shopify/hydrogen', '>=2025.5.0'),
             this.packageManager.hasDirectDependency('react-router'),
         ]);
 
-        return byVersion || hasReactRouter ? 'react-router' : 'remix';
+        return hydrogenVersionUsesReactRouter || hasReactRouterDependency ? 'react-router' : 'remix';
+    }
+
+    /**
+     * Locates the load-context module.
+     *
+     * The skeleton puts it at `app/lib/context.*`, but it is ordinary app code referenced from the
+     * server entry (e.g. `import {createAppLoadContext} from '~/lib/context'`), so it is resolved by
+     * following that import first, falling back to the conventional path.
+     */
+    private async locateContext(server: string | null): Promise<string | null> {
+        const imported = server !== null ? await this.followContextImport(server) : null;
+
+        if (imported !== null) {
+            return imported;
+        }
+
+        return this.locateFile(
+            'app/lib/context.ts',
+            'app/lib/context.tsx',
+            'app/lib/context.js',
+            'app/lib/context.jsx',
+        );
+    }
+
+    /**
+     * Resolves the load-context module by following its import in the server entry.
+     *
+     * The factory is imported from a local module (e.g. `import {createAppLoadContext} from
+     * '~/lib/context'`); its name varies by era (`createAppLoadContext`, `createHydrogenRouterContext`).
+     * The specifier is resolved through the project's tsconfig aliases.
+     */
+    private async followContextImport(server: string): Promise<string | null> {
+        const source = await this.readFile(server);
+
+        if (source === null) {
+            return null;
+        }
+
+        const specifier = getImportSource(source, /^create[A-Za-z]*Context$/);
+
+        return specifier !== null ? this.importResolver.resolveImport(specifier, server) : null;
     }
 
     private getInstallationTasks(installation: HydrogenInstallation): Task[] {
         const {project} = installation;
 
-        const tasks: Task[] = [
+        return [
             {
                 title: 'Set up environment variables',
                 task: async notifier => {
@@ -199,19 +280,47 @@ export class PlugHydrogenSdk extends JavaScriptSdk {
                     }
                 },
             },
-            this.getCodemodTask('Register Vite plugin', 'vite', project.viteConfig),
-            project.era === 'react-router'
-                ? this.getCodemodTask('Register middleware', 'middleware', project.root)
-                : this.getCodemodTask('Expose Croct context', 'context', project.context),
-            this.getCodemodTask('Write Croct cookies', 'cookies', project.server),
-            this.getProviderTask(project.root),
-            this.getCodemodTask('Configure content security policy', 'csp', project.entryServer),
+            this.getCodemodTask({
+                title: 'Register Vite plugin',
+                confirmation: 'Vite plugin registered',
+                codemod: 'vite',
+                file: project.viteConfig,
+            }),
+            project.framework === 'react-router'
+                ? this.getCodemodTask({
+                    title: 'Register middleware',
+                    confirmation: 'Middleware registered',
+                    codemod: 'middleware',
+                    file: project.root,
+                })
+                : this.getCodemodTask({
+                    title: 'Expose Croct context',
+                    confirmation: 'Croct context exposed',
+                    codemod: 'context',
+                    file: project.context,
+                }),
+            this.getCodemodTask({
+                title: 'Write Croct cookies',
+                confirmation: 'Croct cookies written',
+                codemod: 'cookies',
+                file: project.server,
+            }),
+            this.getCodemodTask({
+                title: 'Configure provider',
+                confirmation: 'Provider configured',
+                codemod: 'provider',
+                file: project.root,
+            }),
+            this.getCodemodTask({
+                title: 'Configure content security policy',
+                confirmation: 'Content security policy configured',
+                codemod: 'csp',
+                file: project.entryServer,
+            }),
         ];
-
-        return tasks;
     }
 
-    private getCodemodTask(title: string, codemod: keyof CodemodConfiguration, file: string | null): Task {
+    private getCodemodTask({title, confirmation, codemod, file}: CodemodTaskOptions): Task {
         return {
             title: title,
             task: async notifier => {
@@ -226,32 +335,11 @@ export class PlugHydrogenSdk extends JavaScriptSdk {
                 try {
                     await this.applyCodemod(this.codemod[codemod], file);
 
-                    notifier.confirm(title);
+                    notifier.confirm(confirmation);
                 } catch (error) {
-                    notifier.alert(`Failed: ${title}`, HelpfulError.formatMessage(error));
-                }
-            },
-        };
-    }
+                    const action = `${title.charAt(0).toLowerCase()}${title.slice(1)}`;
 
-    private getProviderTask(file: string | null): Task {
-        return {
-            title: 'Configure provider',
-            task: async notifier => {
-                notifier.update('Configuring provider');
-
-                if (file === null) {
-                    notifier.warn('Configure provider: app/root not found');
-
-                    return;
-                }
-
-                try {
-                    await this.applyCodemod(this.codemod.provider, file);
-
-                    notifier.confirm('Provider configured');
-                } catch (error) {
-                    notifier.alert('Failed to configure provider', HelpfulError.formatMessage(error));
+                    notifier.alert(`Failed to ${action}`, HelpfulError.formatMessage(error));
                 }
             },
         };

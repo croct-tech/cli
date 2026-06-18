@@ -21,20 +21,21 @@ describe('HydrogenExampleGenerator', () => {
 
     const baseOptions: Configuration = {
         typescript: true,
-        era: 'react-router',
+        framework: 'react-router',
         routeFilePath: 'app/routes/%slug%.tsx',
         routeComponentName: '%name%Route',
     };
 
     const variants: Array<{label: string, options: Partial<Configuration>}> = [
-        {label: 'react-router-ts', options: {era: 'react-router', typescript: true}},
-        {label: 'react-router-js', options: {era: 'react-router', typescript: false}},
-        {label: 'remix-ts', options: {era: 'remix', typescript: true}},
-        {label: 'remix-js', options: {era: 'remix', typescript: false}},
+        {label: 'react-router-ts', options: {framework: 'react-router', typescript: true}},
+        {label: 'react-router-js', options: {framework: 'react-router', typescript: false}},
+        {label: 'remix-ts', options: {framework: 'remix', typescript: true}},
+        {label: 'remix-js', options: {framework: 'remix', typescript: false}},
     ];
 
     it.each(variants)('should generate the $label route', ({label, options}) => {
-        // The content shape does not affect the route, so a single fixture exercises every variant.
+        // A single fixture exercises every era/language variant; the content-shape variations are
+        // covered by the per-fixture cases below.
         const example = new HydrogenExampleGenerator({...baseOptions, ...options})
             .generate(loadFixture('simpleStructure.json'));
 
@@ -47,12 +48,14 @@ describe('HydrogenExampleGenerator', () => {
         expect(example).toMatchSnapshot(name);
     });
 
-    it('fetches the slot server-side and seeds the client Slot', () => {
+    it('fetches the slot server-side and renders the content directly', () => {
         const [route] = new HydrogenExampleGenerator(baseOptions)
             .generate(loadFixture('simpleStructure.json'))
             .files;
 
-        expect(route.code).toContain("const {content} = await fetchContent('home-hero', {context});");
-        expect(route.code).toContain('<Slot id="home-hero" initial={data.content}>');
+        expect(route.code).toContain("const {content} = await fetchContent('home-hero', {scope: context});");
+        expect(route.code).toContain('const {content} = useLoaderData<typeof loader>();');
+        expect(route.code).not.toContain('<Slot');
+        expect(route.code).not.toContain('JSON.stringify');
     });
 });

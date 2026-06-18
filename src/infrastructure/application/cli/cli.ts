@@ -1921,6 +1921,7 @@ export class Cli {
                         ...config,
                         userApi: this.getUserApi(),
                         applicationApi: this.getApplicationApi(),
+                        importResolver: importResolver,
                         codemod: {
                             vite: new FormatCodemod(
                                 formatter,

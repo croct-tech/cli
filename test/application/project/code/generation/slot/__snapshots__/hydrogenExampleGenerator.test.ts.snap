@@ -4,24 +4,24 @@ exports[`HydrogenExampleGenerator should generate a route for booleanWithLabel: 
 {
   "files": [
     {
-      "code": "import {Slot} from '@croct/plug-hydrogen';
-import {fetchContent} from '@croct/plug-hydrogen/server';
+      "code": "import {fetchContent} from '@croct/plug-hydrogen/server';
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/feature-toggle';
 
 export async function loader({context}: Route.LoaderArgs) {
-  const {content} = await fetchContent('feature-toggle', {context});
+  const {content} = await fetchContent('feature-toggle', {scope: context});
 
   return {content};
 }
 
 export default function FeatureToggleRoute() {
-  const data = useLoaderData<typeof loader>();
+  const {content} = useLoaderData<typeof loader>();
 
   return (
-    <Slot id="feature-toggle" initial={data.content}>
-      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
-    </Slot>
+    <ul>
+      <li><strong>Enabled:</strong> {content.enabled ? 'Active' : 'Inactive'}</li>
+      <li><strong>Visible:</strong> {content.visible ? 'Yes' : 'No'}</li>
+    </ul>
   );
 }
 ",
@@ -36,24 +36,23 @@ exports[`HydrogenExampleGenerator should generate a route for labeledAttributes:
 {
   "files": [
     {
-      "code": "import {Slot} from '@croct/plug-hydrogen';
-import {fetchContent} from '@croct/plug-hydrogen/server';
+      "code": "import {fetchContent} from '@croct/plug-hydrogen/server';
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/stylized';
 
 export async function loader({context}: Route.LoaderArgs) {
-  const {content} = await fetchContent('stylized', {context});
+  const {content} = await fetchContent('stylized', {scope: context});
 
   return {content};
 }
 
 export default function StylizedRoute() {
-  const data = useLoaderData<typeof loader>();
+  const {content} = useLoaderData<typeof loader>();
 
   return (
-    <Slot id="stylized" initial={data.content}>
-      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
-    </Slot>
+    <ul>
+      <li><strong>Tom &amp; Jerry &lt;special&gt;:</strong> {content.title}</li>
+    </ul>
   );
 }
 ",
@@ -68,24 +67,32 @@ exports[`HydrogenExampleGenerator should generate a route for listOfScalars: lis
 {
   "files": [
     {
-      "code": "import {Slot} from '@croct/plug-hydrogen';
-import {fetchContent} from '@croct/plug-hydrogen/server';
+      "code": "import {fetchContent} from '@croct/plug-hydrogen/server';
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/tag-cloud';
 
 export async function loader({context}: Route.LoaderArgs) {
-  const {content} = await fetchContent('tag-cloud', {context});
+  const {content} = await fetchContent('tag-cloud', {scope: context});
 
   return {content};
 }
 
 export default function TagCloudRoute() {
-  const data = useLoaderData<typeof loader>();
+  const {content} = useLoaderData<typeof loader>();
 
   return (
-    <Slot id="tag-cloud" initial={data.content}>
-      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
-    </Slot>
+    <ul>
+      <li>
+        <strong>Tags</strong>
+        <ol>
+          {content.tags.map((item, index) => (
+            <li key={index}>
+              {item}
+            </li>
+          ))}
+        </ol>
+      </li>
+    </ul>
   );
 }
 ",
@@ -100,24 +107,35 @@ exports[`HydrogenExampleGenerator should generate a route for listOfStructures: 
 {
   "files": [
     {
-      "code": "import {Slot} from '@croct/plug-hydrogen';
-import {fetchContent} from '@croct/plug-hydrogen/server';
+      "code": "import {fetchContent} from '@croct/plug-hydrogen/server';
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/product-grid';
 
 export async function loader({context}: Route.LoaderArgs) {
-  const {content} = await fetchContent('product-grid', {context});
+  const {content} = await fetchContent('product-grid', {scope: context});
 
   return {content};
 }
 
 export default function ProductGridRoute() {
-  const data = useLoaderData<typeof loader>();
+  const {content} = useLoaderData<typeof loader>();
 
   return (
-    <Slot id="product-grid" initial={data.content}>
-      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
-    </Slot>
+    <ul>
+      <li>
+        <strong>Products</strong>
+        <ol>
+          {content.products.map((product, index) => (
+            <li key={index}>
+              <ul>
+                <li><strong>Name:</strong> {product.name}</li>
+                <li><strong>Price:</strong> {product.price}</li>
+              </ul>
+            </li>
+          ))}
+        </ol>
+      </li>
+    </ul>
   );
 }
 ",
@@ -132,24 +150,31 @@ exports[`HydrogenExampleGenerator should generate a route for nestedStructure: n
 {
   "files": [
     {
-      "code": "import {Slot} from '@croct/plug-hydrogen';
-import {fetchContent} from '@croct/plug-hydrogen/server';
+      "code": "import {fetchContent} from '@croct/plug-hydrogen/server';
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/author-card';
 
 export async function loader({context}: Route.LoaderArgs) {
-  const {content} = await fetchContent('author-card', {context});
+  const {content} = await fetchContent('author-card', {scope: context});
 
   return {content};
 }
 
 export default function AuthorCardRoute() {
-  const data = useLoaderData<typeof loader>();
+  const {content} = useLoaderData<typeof loader>();
 
   return (
-    <Slot id="author-card" initial={data.content}>
-      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
-    </Slot>
+    <ul>
+      <li>
+        <strong>Author</strong>
+        <ul>
+          <li><strong>Name:</strong> {content.author.name}</li>
+          {content.author.bio && (
+            <li><strong>Bio:</strong> {content.author.bio}</li>
+          )}
+        </ul>
+      </li>
+    </ul>
   );
 }
 ",
@@ -164,24 +189,26 @@ exports[`HydrogenExampleGenerator should generate a route for optionalAttributes
 {
   "files": [
     {
-      "code": "import {Slot} from '@croct/plug-hydrogen';
-import {fetchContent} from '@croct/plug-hydrogen/server';
+      "code": "import {fetchContent} from '@croct/plug-hydrogen/server';
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/promo-card';
 
 export async function loader({context}: Route.LoaderArgs) {
-  const {content} = await fetchContent('promo-card', {context});
+  const {content} = await fetchContent('promo-card', {scope: context});
 
   return {content};
 }
 
 export default function PromoCardRoute() {
-  const data = useLoaderData<typeof loader>();
+  const {content} = useLoaderData<typeof loader>();
 
   return (
-    <Slot id="promo-card" initial={data.content}>
-      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
-    </Slot>
+    <ul>
+      <li><strong>Title:</strong> {content.title}</li>
+      {content.subtitle && (
+        <li><strong>Subtitle:</strong> {content.subtitle}</li>
+      )}
+    </ul>
   );
 }
 ",
@@ -196,24 +223,23 @@ exports[`HydrogenExampleGenerator should generate a route for privateAttributes:
 {
   "files": [
     {
-      "code": "import {Slot} from '@croct/plug-hydrogen';
-import {fetchContent} from '@croct/plug-hydrogen/server';
+      "code": "import {fetchContent} from '@croct/plug-hydrogen/server';
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/tracked-banner';
 
 export async function loader({context}: Route.LoaderArgs) {
-  const {content} = await fetchContent('tracked-banner', {context});
+  const {content} = await fetchContent('tracked-banner', {scope: context});
 
   return {content};
 }
 
 export default function TrackedBannerRoute() {
-  const data = useLoaderData<typeof loader>();
+  const {content} = useLoaderData<typeof loader>();
 
   return (
-    <Slot id="tracked-banner" initial={data.content}>
-      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
-    </Slot>
+    <ul>
+      <li><strong>Headline:</strong> {content.headline}</li>
+    </ul>
   );
 }
 ",
@@ -228,24 +254,25 @@ exports[`HydrogenExampleGenerator should generate a route for simpleStructure: s
 {
   "files": [
     {
-      "code": "import {Slot} from '@croct/plug-hydrogen';
-import {fetchContent} from '@croct/plug-hydrogen/server';
+      "code": "import {fetchContent} from '@croct/plug-hydrogen/server';
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/home-hero';
 
 export async function loader({context}: Route.LoaderArgs) {
-  const {content} = await fetchContent('home-hero', {context});
+  const {content} = await fetchContent('home-hero', {scope: context});
 
   return {content};
 }
 
 export default function HomeHeroRoute() {
-  const data = useLoaderData<typeof loader>();
+  const {content} = useLoaderData<typeof loader>();
 
   return (
-    <Slot id="home-hero" initial={data.content}>
-      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
-    </Slot>
+    <ul>
+      <li><strong>Headline:</strong> {content.headline}</li>
+      <li><strong>View count:</strong> {content.viewCount}</li>
+      <li><strong>Featured:</strong> {content.featured ? 'Yes' : 'No'}</li>
+    </ul>
   );
 }
 ",
@@ -260,24 +287,35 @@ exports[`HydrogenExampleGenerator should generate a route for unionInStructure: 
 {
   "files": [
     {
-      "code": "import {Slot} from '@croct/plug-hydrogen';
-import {fetchContent} from '@croct/plug-hydrogen/server';
+      "code": "import {fetchContent} from '@croct/plug-hydrogen/server';
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/block';
 
 export async function loader({context}: Route.LoaderArgs) {
-  const {content} = await fetchContent('block', {context});
+  const {content} = await fetchContent('block', {scope: context});
 
   return {content};
 }
 
 export default function BlockRoute() {
-  const data = useLoaderData<typeof loader>();
+  const {content} = useLoaderData<typeof loader>();
 
   return (
-    <Slot id="block" initial={data.content}>
-      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
-    </Slot>
+    <ul>
+      <li>
+        <strong>Media</strong>
+        {content.media._type === 'image' && (
+          <ul>
+            <li><strong>Url:</strong> {content.media.url}</li>
+          </ul>
+        )}
+        {content.media._type === 'video' && (
+          <ul>
+            <li><strong>Source:</strong> {content.media.source}</li>
+          </ul>
+        )}
+      </li>
+    </ul>
   );
 }
 ",
@@ -292,24 +330,33 @@ exports[`HydrogenExampleGenerator should generate a route for unionRoot: unionRo
 {
   "files": [
     {
-      "code": "import {Slot} from '@croct/plug-hydrogen';
-import {fetchContent} from '@croct/plug-hydrogen/server';
+      "code": "import {fetchContent} from '@croct/plug-hydrogen/server';
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/cta-block';
 
 export async function loader({context}: Route.LoaderArgs) {
-  const {content} = await fetchContent('cta-block', {context});
+  const {content} = await fetchContent('cta-block', {scope: context});
 
   return {content};
 }
 
 export default function CtaBlockRoute() {
-  const data = useLoaderData<typeof loader>();
+  const {content} = useLoaderData<typeof loader>();
 
   return (
-    <Slot id="cta-block" initial={data.content}>
-      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
-    </Slot>
+    <>
+      {content._type === 'button' && (
+        <ul>
+          <li><strong>Label:</strong> {content.label}</li>
+        </ul>
+      )}
+      {content._type === 'link' && (
+        <ul>
+          <li><strong>Url:</strong> {content.url}</li>
+          <li><strong>Text:</strong> {content.text}</li>
+        </ul>
+      )}
+    </>
   );
 }
 ",
@@ -324,23 +371,24 @@ exports[`HydrogenExampleGenerator should generate the react-router-js route: rea
 {
   "files": [
     {
-      "code": "import {Slot} from '@croct/plug-hydrogen';
-import {fetchContent} from '@croct/plug-hydrogen/server';
+      "code": "import {fetchContent} from '@croct/plug-hydrogen/server';
 import {useLoaderData} from 'react-router';
 
 export async function loader({context}) {
-  const {content} = await fetchContent('home-hero', {context});
+  const {content} = await fetchContent('home-hero', {scope: context});
 
   return {content};
 }
 
 export default function HomeHeroRoute() {
-  const data = useLoaderData();
+  const {content} = useLoaderData();
 
   return (
-    <Slot id="home-hero" initial={data.content}>
-      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
-    </Slot>
+    <ul>
+      <li><strong>Headline:</strong> {content.headline}</li>
+      <li><strong>View count:</strong> {content.viewCount}</li>
+      <li><strong>Featured:</strong> {content.featured ? 'Yes' : 'No'}</li>
+    </ul>
   );
 }
 ",
@@ -355,24 +403,25 @@ exports[`HydrogenExampleGenerator should generate the react-router-ts route: rea
 {
   "files": [
     {
-      "code": "import {Slot} from '@croct/plug-hydrogen';
-import {fetchContent} from '@croct/plug-hydrogen/server';
+      "code": "import {fetchContent} from '@croct/plug-hydrogen/server';
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/home-hero';
 
 export async function loader({context}: Route.LoaderArgs) {
-  const {content} = await fetchContent('home-hero', {context});
+  const {content} = await fetchContent('home-hero', {scope: context});
 
   return {content};
 }
 
 export default function HomeHeroRoute() {
-  const data = useLoaderData<typeof loader>();
+  const {content} = useLoaderData<typeof loader>();
 
   return (
-    <Slot id="home-hero" initial={data.content}>
-      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
-    </Slot>
+    <ul>
+      <li><strong>Headline:</strong> {content.headline}</li>
+      <li><strong>View count:</strong> {content.viewCount}</li>
+      <li><strong>Featured:</strong> {content.featured ? 'Yes' : 'No'}</li>
+    </ul>
   );
 }
 ",
@@ -387,23 +436,24 @@ exports[`HydrogenExampleGenerator should generate the remix-js route: remix-js 1
 {
   "files": [
     {
-      "code": "import {Slot} from '@croct/plug-hydrogen';
-import {fetchContent} from '@croct/plug-hydrogen/server';
+      "code": "import {fetchContent} from '@croct/plug-hydrogen/server';
 import {useLoaderData} from '@remix-run/react';
 
 export async function loader({context}) {
-  const {content} = await fetchContent('home-hero', {context});
+  const {content} = await fetchContent('home-hero', {scope: context});
 
   return {content};
 }
 
 export default function HomeHeroRoute() {
-  const data = useLoaderData();
+  const {content} = useLoaderData();
 
   return (
-    <Slot id="home-hero" initial={data.content}>
-      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
-    </Slot>
+    <ul>
+      <li><strong>Headline:</strong> {content.headline}</li>
+      <li><strong>View count:</strong> {content.viewCount}</li>
+      <li><strong>Featured:</strong> {content.featured ? 'Yes' : 'No'}</li>
+    </ul>
   );
 }
 ",
@@ -418,24 +468,25 @@ exports[`HydrogenExampleGenerator should generate the remix-ts route: remix-ts 1
 {
   "files": [
     {
-      "code": "import {Slot} from '@croct/plug-hydrogen';
-import {fetchContent} from '@croct/plug-hydrogen/server';
+      "code": "import {fetchContent} from '@croct/plug-hydrogen/server';
 import {useLoaderData} from '@remix-run/react';
 import type {LoaderFunctionArgs} from '@shopify/remix-oxygen';
 
 export async function loader({context}: LoaderFunctionArgs) {
-  const {content} = await fetchContent('home-hero', {context});
+  const {content} = await fetchContent('home-hero', {scope: context});
 
   return {content};
 }
 
 export default function HomeHeroRoute() {
-  const data = useLoaderData<typeof loader>();
+  const {content} = useLoaderData<typeof loader>();
 
   return (
-    <Slot id="home-hero" initial={data.content}>
-      {({content}) => <pre>{JSON.stringify(content, null, 2)}</pre>}
-    </Slot>
+    <ul>
+      <li><strong>Headline:</strong> {content.headline}</li>
+      <li><strong>View count:</strong> {content.viewCount}</li>
+      <li><strong>Featured:</strong> {content.featured ? 'Yes' : 'No'}</li>
+    </ul>
   );
 }
 ",
