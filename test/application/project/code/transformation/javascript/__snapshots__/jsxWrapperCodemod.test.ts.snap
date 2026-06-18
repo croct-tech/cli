@@ -13,6 +13,121 @@ export default function App({Component, pageProps}: AppProps): ReactElement {
 "
 `;
 
+exports[`JsxWrapperCodemod should correctly transform childrenOfAlreadyWrapped.tsx: childrenOfAlreadyWrapped.tsx 1`] = `
+"import {Analytics} from '@shopify/hydrogen';
+import {CroctProvider} from '@croct/plug-react';
+
+export default function App({data}) {
+    return <Analytics.Provider cart={data.cart} shop={data.shop} consent={data.consent}>
+        <CroctProvider>
+            <PageLayout {...data}>
+                <Outlet />
+            </PageLayout>
+        </CroctProvider>
+    </Analytics.Provider>;
+}
+"
+`;
+
+exports[`JsxWrapperCodemod should correctly transform childrenOfIdentifierElement.tsx: childrenOfIdentifierElement.tsx 1`] = `
+"import { CroctProvider } from "@croct/plug-react";
+
+export default function App({data}) {
+    return (<CroctProvider>
+        <Providers>
+            <PageLayout {...data} />
+        </Providers>
+    </CroctProvider>);
+}
+"
+`;
+
+exports[`JsxWrapperCodemod should correctly transform childrenOfMemberExpression.tsx: childrenOfMemberExpression.tsx 1`] = `
+"import { CroctProvider } from "@croct/plug-react";
+import {Analytics} from '@shopify/hydrogen';
+
+export default function App({data}) {
+    return (<CroctProvider>
+        <Analytics.Provider cart={data.cart} shop={data.shop} consent={data.consent}>
+            <PageLayout {...data}>
+                <Outlet />
+            </PageLayout>
+        </Analytics.Provider>
+    </CroctProvider>);
+}
+"
+`;
+
+exports[`JsxWrapperCodemod should correctly transform childrenOfNamespaced.tsx: childrenOfNamespaced.tsx 1`] = `
+"import { CroctProvider } from "@croct/plug-react";
+
+export default function App() {
+    return (<CroctProvider>
+        <svg>
+            <svg:g>
+                <PageLayout />
+            </svg:g>
+        </svg>
+    </CroctProvider>);
+}
+"
+`;
+
+exports[`JsxWrapperCodemod should correctly transform childrenOfNotFound.tsx: childrenOfNotFound.tsx 1`] = `
+"import { CroctProvider } from "@croct/plug-react";
+
+export default function App({data}) {
+    return (<CroctProvider>
+        <div>
+            <PageLayout {...data}>
+                <Outlet />
+            </PageLayout>
+        </div>
+    </CroctProvider>);
+}
+"
+`;
+
+exports[`JsxWrapperCodemod should correctly transform childrenOfRemixTernary.tsx: childrenOfRemixTernary.tsx 1`] = `
+"import { CroctProvider } from "@croct/plug-react";
+import {Analytics} from '@shopify/hydrogen';
+
+export function Layout({children}) {
+    const data = useRouteLoaderData('root');
+
+    return <html>
+        <body>
+            {data ? (
+                <Analytics.Provider cart={data.cart} shop={data.shop} consent={data.consent}>
+                    <PageLayout {...data}>{children}</PageLayout>
+                </Analytics.Provider>
+            ) : (
+                children
+            )}
+        </body>
+    </html>;
+}
+
+export default function App() {
+    return (<CroctProvider>
+        <Outlet />
+    </CroctProvider>);
+}
+"
+`;
+
+exports[`JsxWrapperCodemod should correctly transform childrenOfSelfClosing.tsx: childrenOfSelfClosing.tsx 1`] = `
+"import { CroctProvider } from "@croct/plug-react";
+import {Analytics} from '@shopify/hydrogen';
+
+export default function App() {
+    return (<CroctProvider>
+        <Analytics.Provider />
+    </CroctProvider>);
+}
+"
+`;
+
 exports[`JsxWrapperCodemod should correctly transform containerAliasedImport.tsx: containerAliasedImport.tsx 1`] = `
 "import { CroctProvider } from "@croct/plug-react";
 import {Analytics as Shopify} from '@shopify/hydrogen';
