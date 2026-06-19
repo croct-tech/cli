@@ -45,6 +45,14 @@ export enum PhpEnvVar {
 }
 
 /**
+ * An optional Croct integration installed when a companion library is already present.
+ */
+type Integration = {
+    detect: string,
+    install: string,
+};
+
+/**
  * Base SDK for PHP projects.
  *
  * Installs the Croct dependencies through Composer and writes the credentials
@@ -53,6 +61,13 @@ export enum PhpEnvVar {
  */
 export abstract class PhpSdk implements Sdk {
     private static readonly PHPSTAN_EXTENSION = 'vendor/croct/plug-php/extension.neon';
+
+    private static readonly INTEGRATIONS: readonly Integration[] = [
+        {
+            detect: 'storyblok/php-content-api-client',
+            install: 'croct/plug-storyblok',
+        },
+    ];
 
     protected readonly projectDirectory: WorkingDirectory;
 
@@ -95,6 +110,8 @@ export abstract class PhpSdk implements Sdk {
 
         const plan = await this.getInstallationPlan(installation);
 
+        const dependencies = [...plan.dependencies, ...await this.getIntegrationDependencies()];
+
         const configuration: ProjectConfiguration = {
             ...plan.configuration,
             paths: {
@@ -126,7 +143,7 @@ export abstract class PhpSdk implements Sdk {
                 });
 
                 try {
-                    await this.packageManager.addDependencies(plan.dependencies, {logger: logger});
+                    await this.packageManager.addDependencies(dependencies, {logger: logger});
 
                     notifier.confirm('Dependencies installed');
                 } catch (error) {
@@ -292,6 +309,22 @@ export abstract class PhpSdk implements Sdk {
             input: installation.input,
             output: installation.output,
         });
+    }
+
+    /**
+     * Resolves the optional integration dependencies enabled by libraries already in the project.
+     *
+     * Merged into the installation plan automatically; subclasses without transparent
+     * auto-decoration override this to opt out.
+     */
+    protected async getIntegrationDependencies(): Promise<string[]> {
+        const detected = await Promise.all(
+            PhpSdk.INTEGRATIONS.map(integration => this.packageManager.hasDependency(integration.detect)),
+        );
+
+        return PhpSdk.INTEGRATIONS
+            .filter((_, index) => detected[index])
+            .map(integration => integration.install);
     }
 
     protected abstract getInstallationPlan(installation: Installation): Promise<InstallationPlan>;
