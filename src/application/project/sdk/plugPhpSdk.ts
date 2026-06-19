@@ -24,6 +24,14 @@ export class PlugPhpSdk extends PhpSdk {
         });
     }
 
+    protected getIntegrationDependencies(): Promise<string[]> {
+        /*
+         * Framework-agnostic PHP has no transparent auto-decoration, so optional integrations are
+         * left for the developer to wire manually.
+         */
+        return Promise.resolve([]);
+    }
+
     protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
         const paths = await this.getPaths(installation.configuration);
 
