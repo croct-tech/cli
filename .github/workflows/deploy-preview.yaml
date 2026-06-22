@@ -33,10 +33,7 @@ jobs:
         run: |-
           tmp=$(mktemp)
 
-          jq --arg version "$GITHUB_REF_NAME" \
-            '.version = $version' \
-            package.json > "$tmp"
-          
+          jq --arg version "$GITHUB_REF_NAME" '.version = $version' package.json > "$tmp" &&          
           mv "$tmp" package.json
 
       - name: Prepare release

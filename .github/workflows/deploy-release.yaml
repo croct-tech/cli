@@ -12,9 +12,7 @@ jobs:
       build-script: >-
         graphql-codegen &&
         tmp=$(mktemp) &&
-        jq --arg version "$GITHUB_REF_NAME" \
-          '.version = $version' \
-          package.json > "$tmp" &&
+        jq --arg version "$GITHUB_REF_NAME" '.version = $version' package.json > "$tmp" &&
         mv "$tmp" package.json &&
         npm run build
       prepare-script: >-
