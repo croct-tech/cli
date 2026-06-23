@@ -1,9 +1,6 @@
-import type {Installation} from '@/application/project/sdk/sdk';
+import type {Installation, InstallationPlan} from '@/application/project/sdk/sdk';
 import {SdkError} from '@/application/project/sdk/sdk';
-import type {
-    InstallationPlan,
-    Configuration as JavaScriptSdkConfiguration,
-} from '@/application/project/sdk/javasScriptSdk';
+import type {Configuration as JavaScriptSdkConfiguration} from '@/application/project/sdk/javasScriptSdk';
 import {JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import type {Codemod} from '@/application/project/code/transformation/codemod';
 import type {Task, TaskNotifier} from '@/application/cli/io/output';
@@ -226,8 +223,12 @@ export class PlugVueSdk extends JavaScriptSdk {
 
                         notifier.confirm('Plugin registered');
                     }
-                } catch (error) {
-                    notifier.alert('Failed to register plugin', HelpfulError.formatMessage(error));
+                } catch {
+                    notifier.alert(
+                        'Failed to register plugin',
+                        'Register the Croct plugin in your Vue entry: '
+                        + 'app.use(createCroct({appId: \'<your-app-id>\'})) before app.mount().',
+                    );
                 }
             },
         });

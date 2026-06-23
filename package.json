@@ -30,7 +30,8 @@
     "test": "jest -c jest.config.js --coverage",
     "validate": "tsc --noEmit",
     "build": "tsup",
-    "graphql-codegen": "graphql-codegen --config codegen.ts"
+    "graphql-codegen": "graphql-codegen --config codegen.ts",
+    "graphql-schema": "graphql-codegen --config codegen.schema.ts"
   },
   "dependencies": {
     "@babel/core": "^7.28.5",
@@ -79,6 +80,7 @@
   "devDependencies": {
     "@croct/eslint-plugin": "^0.9.2",
     "@graphql-codegen/cli": "^5.0.7",
+    "@graphql-codegen/schema-ast": "^4.1.0",
     "@swc/jest": "^0.2.39",
     "@types/ini": "^4.1.1",
     "@types/jest": "^29.5.14",
@@ -97,6 +99,8 @@
     "**/*.ts"
   ],
   "overrides": {
-    "lodash": "^4.17.24"
+    "lodash": "^4.17.24",
+    "esbuild": "^0.28.1",
+    "js-yaml": "^4.2.0"
   }
 }

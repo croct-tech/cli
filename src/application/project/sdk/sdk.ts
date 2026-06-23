@@ -1,5 +1,5 @@
 import type {Input} from '@/application/cli/io/input';
-import type {Output} from '@/application/cli/io/output';
+import type {Output, Task} from '@/application/cli/io/output';
 import type {ProjectConfiguration, ProjectPaths} from '@/application/project/configuration/projectConfiguration';
 import type {Slot} from '@/application/model/slot';
 import type {Help} from '@/application/error';
@@ -14,6 +14,12 @@ export type Installation = {
 
 export type UpdateOptions = {
     clean?: boolean,
+};
+
+export type InstallationPlan = {
+    tasks: Task[],
+    dependencies: string[],
+    configuration: ProjectConfiguration,
 };
 
 export interface Sdk {
@@ -54,6 +60,18 @@ export interface Sdk {
      * @throws SdkError If an error occurs.
      */
     generateSlotExample(slot: Slot, installation: Installation): Promise<void>;
+
+    /**
+     * Tell the user how to view the generated examples, optionally setting them up.
+     *
+     * Called once after all examples are generated. Implementations report where each example
+     * lives and how to open it (a route, a file, a component to import), and may detect the dev
+     * server to offer opening it directly.
+     *
+     * @param slots The slots whose examples were generated.
+     * @param installation The installation details.
+     */
+    presentExamples?(slots: Slot[], installation: Installation): Promise<void>;
 }
 
 export class SdkError extends HelpfulError {

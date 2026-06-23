@@ -3,6 +3,7 @@ import * as t from '@babel/types';
 import {traverse} from '@babel/core';
 import {traverseFast} from '@babel/types';
 import type {ResultCode, Codemod, CodemodOptions} from '@/application/project/code/transformation/codemod';
+import {CodemodError} from '@/application/project/code/transformation/codemod';
 import {addImport} from '@/application/project/code/transformation/javascript/utils/addImport';
 import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
 import type {AttributeType} from '@/application/project/code/transformation/javascript/utils/createJsxProps';
@@ -18,18 +19,48 @@ type TargetChildren = {
     index: number,
 };
 
+/**
+ * Wraps the `{name}` expression child (e.g. `children`).
+ */
+export type VariableTarget = {
+    variable: string,
+    component?: never,
+    container?: never,
+};
+
+/**
+ * Wraps the matched `<Name>` element itself. `Name` may be dotted (e.g. `Foo.Bar`) or namespaced.
+ */
+export type ComponentTarget = {
+    component: string,
+    variable?: never,
+    container?: never,
+};
+
+/**
+ * Wraps its children, nesting the former children inside the wrapper.
+ */
+export type ContainerTarget = {
+    container: string,
+    variable?: never,
+    component?: never,
+};
+
+/**
+ * Selects what the wrapper wraps.
+ */
+export type WrapperTarget = VariableTarget | ComponentTarget | ContainerTarget;
+
 export type WrapperConfiguration<O extends CodemodOptions = CodemodOptions> = {
     wrapper: {
         component: string,
         module: string,
         props?: Record<string, AttributeType>,
     },
-    targets?: {
-        variable?: string,
-        component?: string,
-    },
+    targets?: WrapperTarget,
     fallbackToNamedExports?: boolean,
     fallbackCodemod?: Codemod<t.File, O>,
+    required?: boolean,
 };
 
 export type WrapperOptions = CodemodOptions & {
@@ -127,7 +158,7 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
                 }
 
                 // export {Component as SomeComponent};
-                for (const specifier of namedExport.specifiers ?? []) {
+                for (const specifier of namedExport.specifiers) {
                     if (t.isExportSpecifier(specifier)) {
                         const declaration = this.findComponentDeclaration(input, specifier.local.name);
 
@@ -170,6 +201,10 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
 
         if (result === Transformation.NOT_APPLIED && fallbackCodemod !== undefined) {
             return fallbackCodemod.apply(input, options);
+        }
+
+        if (result === Transformation.NOT_APPLIED && this.configuration.required === true) {
+            throw new CodemodError(`No component found to wrap with <${this.configuration.wrapper.component}>.`);
         }
 
         return Promise.resolve({
@@ -241,7 +276,13 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
      * @return the result of the transformation.
      */
     private wrapBlockStatement(node: t.BlockStatement, component: string, ast: t.File, options?: O): Transformation {
-        const returnStatement = JsxWrapperCodemod.findReturnStatement(node);
+        const container = this.configuration.targets?.container;
+
+        const returnStatement = container !== undefined
+            ? this.findReturnWithElement(node, JsxWrapperCodemod.resolveElementName(ast, container))
+                ?? JsxWrapperCodemod.findReturnStatement(node)
+            : JsxWrapperCodemod.findReturnStatement(node);
+
         const argument = returnStatement?.argument ?? null;
 
         if (returnStatement !== null && argument !== null) {
@@ -280,12 +321,23 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
             };
         }
 
+        const container = this.configuration.targets?.container;
+
+        if (container !== undefined) {
+            return this.wrapElementChildren(
+                node,
+                JsxWrapperCodemod.resolveElementName(ast, container),
+                component,
+                options,
+            );
+        }
+
         const target = this.findTargetChildren(ast, node);
 
         if (target !== null) {
             const {parent, index} = target;
 
-            const children = [...parent.children ?? []];
+            const children = [...parent.children];
             const child = children.splice(index, 1)[0];
 
             target.parent.children = children.length === 0
@@ -336,18 +388,18 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
      * @param options The wrapper options.
      * @return The wrapped JSX element.
      */
-    private wrapElement(node: JsxKind, name: string | undefined, options?: O): t.JSXElement {
+    private wrapElement(node: JsxKind, name: string, options?: O): t.JSXElement {
         if (node.extra?.parenthesized === true) {
             node.extra.parenthesized = false;
         }
 
         return t.jsxElement(
             t.jsxOpeningElement(
-                t.jsxIdentifier(name ?? this.configuration.wrapper.component),
+                t.jsxIdentifier(name),
                 this.getProviderProps(options),
             ),
             t.jsxClosingElement(
-                t.jsxIdentifier(name ?? this.configuration.wrapper.component),
+                t.jsxIdentifier(name),
             ),
             [
                 t.jsxText('\n'),
@@ -364,6 +416,90 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
      */
     private getProviderProps(options?: O): t.JSXAttribute[] {
         return createJsxAttributes({...this.configuration.wrapper.props, ...options?.props});
+    }
+
+    /**
+     * Wraps the children of the named element with the wrapper component, in place.
+     *
+     * The element stays where it is and the wrapper becomes its single child, nesting the
+     * former children inside. Returns NOT_APPLIED when the element is absent or has no content
+     * to wrap, so the caller can fall back to other exports.
+     */
+    private wrapElementChildren(node: ExpressionKind, name: string, component: string, options?: O): WrapperInsertion {
+        const element = this.findElement(node, name);
+
+        if (element === null) {
+            return {result: Transformation.NOT_APPLIED, node: node};
+        }
+
+        const hasContent = element.children.some(child => !t.isJSXText(child) || child.value.trim() !== '');
+
+        if (!hasContent) {
+            return {result: Transformation.NOT_APPLIED, node: node};
+        }
+
+        element.children = [
+            t.jsxText('\n'),
+            t.jsxElement(
+                t.jsxOpeningElement(t.jsxIdentifier(component), this.getProviderProps(options)),
+                t.jsxClosingElement(t.jsxIdentifier(component)),
+                [t.jsxText('\n'), ...element.children, t.jsxText('\n')],
+            ),
+            t.jsxText('\n'),
+        ];
+
+        return {result: Transformation.APPLIED, node: node};
+    }
+
+    /**
+     * Finds the first JSX element whose opening name matches the given (dotted) name.
+     */
+    private findElement(node: t.Node, name: string): t.JSXElement | null {
+        let element: t.JSXElement | null = null;
+
+        traverseFast(node, current => {
+            if (
+                element === null
+                && t.isJSXElement(current)
+                && JsxWrapperCodemod.getJsxName(current.openingElement.name) === name
+            ) {
+                element = current;
+            }
+        });
+
+        return element;
+    }
+
+    /**
+     * Returns the dotted name of a JSX element name (identifier, member expression, or namespace).
+     */
+    private static getJsxName(name: t.JSXIdentifier | t.JSXMemberExpression | t.JSXNamespacedName): string {
+        if (t.isJSXMemberExpression(name)) {
+            return `${JsxWrapperCodemod.getJsxName(name.object)}.${JsxWrapperCodemod.getJsxName(name.property)}`;
+        }
+
+        if (t.isJSXNamespacedName(name)) {
+            return `${name.namespace.name}:${name.name.name}`;
+        }
+
+        return name.name;
+    }
+
+    /**
+     * Resolves the import alias of a target element name's root identifier, so an aliased import
+     * (e.g. `import {Analytics as Shopify}`) still matches `<Shopify.Provider>` for the configured
+     * `Analytics.Provider`. The root is matched against any module, leaving it untouched when it is
+     * not an imported binding.
+     */
+    private static resolveElementName(ast: t.File, name: string): string {
+        const segments = name.split('.');
+        const local = getImportLocalName(ast, {moduleName: /.*/, importName: segments[0]});
+
+        if (local !== null) {
+            segments[0] = local;
+        }
+
+        return segments.join('.');
     }
 
     /**
@@ -456,6 +592,10 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
             return null;
         }
 
+        const componentName = configuration.targets?.component === undefined
+            ? undefined
+            : JsxWrapperCodemod.resolveElementName(ast, configuration.targets.component);
+
         traverse(ast, {
             enter: function enter(path) {
                 const {node} = path;
@@ -487,10 +627,8 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
                         const {openingElement} = nestedPath.node;
 
                         if (
-                            configuration.targets?.component !== undefined
-                            && t.isJSXOpeningElement(openingElement)
-                            && t.isJSXIdentifier(openingElement.name)
-                            && openingElement.name.name === configuration.targets.component
+                            componentName !== undefined
+                            && JsxWrapperCodemod.getJsxName(openingElement.name) === componentName
                         ) {
                             if (nestedPath.parent !== null) {
                                 const parent = nestedPath.parent as t.JSXElement;
@@ -527,5 +665,25 @@ export class JsxWrapperCodemod<O extends WrapperOptions = WrapperOptions> implem
         });
 
         return returnStatement;
+    }
+
+    /**
+     * Finds the first return statement whose argument renders an element with the given (dotted) name.
+     */
+    private findReturnWithElement(body: t.BlockStatement, name: string): t.ReturnStatement | null {
+        let match: t.ReturnStatement | null = null;
+
+        traverseFast(body, node => {
+            if (
+                match === null
+                && t.isReturnStatement(node)
+                && node.argument != null
+                && this.findElement(node.argument, name) !== null
+            ) {
+                match = node;
+            }
+        });
+
+        return match;
     }
 }

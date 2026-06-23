@@ -37,4 +37,8 @@ export class LazySdk implements Sdk {
     public async generateSlotExample(slot: Slot, installation: Installation): Promise<void> {
         return (await this.sdk).generateSlotExample(slot, installation);
     }
+
+    public async presentExamples(slots: Slot[], installation: Installation): Promise<void> {
+        return (await this.sdk).presentExamples?.(slots, installation);
+    }
 }

@@ -11,7 +11,9 @@ jobs:
     with:
       build-script: >-
         graphql-codegen &&
-        sed -i -e "s~\"version\": \"0.0.0-dev\"~\"version\": \"${GITHUB_REF##*/}\"~" package.json &&
+        tmp=$(mktemp) &&
+        jq --arg version "$GITHUB_REF_NAME" '.version = $version' package.json > "$tmp" &&
+        mv "$tmp" package.json &&
         npm run build
       prepare-script: >-
         cp package.json LICENSE README.md build/ &&

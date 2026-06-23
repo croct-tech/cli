@@ -1,9 +1,6 @@
-import type {Installation} from '@/application/project/sdk/sdk';
+import type {Installation, InstallationPlan} from '@/application/project/sdk/sdk';
 import {SdkError} from '@/application/project/sdk/sdk';
-import type {
-    Configuration as JavaScriptSdkConfiguration,
-    InstallationPlan,
-} from '@/application/project/sdk/javasScriptSdk';
+import type {Configuration as JavaScriptSdkConfiguration} from '@/application/project/sdk/javasScriptSdk';
 import {JavaScriptSdk} from '@/application/project/sdk/javasScriptSdk';
 import type {ApplicationApi, GeneratedApiKey} from '@/application/api/application';
 import type {WorkspaceApi} from '@/application/api/workspace';
@@ -26,6 +23,8 @@ import {
 import {ApiError} from '@/application/api/error';
 import type {Slot} from '@/application/model/slot';
 import {ErrorReason, HelpfulError} from '@/application/error';
+import type {Example} from '@/application/project/example/example';
+import {UrlExample} from '@/application/project/example/example';
 import type {ImportResolver} from '@/application/project/import/importResolver';
 import {ApiKeyPermission} from '@/application/model/application';
 import {PlugReactExampleGenerator} from '@/application/project/code/generation/slot/plugReactExampleGenerator';
@@ -96,22 +95,36 @@ export class PlugNextSdk extends JavaScriptSdk {
         this.applicationApi = configuration.applicationApi;
     }
 
+    protected async createExample(slot: Slot, installation: Installation): Promise<Example> {
+        if (await this.isFallbackMode()) {
+            // Next.js < 13: the example is a React component to import, not a route.
+            return super.createExample(slot, installation);
+        }
+
+        return new UrlExample(slot.name, `/${slot.slug}`);
+    }
+
     protected async generateSlotExampleFiles(slot: Slot, installation: Installation): Promise<ExampleFile[]> {
-        const [router, isTypescript, fallbackMode] = await Promise.all([
+        const [router, isTypeScript, fallbackMode] = await Promise.all([
             this.detectRouter(),
             this.isTypeScriptProject(),
             this.isFallbackMode(),
         ]);
 
-        const isTypeScript = await this.isTypeScriptProject();
-
         const paths = await this.getPaths(installation.configuration);
-        const slotPath = this.fileSystem.joinPaths(paths.components, `%slug%${isTypeScript ? '.tsx' : '.jsx'}`);
-        const pagePath = this.fileSystem.joinPaths(paths.examples, '%slug%');
+        const extension = isTypeScript ? '.tsx' : '.jsx';
+        const slotPath = this.fileSystem.joinPaths(paths.components, `%slug%${extension}`);
 
-        const slotImportPath = await this.importResolver.getImportPath(slotPath, pagePath);
+        // App Router routes live at `<examples>/<slug>/page`. Page Router and the React fallback
+        // use `<examples>/<slug>/index`.
+        const pageFileName = fallbackMode || router === 'page' ? 'index' : 'page';
+        const pageFilePath = this.fileSystem.joinPaths(paths.examples, '%slug%', `${pageFileName}${extension}`);
 
-        const language = isTypescript ? CodeLanguage.TYPESCRIPT_XML : CodeLanguage.JAVASCRIPT_XML;
+        // Resolve the component import relative to the page file itself. Resolving it against the
+        // route directory drops a level, leaving the `../` prefix short by one.
+        const slotImportPath = await this.importResolver.getImportPath(slotPath, pageFilePath);
+
+        const language = isTypeScript ? CodeLanguage.TYPESCRIPT_XML : CodeLanguage.JAVASCRIPT_XML;
 
         const generator = fallbackMode
             ? new PlugReactExampleGenerator({
@@ -121,7 +134,7 @@ export class PlugNextSdk extends JavaScriptSdk {
                 slotImportPath: slotImportPath,
                 slotFilePath: slotPath,
                 slotComponentName: '%name%',
-                pageFilePath: this.fileSystem.joinPaths(pagePath, `index${isTypeScript ? '.tsx' : '.jsx'}`),
+                pageFilePath: pageFilePath,
                 pageComponentName: 'Page',
             })
             : new PlugNextExampleGenerator({
@@ -131,10 +144,7 @@ export class PlugNextSdk extends JavaScriptSdk {
                 slotImportPath: slotImportPath,
                 slotFilePath: slotPath,
                 slotComponentName: '%name%',
-                pageFilePath: this.fileSystem.joinPaths(
-                    pagePath,
-                    `${router === 'page' ? 'index' : 'page'}${isTypescript ? '.tsx' : '.jsx'}`,
-                ),
+                pageFilePath: pageFilePath,
                 pageComponentName: 'Page',
             });
 

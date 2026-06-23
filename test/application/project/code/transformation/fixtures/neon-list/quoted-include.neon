@@ -1,0 +1,2 @@
+includes:
+	- 'vendor/croct/plug-php/extension.neon'

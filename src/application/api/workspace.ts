@@ -35,6 +35,7 @@ export type NewApplication = WorkspacePath & Omit<Application, 'id' | 'slug' | '
 
 export enum TargetSdk {
     JAVASCRIPT = 'PLUG_JS',
+    PHP = 'PLUG_PHP',
 }
 
 export type VersionSpecifier = {

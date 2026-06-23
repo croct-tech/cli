@@ -34,7 +34,7 @@ import {
     Feature,
     Platform as GraphqlPlatform,
     ApplicationEnvironment as GraphqlApplicationEnvironment,
-    ApplicationTrafficStatus as GraphqlApplicationTrafficStatus,
+    TrafficStatus as GraphqlApplicationTrafficStatus,
     TargetSdk as GraphqlTargetSdk,
     ExperimentStatus as GraphqlExperimentStatus,
     ExperienceStatus as GraphqlExperienceStatus,
@@ -121,15 +121,17 @@ function createNormalizationMap<M extends string, A extends string>(map: Record<
     };
 }
 
-// The GraphQL schema does not yet have first-class Vue/Nuxt platforms, so they are
-// reported to the server as JavaScript. JAVASCRIPT is intentionally listed last so that
-// the inverse (api -> model) map resolves the shared `Javascript` value back to JAVASCRIPT.
 const platformMap = createNormalizationMap<Platform, GraphqlPlatform>({
-    [Platform.VUE]: GraphqlPlatform.Javascript,
-    [Platform.NUXT]: GraphqlPlatform.Javascript,
+    [Platform.JAVASCRIPT]: GraphqlPlatform.Javascript,
+    [Platform.HYDROGEN]: GraphqlPlatform.Hydrogen,
     [Platform.REACT]: GraphqlPlatform.React,
     [Platform.NEXTJS]: GraphqlPlatform.Next,
-    [Platform.JAVASCRIPT]: GraphqlPlatform.Javascript,
+    [Platform.VUE]: GraphqlPlatform.Vue,
+    [Platform.NUXT]: GraphqlPlatform.Nuxt,
+    [Platform.PHP]: GraphqlPlatform.Php,
+    [Platform.LARAVEL]: GraphqlPlatform.Laravel,
+    [Platform.SYMFONY]: GraphqlPlatform.Symfony,
+    [Platform.DRUPAL]: GraphqlPlatform.Drupal,
 });
 
 const environmentMap = createNormalizationMap<ApplicationEnvironment, GraphqlApplicationEnvironment>({
@@ -145,6 +147,7 @@ const trafficStatusMap = createNormalizationMap<ApplicationTrafficStatus, Graphq
 
 const targetSdkMap = createNormalizationMap<TargetSdk, GraphqlTargetSdk>({
     [TargetSdk.JAVASCRIPT]: GraphqlTargetSdk.PlugJs,
+    [TargetSdk.PHP]: GraphqlTargetSdk.PlugPhp,
 });
 
 const experienceStatusMap = createNormalizationMap<ExperienceStatus, GraphqlExperienceStatus>({

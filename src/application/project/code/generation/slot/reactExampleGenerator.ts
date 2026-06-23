@@ -161,7 +161,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
         writer.write('return (')
             .indent();
 
-        this.writeRenderingSnippet(writer, definition.definition, this.options.contentVariable);
+        ReactExampleGenerator.renderComponentSnippet(writer, definition.definition, this.options.contentVariable);
 
         writer
             .outdent()
@@ -197,7 +197,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
 
     protected abstract writeSlotHeader(writer: CodeWriter, definition: SlotDefinition): void;
 
-    private writeRenderingSnippet(writer: CodeWriter, definition: ContentDefinition, path: string): void {
+    public static renderComponentSnippet(writer: CodeWriter, definition: ContentDefinition, path: string): void {
         switch (definition.type) {
             case 'number':
             case 'text':
@@ -238,7 +238,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
                     writer.appendIndentation();
                 }
 
-                this.writeRenderingSnippet(writer, definition.items, variable);
+                ReactExampleGenerator.renderComponentSnippet(writer, definition.items, variable);
 
                 if (inline) {
                     writer.newLine();
@@ -270,7 +270,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
                         writer.indent();
                     }
 
-                    this.writeAttributeSnippet(writer, {name: name, ...attribute}, path);
+                    ReactExampleGenerator.writeAttributeSnippet(writer, {name: name, ...attribute}, path);
 
                     if (attribute.optional === true) {
                         writer.outdent();
@@ -297,7 +297,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
                         .write(`{${path}._type === '${id}' && (`)
                         .indent();
 
-                    this.writeRenderingSnippet(writer, variant, path);
+                    ReactExampleGenerator.renderComponentSnippet(writer, variant, path);
 
                     writer
                         .outdent()
@@ -315,7 +315,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
         }
     }
 
-    private writeAttributeSnippet(writer: CodeWriter, attribute: Attribute, path: string): void {
+    private static writeAttributeSnippet(writer: CodeWriter, attribute: Attribute, path: string): void {
         const definition = attribute.type;
         const label = ReactExampleGenerator.escapeEntities(attribute.label ?? formatLabel(attribute.name));
 
@@ -327,7 +327,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
                     .write('<li>', false)
                     .append(`<strong>${label}:</strong> `);
 
-                this.writeRenderingSnippet(writer, definition, `${path}.${attribute.name}`);
+                ReactExampleGenerator.renderComponentSnippet(writer, definition, `${path}.${attribute.name}`);
 
                 writer.append('</li>')
                     .newLine();
@@ -341,7 +341,7 @@ export abstract class ReactExampleGenerator implements SlotExampleGenerator {
                     .indent()
                     .write(`<strong>${label}</strong>`);
 
-                this.writeRenderingSnippet(writer, definition, `${path}.${attribute.name}`);
+                ReactExampleGenerator.renderComponentSnippet(writer, definition, `${path}.${attribute.name}`);
 
                 writer
                     .outdent()

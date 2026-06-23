@@ -25,6 +25,62 @@ describe('JsxWrapperCodemod', () => {
                     component: 'Component',
                 },
             },
+            'targetSingleChild.tsx': {
+                targets: {
+                    component: 'Component',
+                },
+            },
+            'targetComponentMemberExpression.tsx': {
+                targets: {
+                    component: 'Theme.Provider',
+                },
+            },
+            'containerMemberExpression.tsx': {
+                targets: {
+                    container: 'Analytics.Provider',
+                },
+            },
+            'containerAliasedImport.tsx': {
+                targets: {
+                    container: 'Analytics.Provider',
+                },
+            },
+            'containerRemixTernary.tsx': {
+                targets: {
+                    container: 'Analytics.Provider',
+                },
+                fallbackToNamedExports: true,
+            },
+            'containerEarlyReturn.tsx': {
+                targets: {
+                    container: 'Analytics.Provider',
+                },
+            },
+            'containerAlreadyWrapped.tsx': {
+                targets: {
+                    container: 'Analytics.Provider',
+                },
+            },
+            'containerNotFound.tsx': {
+                targets: {
+                    container: 'Analytics.Provider',
+                },
+            },
+            'containerSelfClosing.tsx': {
+                targets: {
+                    container: 'Analytics.Provider',
+                },
+            },
+            'containerNamespaced.tsx': {
+                targets: {
+                    container: 'svg:g',
+                },
+            },
+            'containerIdentifierElement.tsx': {
+                targets: {
+                    container: 'Providers',
+                },
+            },
             'targetChildren.tsx': {
                 targets: {
                     variable: 'children',
@@ -214,6 +270,40 @@ describe('JsxWrapperCodemod', () => {
         const {result} = await transformer.apply(input);
 
         expect(codemod.apply).not.toHaveBeenCalled();
+
+        expect(result).toEqual(input);
+    });
+
+    it('should throw when required and no component can be wrapped', async () => {
+        const transformer = new JavaScriptCodemod({
+            languages: ['typescript', 'jsx'],
+            codemod: new JsxWrapperCodemod({
+                ...defaultOptions,
+                targets: {container: 'Analytics.Provider'},
+                required: true,
+            }),
+        });
+
+        await expect(transformer.apply('export default function App() {\n    return <div/>;\n}\n'))
+            .rejects
+            .toThrow('No component found to wrap with <CroctProvider>.');
+    });
+
+    it('should not throw when required but the wrapper is already present', async () => {
+        const transformer = new JavaScriptCodemod({
+            languages: ['typescript', 'jsx'],
+            codemod: new JsxWrapperCodemod({...defaultOptions, required: true}),
+        });
+
+        const input = [
+            "import {CroctProvider} from '@croct/plug-react';",
+            'export default function App() {',
+            '  return <CroctProvider/>;',
+            '}',
+            '',
+        ].join('\n');
+
+        const {result} = await transformer.apply(input);
 
         expect(result).toEqual(input);
     });

@@ -23,4 +23,8 @@ export class LazyImportResolver implements ImportResolver {
     public async getImportPath(filePath: string, importPath?: string): Promise<string> {
         return (await this.resolver).getImportPath(filePath, importPath);
     }
+
+    public async resolveImport(importPath: string, sourcePath: string): Promise<string | null> {
+        return (await this.resolver).resolveImport(importPath, sourcePath);
+    }
 }

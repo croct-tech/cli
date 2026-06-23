@@ -1,10 +1,13 @@
 import * as t from '@babel/types';
 import {traverse} from '@babel/core';
 import type {Codemod, CodemodOptions, ResultCode} from '@/application/project/code/transformation/codemod';
+import {CodemodError} from '@/application/project/code/transformation/codemod';
 import {getImportLocalName} from '@/application/project/code/transformation/javascript/utils/getImportLocalName';
+import {spreadAsArray} from '@/application/project/code/transformation/javascript/utils/spreadAsArray';
 
 export type NuxtConfigModuleConfiguration = {
     moduleName: string,
+    required?: boolean,
 };
 
 /**
@@ -26,6 +29,10 @@ export class NuxtConfigModuleCodemod implements Codemod<t.File, CodemodOptions> 
         const config = NuxtConfigModuleCodemod.findConfig(input);
 
         if (config === null) {
+            if (this.configuration.required === true) {
+                throw new CodemodError('No Nuxt configuration found to register the Croct module.');
+            }
+
             return Promise.resolve({modified: false, result: input});
         }
 
@@ -43,7 +50,15 @@ export class NuxtConfigModuleCodemod implements Codemod<t.File, CodemodOptions> 
         }
 
         if (!t.isArrayExpression(modulesProperty.value)) {
-            return Promise.resolve({modified: false, result: input});
+            // Normalize a non-array `modules` value (a variable, a call, etc.) into an array with
+            // the module, preserving the existing value. The cast is forced by `ObjectProperty.value`'s
+            // `Expression | PatternLike` type; an object-literal value is always an expression.
+            modulesProperty.value = t.arrayExpression([
+                spreadAsArray(modulesProperty.value as t.Expression),
+                t.stringLiteral(this.configuration.moduleName),
+            ]);
+
+            return Promise.resolve({modified: true, result: input});
         }
 
         if (this.hasModule(modulesProperty.value)) {

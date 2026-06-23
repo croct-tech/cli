@@ -1,0 +1,78 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NeonListCodemod transforms already-included.neon: already-included.neon 1`] = `
+"includes:
+	- vendor/croct/plug-php/extension.neon
+
+parameters:
+	level: 8
+"
+`;
+
+exports[`NeonListCodemod transforms commented-include.neon: commented-include.neon 1`] = `
+"includes:
+	- vendor/croct/plug-php/extension.neon
+	# - vendor/croct/plug-php/extension.neon
+	- phpstan-baseline.neon
+"
+`;
+
+exports[`NeonListCodemod transforms double-quoted.neon: double-quoted.neon 1`] = `
+"includes:
+	- vendor/croct/plug-php/extension.neon
+	- "other.neon"
+
+parameters:
+	level: 8
+"
+`;
+
+exports[`NeonListCodemod transforms empty.neon: empty.neon 1`] = `
+"includes:
+	- vendor/croct/plug-php/extension.neon
+"
+`;
+
+exports[`NeonListCodemod transforms empty-includes.neon: empty-includes.neon 1`] = `
+"includes:
+	- vendor/croct/plug-php/extension.neon
+parameters:
+	level: 8
+"
+`;
+
+exports[`NeonListCodemod transforms no-includes.neon: no-includes.neon 1`] = `
+"includes:
+	- vendor/croct/plug-php/extension.neon
+
+parameters:
+	level: 8
+	paths:
+		- src
+"
+`;
+
+exports[`NeonListCodemod transforms quoted-include.neon: quoted-include.neon 1`] = `
+"includes:
+	- 'vendor/croct/plug-php/extension.neon'
+"
+`;
+
+exports[`NeonListCodemod transforms trailing-includes.neon: trailing-includes.neon 1`] = `
+"parameters:
+	level: 8
+
+includes:
+	- vendor/croct/plug-php/extension.neon
+"
+`;
+
+exports[`NeonListCodemod transforms with-includes.neon: with-includes.neon 1`] = `
+"includes:
+	- vendor/croct/plug-php/extension.neon
+	- phpstan-baseline.neon
+
+parameters:
+	level: 8
+"
+`;

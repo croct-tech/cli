@@ -27,4 +27,14 @@ describe('NuxtConfigModuleCodemod', () => {
 
         expect(output.result).toMatchSnapshot(name);
     });
+
+    it('throws when required and there is no Nuxt configuration', async () => {
+        const transformer = new JavaScriptCodemod({
+            languages: ['typescript'],
+            codemod: new NuxtConfigModuleCodemod({...defaultOptions, required: true}),
+        });
+
+        await expect(transformer.apply('export default makeConfig();\n')).rejects
+            .toThrow('No Nuxt configuration found to register the Croct module.');
+    });
 });
