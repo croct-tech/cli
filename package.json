@@ -78,7 +78,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@croct/eslint-plugin": "^0.8.3",
+    "@croct/eslint-plugin": "^0.9.2",
     "@graphql-codegen/cli": "^5.0.7",
     "@graphql-codegen/schema-ast": "^4.1.0",
     "@swc/jest": "^0.2.39",
@@ -87,9 +87,9 @@
     "@types/prompts": "^2.4.9",
     "@types/semver": "^7.7.1",
     "@types/tar-stream": "^3.1.4",
-    "@typescript-eslint/parser": "^8.54.0",
+    "@typescript-eslint/parser": "^8.59.3",
     "esbuild-plugin-file-path-extensions": "^2.1.4",
-    "eslint": "^9.39.2",
+    "eslint": "^10.3.0",
     "jest": "^29.7.0",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3"
@@ -99,6 +99,8 @@
     "**/*.ts"
   ],
   "overrides": {
-    "lodash": "^4.17.24"
+    "lodash": "^4.17.24",
+    "esbuild": "^0.28.1",
+    "js-yaml": "^4.2.0"
   }
 }
