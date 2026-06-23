@@ -36,6 +36,9 @@ jobs:
           jq --arg version "$GITHUB_REF_NAME" '.version = $version' package.json > "$tmp" &&          
           mv "$tmp" package.json
 
+      - name: Build
+        run: npm run build
+
       - name: Prepare release
         run: |-
           cp package.json LICENSE README.md build/
