@@ -78,7 +78,7 @@ export abstract class PhpExampleGenerator implements SlotExampleGenerator {
     protected abstract writeScript(writer: CodeWriter, definition: SlotDefinition): void;
 
     protected writeHandoff(writer: CodeWriter): void {
-        writer.write('<script async src="https://cdn.croct.io/js/v1/lib/plug.js"></script>')
+        writer.write('<script src="https://cdn.croct.io/js/v1/lib/plug.js"></script>')
             .write('<script>')
             .indent()
             .write('croct.plug(<?= json_encode($croct->getPlugOptions()) ?>);')
