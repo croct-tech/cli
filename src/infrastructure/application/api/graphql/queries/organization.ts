@@ -34,7 +34,7 @@ export const organizationQuery = graphql(`
 
 export const organizationsQuery = graphql(`
     query Organizations {
-        organizations(first: 900) {
+        organizations(first: 300) {
             edges {
                 node {
                     id
