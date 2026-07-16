@@ -18,6 +18,7 @@ export type SlotContentMap = Record<string, LocalizedContentMap>;
 export type LocalizedContentMap = Record<string, Content<'structure'>>;
 
 export type SegmentedContent = {
+    id: string,
     audiences: string[],
     content: SlotContentMap,
 };

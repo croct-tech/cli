@@ -140,7 +140,17 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
                             variants: experiment.variants.map(
                                 variant => ({
                                     name: variant.name ?? '',
-                                    content: variant.content,
+                                    content: {
+                                        default: variant.content.default,
+                                        segmented: variant.content
+                                            .segmented
+                                            .map(
+                                                segment => ({
+                                                    audiences: segment.audiences,
+                                                    content: segment.content,
+                                                }),
+                                            ),
+                                    },
                                     baseline: variant.baseline,
                                     allocation: variant.allocation ?? (1000 / experiment.variants.length),
                                 }),
@@ -153,7 +163,17 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
                         draft: experience.status === ExperienceStatus.DRAFT,
                         audiences: experience.audiences,
                         slots: experience.slots,
-                        content: experience.content,
+                        content: {
+                            default: experience.content.default,
+                            segmented: experience.content
+                                .segmented
+                                .map(
+                                    segment => ({
+                                        audiences: segment.audiences,
+                                        content: segment.content,
+                                    }),
+                                ),
+                        },
                         ...(experimentDefinition !== undefined ? {experiment: experimentDefinition} : {}),
                     };
                 },

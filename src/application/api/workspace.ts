@@ -65,9 +65,11 @@ export type ExperienceCriteria = WorkspacePath & {
     status?: ExperienceStatus | ExperienceStatus[],
 };
 
+export type SegmentedContentDefinition = Omit<SegmentedContent, 'id'>;
+
 export type PersonalizedContentDefinition = {
     default?: SlotContentMap,
-    segmented?: SegmentedContent[],
+    segmented?: SegmentedContentDefinition[],
 };
 
 export type SlotDefinition = {
