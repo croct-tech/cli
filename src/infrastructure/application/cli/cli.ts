@@ -2818,12 +2818,7 @@ export class Cli {
                 fullValidator: new FullCroctConfigurationValidator(),
                 partialValidator: new PartialCroctConfigurationValidator(),
                 projectDirectory: this.workingDirectory,
-                configurationFile: fileSystem.isAbsolutePath(this.configuration.configurationFile)
-                    ? this.configuration.configurationFile
-                    : fileSystem.joinPaths(
-                        this.workingDirectory.get(),
-                        this.configuration.configurationFile,
-                    ),
+                configurationFile: this.configuration.configurationFile,
             });
 
             return new IndexedConfigurationManager({
