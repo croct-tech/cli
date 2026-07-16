@@ -487,13 +487,13 @@ export class Cli {
 
     public static fromDefaults(configuration: Options): Cli {
         const appPaths = XDGAppPaths('com.croct.cli');
-        const process = new NodeProcess();
+        const process = configuration.process ?? new NodeProcess();
 
         return new Cli({
             program: configuration.program ?? ((): never => {
                 throw new HelpfulError('CLI is running in standalone mode.');
             }),
-            process: configuration.process ?? process,
+            process: process,
             quiet: configuration.quiet ?? false,
             debug: configuration.debug ?? false,
             stateless: configuration.stateless ?? ci.isCI,

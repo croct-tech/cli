@@ -4,9 +4,12 @@ import {realpathSync} from 'fs';
 import {ApiKey} from '@croct/sdk/apiKey';
 import {Token} from '@croct/sdk/token';
 import {Cli} from '@/infrastructure/application/cli/cli';
+import {NodeProcess} from '@/infrastructure/application/system/nodeProcess';
+import type {Process} from '@/application/system/process/process';
 import type {Resource} from '@/application/cli/command/init';
 import type {OptionMap} from '@/application/template/template';
 import {ApiKeyPermission, ApplicationEnvironment} from '@/application/model/application';
+import {HasEnvVar} from '@/application/predicate/hasEnvVar';
 import packageJson from '@/../package.json';
 
 type Configuration = {
@@ -438,17 +441,28 @@ function isDeepLinkCommand(args: string[]): boolean {
     return args.length >= 2 && ['enable', 'disable'].includes(args[0]) && args[1] === 'deep-link';
 }
 
-export async function run(args: string[] = process.argv, welcome = true): Promise<void> {
-    const invocation = createProgram({interactive: true}).parse(args);
+export async function run(
+    args: string[] = process.argv,
+    welcome = true,
+    runtime: Process = new NodeProcess(),
+): Promise<void> {
+    const lifecycleScript = new HasEnvVar({
+        process: runtime,
+        variable: 'npm_lifecycle_event',
+        value: /^(?:pre|post)/,
+    }).test();
+    const invocation = createProgram({interactive: !lifecycleScript}).parse(args);
 
     const options = invocation.opts();
+    const interactive = options.interaction && !lifecycleScript;
 
     const cli = Cli.fromDefaults({
-        program: params => run(invocation.args.slice(0, 2).concat(params)),
+        process: runtime,
+        program: params => run(invocation.args.slice(0, 2).concat(params), true, runtime),
         version: packageJson.version,
         quiet: options.quiet,
         debug: options.debug,
-        interactive: options.interaction ? undefined : false,
+        interactive: interactive ? undefined : false,
         stateless: options.stateless,
         apiKey: options.apiKey,
         token: options.token,
@@ -467,7 +481,7 @@ export async function run(args: string[] = process.argv, welcome = true): Promis
 
     const program = createProgram({
         cli: cli,
-        interactive: options.interaction,
+        interactive: interactive,
         template: templateOptions,
     });
 
