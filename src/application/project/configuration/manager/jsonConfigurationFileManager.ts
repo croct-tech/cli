@@ -39,6 +39,8 @@ export class JsonConfigurationFileManager implements ConfigurationManager {
 
     private readonly fileSystem: FileSystem;
 
+    private readonly projectDirectory: WorkingDirectory;
+
     private readonly fullValidator: Validator<ProjectConfiguration>;
 
     private readonly partialValidator: Validator<PartialProjectConfiguration>;
@@ -47,6 +49,7 @@ export class JsonConfigurationFileManager implements ConfigurationManager {
 
     public constructor(configuration: Configuration) {
         this.fileSystem = configuration.fileSystem;
+        this.projectDirectory = configuration.projectDirectory;
         this.fullValidator = configuration.fullValidator;
         this.partialValidator = configuration.partialValidator;
         this.configurationFile = configuration.configurationFile;
@@ -54,7 +57,7 @@ export class JsonConfigurationFileManager implements ConfigurationManager {
 
     public async isInitialized(state: InitializationState = InitializationState.ANY): Promise<boolean> {
         if (state === InitializationState.ANY) {
-            return this.fileSystem.exists(this.configurationFile);
+            return this.fileSystem.exists(this.getConfigurationFilePath());
         }
 
         const validator = state === InitializationState.FULL
@@ -159,7 +162,7 @@ export class JsonConfigurationFileManager implements ConfigurationManager {
         validator: Validator<T>,
     ): Promise<LoadedFile<Omit<T, '$schema'>>> {
         const file: LoadedFile<T> = {
-            path: this.configurationFile,
+            path: this.getConfigurationFilePath(),
             source: null,
             configuration: null,
         };
@@ -182,6 +185,12 @@ export class JsonConfigurationFileManager implements ConfigurationManager {
         }
 
         return file;
+    }
+
+    private getConfigurationFilePath(): string {
+        return this.fileSystem.isAbsolutePath(this.configurationFile)
+            ? this.configurationFile
+            : this.fileSystem.joinPaths(this.projectDirectory.get(), this.configurationFile);
     }
 
     private async validateConfiguration<T extends JsonPartialProjectConfiguration>(
