@@ -140,7 +140,12 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
                             variants: experiment.variants.map(
                                 variant => ({
                                     name: variant.name ?? '',
-                                    content: variant.content,
+                                    content: {
+                                        ...variant.content,
+                                        segmented: variant.content
+                                            .segmented
+                                            .map(({id: _, ...segment}) => segment),
+                                    },
                                     baseline: variant.baseline,
                                     allocation: variant.allocation ?? (1000 / experiment.variants.length),
                                 }),
@@ -153,7 +158,12 @@ export class CreateTemplateCommand implements Command<CreateTemplateInput> {
                         draft: experience.status === ExperienceStatus.DRAFT,
                         audiences: experience.audiences,
                         slots: experience.slots,
-                        content: experience.content,
+                        content: {
+                            ...experience.content,
+                            segmented: experience.content
+                                .segmented
+                                .map(({id: _, ...segment}) => segment),
+                        },
                         ...(experimentDefinition !== undefined ? {experiment: experimentDefinition} : {}),
                     };
                 },
