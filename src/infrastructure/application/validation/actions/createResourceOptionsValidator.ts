@@ -14,11 +14,10 @@ import type {
     ComponentDefinition,
     ExperienceDefinition,
     PersonalizedContentDefinition,
-    SegmentedContentDefinition,
     SlotDefinition,
     VariantDefinition,
 } from '@/application/api/workspace';
-import type {LocalizedContentMap, SlotContentMap} from '@/application/model/experience';
+import type {LocalizedContentMap, SegmentedContent, SlotContentMap} from '@/application/model/experience';
 import {ActionOptionsValidator} from '@/infrastructure/application/validation/actions/actionOptionsValidator';
 
 const audienceDefinitionSchema: ZodType<AudienceDefinition> = z.strictObject({
@@ -254,7 +253,7 @@ const slotContentMap: ZodType<SlotContentMap> = z.record(
     localizedSlotContentSchema,
 );
 
-const segmentedContentSchema: ZodType<SegmentedContentDefinition> = z.strictObject({
+const segmentedContentSchema: ZodType<SegmentedContent> = z.strictObject({
     audiences: z.array(z.string()),
     content: slotContentMap,
 });

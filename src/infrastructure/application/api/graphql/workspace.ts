@@ -642,7 +642,6 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                                         ),
                                         segmented: (variant.content?.segmented ?? []).map(
                                             content => ({
-                                                id: content.groupId,
                                                 audiences: content.audiences.map(audience => audience.audienceId),
                                                 content: GraphqlWorkspaceApi.normalizeLocalizedContent(
                                                     content.contents,
@@ -667,7 +666,6 @@ export class GraphqlWorkspaceApi implements WorkspaceApi {
                 ),
                 segmented: (data.settings?.content.segmented ?? data.draft?.content?.segmented ?? []).map(
                     content => ({
-                        id: content.groupId,
                         audiences: content.audiences.map(
                             ({audienceId}) => audiences.find(({id}) => id === audienceId)?.customId ?? audienceId,
                         ),
