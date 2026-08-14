@@ -48,25 +48,41 @@ export class FetchGraphqlClient implements GraphqlClient {
             }),
         });
 
-        return response.json().then(result => {
-            const {data, errors} = result as GraphqlResponseBody<TResult>;
+        const {data, errors} = await FetchGraphqlClient.parseBody<TResult>(response);
 
-            if (errors !== undefined) {
-                throw new ApiError(
-                    errors[0].message.replace(/"/g, '`'),
-                    errors.map(
-                        ({extensions}) => ({
-                            ...extensions,
-                            detail: extensions.detail?.replace(/"/g, '`'),
-                        }),
-                    ),
-                );
-            }
+        if (errors !== undefined) {
+            throw new ApiError(
+                errors[0].message.replace(/"/g, '`'),
+                errors.map(
+                    ({extensions}) => ({
+                        ...extensions,
+                        detail: extensions.detail?.replace(/"/g, '`'),
+                    }),
+                ),
+            );
+        }
 
-            return {
-                data: data,
-                headers: response.headers,
-            };
-        });
+        return {
+            data: data,
+            headers: response.headers,
+        };
+    }
+
+    private static async parseBody<TResult>(response: Response): Promise<GraphqlResponseBody<TResult>> {
+        const body = await response.text();
+
+        let payload: unknown;
+
+        try {
+            payload = JSON.parse(body);
+        } catch {
+            payload = null;
+        }
+
+        if (typeof payload !== 'object' || payload === null) {
+            throw new ApiError(body);
+        }
+
+        return payload as GraphqlResponseBody<TResult>;
     }
 }
