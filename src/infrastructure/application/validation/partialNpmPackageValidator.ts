@@ -4,7 +4,7 @@ import {ZodValidator} from '@/infrastructure/application/validation/zodValidator
 import type {PartialNpmManifest} from '@/application/project/packageManager/nodePackageManager';
 
 const packageSchema: ZodType<PartialNpmManifest> = z.object({
-    name: z.string(),
+    name: z.string().optional(),
     version: z.string().optional(),
     dependencies: z.record(z.string()).optional(),
     devDependencies: z.record(z.string()).optional(),

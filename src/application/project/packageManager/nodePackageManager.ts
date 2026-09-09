@@ -24,7 +24,7 @@ export type Configuration = {
 };
 
 export type PartialNpmManifest = {
-    name: string,
+    name?: string,
     version?: string,
     dependencies?: Record<string, string>,
     devDependencies?: Record<string, string>,
@@ -128,7 +128,7 @@ export class NodePackageManager implements PackageManager {
         }
 
         return {
-            name: info.name,
+            name: info.name ?? name,
             version: info.version ?? null,
             directory: this.fileSystem.getDirectoryName(manifestPath),
             metadata: info,
