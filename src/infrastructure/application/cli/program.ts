@@ -22,14 +22,29 @@ function createProgram(config: Configuration): typeof program {
         .enablePositionalOptions()
         .option('--cwd <path>', 'The working directory.', path => {
             let directory: string;
+            let isDirectory: boolean;
 
             try {
                 directory = realpathSync(path);
-            } catch {
-                throw new InvalidOptionArgumentError('The path does not exist.');
+                isDirectory = statSync(directory).isDirectory();
+            } catch (error) {
+                const code = error instanceof Error && 'code' in error ? error.code : null;
+
+                switch (code) {
+                    case 'ENOENT':
+                    case 'ENOTDIR':
+                        throw new InvalidOptionArgumentError('The path does not exist.');
+
+                    case 'EACCES':
+                    case 'EPERM':
+                        throw new InvalidOptionArgumentError('The path is not accessible.');
+
+                    default:
+                        throw new InvalidOptionArgumentError('The path cannot be resolved.');
+                }
             }
 
-            if (!statSync(directory).isDirectory()) {
+            if (!isDirectory) {
                 throw new InvalidOptionArgumentError('The path is not a directory.');
             }
 
