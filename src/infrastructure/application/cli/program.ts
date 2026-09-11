@@ -1,6 +1,6 @@
 import {Argument, Command, InvalidOptionArgumentError, Option} from '@commander-js/extra-typings';
 import type {JsonPrimitive, JsonValue} from '@croct/json';
-import {realpathSync} from 'fs';
+import {realpathSync, statSync} from 'fs';
 import {ApiKey} from '@croct/sdk/apiKey';
 import {Token} from '@croct/sdk/token';
 import {Cli} from '@/infrastructure/application/cli/cli';
@@ -21,11 +21,19 @@ function createProgram(config: Configuration): typeof program {
         .description('Manage your Croct projects')
         .enablePositionalOptions()
         .option('--cwd <path>', 'The working directory.', path => {
+            let directory: string;
+
             try {
-                return realpathSync(path);
+                directory = realpathSync(path);
             } catch {
                 throw new InvalidOptionArgumentError('The path does not exist.');
             }
+
+            if (!statSync(directory).isDirectory()) {
+                throw new InvalidOptionArgumentError('The path is not a directory.');
+            }
+
+            return directory;
         })
         .addOption(
             new Option('--api-key <key>', 'The API key to use for authentication.')
@@ -457,6 +465,9 @@ export async function run(args: string[] = process.argv, welcome = true): Promis
             ? undefined
             : new URL(options.registry),
         configurationFile: options.config,
+        directories: {
+            current: options.cwd,
+        },
     });
 
     const template = getTemplate(invocation.args);
