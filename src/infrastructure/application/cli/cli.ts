@@ -379,6 +379,7 @@ import {NuxtStoryblokPlugin} from '@/application/project/sdk/nuxtStoryblokPlugin
 import {VuePluginCodemod} from '@/application/project/code/transformation/javascript/vuePluginCodemod';
 import {VueStoryblokCodemod} from '@/application/project/code/transformation/javascript/vueStoryblokCodemod';
 import {NuxtConfigModuleCodemod} from '@/application/project/code/transformation/javascript/nuxtConfigModuleCodemod';
+import {NuxtConfigParser} from '@/application/project/code/transformation/javascript/nuxtConfigParser';
 import {ViteConfigPluginCodemod} from '@/application/project/code/transformation/javascript/viteConfigPluginCodemod';
 import {
     HydrogenMiddlewareCodemod,
@@ -1901,6 +1902,7 @@ export class Cli {
                     [Platform.NUXT]: (): Sdk => new PlugNuxtSdk({
                         ...config,
                         plugins: [this.createNuxtStoryblokPlugin()],
+                        configParser: new NuxtConfigParser(),
                         userApi: this.getUserApi(),
                         applicationApi: this.getApplicationApi(),
                         commandExecutor: this.getAsynchronousCommandExecutor(),
@@ -2303,6 +2305,7 @@ export class Cli {
                                 module: '@croct/plug-storyblok/nuxt',
                                 factory: 'withCroct',
                             },
+                            pluginName: 'croct-storyblok',
                             storyblokVueModule: '@storyblok/vue',
                             nuxtAppModule: '#app',
                         }),

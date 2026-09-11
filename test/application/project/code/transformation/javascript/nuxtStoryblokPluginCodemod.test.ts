@@ -14,6 +14,7 @@ describe('NuxtStoryblokPluginCodemod', () => {
             module: '@croct/plug-storyblok/nuxt',
             factory: 'withCroct',
         },
+        pluginName: 'croct-storyblok',
         storyblokVueModule: '@storyblok/vue',
         nuxtAppModule: '#app',
     };

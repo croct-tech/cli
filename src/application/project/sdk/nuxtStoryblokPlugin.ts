@@ -49,8 +49,8 @@ export class NuxtStoryblokPlugin implements JavaScriptSdkPlugin {
     }
 
     private async scaffoldPluginFile(scope: JavaScriptPluginContext): Promise<void> {
-        const {fileSystem, projectDirectory} = scope;
-        const path = fileSystem.joinPaths(projectDirectory.get(), this.configuration.pluginFile);
+        const {fileSystem, projectDirectory, paths} = scope;
+        const path = fileSystem.joinPaths(projectDirectory.get(), paths.source, this.configuration.pluginFile);
 
         if (!await fileSystem.exists(path)) {
             await fileSystem.createDirectory(fileSystem.getDirectoryName(path), {recursive: true});
