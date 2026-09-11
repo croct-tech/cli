@@ -47,6 +47,7 @@ export type JavaScriptPluginContext = {
     packageManager: PackageManager,
     projectDirectory: WorkingDirectory,
     fileSystem: FileSystem,
+    paths: ProjectPaths,
 };
 
 export type JavaScriptSdkPlugin = {
@@ -318,13 +319,16 @@ export abstract class JavaScriptSdk implements Sdk {
         return defaultPath;
     }
 
-    private resolveInstallationPlan(installation: Installation): Promise<InstallationPlan> {
-        let promise = this.getInstallationPlan(installation);
+    private async resolveInstallationPlan(installation: Installation): Promise<InstallationPlan> {
+        const sdkPlan = await this.getInstallationPlan(installation);
         const context: JavaScriptPluginContext = {
             packageManager: this.packageManager,
             projectDirectory: this.projectDirectory,
             fileSystem: this.fileSystem,
+            paths: await this.getPaths(sdkPlan.configuration),
         };
+
+        let promise = Promise.resolve(sdkPlan);
 
         for (const plugin of this.plugins) {
             promise = promise.then(async plan => {

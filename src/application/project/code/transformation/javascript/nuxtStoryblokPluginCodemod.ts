@@ -9,6 +9,7 @@ export type NuxtStoryblokPluginConfiguration = {
         module: string,
         factory: string,
     },
+    pluginName: string,
     storyblokVueModule: string,
     nuxtAppModule: string,
 };
@@ -16,9 +17,12 @@ export type NuxtStoryblokPluginConfiguration = {
 /**
  * Scaffolds the Croct Storyblok plugin file for Nuxt.
  *
- * Generates the canonical plugin body that wires the Storyblok API into Croct
- * inside a defineNuxtPlugin callback. Leaves hand-edited files untouched: if a
- * plugin definition is already present, the codemod returns unmodified.
+ * Generates the canonical plugin that wires the Storyblok API into Croct.
+ * The plugin runs after the regular ones because the Storyblok API may be
+ * installed by an application plugin (e.g., `storyblok.ts`) rather than by
+ * the Storyblok module, and Nuxt runs application plugins in filename order.
+ * Leaves hand-edited files untouched: if the file already has a default
+ * export or a plugin definition, the codemod returns unmodified.
  */
 export class NuxtStoryblokPluginCodemod implements Codemod<t.File, CodemodOptions> {
     private readonly configuration: NuxtStoryblokPluginConfiguration;
@@ -50,7 +54,9 @@ export class NuxtStoryblokPluginCodemod implements Codemod<t.File, CodemodOption
             importName: 'defineNuxtPlugin',
         });
 
-        const pluginCallback = t.arrowFunctionExpression(
+        const setupMethod = t.objectMethod(
+            'method',
+            t.identifier('setup'),
             [t.identifier('nuxtApp')],
             t.blockStatement([
                 t.expressionStatement(
@@ -68,10 +74,16 @@ export class NuxtStoryblokPluginCodemod implements Codemod<t.File, CodemodOption
             ]),
         );
 
+        const pluginDefinition = t.objectExpression([
+            t.objectProperty(t.identifier('name'), t.stringLiteral(this.configuration.pluginName)),
+            t.objectProperty(t.identifier('enforce'), t.stringLiteral('post')),
+            setupMethod,
+        ]);
+
         const defaultExport = t.exportDefaultDeclaration(
             t.callExpression(
                 t.identifier(defineNuxtPluginImport.localName),
-                [pluginCallback],
+                [pluginDefinition],
             ),
         );
 
@@ -91,6 +103,21 @@ export class NuxtStoryblokPluginCodemod implements Codemod<t.File, CodemodOption
         let found = false;
 
         traverse(ast, {
+            // A default export is the file's plugin, whatever its form
+            ExportDefaultDeclaration: path => {
+                found = true;
+
+                path.stop();
+            },
+            ExportSpecifier: path => {
+                const {exported} = path.node;
+
+                if ((t.isIdentifier(exported) ? exported.name : exported.value) === 'default') {
+                    found = true;
+
+                    path.stop();
+                }
+            },
             CallExpression: path => {
                 const {callee} = path.node;
 

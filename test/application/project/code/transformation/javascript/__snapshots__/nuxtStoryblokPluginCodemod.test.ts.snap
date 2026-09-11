@@ -20,14 +20,89 @@ export default defineNuxtPlugin(nuxtApp => {
 "
 `;
 
+exports[`NuxtStoryblokPluginCodemod should correctly transform alreadyScaffoldedObjectSyntax.ts: alreadyScaffoldedObjectSyntax.ts 1`] = `
+"import { withCroct } from '@croct/plug-storyblok/nuxt';
+import { useStoryblokApi } from '@storyblok/vue';
+import { defineNuxtPlugin } from '#app';
+
+export default defineNuxtPlugin({
+    name: 'croct-storyblok',
+    enforce: 'post',
+    setup(nuxtApp) {
+        withCroct(nuxtApp, useStoryblokApi());
+    },
+});
+"
+`;
+
+exports[`NuxtStoryblokPluginCodemod should correctly transform defaultExportSpecifier.ts: defaultExportSpecifier.ts 1`] = `
+"const plugin = () => {};
+
+export {plugin as default};
+"
+`;
+
 exports[`NuxtStoryblokPluginCodemod should correctly transform empty.ts: empty.ts 1`] = `
 "import { defineNuxtPlugin } from "#app";
 import { useStoryblokApi } from "@storyblok/vue";
 import { withCroct } from "@croct/plug-storyblok/nuxt";
 
-export default defineNuxtPlugin(nuxtApp => {
-  withCroct(nuxtApp, useStoryblokApi());
+export default defineNuxtPlugin({
+  name: "croct-storyblok",
+  enforce: "post",
+
+  setup(nuxtApp) {
+    withCroct(nuxtApp, useStoryblokApi());
+  }
 });"
+`;
+
+exports[`NuxtStoryblokPluginCodemod should correctly transform existingDefaultExport.ts: existingDefaultExport.ts 1`] = `
+"const options = {};
+
+export default options;
+"
+`;
+
+exports[`NuxtStoryblokPluginCodemod should correctly transform importsOnly.ts: importsOnly.ts 1`] = `
+"import { defineNuxtPlugin } from "#app";
+import {withCroct} from '@croct/plug-storyblok/nuxt';
+import {useStoryblokApi} from '@storyblok/vue';
+
+export default defineNuxtPlugin({
+  name: "croct-storyblok",
+  enforce: "post",
+
+  setup(nuxtApp) {
+    withCroct(nuxtApp, useStoryblokApi());
+  }
+});
+"
+`;
+
+exports[`NuxtStoryblokPluginCodemod should correctly transform namedExport.ts: namedExport.ts 1`] = `
+"import { defineNuxtPlugin } from "#app";
+import { useStoryblokApi } from "@storyblok/vue";
+import { withCroct } from "@croct/plug-storyblok/nuxt";
+const helper = () => {};
+export {helper};
+
+export default defineNuxtPlugin({
+  name: "croct-storyblok",
+  enforce: "post",
+
+  setup(nuxtApp) {
+    withCroct(nuxtApp, useStoryblokApi());
+  }
+});
+"
+`;
+
+exports[`NuxtStoryblokPluginCodemod should correctly transform namedPluginExport.ts: namedPluginExport.ts 1`] = `
+"import {defineNuxtPlugin} from 'nuxt/app';
+
+export const plugin = defineNuxtPlugin(() => {});
+"
 `;
 
 exports[`NuxtStoryblokPluginCodemod should correctly transform partialScaffold.ts: partialScaffold.ts 1`] = `
@@ -39,13 +114,43 @@ export default defineNuxtPlugin(nuxtApp => {
 "
 `;
 
+exports[`NuxtStoryblokPluginCodemod should correctly transform stringDefaultExportSpecifier.ts: stringDefaultExportSpecifier.ts 1`] = `
+"const plugin = () => {};
+
+export {plugin as 'default'};
+"
+`;
+
+exports[`NuxtStoryblokPluginCodemod should correctly transform unrelatedCalls.ts: unrelatedCalls.ts 1`] = `
+"import { defineNuxtPlugin } from "#app";
+import { useStoryblokApi } from "@storyblok/vue";
+import { withCroct } from "@croct/plug-storyblok/nuxt";
+console.log('Croct');
+setup();
+
+export default defineNuxtPlugin({
+  name: "croct-storyblok",
+  enforce: "post",
+
+  setup(nuxtApp) {
+    withCroct(nuxtApp, useStoryblokApi());
+  }
+});
+"
+`;
+
 exports[`NuxtStoryblokPluginCodemod should correctly transform withComments.ts: withComments.ts 1`] = `
 "import { defineNuxtPlugin } from "#app";
 import { useStoryblokApi } from "@storyblok/vue";
 import { withCroct } from "@croct/plug-storyblok/nuxt";
 
-export default defineNuxtPlugin(nuxtApp => {
-  withCroct(nuxtApp, useStoryblokApi());
+export default defineNuxtPlugin({
+  name: "croct-storyblok",
+  enforce: "post",
+
+  setup(nuxtApp) {
+    withCroct(nuxtApp, useStoryblokApi());
+  }
 });
 "
 `;

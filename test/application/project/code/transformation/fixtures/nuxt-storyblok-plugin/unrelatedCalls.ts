@@ -1,0 +1,2 @@
+console.log('Croct');
+setup();

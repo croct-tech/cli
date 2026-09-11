@@ -94,7 +94,13 @@ export class NuxtConfigModuleCodemod implements Codemod<t.File, CodemodOptions> 
         return false;
     }
 
-    private static findConfig(ast: t.File): t.ObjectExpression | null {
+    /**
+     * Locates the object literal holding the Nuxt configuration.
+     *
+     * @param ast The parsed configuration file.
+     * @returns The configuration object, or null if it cannot be statically resolved.
+     */
+    public static findConfig(ast: t.File): t.ObjectExpression | null {
         const defineName = NuxtConfigModuleCodemod.resolveDefineName(ast);
 
         let configObject: t.ObjectExpression | null = null;
